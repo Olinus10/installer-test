@@ -1370,16 +1370,20 @@ if packs.read().is_none() {
     }
     
     if current_view() == "home" {
-        {
-            debug!("Rendering HomePage using current_view");
-        }
-        HomePage {
-            pages,
-            page,
-            key: "home-page"
-        }
-    } else if current_view() == "tab" {
-        if let Some(page_info) = pages().get(&selected_tab()) {
+    HomePage {
+        pages,
+        page,
+        key: "home-page"  // Change this to
+        key: "home-page".to_string()
+    }
+} else if current_view() == "tab" {
+    if let Some(page_info) = pages().get(&selected_tab()) {
+        if !page_info.modpacks.is_empty() {
+            Version {
+                installer_profile: page_info.modpacks[0].clone(),
+                error: err.clone(),
+                key: format!("version-{}", selected_tab())
+                {
             {
                 debug!("Rendering Version using current_view for tab {}", selected_tab());
                 debug!("Tab info: {:?}", page_info.title);
