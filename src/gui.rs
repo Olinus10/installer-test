@@ -877,13 +877,13 @@ fn Version(installer_profile: InstallerProfile, error: Signal<Option<String>>) -
                     // Feature cards in a responsive grid
                     div { class: "feature-cards-container",
                         for feat in installer_profile.manifest.features {
-                            {
-                                // Clone values to avoid ownership issues
-                                let feat_clone = feat.clone();
-                                let feat_id = feat.id.clone();
-                                
-                                rsx! {
-                                    if !feat.hidden {
+                            if !feat.hidden {
+                                {
+                                    // Clone values to avoid ownership issues
+                                    let feat_clone = feat.clone();
+                                    let feat_id = feat.id.clone();
+                                    
+                                    rsx! {
                                         FeatureCard {
                                             feature: feat_clone,
                                             enabled: if installer_profile.installed {
@@ -902,9 +902,6 @@ fn Version(installer_profile: InstallerProfile, error: Signal<Option<String>>) -
                                                 )
                                             }
                                         }
-                                    } else {
-                                        // Empty fragment for hidden features
-                                        ()
                                     }
                                 }
                             }
