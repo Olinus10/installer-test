@@ -1318,38 +1318,44 @@ let css_content = {
                         div { class: "loading-spinner" }
                         div { class: "loading-text", "Loading modpack information..." }
                     }
-                } else {
-                    // Add the enhanced debug statements here
-                    debug!("Current page is: {}", page());
-                    debug!("HOME_PAGE constant is: {}", HOME_PAGE);
-                    debug!("Pages map contains keys: {:?}", pages().keys().collect::<Vec<_>>());
-                    debug!("Is current page in pages map? {}", pages().contains_key(&page()));
-                    
-                    if page() == HOME_PAGE {
-                        debug!("Rendering HomePage component");
-                        HomePage {
-                            pages,
-                            page
-                        }
-                    } else if let Some(page_info) = pages().get(&page()) {
-                        debug!("Rendering Version component for page {}", page());
-                        debug!("Page info: {:?}", page_info);
-                        debug!("Modpacks count: {}", page_info.modpacks.len());
-                        
-                        if !page_info.modpacks.is_empty() {
-                            // Render the Version component with the first modpack from the current tab
-                            Version {
-                                installer_profile: page_info.modpacks[0].clone(),
-                                error: err.clone(),
-                            }
-                        } else {
-                            div { class: "loading-container",
-                                div { class: "loading-text", "No modpacks found in this tab group." }
-                            }
-                        }
-                    } else {
-                        div { class: "loading-container",
-                            div { class: "loading-text", "Tab information not found." }
+                } 
+                else {
+    {
+        debug!("Current page is: {}", page());
+        debug!("HOME_PAGE constant is: {}", HOME_PAGE);
+        debug!("Pages map contains keys: {:?}", pages().keys().collect::<Vec<_>>());
+        debug!("Is current page in pages map? {}", pages().contains_key(&page()));
+    }
+    
+    if page() == HOME_PAGE {
+        {
+            debug!("Rendering HomePage component");
+        }
+        HomePage {
+            pages,
+            page
+        }
+    } else if let Some(page_info) = pages().get(&page()) {
+        {
+            debug!("Rendering Version component for page {}", page());
+            debug!("Page info: {:?}", page_info);
+            debug!("Modpacks count: {}", page_info.modpacks.len());
+        }
+        
+        if !page_info.modpacks.is_empty() {
+            // Render the Version component with the first modpack from the current tab
+            Version {
+                installer_profile: page_info.modpacks[0].clone(),
+                error: err.clone(),
+            }
+        } else {
+            div { class: "loading-container",
+                div { class: "loading-text", "No modpacks found in this tab group." }
+            }
+        }
+    } else {
+        div { class: "loading-container",
+            div { class: "loading-text", "Tab information not found." }
                         }
                     }
                 }
