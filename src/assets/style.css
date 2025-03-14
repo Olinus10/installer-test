@@ -36,12 +36,13 @@ body {
     overflow: hidden;
 }
 
-/* Dropdown menu styles - refined version */
+/* Dropdown menu styles - with improved hover behavior */
 .dropdown {
     position: relative;
     display: inline-block;
 }
 
+/* Position the dropdown content */
 .dropdown-content {
     display: none;
     position: absolute;
@@ -59,7 +60,24 @@ body {
     border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-.dropdown:hover .dropdown-content {
+/* Show dropdown on hover with increased target area */
+.dropdown:hover .dropdown-content,
+.dropdown-content:hover {
+    display: block;
+}
+
+/* Add a pseudo-element to create an invisible connection between the button and dropdown */
+.dropdown::after {
+    content: '';
+    position: absolute;
+    height: 10px;
+    width: 100%;
+    left: 0;
+    top: 100%;
+    display: none;
+}
+
+.dropdown:hover::after {
     display: block;
 }
 
@@ -178,10 +196,10 @@ a:hover {
     flex-grow: 1;
     justify-content: center;
     flex-wrap: wrap;
-    overflow-x: visible; /* Changed from auto to visible */
+    overflow-x: visible;
     scrollbar-width: thin;
     max-width: 70%;
-    position: relative; /* Add this to establish a positioning context */
+    position: relative;
 }
 
 .compact-tabs {
