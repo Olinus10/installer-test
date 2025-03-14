@@ -1094,12 +1094,12 @@ pub(crate) fn app() -> Element {
     let config = use_signal(|| props.config);
     let settings = use_signal(|| false);
     let mut err: Signal<Option<String>> = use_signal(|| None);
-    let page = use_signal(|| usize::MAX);
+    let mut page = use_signal(|| usize::MAX);
     let pages = use_signal(BTreeMap::<usize, TabInfo>::new);
 
     // Add these new signals for view management
-    let current_view = use_signal(|| "home");
-    let selected_tab = use_signal(|| usize::MAX);
+    let mut current_view = use_signal(|| "home");
+    let mut selected_tab = use_signal(|| usize::MAX);
 
     debug!("Rendering page: {}, {:?}", page(), pages().get(&page()));
 
