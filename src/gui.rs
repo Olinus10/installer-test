@@ -1454,8 +1454,36 @@ rsx! {
                     div { class: "loading-text", "Loading modpack information..." }
                 }
             } else {
-                // Insert the dynamic UI content here
-                {ui_content}
+                // Use a nested if-else structure directly in the RSX
+                if current_view() == "home" {
+                    HomePage {
+                        pages,
+                        page,
+                        key: format!("home-page-{}", current_view())
+                    }
+                } else if current_view() == "tab" {
+                    if let Some(page_info) = pages().get(&selected_tab()) {
+                        if !page_info.modpacks.is_empty() {
+                            Version {
+                                installer_profile: page_info.modpacks[0].clone(),
+                                error: err.clone(),
+                                key: format!("version-{}", selected_tab())
+                            }
+                        } else {
+                            div { class: "loading-container",
+                                div { class: "loading-text", "No modpacks found in this tab group." }
+                            }
+                        }
+                    } else {
+                        div { class: "loading-container",
+                            div { class: "loading-text", "Selected tab not found." }
+                        }
+                    }
+                } else {
+                    div { class: "loading-container",
+                        div { class: "loading-text", "Invalid view state." }
+                    }
+                }
             }
         }
     }
