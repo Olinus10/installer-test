@@ -1098,7 +1098,7 @@ pub(crate) fn app() -> Element {
     let settings = use_signal(|| false);
     let mut err: Signal<Option<String>> = use_signal(|| None);
 
-    let page = use_signal(|| usize::MAX);
+    let mut page = use_signal(|| usize::MAX);
     let pages = use_signal(BTreeMap::<usize, TabInfo>::new);
 
     debug!("Rendering page: {}, {:?}", page(), pages().get(&page()));
