@@ -1362,20 +1362,23 @@ let css_content = {
                 error: err.clone(),
             }
         } else {
-            div { class: "loading-container",
-                div { class: "loading-text", "No modpacks found in this tab group." }
-            }
-        }
-    } else {
-        div { class: "loading-container",
-            div { class: "loading-text", "Tab information not found." }
-                        }
-                    }
+            div { 
+                class: "loading-container",
+                div { 
+                    class: "loading-text", 
+                    "No modpacks found in this tab group." 
                 }
             }
         }
+    } else {
+        div { 
+            class: "loading-container",
+            div { 
+                class: "loading-text", 
+                "Tab information not found." 
+            }
+        }
     }
-}
 }
 
 
