@@ -570,7 +570,7 @@ fn feature_change(
     
     if let Some(local_feat) = local_features.read().as_ref() {
         let modify_res = local_feat.contains(&feat.id) != enabled;
-        if modify_count.read() <= 1 {
+        if *modify_count.read() <= 1 {  // Use * to dereference
             modify.set(modify_res);
         }
         
@@ -1337,6 +1337,7 @@ let css_content = {
     }
     
     // Get a stable value for page that won't change during rendering
+{
     let current_page = page();
     
     if current_page == HOME_PAGE {
