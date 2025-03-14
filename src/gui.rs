@@ -47,13 +47,10 @@ fn HomePage(
     class: "home-pack-card",
     style: "background-image: url('{info.background}'); background-color: {info.color};",
    onclick: move |evt| {
-    evt.stop_propagation(); // Add this line
-    let current_value = page();
-    // Only update if needed to avoid unnecessary rerenders
-    if current_value != tab_index {
-        page.set(tab_index);
-        debug!("Navigating to tab {}: {}", tab_index, tab_title);
-    }
+    evt.stop_propagation();
+    // Don't check current value, just forcefully set it
+    page.set(tab_index);
+    debug!("Forcefully navigating to tab {}: {}", tab_index, tab_title);
 },
                                     div { class: "home-pack-info",
                                         h2 { class: "home-pack-title", "{modpack_subtitle}" }
@@ -1097,11 +1094,31 @@ pub(crate) fn app() -> Element {
     let config = use_signal(|| props.config);
     let settings = use_signal(|| false);
     let mut err: Signal<Option<String>> = use_signal(|| None);
+let page = use_signal(|| usize::MAX);
+let pages = use_signal(BTreeMap::<usize, TabInfo>::new);
 
-    let mut page = use_signal(|| usize::MAX);
-    let pages = use_signal(BTreeMap::<usize, TabInfo>::new);
+// Add these new signals for view management
+let current_view = use_signal(|| "home");
+let selected_tab = use_signal(|| usize::MAX);
 
-    debug!("Rendering page: {}, {:?}", page(), pages().get(&page()));
+debug!("Rendering page: {}, {:?}", page(), pages().get(&page()));
+
+// Add this effect for debugging page changes
+use_effect(move || {
+    debug!("Page changed to: {}", page());
+    debug!("Is page in pages map? {}", pages().contains_key(&page()));
+});
+
+// Add this effect to manage view state based on page changes
+use_effect(move || {
+    if page() == HOME_PAGE {
+        current_view.set("home");
+    } else if pages().contains_key(&page()) {
+        current_view.set("tab");
+        selected_tab.set(page());
+    }
+});
+
 
     let cfg = config.with(|cfg| cfg.clone());
     let launcher = match super::get_launcher(&cfg.launcher) {
@@ -1337,51 +1354,57 @@ use_effect(move || {
                 b64_id: URL_SAFE_NO_PAD.encode(props.modpack_source)
             }
         } else {
-            if packs.read().is_none() {
-                div { class: "loading-container",
-                    div { class: "loading-spinner" }
-                    div { class: "loading-text", "Loading modpack information..." }
+if packs.read().is_none() {
+    div { class: "loading-container",
+        div { class: "loading-spinner" }
+        div { class: "loading-text", "Loading modpack information..." }
+    }
+} else {
+    {
+        debug!("Current page is: {}", page());
+        debug!("Current view is: {}", current_view());
+        debug!("Selected tab is: {}", selected_tab());
+        debug!("HOME_PAGE constant is: {}", HOME_PAGE);
+        debug!("Pages map contains keys: {:?}", pages().keys().collect::<Vec<_>>());
+        debug!("Is current page in pages map? {}", pages().contains_key(&page()));
+    }
+    
+    if current_view() == "home" {
+        {
+            debug!("Rendering HomePage using current_view");
+        }
+        HomePage {
+            pages,
+            page,
+            key: "home-page"
+        }
+    } else if current_view() == "tab" {
+        if let Some(page_info) = pages().get(&selected_tab()) {
+            {
+                debug!("Rendering Version using current_view for tab {}", selected_tab());
+                debug!("Tab info: {:?}", page_info.title);
+                debug!("Modpacks count: {}", page_info.modpacks.len());
+            }
+            
+            if !page_info.modpacks.is_empty() {
+                Version {
+                    installer_profile: page_info.modpacks[0].clone(),
+                    error: err.clone(),
+                    key: format!("version-{}", selected_tab())
                 }
             } else {
-                {
-                    debug!("Current page is: {}", page());
-                    debug!("HOME_PAGE constant is: {}", HOME_PAGE);
-                    debug!("Pages map contains keys: {:?}", pages().keys().collect::<Vec<_>>());
-                    debug!("Is current page in pages map? {}", pages().contains_key(&page()));
+                div { class: "loading-container",
+                    div { class: "loading-text", "No modpacks found in this tab group." }
                 }
-                
-                if page() == HOME_PAGE {
-                    {
-                        debug!("Rendering HomePage component");
-                    }
-                    HomePage {
-                        pages,
-                        page
-                    }
-                } else if let Some(page_info) = pages().get(&page()) {
-                    {
-                        debug!("Rendering Version component for page {}", page());
-                        debug!("Page info: {:?}", page_info);
-                        debug!("Modpacks count: {}", page_info.modpacks.len());
-                    }
-                    
-                    if !page_info.modpacks.is_empty() {
-                        Version {
-                            installer_profile: page_info.modpacks[0].clone(),
-                            error: err.clone()
-                        }
-                    } else {
-                        div { class: "loading-container",
-                            div { class: "loading-text", "No modpacks found in this tab group." }
-                        }
-                    }
-                } else {
-                    div { class: "loading-container",
-                        div { class: "loading-text", "Tab information not found." }
+            }
+        } else {
+            div { class: "loading-container",
+                div { class: "loading-text", "Selected tab not found." }
                     }
                 }
             }
         }
     }
+}
 }
 }
