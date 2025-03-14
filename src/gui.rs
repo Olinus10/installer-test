@@ -1174,22 +1174,16 @@ pub(crate) fn app() -> Element {
         
         debug!("Updating CSS with: color={}, bg_image={}, secondary_font={}, primary_font={}", bg_color, bg_image, secondary_font, primary_font);
         
-        // Append the improved dropdown CSS - with fixed font-family for proper replacement
-        let base_css = css.replace("<BG_COLOR>", &bg_color)
-            .replace("<BG_IMAGE>", &bg_image)
-            .replace("<SECONDARY_FONT>", &secondary_font)
-            .replace("<PRIMARY_FONT>", &primary_font);
-            
-        // Now add the dropdown menu CSS with properly formatted font-family
-        base_css + &format!(r#"
+        // Improved dropdown menu CSS with better hover behavior and font consistency
+        let dropdown_css = "
 /* Dropdown menu styles - with improved hover behavior and font consistency */
-.dropdown {{
+.dropdown {
     position: relative;
     display: inline-block;
-}}
+}
 
 /* Position the dropdown content */
-.dropdown-content {{
+.dropdown-content {
     display: none;
     position: absolute;
     top: 100%;
@@ -1204,16 +1198,16 @@ pub(crate) fn app() -> Element {
     max-height: 400px;
     overflow-y: auto;
     border: 1px solid rgba(255, 255, 255, 0.1);
-}}
+}
 
 /* Show dropdown on hover with increased target area */
 .dropdown:hover .dropdown-content,
-.dropdown-content:hover {{
+.dropdown-content:hover {
     display: block;
-}}
+}
 
 /* Add a pseudo-element to create an invisible connection between the button and dropdown */
-.dropdown::after {{
+.dropdown::after {
     content: '';
     position: absolute;
     height: 10px;
@@ -1221,47 +1215,47 @@ pub(crate) fn app() -> Element {
     left: 0;
     top: 100%;
     display: none;
-}}
+}
 
-.dropdown:hover::after {{
+.dropdown:hover::after {
     display: block;
-}}
+}
 
-.dropdown-item {{
+.dropdown-item {
     display: block;
     width: 100%;
     padding: 10px 15px;
     text-align: left;
     background-color: transparent;
     border: none;
-    /* Directly insert the font value rather than using string replacement */
-    font-family: "{}";
+    /* Explicitly use the same font as header-tab-button */
+    font-family: \\\"PRIMARY_FONT\\\";
     font-size: 0.9rem;
     color: #fce8f6;
     cursor: pointer;
     transition: background-color 0.2s ease;
     border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-}}
+}
 
-.dropdown-item:last-child {{
+.dropdown-item:last-child {
     border-bottom: none;
-}}
+}
 
-.dropdown-item:hover {{
+.dropdown-item:hover {
     background-color: rgba(50, 6, 37, 0.8);
     border-color: rgba(255, 255, 255, 0.4);
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
-}}
+}
 
-.dropdown-item.active {{
+.dropdown-item.active {
     background-color: var(--bg-color);
     border-color: #fce8f6;
     box-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
     color: #fff;
-}}
+}
 
 /* Fix for header-tabs to prevent dropdown from affecting it */
-.header-tabs {{
+.header-tabs {
     display: flex;
     gap: 5px;
     margin: 0 10px;
@@ -1272,8 +1266,13 @@ pub(crate) fn app() -> Element {
     scrollbar-width: thin;
     max-width: 70%;
     position: relative;
-}}
-"#, primary_font)
+}";
+        
+        css
+            .replace("<BG_COLOR>", &bg_color)
+            .replace("<BG_IMAGE>", &bg_image)
+            .replace("<SECONDARY_FONT>", &secondary_font)
+            .replace("<PRIMARY_FONT>", &primary_font) + dropdown_css
     };
 
     let mut modal_context = use_context_provider(ModalContext::default);
@@ -1289,11 +1288,11 @@ pub(crate) fn app() -> Element {
     // Determine which logo to use
     let logo_url = Some("https://raw.githubusercontent.com/Wynncraft-Overhaul/installer/master/src/assets/icon.png".to_string());
 
-    // The main RSX structure - completely rewritten with proper delimiters
     rsx! {
-        style { "{css_content}" },
-        Modal {},
-        
+        style { "{css_content}" }
+
+        Modal {}
+
         // Always render AppHeader if we're past the initial launcher selection or in settings
         if !config.read().first_launch.unwrap_or(true) && launcher.is_some() && !*settings.read() {
             AppHeader {
@@ -1302,10 +1301,9 @@ pub(crate) fn app() -> Element {
                 settings,
                 logo_url
             }
-        },
-        
-        div { 
-            class: "main-container",
+        }
+
+        div { class: "main-container",
             if settings() {
                 Settings {
                     config,
@@ -1323,12 +1321,12 @@ pub(crate) fn app() -> Element {
                 }
             } else {
                 if packs.read().is_none() {
-                    div { 
-                        class: "loading-container",
-                        div { class: "loading-spinner" },
+                    div { class: "loading-container",
+                        div { class: "loading-spinner" }
                         div { class: "loading-text", "Loading modpack information..." }
                     }
-                } else {
+                } 
+                else {
                     {
                         debug!("Current page is: {}", page());
                         debug!("HOME_PAGE constant is: {}", HOME_PAGE);
@@ -1336,40 +1334,35 @@ pub(crate) fn app() -> Element {
                         debug!("Is current page in pages map? {}", pages().contains_key(&page()));
                     }
                     
-                    {
-                        let current_page = page();
+                    if page() == HOME_PAGE {
+                        {
+                            debug!("Rendering HomePage component");
+                        }
+                        HomePage {
+                            pages,
+                            page
+                        }
+                    } else if let Some(page_info) = pages().get(&page()) {
+                        {
+                            debug!("Rendering Version component for page {}", page());
+                            debug!("Page info: {:?}", page_info);
+                            debug!("Modpacks count: {}", page_info.modpacks.len());
+                        }
                         
-                        if current_page == HOME_PAGE {
-                            HomePage {
-                                pages,
-                                page
-                            }
-                        } else if let Some(page_info) = pages().get(&current_page) {
-                            {
-                                debug!("Rendering Version component for page {}", current_page);
-                                debug!("Page info title: {}", page_info.title);
-                                debug!("Modpacks count: {}", page_info.modpacks.len());
-                            }
-                            
-                            if !page_info.modpacks.is_empty() {
-                                // Render the Version component with the first modpack from the current tab
-                                Version {
-                                    installer_profile: page_info.modpacks[0].clone(),
-                                    error: err.clone()
-                                }
-                            } else {
-                                div { 
-                                    class: "loading-container",
-                                    div { class: "loading-spinner" },
-                                    div { class: "loading-text", "No modpacks found in this tab group." }
-                                }
+                        if !page_info.modpacks.is_empty() {
+                            // Render the Version component with the first modpack from the current tab
+                            Version {
+                                installer_profile: page_info.modpacks[0].clone(),
+                                error: err.clone()
                             }
                         } else {
-                            div { 
-                                class: "loading-container",
-                                div { class: "loading-spinner" },
-                                div { class: "loading-text", "Tab information not found." }
+                            div { class: "loading-container",
+                                div { class: "loading-text", "No modpacks found in this tab group." }
                             }
+                        }
+                    } else {
+                        div { class: "loading-container",
+                            div { class: "loading-text", "Tab information not found." }
                         }
                     }
                 }
