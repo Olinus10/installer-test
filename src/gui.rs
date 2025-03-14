@@ -1387,3 +1387,4 @@ let css_content = {
         }
     }
 }
+}
