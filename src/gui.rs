@@ -1207,40 +1207,28 @@ pub(crate) fn app() -> Element {
                         div { class: "loading-spinner" }
                         div { class: "loading-text", "Loading modpack information..." }
                     }
-                } 
-                else {
-    if packs.read().is_none() {
-        div { class: "loading-container",
-            div { class: "loading-spinner" }
-            div { class: "loading-text", "Loading modpack information..." }
-        }
-    } else if page() == HOME_PAGE {
-        HomePage {
-            pages,
-            page
-        }
-    } else {
-        // Get current page info
-        if let Some(page_info) = pages().get(&page()) {
-            // Check if the page has modpacks
-            if !page_info.modpacks.is_empty() {
-                // Get the first modpack in the current tab group
-                let installer_profile = &page_info.modpacks[0].clone();
-                
-                Version {
-                    installer_profile: installer_profile.clone(),
-                    error: err.clone(),
+                } else if page() == HOME_PAGE {
+                    HomePage {
+                        pages,
+                        page
+                    }
+                } else if let Some(page_info) = pages().get(&page()) {
+                    if !page_info.modpacks.is_empty() {
+                        // Render the Version component with the first modpack from the current tab
+                        Version {
+                            installer_profile: page_info.modpacks[0].clone(),
+                            error: err.clone(),
+                        }
+                    } else {
+                        div { class: "loading-container",
+                            div { class: "loading-text", "No modpacks found in this tab group." }
+                        }
+                    }
+                } else {
+                    div { class: "loading-container",
+                        div { class: "loading-text", "Tab information not found." }
+                    }
                 }
-            } else {
-                // Fallback if no modpacks in this tab group
-                div { class: "loading-container",
-                    div { class: "loading-text", "No modpacks found in this tab group." }
-                }
-            }
-        } else {
-            // Fallback if page doesn't exist
-            div { class: "loading-container",
-                div { class: "loading-text", "Tab information not found." }
             }
         }
     }
