@@ -1020,9 +1020,10 @@ fn AppHeader(
                     })
                 }
                 
-                // Dropdown for remaining tabs
+                // Dropdown for remaining tabs - placed outside the flow to avoid affecting scrolling
                 if has_dropdown {
-                    div { class: "dropdown",
+                    div { 
+                        class: "dropdown",
                         button {
                             class: if any_dropdown_active { 
                                 "header-tab-button active" 
@@ -1031,7 +1032,8 @@ fn AppHeader(
                             },
                             "More ▼"
                         }
-                        div { class: "dropdown-content",
+                        div { 
+                            class: "dropdown-content",
                             {
                                 dropdown_tab_indices.iter().enumerate().map(|(i, &index)| {
                                     let title = dropdown_tab_titles[i].clone();
@@ -1165,9 +1167,9 @@ let css_content = {
     
     debug!("Updating CSS with: color={}, bg_image={}, secondary_font={}, primary_font={}", bg_color, bg_image, secondary_font, primary_font);
     
-    // Add dropdown menu CSS 
+    // Improved dropdown menu CSS
     let dropdown_css = "
-/* Dropdown menu styles */
+/* Dropdown menu styles - refined version */
 .dropdown {
     position: relative;
     display: inline-block;
@@ -1176,15 +1178,18 @@ let css_content = {
 .dropdown-content {
     display: none;
     position: absolute;
-    background-color: rgba(0, 0, 0, 0.8);
-    min-width: 160px;
-    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
+    top: 100%;
+    left: 0;
+    background-color: rgba(0, 0, 0, 0.9);
+    min-width: 200px;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.6);
     z-index: 1000;
     border-radius: 4px;
     overflow: hidden;
     margin-top: 5px;
     max-height: 400px;
     overflow-y: auto;
+    border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .dropdown:hover .dropdown-content {
@@ -1194,7 +1199,7 @@ let css_content = {
 .dropdown-item {
     display: block;
     width: 100%;
-    padding: 8px 12px;
+    padding: 10px 15px;
     text-align: left;
     background-color: transparent;
     border: none;
@@ -1203,6 +1208,11 @@ let css_content = {
     color: #fce8f6;
     cursor: pointer;
     transition: background-color 0.2s ease;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.dropdown-item:last-child {
+    border-bottom: none;
 }
 
 .dropdown-item:hover {
@@ -1212,6 +1222,20 @@ let css_content = {
 .dropdown-item.active {
     background-color: var(--bg-color);
     color: #fff;
+}
+
+/* Fix for header-tabs to prevent dropdown from affecting it */
+.header-tabs {
+    display: flex;
+    gap: 5px;
+    margin: 0 10px;
+    flex-grow: 1;
+    justify-content: center;
+    flex-wrap: wrap;
+    overflow-x: visible;
+    scrollbar-width: thin;
+    max-width: 70%;
+    position: relative;
 }";
     
     css
@@ -1220,7 +1244,6 @@ let css_content = {
         .replace("<SECONDARY_FONT>", &secondary_font)
         .replace("<PRIMARY_FONT>", &primary_font) + dropdown_css
 };
-
 
     let mut modal_context = use_context_provider(ModalContext::default);
     if let Some(e) = err() {
