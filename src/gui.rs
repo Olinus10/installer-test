@@ -1348,34 +1348,41 @@ pub(crate) fn app() -> Element {
                                 page
                             }
                         } else if let Some(page_info) = pages().get(&current_page) {
-                            {
-                                debug!("Rendering Version component for page {}", current_page);
-                                debug!("Page info title: {}", page_info.title);
-                                debug!("Modpacks count: {}", page_info.modpacks.len());
-                            }
-                            
-                            if !page_info.modpacks.is_empty() {
-                                // Render the Version component with the first modpack from the current tab
-                                Version {
-                                    installer_profile: page_info.modpacks[0].clone(),
-                                    error: err.clone()
-                                }
-                            } else {
+    {
+        debug!("Rendering Version component for page {}", current_page);
+        debug!("Page info title: {}", page_info.title);
+        debug!("Modpacks count: {}", page_info.modpacks.len());
+    }
+    
+    if !page_info.modpacks.is_empty() {
+        // Render the Version component with the first modpack from the current tab
+        Version {
+            installer_profile: page_info.modpacks[0].clone(),
+            error: err.clone()
+        }
+    } else {
         div { 
             class: "loading-container",
-            div { class: "loading-spinner" },  // Added comma here
+            // Child divs with correct comma placement
+            div { 
+                class: "loading-spinner" 
+            },  // Comma after the CLOSING brace of each child except the last
             div { 
                 class: "loading-text", 
                 "No modpacks found in this tab group."
-            }
+            }  // No comma after the last child
         }
     }
-                        } else {
-                            div { 
-                                class: "loading-container",
-                                div { 
-                                    class: "loading-text", 
-                                    "Tab information not found."
+} else {
+    div { 
+        class: "loading-container",
+        // Child divs with correct comma placement
+        div { 
+            class: "loading-spinner" 
+        },  // Comma after the CLOSING brace of each child except the last
+        div { 
+            class: "loading-text", 
+            "Tab information not found."
                                 }
                             }
                         }
