@@ -1175,16 +1175,22 @@ let css_content = {
     
     debug!("Updating CSS with: color={}, bg_image={}, secondary_font={}, primary_font={}", bg_color, bg_image, secondary_font, primary_font);
     
-    // Improved dropdown menu CSS with better hover behavior and font consistency
-    let dropdown_css = "
+    // Append the improved dropdown CSS - with fixed font-family for proper replacement
+    let base_css = css.replace("<BG_COLOR>", &bg_color)
+        .replace("<BG_IMAGE>", &bg_image)
+        .replace("<SECONDARY_FONT>", &secondary_font)
+        .replace("<PRIMARY_FONT>", &primary_font);
+        
+    // Now add the dropdown menu CSS with properly formatted font-family
+    base_css + &format!(r#"
 /* Dropdown menu styles - with improved hover behavior and font consistency */
-.dropdown {
+.dropdown {{
     position: relative;
     display: inline-block;
-}
+}}
 
 /* Position the dropdown content */
-.dropdown-content {
+.dropdown-content {{
     display: none;
     position: absolute;
     top: 100%;
@@ -1199,16 +1205,16 @@ let css_content = {
     max-height: 400px;
     overflow-y: auto;
     border: 1px solid rgba(255, 255, 255, 0.1);
-}
+}}
 
 /* Show dropdown on hover with increased target area */
 .dropdown:hover .dropdown-content,
-.dropdown-content:hover {
+.dropdown-content:hover {{
     display: block;
-}
+}}
 
 /* Add a pseudo-element to create an invisible connection between the button and dropdown */
-.dropdown::after {
+.dropdown::after {{
     content: '';
     position: absolute;
     height: 10px;
@@ -1216,47 +1222,47 @@ let css_content = {
     left: 0;
     top: 100%;
     display: none;
-}
+}}
 
-.dropdown:hover::after {
+.dropdown:hover::after {{
     display: block;
-}
+}}
 
-.dropdown-item {
+.dropdown-item {{
     display: block;
     width: 100%;
     padding: 10px 15px;
     text-align: left;
     background-color: transparent;
     border: none;
-    /* Explicitly use the same font as header-tab-button */
-    font-family: \\\"PRIMARY_FONT\\\";
+    /* Directly insert the font value rather than using string replacement */
+    font-family: "{}";
     font-size: 0.9rem;
     color: #fce8f6;
     cursor: pointer;
     transition: background-color 0.2s ease;
     border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-}
+}}
 
-.dropdown-item:last-child {
+.dropdown-item:last-child {{
     border-bottom: none;
-}
+}}
 
-.dropdown-item:hover {
+.dropdown-item:hover {{
     background-color: rgba(50, 6, 37, 0.8);
     border-color: rgba(255, 255, 255, 0.4);
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
-}
+}}
 
-.dropdown-item.active {
+.dropdown-item.active {{
     background-color: var(--bg-color);
     border-color: #fce8f6;
     box-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
     color: #fff;
-}
+}}
 
 /* Fix for header-tabs to prevent dropdown from affecting it */
-.header-tabs {
+.header-tabs {{
     display: flex;
     gap: 5px;
     margin: 0 10px;
@@ -1267,13 +1273,8 @@ let css_content = {
     scrollbar-width: thin;
     max-width: 70%;
     position: relative;
-}";
-    
-    css
-        .replace("<BG_COLOR>", &bg_color)
-        .replace("<BG_IMAGE>", &bg_image)
-        .replace("<SECONDARY_FONT>", &secondary_font)
-        .replace("<PRIMARY_FONT>", &primary_font) + dropdown_css
+}}
+"#, primary_font)
 };
 
      let mut modal_context = use_context_provider(ModalContext::default);
