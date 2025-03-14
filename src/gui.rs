@@ -1361,14 +1361,15 @@ pub(crate) fn app() -> Element {
                                     error: err.clone()
                                 }
                             } else {
-                                div { 
-                                    class: "loading-container",
-                                    div { 
-                                        class: "loading-text", 
-                                        "No modpacks found in this tab group."
-                                    }
-                                }
-                            }
+        div { 
+            class: "loading-container",
+            div { class: "loading-spinner" },  // Added comma here
+            div { 
+                class: "loading-text", 
+                "No modpacks found in this tab group."
+            }
+        }
+    }
                         } else {
                             div { 
                                 class: "loading-container",
