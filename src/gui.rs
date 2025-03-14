@@ -1167,9 +1167,9 @@ let css_content = {
     
     debug!("Updating CSS with: color={}, bg_image={}, secondary_font={}, primary_font={}", bg_color, bg_image, secondary_font, primary_font);
     
-    // Improved dropdown menu CSS with better hover behavior
+    // Improved dropdown menu CSS with better hover behavior and font consistency
     let dropdown_css = "
-/* Dropdown menu styles - with improved hover behavior */
+/* Dropdown menu styles - with improved hover behavior and font consistency */
 .dropdown {
     position: relative;
     display: inline-block;
@@ -1221,6 +1221,7 @@ let css_content = {
     text-align: left;
     background-color: transparent;
     border: none;
+    /* Explicitly use the same font as header-tab-button */
     font-family: \\\"PRIMARY_FONT\\\";
     font-size: 0.9rem;
     color: #fce8f6;
@@ -1235,10 +1236,14 @@ let css_content = {
 
 .dropdown-item:hover {
     background-color: rgba(50, 6, 37, 0.8);
+    border-color: rgba(255, 255, 255, 0.4);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
 }
 
 .dropdown-item.active {
     background-color: var(--bg-color);
+    border-color: #fce8f6;
+    box-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
     color: #fff;
 }
 
@@ -1263,7 +1268,7 @@ let css_content = {
         .replace("<PRIMARY_FONT>", &primary_font) + dropdown_css
 };
 
-    let mut modal_context = use_context_provider(ModalContext::default);
+     let mut modal_context = use_context_provider(ModalContext::default);
     if let Some(e) = err() {
         modal_context.open("Error", rsx! {
             p {
@@ -1313,26 +1318,39 @@ let css_content = {
                         div { class: "loading-spinner" }
                         div { class: "loading-text", "Loading modpack information..." }
                     }
-                } else if page() == HOME_PAGE {
-                    HomePage {
-                        pages,
-                        page
-                    }
-                } else if let Some(page_info) = pages().get(&page()) {
-                    if !page_info.modpacks.is_empty() {
-                        // Render the Version component with the first modpack from the current tab
-                        Version {
-                            installer_profile: page_info.modpacks[0].clone(),
-                            error: err.clone(),
+                } else {
+                    // Add the enhanced debug statements here
+                    debug!("Current page is: {}", page());
+                    debug!("HOME_PAGE constant is: {}", HOME_PAGE);
+                    debug!("Pages map contains keys: {:?}", pages().keys().collect::<Vec<_>>());
+                    debug!("Is current page in pages map? {}", pages().contains_key(&page()));
+                    
+                    if page() == HOME_PAGE {
+                        debug!("Rendering HomePage component");
+                        HomePage {
+                            pages,
+                            page
+                        }
+                    } else if let Some(page_info) = pages().get(&page()) {
+                        debug!("Rendering Version component for page {}", page());
+                        debug!("Page info: {:?}", page_info);
+                        debug!("Modpacks count: {}", page_info.modpacks.len());
+                        
+                        if !page_info.modpacks.is_empty() {
+                            // Render the Version component with the first modpack from the current tab
+                            Version {
+                                installer_profile: page_info.modpacks[0].clone(),
+                                error: err.clone(),
+                            }
+                        } else {
+                            div { class: "loading-container",
+                                div { class: "loading-text", "No modpacks found in this tab group." }
+                            }
                         }
                     } else {
                         div { class: "loading-container",
-                            div { class: "loading-text", "No modpacks found in this tab group." }
+                            div { class: "loading-text", "Tab information not found." }
                         }
-                    }
-                } else {
-                    div { class: "loading-container",
-                        div { class: "loading-text", "Tab information not found." }
                     }
                 }
             }
