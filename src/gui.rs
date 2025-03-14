@@ -1368,40 +1368,44 @@ pub(crate) fn app() -> Element {
                         debug!("Is current page in pages map? {}", pages().contains_key(&page()));
                     }
                     
-                    if current_view() == "home" {
-                        let home_page_key = format!("home-page-{}", current_view());
-rsx! {
-    HomePage {
-        pages,
-        page,
-        key: "{home_page_key}"
+                    
+if current_view() == "home" {
+    let home_page_key = format!("home-page-{}", current_view());
+    rsx! {
+        HomePage {
+            pages,
+            page,
+            key: "{home_page_key}"
+        }
     }
-}
-                    } else if current_view() == "tab" {
-                        if let Some(page_info) = pages().get(&selected_tab()) {
-                            {
-                                debug!("Rendering Version using current_view for tab {}", selected_tab());
-                                debug!("Tab info: {:?}", page_info.title);
-                                debug!("Modpacks count: {}", page_info.modpacks.len());
-                            }
-                            
-                            if !page_info.modpacks.is_empty() {
-                                let version_key = format!("version-{}", selected_tab());
-rsx! {
-    Version {
-        installer_profile: page_info.modpacks[0].clone(),
-        error: err.clone(),
-        key: "{version_key}"
-    }
-}
-                            } else {
-                                div { class: "loading-container",
-                                    div { class: "loading-text", "No modpacks found in this tab group." }
-                                }
-                            }
-                        } else {
-                            div { class: "loading-container",
-                                div { class: "loading-text", "Selected tab not found." }
+} else if current_view() == "tab" {
+    if let Some(page_info) = pages().get(&selected_tab()) {
+        {
+            debug!("Rendering Version using current_view for tab {}", selected_tab());
+            debug!("Tab info: {:?}", page_info.title);
+            debug!("Modpacks count: {}", page_info.modpacks.len());
+        }
+        
+        if !page_info.modpacks.is_empty() {
+            let version_key = format!("version-{}", selected_tab());
+            rsx! {
+                Version {
+                    installer_profile: page_info.modpacks[0].clone(),
+                    error: err.clone(),
+                    key: "{version_key}"
+                }
+            }
+        } else {
+            rsx! {
+                div { class: "loading-container",
+                    div { class: "loading-text", "No modpacks found in this tab group." }
+                }
+            }
+        }
+    } else {
+        rsx! {
+            div { class: "loading-container",
+                div { class: "loading-text", "Selected tab not found." }
                             }
                         }
                     }
@@ -1409,4 +1413,5 @@ rsx! {
             }
         }
     }
+}
 }
