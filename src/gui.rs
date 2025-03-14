@@ -1372,7 +1372,7 @@ pub(crate) fn app() -> Element {
                         HomePage {
                             pages,
                             page,
-                            key: "home-page".to_string()
+                            key: {format!("home-page-{}", current_view())}
                         }
                     } else if current_view() == "tab" {
                         if let Some(page_info) = pages().get(&selected_tab()) {
