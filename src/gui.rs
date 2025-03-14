@@ -1,5 +1,5 @@
 use std::{collections::BTreeMap, path::PathBuf};
-use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine}; // Added the Engine trait here
+use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine};
 use dioxus::prelude::*;
 use futures::StreamExt;
 use log::{error, debug};
@@ -47,7 +47,6 @@ fn HomePage(
                                     class: "home-pack-card",
                                     style: "background-image: url('{info.background}'); background-color: {info.color};",
                                     onclick: move |_| {
-                                        // Direct page change without complex state management
                                         page.set(tab_index);
                                         debug!("Navigating to tab {}: {}", tab_index, tab_title);
                                     },
@@ -64,9 +63,7 @@ fn HomePage(
         }
     }
 }
-// Special value for home page
 const HOME_PAGE: usize = usize::MAX;
-
 
 #[component]
 fn ProgressView(value: i64, max: i64, status: String, title: String) -> Element {
@@ -585,94 +582,49 @@ fn feature_change(
     }
 }
 
-async fn init_branch(source: String, branch: String, launcher: Launcher, mut pages: Signal<BTreeMap<usize, TabInfo>>) -> Result<(), String> {
-    debug!("Initializing modpack from source: {}, branch: {}", source, branch);
+// Converts branch info into TabInfo structure - only processes once
+async fn process_branch(source: String, branch: String, launcher: Launcher) -> Result<(usize, InstallerProfile), String> {
+    debug!("Processing branch: source={}, branch={}", source, branch);
     let profile = crate::init(source.to_owned(), branch.to_owned(), launcher).await?;
 
-    // Process manifest data for tab information
-    debug!("Processing manifest tab information:");
-    debug!("  subtitle: {}", profile.manifest.subtitle);
-    debug!("  description length: {}", profile.manifest.description.len());
-
-    let tab_group = if let Some(tab_group) = profile.manifest.tab_group {
-        debug!("  tab_group: {}", tab_group);
-        tab_group
-    } else {
-        debug!("  tab_group: None, defaulting to 0");
-        0
-    };
-
-    // Check if this profile already exists in the tab group
-    let profile_exists = pages.read().get(&tab_group)
-        .map_or(false, |tab_info| tab_info.modpacks.iter()
-            .any(|p| p.modpack_branch == profile.modpack_branch && p.modpack_source == profile.modpack_source));
-            
-    if profile_exists {
-        debug!("Profile already exists in tab_group {}, skipping", tab_group);
-        return Ok(());
-    }
-
-    let tab_created = pages.read().contains_key(&tab_group);
+    let tab_group = profile.manifest.tab_group.unwrap_or(0);
     
-    // Use a consistent font for all tabs/components - use the Wynncraft Game Font
-    let consistent_font = "https://raw.githubusercontent.com/Wynncraft-Overhaul/installer/master/src/assets/Wynncraft_Game_Font.woff2".to_string();
+    debug!("Tab group for branch {} is {}", branch, tab_group);
     
-    // Create the tab if it doesn't exist
-    if !tab_created {
-        let tab_title = if let Some(ref tab_title) = profile.manifest.tab_title {
-            debug!("  tab_title: {}", tab_title);
-            tab_title.clone()
-        } else {
-            debug!("  tab_title: None, using subtitle");
-            profile.manifest.subtitle.clone()
-        };
+    Ok((tab_group, profile))
+}
 
-        let tab_color = if let Some(ref tab_color) = profile.manifest.tab_color {
-            debug!("  tab_color: {}", tab_color);
-            tab_color.clone()
-        } else {
-            debug!("  tab_color: None, defaulting to '#320625'");
-            String::from("#320625")
-        };
+#[derive(PartialEq, Props, Clone)]
+struct VersionProps {
+    installer_profile: InstallerProfile,
+    error: Signal<Option<String>>,
+}
 
-        let tab_background = if let Some(ref tab_background) = profile.manifest.tab_background {
-            debug!("  tab_background: {}", tab_background);
-            tab_background.clone()
-        } else {
-            let default_bg = "https://raw.githubusercontent.com/Wynncraft-Overhaul/installer/master/src/assets/background_installer.png";
-            debug!("  tab_background: None, defaulting to '{}'", default_bg);
-            String::from(default_bg)
-        };
+#[derive(Clone)]
+pub(crate) struct AppProps {
+    pub branches: Vec<super::GithubBranch>,
+    pub modpack_source: String,
+    pub config: super::Config,
+    pub config_path: PathBuf,
+}
 
-        // Use a consistent background for settings - home background
-        let settings_background = "https://raw.githubusercontent.com/Wynncraft-Overhaul/installer/master/src/assets/background_installer.png".to_string();
-
-        // Use a consistent font for all purposes
-        let tab_info = TabInfo {
-            color: tab_color,
-            title: tab_title,
-            background: tab_background,
-            settings_background,
-            primary_font: consistent_font.clone(),
-            secondary_font: consistent_font.clone(),
-            modpacks: vec![profile.clone()], // Add the profile immediately
-        };
-        
-        pages.write().insert(tab_group, tab_info);
-        debug!("Created tab_group {} with profile {}", tab_group, branch);
-    } else {
-        // Add the profile to an existing tab
-        pages.write().entry(tab_group).and_modify(|tab_info| {
-            tab_info.modpacks.push(profile.clone());
-            debug!("Added profile {} to existing tab_group {}", branch, tab_group);
-        });
-    }
-
-    Ok(())
+#[derive(PartialEq, Props, Clone)]
+struct VersionProps {
+    installer_profile: InstallerProfile,
+    error: Signal<Option<String>>,
+    current_page: usize,
+    tab_group: usize,
 }
 
 #[component]
-fn Version(installer_profile: InstallerProfile, error: Signal<Option<String>>) -> Element {
+fn Version(props: VersionProps) -> Element {
+    let installer_profile = props.installer_profile.clone();
+    
+    // Only render this component if its tab_group matches the current page
+    if props.current_page != props.tab_group {
+        return None;
+    }
+    
     debug!("Rendering Version component for '{}' (source: {}, branch: {})",
            installer_profile.manifest.subtitle,
            installer_profile.modpack_source,
@@ -684,7 +636,7 @@ fn Version(installer_profile: InstallerProfile, error: Signal<Option<String>>) -
     let mut modify = use_signal(|| false);
     let mut modify_count = use_signal(|| 0);
 
-    // Fix: Initialize enabled_features properly
+    // Initialize enabled_features properly
     let enabled_features = use_signal(|| {
         let mut features = vec!["default".to_string()];
         
@@ -719,6 +671,7 @@ fn Version(installer_profile: InstallerProfile, error: Signal<Option<String>>) -
     });
     
     let movable_profile = installer_profile.clone();
+    let error = props.error.clone();
     let on_submit = move |_| {
         // Calculate total items to process for progress tracking
         *install_item_amount.write() = movable_profile.manifest.mods.len()
@@ -940,69 +893,7 @@ fn Version(installer_profile: InstallerProfile, error: Signal<Option<String>>) -
             }
         }
     }
-}
-// New header component with tabs
-#[component]
-fn AppHeader(
-    page: Signal<usize>, 
-    pages: Signal<BTreeMap<usize, TabInfo>>,
-    settings: Signal<bool>,
-    logo_url: Option<String>
-) -> Element {
-    // Log what tabs we have available
-    debug!("Rendering AppHeader with {} tabs", pages().len());
-    for (index, info) in pages().iter() {
-        debug!("  Tab {}: title={}", index, info.title);
-    }
-    
-    // We need to collect the info we need from pages() into local structures
-    // to avoid lifetime issues
-    let mut main_tab_indices = vec![];
-    let mut main_tab_titles = vec![];
-    let mut dropdown_tab_indices = vec![];
-    let mut dropdown_tab_titles = vec![];
-    
-    // Separate tab groups into main tabs (0, 1, 2) and dropdown tabs (3+)
-    for (index, info) in pages().iter() {
-        if *index <= 2 {
-            main_tab_indices.push(*index);
-            main_tab_titles.push(info.title.clone());
-        } else {
-            dropdown_tab_indices.push(*index);
-            dropdown_tab_titles.push(info.title.clone());
-        }
-    }
-    
-    let has_dropdown = !dropdown_tab_indices.is_empty();
-    let any_dropdown_active = dropdown_tab_indices.iter().any(|idx| page() == *idx);
-  
-    rsx!(
-        header { class: "app-header",
-            // Logo (if available) serves as home button
-            if let Some(url) = logo_url {
-                img { 
-                    class: "app-logo", 
-                    src: "{url}", 
-                    alt: "Logo",
-                    onclick: move |_| {
-                        page.set(HOME_PAGE);
-                        debug!("Navigating to home page via logo");
-                    },
-                    style: "cursor: pointer;"
-                }
-            }
-            
-            h1 { 
-                class: "app-title", 
-                onclick: move |_| {
-                    page.set(HOME_PAGE);
-                    debug!("Navigating to home page via title");
-                },
-                style: "cursor: pointer;",
-                "Modpack Installer" 
-            }
-            
-            // Tabs from pages - show only if we have pages
+} show only if we have pages
             div { class: "header-tabs",
                 // Home tab
                 button {
@@ -1096,30 +987,11 @@ pub(crate) fn app() -> Element {
     let config = use_signal(|| props.config);
     let settings = use_signal(|| false);
     let mut err: Signal<Option<String>> = use_signal(|| None);
-    let mut page = use_signal(|| usize::MAX);
+    let page = use_signal(|| HOME_PAGE);
     let pages = use_signal(BTreeMap::<usize, TabInfo>::new);
 
-    // Add these new signals for view management
-    let mut current_view = use_signal(|| "home");
-    let mut selected_tab = use_signal(|| usize::MAX);
-
-    debug!("Rendering page: {}, {:?}", page(), pages().get(&page()));
-
-    // Add this effect for debugging page changes
-    use_effect(move || {
-        debug!("Page changed to: {}", page());
-        debug!("Is page in pages map? {}", pages().contains_key(&page()));
-    });
-
-    // Add this effect to manage view state based on page changes
-    use_effect(move || {
-        if page() == HOME_PAGE {
-            current_view.set("home");
-        } else if pages().contains_key(&page()) {
-            current_view.set("tab");
-            selected_tab.set(page());
-        }
-    });
+    debug!("Rendering app with current page: {}", page());
+    debug!("Pages map contains keys: {:?}", pages().keys().collect::<Vec<_>>());
 
     let cfg = config.with(|cfg| cfg.clone());
     let launcher = match super::get_launcher(&cfg.launcher) {
@@ -1133,34 +1005,83 @@ pub(crate) fn app() -> Element {
         },
     };
 
-    let packs: Resource<()> = {
+    // Process all branches only once on initial load
+    let processed_branches_resource: Resource<Vec<(usize, InstallerProfile)>> = {
         let source = props.modpack_source.clone();
         let branches = branches.clone();
         let launcher = launcher.clone();
+        
         use_resource(move || {
+            debug!("Processing {} branches from source: {}", branches.len(), source);
             let source = source.clone();
             let branches = branches.clone();
             let launcher = launcher.clone();
-            debug!("Loading {} branches from source: {}", branches.len(), source);
+            
             async move {
-                let source = source.clone();
-                let branches = branches.clone();
-                let launcher = launcher.clone();
-                // Process branches concurrently
+                let mut results = Vec::new();
+                
                 if let Some(launcher) = launcher {
-                    futures::stream::iter(branches.iter().map(|x| {
-                        init_branch(source.clone(), x.name.clone(), launcher.clone(), pages.clone())
-                    }))
-                    .for_each_concurrent(usize::MAX, |fut| async {
-                        match fut.await {
-                            Ok(_) => {},
-                            Err(e) => error!("Failed to initialize branch: {}", e),
+                    let branch_futures = branches.iter().map(|branch| {
+                        process_branch(source.clone(), branch.name.clone(), launcher.clone())
+                    });
+                    
+                    let branch_results = futures::future::join_all(branch_futures).await;
+                    
+                    for result in branch_results {
+                        if let Ok(branch_info) = result {
+                            results.push(branch_info);
                         }
-                    }).await;
+                    }
                 }
+                
+                results
             }
         })
     };
+
+    // Build tabs map when branches are processed
+    use_effect(move || {
+        if let Some(branch_results) = processed_branches_resource.read() {
+            debug!("Building tabs map from {} processed branches", branch_results.len());
+            
+            // Create a new map to avoid repeated insertions in reactive context
+            let mut new_pages_map = BTreeMap::new();
+            
+            for (tab_group, profile) in branch_results {
+                let tab_title = profile.manifest.tab_title.clone().unwrap_or_else(|| profile.manifest.subtitle.clone());
+                let tab_color = profile.manifest.tab_color.clone().unwrap_or_else(|| String::from("#320625"));
+                let tab_background = profile.manifest.tab_background.clone().unwrap_or_else(|| {
+                    String::from("https://raw.githubusercontent.com/Wynncraft-Overhaul/installer/master/src/assets/background_installer.png")
+                });
+                let settings_background = profile.manifest.settings_background.clone().unwrap_or_else(|| tab_background.clone());
+                let primary_font = profile.manifest.tab_primary_font.clone().unwrap_or_else(|| {
+                    String::from("https://raw.githubusercontent.com/Wynncraft-Overhaul/installer/master/src/assets/Wynncraft_Game_Font.woff2")
+                });
+                let secondary_font = profile.manifest.tab_secondary_font.clone().unwrap_or_else(|| primary_font.clone());
+                
+                // Add profile to existing tab or create new tab
+                if let Some(tab_info) = new_pages_map.get_mut(&tab_group) {
+                    if !tab_info.modpacks.iter().any(|p| p.modpack_branch == profile.modpack_branch) {
+                        tab_info.modpacks.push(profile);
+                    }
+                } else {
+                    new_pages_map.insert(tab_group, TabInfo {
+                        color: tab_color,
+                        title: tab_title,
+                        background: tab_background,
+                        settings_background,
+                        primary_font,
+                        secondary_font,
+                        modpacks: vec![profile],
+                    });
+                }
+            }
+            
+            // Only update once with the complete map
+            pages.set(new_pages_map);
+            debug!("Updated pages map with {} tabs", pages().len());
+        }
+    });
 
     // Update CSS whenever relevant values change
     let css_content = {
@@ -1297,19 +1218,6 @@ pub(crate) fn app() -> Element {
             .replace("<PRIMARY_FONT>", &primary_font) + dropdown_css
     };
 
-    // Add a proper handler to initialize the page when data is loaded
-    let packs_loaded = use_memo(move || {
-        packs.read().is_some()
-    });
-
-    // Add this effect to ensure proper page updates when data is loaded
-    use_effect(move || {
-        if packs_loaded() && page() != HOME_PAGE && !pages().contains_key(&page()) {
-            page.set(HOME_PAGE);
-            debug!("Resetting to home page because current page {} is not valid", page());
-        }
-    });
-
     let mut modal_context = use_context_provider(ModalContext::default);
     if let Some(e) = err() {
         modal_context.open("Error", rsx! {
@@ -1322,17 +1230,6 @@ pub(crate) fn app() -> Element {
 
     // Determine which logo to use
     let logo_url = Some("https://raw.githubusercontent.com/Wynncraft-Overhaul/installer/master/src/assets/icon.png".to_string());
-
-    // Debug view state
-    debug!("Current page is: {}", page());
-    debug!("Current view is: {}", current_view());
-    debug!("Selected tab is: {}", selected_tab());
-    debug!("HOME_PAGE constant is: {}", HOME_PAGE);
-    debug!("Pages map contains keys: {:?}", pages().keys().collect::<Vec<_>>());
-    debug!("Is current page in pages map? {}", pages().contains_key(&page()));
-
-    // Create the main components with keys outside the rsx macro
-    let home_key = format!("home-page-{}", current_view());
     
     rsx! {
         style { "{css_content}" }
@@ -1340,7 +1237,7 @@ pub(crate) fn app() -> Element {
         Modal {}
         
         // Always render AppHeader if we're past the initial launcher selection or in settings
-        if !config.read().first_launch.unwrap_or(true) && launcher.is_some() && !*settings.read() {
+        if !config.read().first_launch.unwrap_or(true) && launcher.is_some() && !settings() {
             AppHeader {
                 page,
                 pages,
@@ -1365,41 +1262,35 @@ pub(crate) fn app() -> Element {
                     error: err,
                     b64_id: URL_SAFE_NO_PAD.encode(props.modpack_source)
                 }
-            } else if packs.read().is_none() {
+            } else if processed_branches_resource.read().is_none() {
                 div { class: "loading-container",
                     div { class: "loading-spinner" }
                     div { class: "loading-text", "Loading modpack information..." }
                 }
-            } else if current_view() == "home" {
-                // Home page 
-                HomePage {
-                    pages,
-                    page,
-                    key: "{home_key}"
-                }
-            } else if current_view() == "tab" && pages().contains_key(&selected_tab()) {
-                // Tab page (with check to ensure the tab exists)
-                if let Some(tab_info) = pages().get(&selected_tab()) {
-                    if !tab_info.modpacks.is_empty() {
-                        Version {
-                            installer_profile: tab_info.modpacks[0].clone(),
-                            error: err.clone(),
-                            key: "version-{selected_tab()}"
-                        }
-                    } else {
-                        div { class: "loading-container",
-                            div { class: "loading-text", "No modpacks found in this tab group." }
-                        }
+            } else {
+                // OLD-STYLE APPROACH: Render all version components, but have each one conditionally render based on page
+                if page() == HOME_PAGE {
+                    HomePage {
+                        pages,
+                        page
                     }
                 } else {
-                    div { class: "loading-container",
-                        div { class: "loading-text", "Selected tab not found." }
+                    // Handle all tabs - each version component will show/hide itself based on page value
+                    for (tab_idx, tab_info) in pages() {
+                        for installer_profile in &tab_info.modpacks {
+                            {
+                                let profile = installer_profile.clone();
+                                rsx!{
+                                    Version {
+                                        installer_profile: profile,
+                                        error: err.clone(),
+                                        current_page: page(),
+                                        tab_group: tab_idx,
+                                    }
+                                }
+                            }
+                        }
                     }
-                }
-            } else {
-                // Fallback for unknown view state
-                div { class: "loading-container",
-                    div { class: "loading-text", "Unknown view state." }
                 }
             }
         }
