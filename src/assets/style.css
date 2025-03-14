@@ -36,7 +36,7 @@ body {
     overflow: hidden;
 }
 
-/* Dropdown menu styles */
+/* Dropdown menu styles - refined version */
 .dropdown {
     position: relative;
     display: inline-block;
@@ -45,15 +45,18 @@ body {
 .dropdown-content {
     display: none;
     position: absolute;
-    background-color: rgba(0, 0, 0, 0.8);
-    min-width: 160px;
-    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
+    top: 100%;
+    left: 0;
+    background-color: rgba(0, 0, 0, 0.9);
+    min-width: 200px;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.6);
     z-index: 1000;
     border-radius: 4px;
     overflow: hidden;
     margin-top: 5px;
     max-height: 400px;
     overflow-y: auto;
+    border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .dropdown:hover .dropdown-content {
@@ -63,7 +66,7 @@ body {
 .dropdown-item {
     display: block;
     width: 100%;
-    padding: 8px 12px;
+    padding: 10px 15px;
     text-align: left;
     background-color: transparent;
     border: none;
@@ -72,6 +75,11 @@ body {
     color: #fce8f6;
     cursor: pointer;
     transition: background-color 0.2s ease;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.dropdown-item:last-child {
+    border-bottom: none;
 }
 
 .dropdown-item:hover {
@@ -162,7 +170,7 @@ a:hover {
     text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
 }
 
-/* Header tabs with better spacing for more tabs */
+/* Fix for header-tabs to prevent dropdown from affecting it */
 .header-tabs {
     display: flex;
     gap: 5px;
@@ -170,9 +178,10 @@ a:hover {
     flex-grow: 1;
     justify-content: center;
     flex-wrap: wrap;
-    overflow-x: auto;
+    overflow-x: visible; /* Changed from auto to visible */
     scrollbar-width: thin;
     max-width: 70%;
+    position: relative; /* Add this to establish a positioning context */
 }
 
 .compact-tabs {
