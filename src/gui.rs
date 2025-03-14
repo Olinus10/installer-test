@@ -602,7 +602,6 @@ async fn init_branch(source: String, branch: String, launcher: Launcher, mut pag
     }
 
     let tab_created = pages.read().contains_key(&tab_group);
-    let movable_profile = profile.clone();
     
     // Use a consistent font for all tabs/components - use the Wynncraft Game Font
     let consistent_font = "https://raw.githubusercontent.com/Wynncraft-Overhaul/installer/master/src/assets/Wynncraft_Game_Font.woff2".to_string();
@@ -945,16 +944,26 @@ fn AppHeader(
         debug!("  Tab {}: title={}", index, info.title);
     }
     
-    // Separate tab groups into main tabs (0, 1, 2) and dropdown tabs (3+)
-    let main_tabs: Vec<_> = pages().iter()
-        .filter(|(index, _)| **index <= 2)
-        .collect();
-        
-    let dropdown_tabs: Vec<_> = pages().iter()
-        .filter(|(index, _)| **index > 2)
-        .collect();
+    // We need to collect the info we need from pages() into local structures
+    // to avoid lifetime issues
+    let mut main_tab_indices = vec![];
+    let mut main_tab_titles = vec![];
+    let mut dropdown_tab_indices = vec![];
+    let mut dropdown_tab_titles = vec![];
     
-    let has_dropdown = !dropdown_tabs.is_empty();
+    // Separate tab groups into main tabs (0, 1, 2) and dropdown tabs (3+)
+    for (index, info) in pages().iter() {
+        if *index <= 2 {
+            main_tab_indices.push(*index);
+            main_tab_titles.push(info.title.clone());
+        } else {
+            dropdown_tab_indices.push(*index);
+            dropdown_tab_titles.push(info.title.clone());
+        }
+    }
+    
+    let has_dropdown = !dropdown_tab_indices.is_empty();
+    let any_dropdown_active = dropdown_tab_indices.iter().any(|idx| page() == *idx);
   
     rsx!(
         header { class: "app-header",
@@ -995,14 +1004,16 @@ fn AppHeader(
                 }
 
                 // Main tabs (0, 1, 2)
-                for (index, info) in main_tabs {
+                for i in 0..main_tab_indices.len() {
+                    let index = main_tab_indices[i];
+                    let title = main_tab_titles[i].clone();
                     button {
-                        class: if page() == *index { "header-tab-button active" } else { "header-tab-button" },
+                        class: if page() == index { "header-tab-button active" } else { "header-tab-button" },
                         onclick: move |_| {
-                            page.set(*index);
-                            debug!("Switching to tab {}: {}", index, info.title);
+                            page.set(index);
+                            debug!("Switching to tab {}: {}", index, title);
                         },
-                        "{info.title}"
+                        "{title}"
                     }
                 }
                 
@@ -1010,7 +1021,7 @@ fn AppHeader(
                 if has_dropdown {
                     div { class: "dropdown",
                         button {
-                            class: if dropdown_tabs.iter().any(|(idx, _)| page() == **idx) { 
+                            class: if any_dropdown_active { 
                                 "header-tab-button active" 
                             } else { 
                                 "header-tab-button" 
@@ -1018,14 +1029,16 @@ fn AppHeader(
                             "More ▼"
                         }
                         div { class: "dropdown-content",
-                            for (index, info) in dropdown_tabs {
+                            for i in 0..dropdown_tab_indices.len() {
+                                let index = dropdown_tab_indices[i];
+                                let title = dropdown_tab_titles[i].clone();
                                 button {
-                                    class: if page() == *index { "dropdown-item active" } else { "dropdown-item" },
+                                    class: if page() == index { "dropdown-item active" } else { "dropdown-item" },
                                     onclick: move |_| {
-                                        page.set(*index);
-                                        debug!("Switching to dropdown tab {}: {}", index, info.title);
+                                        page.set(index);
+                                        debug!("Switching to dropdown tab {}: {}", index, title);
                                     },
-                                    "{info.title}"
+                                    "{title}"
                                 }
                             }
                         }
@@ -1112,50 +1125,96 @@ pub(crate) fn app() -> Element {
     };
 
     // Update CSS whenever relevant values change
-    let css_content = {
-        let default_color = "#320625".to_string();
-        let default_bg = "https://raw.githubusercontent.com/Wynncraft-Overhaul/installer/master/src/assets/background_installer.png".to_string();
-        let default_font = "https://raw.githubusercontent.com/Wynncraft-Overhaul/installer/master/src/assets/Wynncraft_Game_Font.woff2".to_string();
-        
-        let bg_color = match pages().get(&page()) {
-            Some(x) => x.color.clone(),
-            None => default_color,
-        };
-        
-        let bg_image = match pages().get(&page()) {
-            Some(x) => {
-                if settings() {
-                    x.settings_background.clone()
-                } else {
-                    x.background.clone()
-                }
-            },
-            None => default_bg,
-        };
-        
-        let secondary_font = match pages().get(&page()) {
-            Some(x) => x.secondary_font.clone(),
-            None => default_font.clone(),
-        };
-        
-        let primary_font = match pages().get(&page()) {
-            Some(x) => x.primary_font.clone(),
-            None => default_font,
-        };
-        
-        debug!("Updating CSS with: color={}, bg_image={}, secondary_font={}, primary_font={}", bg_color, bg_image, secondary_font, primary_font);
-        
-        // Add dropdown menu CSS
-        let dropdown_css = ".dropdown { position: relative; display: inline-block; }
-.dropdown-content { display: none; position: absolute; background-color: rgba(0, 0, 0, 0.8); min-width: 160px; box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4); z-index: 1000; border-radius: 4px; overflow: hidden; margin-top: 5px; max-height: 400px; overflow-y: auto; }
-.dropdown:hover .dropdown-content { display: block; }";
-        
-        css
-            .replace("<BG_COLOR>", &bg_color)
-            .replace("<BG_IMAGE>", &bg_image)
-            .replace("<SECONDARY_FONT>", &secondary_font)
-            .replace("<PRIMARY_FONT>", &primary_font) + dropdown_css
+    // Modify the CSS section of your app function to add the dropdown CSS
+let css_content = {
+    let default_color = "#320625".to_string();
+    let default_bg = "https://raw.githubusercontent.com/Wynncraft-Overhaul/installer/master/src/assets/background_installer.png".to_string();
+    let default_font = "https://raw.githubusercontent.com/Wynncraft-Overhaul/installer/master/src/assets/Wynncraft_Game_Font.woff2".to_string();
+    
+    let bg_color = match pages().get(&page()) {
+        Some(x) => x.color.clone(),
+        None => default_color,
     };
+    
+    let bg_image = match pages().get(&page()) {
+        Some(x) => {
+            if settings() {
+                x.settings_background.clone()
+            } else {
+                x.background.clone()
+            }
+        },
+        None => default_bg,
+    };
+    
+    let secondary_font = match pages().get(&page()) {
+        Some(x) => x.secondary_font.clone(),
+        None => default_font.clone(),
+    };
+    
+    let primary_font = match pages().get(&page()) {
+        Some(x) => x.primary_font.clone(),
+        None => default_font,
+    };
+    
+    debug!("Updating CSS with: color={}, bg_image={}, secondary_font={}, primary_font={}", bg_color, bg_image, secondary_font, primary_font);
+    
+    // Add dropdown menu CSS 
+    let dropdown_css = "
+/* Dropdown menu styles */
+.dropdown {
+    position: relative;
+    display: inline-block;
+}
+
+.dropdown-content {
+    display: none;
+    position: absolute;
+    background-color: rgba(0, 0, 0, 0.8);
+    min-width: 160px;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
+    z-index: 1000;
+    border-radius: 4px;
+    overflow: hidden;
+    margin-top: 5px;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.dropdown:hover .dropdown-content {
+    display: block;
+}
+
+.dropdown-item {
+    display: block;
+    width: 100%;
+    padding: 8px 12px;
+    text-align: left;
+    background-color: transparent;
+    border: none;
+    font-family: \"PRIMARY_FONT\";
+    font-size: 0.9rem;
+    color: #fce8f6;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.dropdown-item:hover {
+    background-color: rgba(50, 6, 37, 0.8);
+}
+
+.dropdown-item.active {
+    background-color: var(--bg-color);
+    color: #fff;
+}";
+    
+    css
+        .replace("<BG_COLOR>", &bg_color)
+        .replace("<BG_IMAGE>", &bg_image)
+        .replace("<SECONDARY_FONT>", &secondary_font)
+        .replace("<PRIMARY_FONT>", &primary_font) + dropdown_css
+};
+
 
     let mut modal_context = use_context_provider(ModalContext::default);
     if let Some(e) = err() {
