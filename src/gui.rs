@@ -44,14 +44,13 @@ fn HomePage(
                             
                             rsx! {
                                 div { 
-    class: "home-pack-card",
-    style: "background-image: url('{info.background}'); background-color: {info.color};",
-   onclick: move |evt| {
-    evt.stop_propagation();
-    // Don't check current value, just forcefully set it
-    page.set(tab_index);
-    debug!("Forcefully navigating to tab {}: {}", tab_index, tab_title);
-},
+                                    class: "home-pack-card",
+                                    style: "background-image: url('{info.background}'); background-color: {info.color};",
+                                    onclick: move |_| {
+                                        // Direct page change without complex state management
+                                        page.set(tab_index);
+                                        debug!("Navigating to tab {}: {}", tab_index, tab_title);
+                                    },
                                     div { class: "home-pack-info",
                                         h2 { class: "home-pack-title", "{modpack_subtitle}" }
                                         div { class: "home-pack-button", "View Modpack" }
@@ -67,6 +66,7 @@ fn HomePage(
 }
 // Special value for home page
 const HOME_PAGE: usize = usize::MAX;
+
 
 #[component]
 fn ProgressView(value: i64, max: i64, status: String, title: String) -> Element {
@@ -337,6 +337,7 @@ fn Settings(mut props: SettingsProps) -> Element {
         }
     }
 }
+
 #[derive(PartialEq, Props, Clone)]
 struct LauncherProps {
     config: Signal<super::Config>,
@@ -535,6 +536,7 @@ fn FeatureCard(props: FeatureCardProps) -> Element {
         }
     }
 }
+
 fn feature_change(
     local_features: Signal<Option<Vec<String>>>,
     mut modify: Signal<bool>,
