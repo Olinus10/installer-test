@@ -882,8 +882,8 @@ fn Version(installer_profile: InstallerProfile, error: Signal<Option<String>>) -
                                 let feat_clone = feat.clone();
                                 let feat_id = feat.id.clone();
                                 
-                                if !feat.hidden {
-                                    rsx! {
+                                rsx! {
+                                    if !feat.hidden {
                                         FeatureCard {
                                             feature: feat_clone,
                                             enabled: if installer_profile.installed {
@@ -902,6 +902,9 @@ fn Version(installer_profile: InstallerProfile, error: Signal<Option<String>>) -
                                                 )
                                             }
                                         }
+                                    } else {
+                                        // Empty fragment for hidden features
+                                        ()
                                     }
                                 }
                             }
