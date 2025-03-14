@@ -1004,17 +1004,20 @@ fn AppHeader(
                 }
 
                 // Main tabs (0, 1, 2)
-                for i in 0..main_tab_indices.len() {
-                    let index = main_tab_indices[i];
-                    let title = main_tab_titles[i].clone();
-                    button {
-                        class: if page() == index { "header-tab-button active" } else { "header-tab-button" },
-                        onclick: move |_| {
-                            page.set(index);
-                            debug!("Switching to tab {}: {}", index, title);
-                        },
-                        "{title}"
-                    }
+                {
+                    main_tab_indices.iter().enumerate().map(|(i, &index)| {
+                        let title = main_tab_titles[i].clone();
+                        rsx!(
+                            button {
+                                class: if page() == index { "header-tab-button active" } else { "header-tab-button" },
+                                onclick: move |_| {
+                                    page.set(index);
+                                    debug!("Switching to tab {}: {}", index, title);
+                                },
+                                "{title}"
+                            }
+                        )
+                    })
                 }
                 
                 // Dropdown for remaining tabs
@@ -1029,17 +1032,20 @@ fn AppHeader(
                             "More ▼"
                         }
                         div { class: "dropdown-content",
-                            for i in 0..dropdown_tab_indices.len() {
-                                let index = dropdown_tab_indices[i];
-                                let title = dropdown_tab_titles[i].clone();
-                                button {
-                                    class: if page() == index { "dropdown-item active" } else { "dropdown-item" },
-                                    onclick: move |_| {
-                                        page.set(index);
-                                        debug!("Switching to dropdown tab {}: {}", index, title);
-                                    },
-                                    "{title}"
-                                }
+                            {
+                                dropdown_tab_indices.iter().enumerate().map(|(i, &index)| {
+                                    let title = dropdown_tab_titles[i].clone();
+                                    rsx!(
+                                        button {
+                                            class: if page() == index { "dropdown-item active" } else { "dropdown-item" },
+                                            onclick: move |_| {
+                                                page.set(index);
+                                                debug!("Switching to dropdown tab {}: {}", index, title);
+                                            },
+                                            "{title}"
+                                        }
+                                    )
+                                })
                             }
                         }
                     }
