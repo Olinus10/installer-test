@@ -60,6 +60,29 @@ body {
     display: block;
 }
 
+.dropdown-item {
+    display: block;
+    width: 100%;
+    padding: 8px 12px;
+    text-align: left;
+    background-color: transparent;
+    border: none;
+    font-family: "PRIMARY_FONT";
+    font-size: 0.9rem;
+    color: #fce8f6;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.dropdown-item:hover {
+    background-color: rgba(50, 6, 37, 0.8);
+}
+
+.dropdown-item.active {
+    background-color: var(--bg-color);
+    color: #fff;
+}
+
 /* Custom Scrollbar Styling */
 ::-webkit-scrollbar {
     width: 10px;
