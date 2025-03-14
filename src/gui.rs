@@ -1337,44 +1337,44 @@ let css_content = {
                     }
                     
                     {
-                        let current_page = page();
-                        
-                        if current_page == HOME_PAGE {
-                            {
-                                debug!("Rendering HomePage component");
-                            }
-                            HomePage {
-                                pages,
-                                page
-                            }
-                        } else if let Some(page_info) = pages().get(&current_page) {
-                            {
-                                debug!("Rendering Version component for page {}", current_page);
-                                debug!("Page info title: {}", page_info.title);
-                                debug!("Modpacks count: {}", page_info.modpacks.len());
-                            }
-                            
-                            if !page_info.modpacks.is_empty() {
-                                // Render the Version component with the first modpack from the current tab
-                                Version {
-                                    installer_profile: page_info.modpacks[0].clone(),
-                                    error: err.clone(),
-                                }
-                            } else {
-                                div { 
-                                    class: "loading-container",
-                                    div { 
-                                        class: "loading-text", 
-                                        "No modpacks found in this tab group." 
-                                    }
-                                }
-                            }
-                        } else {
-                            div { 
-                                class: "loading-container",
-                                div { 
-                                    class: "loading-text", 
-                                    "Tab information not found." 
+    let current_page = page();
+    
+    if current_page == HOME_PAGE {
+        {
+            debug!("Rendering HomePage component");
+        }
+        HomePage {
+            pages,
+            page
+        }
+    } else if let Some(page_info) = pages().get(&current_page) {
+        {
+            debug!("Rendering Version component for page {}", current_page);
+            debug!("Page info title: {}", page_info.title);
+            debug!("Modpacks count: {}", page_info.modpacks.len());
+        }
+        
+        if !page_info.modpacks.is_empty() {
+            // Render the Version component with the first modpack from the current tab
+            Version {
+                installer_profile: page_info.modpacks[0].clone(),
+                error: err.clone()
+            }
+        } else {
+            div { 
+                class: "loading-container",
+                div { 
+                    class: "loading-text", 
+                    "No modpacks found in this tab group."
+                }
+            }
+        }
+    } else {
+        div { 
+            class: "loading-container",
+            div { 
+                class: "loading-text", 
+                "Tab information not found." 
                                 }
                             }
                         }
