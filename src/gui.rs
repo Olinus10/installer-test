@@ -1,10 +1,10 @@
 use std::{collections::BTreeMap, path::PathBuf};
-use base64::engine::general_purpose::URL_SAFE_NO_PAD;
-
+use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine}; // Added the Engine trait here
 use dioxus::prelude::*;
 use futures::StreamExt;
 use log::{error, debug};
 use modal::ModalContext;
+use modal::Modal; 
 
 use crate::{get_app_data, get_installed_packs, get_launcher, uninstall, InstallerProfile, Launcher, PackName};
 
