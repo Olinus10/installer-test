@@ -1141,48 +1141,47 @@ pub(crate) fn app() -> Element {
     };
 
     // Update CSS whenever relevant values change
-    // Modify the CSS section of your app function to add the dropdown CSS
-let css_content = {
-    let default_color = "#320625".to_string();
-    let default_bg = "https://raw.githubusercontent.com/Wynncraft-Overhaul/installer/master/src/assets/background_installer.png".to_string();
-    let default_font = "https://raw.githubusercontent.com/Wynncraft-Overhaul/installer/master/src/assets/Wynncraft_Game_Font.woff2".to_string();
-    
-    let bg_color = match pages().get(&page()) {
-        Some(x) => x.color.clone(),
-        None => default_color,
-    };
-    
-    let bg_image = match pages().get(&page()) {
-        Some(x) => {
-            if settings() {
-                x.settings_background.clone()
-            } else {
-                x.background.clone()
-            }
-        },
-        None => default_bg,
-    };
-    
-    let secondary_font = match pages().get(&page()) {
-        Some(x) => x.secondary_font.clone(),
-        None => default_font.clone(),
-    };
-    
-    let primary_font = match pages().get(&page()) {
-        Some(x) => x.primary_font.clone(),
-        None => default_font,
-    };
-    
-    debug!("Updating CSS with: color={}, bg_image={}, secondary_font={}, primary_font={}", bg_color, bg_image, secondary_font, primary_font);
-    
-    // Append the improved dropdown CSS - with fixed font-family for proper replacement
-    let base_css = css.replace("<BG_COLOR>", &bg_color)
-        .replace("<BG_IMAGE>", &bg_image)
-        .replace("<SECONDARY_FONT>", &secondary_font)
-        .replace("<PRIMARY_FONT>", &primary_font);
+    let css_content = {
+        let default_color = "#320625".to_string();
+        let default_bg = "https://raw.githubusercontent.com/Wynncraft-Overhaul/installer/master/src/assets/background_installer.png".to_string();
+        let default_font = "https://raw.githubusercontent.com/Wynncraft-Overhaul/installer/master/src/assets/Wynncraft_Game_Font.woff2".to_string();
         
-    // Now add the dropdown menu CSS with properly formatted font-family
-    base_css + &format!(r#"
+        let bg_color = match pages().get(&page()) {
+            Some(x) => x.color.clone(),
+            None => default_color,
+        };
+        
+        let bg_image = match pages().get(&page()) {
+            Some(x) => {
+                if settings() {
+                    x.settings_background.clone()
+                } else {
+                    x.background.clone()
+                }
+            },
+            None => default_bg,
+        };
+        
+        let secondary_font = match pages().get(&page()) {
+            Some(x) => x.secondary_font.clone(),
+            None => default_font.clone(),
+        };
+        
+        let primary_font = match pages().get(&page()) {
+            Some(x) => x.primary_font.clone(),
+            None => default_font,
+        };
+        
+        debug!("Updating CSS with: color={}, bg_image={}, secondary_font={}, primary_font={}", bg_color, bg_image, secondary_font, primary_font);
+        
+        // Append the improved dropdown CSS - with fixed font-family for proper replacement
+        let base_css = css.replace("<BG_COLOR>", &bg_color)
+            .replace("<BG_IMAGE>", &bg_image)
+            .replace("<SECONDARY_FONT>", &secondary_font)
+            .replace("<PRIMARY_FONT>", &primary_font);
+            
+        // Now add the dropdown menu CSS with properly formatted font-family
+        base_css + &format!(r#"
 /* Dropdown menu styles - with improved hover behavior and font consistency */
 .dropdown {{
     position: relative;
@@ -1275,9 +1274,9 @@ let css_content = {
     position: relative;
 }}
 "#, primary_font)
-};
+    };
 
-     let mut modal_context = use_context_provider(ModalContext::default);
+    let mut modal_context = use_context_provider(ModalContext::default);
     if let Some(e) = err() {
         modal_context.open("Error", rsx! {
             p {
@@ -1290,91 +1289,93 @@ let css_content = {
     // Determine which logo to use
     let logo_url = Some("https://raw.githubusercontent.com/Wynncraft-Overhaul/installer/master/src/assets/icon.png".to_string());
 
-rsx! {
-    style { "{css_content}" },
-    Modal {},
-    
-    // Always render AppHeader if we're past the initial launcher selection or in settings
-    if !config.read().first_launch.unwrap_or(true) && launcher.is_some() && !*settings.read() {
-        AppHeader {
-            page,
-            pages,
-            settings,
-            logo_url
-        }
-    },
-    
-    div { 
-        class: "main-container",
-        if settings() {
-            Settings {
-                config,
+    // Fixed RSX structure
+    rsx! {
+        style { "{css_content}" },
+        Modal {},
+        
+        // Always render AppHeader if we're past the initial launcher selection or in settings
+        if !config.read().first_launch.unwrap_or(true) && launcher.is_some() && !*settings.read() {
+            AppHeader {
+                page,
+                pages,
                 settings,
-                config_path: props.config_path.clone(),
-                error: err,
-                b64_id: URL_SAFE_NO_PAD.encode(props.modpack_source)
+                logo_url
             }
-        } else if config.read().first_launch.unwrap_or(true) || launcher.is_none() {
-            Launcher {
-                config,
-                config_path: props.config_path.clone(),
-                error: err,
-                b64_id: URL_SAFE_NO_PAD.encode(props.modpack_source)
-            }
-        } else {
-            if packs.read().is_none() {
-                div { 
-                    class: "loading-container",
-                    div { class: "loading-spinner" },
-                    div { 
-                        class: "loading-text", 
-                        "Loading modpack information..." 
-                    }
+        },
+        
+        div { 
+            class: "main-container",
+            if settings() {
+                Settings {
+                    config,
+                    settings,
+                    config_path: props.config_path.clone(),
+                    error: err,
+                    b64_id: URL_SAFE_NO_PAD.encode(props.modpack_source)
+                }
+            } else if config.read().first_launch.unwrap_or(true) || launcher.is_none() {
+                Launcher {
+                    config,
+                    config_path: props.config_path.clone(),
+                    error: err,
+                    b64_id: URL_SAFE_NO_PAD.encode(props.modpack_source)
                 }
             } else {
-                {
-                    debug!("Current page is: {}", page());
-                    debug!("HOME_PAGE constant is: {}", HOME_PAGE);
-                    debug!("Pages map contains keys: {:?}", pages().keys().collect::<Vec<_>>());
-                    debug!("Is current page in pages map? {}", pages().contains_key(&page()));
-                },
-                
-                {
-                    let current_page = page();
-                    
-                    if current_page == HOME_PAGE {
-                        HomePage {
-                            pages,
-                            page
+                if packs.read().is_none() {
+                    div { 
+                        class: "loading-container",
+                        div { class: "loading-spinner" },
+                        div { 
+                            class: "loading-text", 
+                            "Loading modpack information..." 
                         }
-                    } else if let Some(page_info) = pages().get(&current_page) {
-                        {
-                            debug!("Rendering Version component for page {}", current_page);
-                            debug!("Page info title: {}", page_info.title);
-                            debug!("Modpacks count: {}", page_info.modpacks.len());
-                        },
+                    }
+                } else {
+                    {
+                        debug!("Current page is: {}", page());
+                        debug!("HOME_PAGE constant is: {}", HOME_PAGE);
+                        debug!("Pages map contains keys: {:?}", pages().keys().collect::<Vec<_>>());
+                        debug!("Is current page in pages map? {}", pages().contains_key(&page()));
+                    }
+                    
+                    {
+                        let current_page = page();
                         
-                        if !page_info.modpacks.is_empty() {
-                            // Render the Version component with the first modpack from the current tab
-                            Version {
-                                installer_profile: page_info.modpacks[0].clone(),
-                                error: err.clone()
+                        if current_page == HOME_PAGE {
+                            HomePage {
+                                pages,
+                                page
+                            }
+                        } else if let Some(page_info) = pages().get(&current_page) {
+                            {
+                                debug!("Rendering Version component for page {}", current_page);
+                                debug!("Page info title: {}", page_info.title);
+                                debug!("Modpacks count: {}", page_info.modpacks.len());
+                            }
+                            
+                            if !page_info.modpacks.is_empty() {
+                                // Render the Version component with the first modpack from the current tab
+                                Version {
+                                    installer_profile: page_info.modpacks[0].clone(),
+                                    error: err.clone()
+                                }
+                            } else {
+                                div { 
+                                    class: "loading-container",
+                                    div { 
+                                        class: "loading-text", 
+                                        "No modpacks found in this tab group."
+                                    }
+                                }
                             }
                         } else {
                             div { 
                                 class: "loading-container",
                                 div { 
                                     class: "loading-text", 
-                                    "No modpacks found in this tab group."
+                                    "Tab information not found."
                                 }
-                            }
-                        }
-                    } else {
-                        div { 
-                            class: "loading-container",
-                            div { 
-                                class: "loading-text", 
-                                "Tab information not found."
                             }
                         }
                     }
@@ -1382,5 +1383,4 @@ rsx! {
             }
         }
     }
-}
 }
