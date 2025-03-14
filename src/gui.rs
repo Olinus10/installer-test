@@ -1376,7 +1376,7 @@ if packs.read().is_none() {
         HomePage {
             pages,
             page,
-            key: {"home-page"}
+            key: "home-page"
         }
     } else if current_view() == "tab" {
         if let Some(page_info) = pages().get(&selected_tab()) {
