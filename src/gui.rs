@@ -1344,9 +1344,6 @@ let css_content = {
                     let current_page = page();
                     
                     if current_page == HOME_PAGE {
-                        {
-                            debug!("Rendering HomePage component");
-                        }
                         HomePage {
                             pages,
                             page
@@ -1386,5 +1383,4 @@ let css_content = {
             }
         }
     }
-}
 }
