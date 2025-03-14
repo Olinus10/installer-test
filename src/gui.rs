@@ -591,7 +591,13 @@ async fn init_branch(source: String, branch: String, launcher: Launcher, mut pag
         0
     };
 
-    if pages.read().get(&tab_group).is_some_and(|x| x.modpacks.contains(&profile)) {
+    // Check if this profile already exists in the tab group
+    let profile_exists = pages.read().get(&tab_group)
+        .map_or(false, |tab_info| tab_info.modpacks.iter()
+            .any(|p| p.modpack_branch == profile.modpack_branch && p.modpack_source == profile.modpack_source));
+            
+    if profile_exists {
+        debug!("Profile already exists in tab_group {}, skipping", tab_group);
         return Ok(());
     }
 
@@ -601,57 +607,56 @@ async fn init_branch(source: String, branch: String, launcher: Launcher, mut pag
     // Use a consistent font for all tabs/components - use the Wynncraft Game Font
     let consistent_font = "https://raw.githubusercontent.com/Wynncraft-Overhaul/installer/master/src/assets/Wynncraft_Game_Font.woff2".to_string();
     
-    use_effect(move || {
-        let profile = &movable_profile;
-        if !tab_created {
-            let tab_title = if let Some(ref tab_title) = profile.manifest.tab_title {
-                debug!("  tab_title: {}", tab_title);
-                tab_title.clone()
-            } else {
-                debug!("  tab_title: None, using subtitle");
-                profile.manifest.subtitle.clone()
-            };
+    // Create the tab if it doesn't exist
+    if !tab_created {
+        let tab_title = if let Some(ref tab_title) = profile.manifest.tab_title {
+            debug!("  tab_title: {}", tab_title);
+            tab_title.clone()
+        } else {
+            debug!("  tab_title: None, using subtitle");
+            profile.manifest.subtitle.clone()
+        };
 
-            let tab_color = if let Some(ref tab_color) = profile.manifest.tab_color {
-                debug!("  tab_color: {}", tab_color);
-                tab_color.clone()
-            } else {
-                debug!("  tab_color: None, defaulting to '#320625'");
-                String::from("#320625")
-            };
+        let tab_color = if let Some(ref tab_color) = profile.manifest.tab_color {
+            debug!("  tab_color: {}", tab_color);
+            tab_color.clone()
+        } else {
+            debug!("  tab_color: None, defaulting to '#320625'");
+            String::from("#320625")
+        };
 
-            let tab_background = if let Some(ref tab_background) = profile.manifest.tab_background {
-                debug!("  tab_background: {}", tab_background);
-                tab_background.clone()
-            } else {
-                let default_bg = "https://raw.githubusercontent.com/Wynncraft-Overhaul/installer/master/src/assets/background_installer.png";
-                debug!("  tab_background: None, defaulting to '{}'", default_bg);
-                String::from(default_bg)
-            };
+        let tab_background = if let Some(ref tab_background) = profile.manifest.tab_background {
+            debug!("  tab_background: {}", tab_background);
+            tab_background.clone()
+        } else {
+            let default_bg = "https://raw.githubusercontent.com/Wynncraft-Overhaul/installer/master/src/assets/background_installer.png";
+            debug!("  tab_background: None, defaulting to '{}'", default_bg);
+            String::from(default_bg)
+        };
 
-            // Use a consistent background for settings - home background
-            let settings_background = "https://raw.githubusercontent.com/Wynncraft-Overhaul/installer/master/src/assets/background_installer.png".to_string();
+        // Use a consistent background for settings - home background
+        let settings_background = "https://raw.githubusercontent.com/Wynncraft-Overhaul/installer/master/src/assets/background_installer.png".to_string();
 
-            // Use a consistent font for all purposes
-            let tab_info = TabInfo {
-                color: tab_color,
-                title: tab_title,
-                background: tab_background,
-                settings_background,
-                primary_font: consistent_font.clone(),
-                secondary_font: consistent_font.clone(),
-                modpacks: vec![],
-            };
-            pages.write().insert(tab_group, tab_info.clone());
-            debug!("Inserted tab_group {} into pages map", tab_group);
-        }
-    });
-
-    use_effect(move || {
-        let profile = profile.clone();
-        pages.write().entry(tab_group).and_modify(move |x| x.modpacks.push(profile));
-        debug!("Inserted {} into tab_group {}", branch, tab_group);
-    });
+        // Use a consistent font for all purposes
+        let tab_info = TabInfo {
+            color: tab_color,
+            title: tab_title,
+            background: tab_background,
+            settings_background,
+            primary_font: consistent_font.clone(),
+            secondary_font: consistent_font.clone(),
+            modpacks: vec![profile.clone()], // Add the profile immediately
+        };
+        
+        pages.write().insert(tab_group, tab_info);
+        debug!("Created tab_group {} with profile {}", tab_group, branch);
+    } else {
+        // Add the profile to an existing tab
+        pages.write().entry(tab_group).and_modify(|tab_info| {
+            tab_info.modpacks.push(profile.clone());
+            debug!("Added profile {} to existing tab_group {}", branch, tab_group);
+        });
+    }
 
     Ok(())
 }
@@ -935,11 +940,21 @@ fn AppHeader(
     logo_url: Option<String>
 ) -> Element {
     // Log what tabs we have available
-
     debug!("Rendering AppHeader with {} tabs", pages().len());
     for (index, info) in pages().iter() {
         debug!("  Tab {}: title={}", index, info.title);
     }
+    
+    // Separate tab groups into main tabs (0, 1, 2) and dropdown tabs (3+)
+    let main_tabs: Vec<_> = pages().iter()
+        .filter(|(index, _)| **index <= 2)
+        .collect();
+        
+    let dropdown_tabs: Vec<_> = pages().iter()
+        .filter(|(index, _)| **index > 2)
+        .collect();
+    
+    let has_dropdown = !dropdown_tabs.is_empty();
   
     rsx!(
         header { class: "app-header",
@@ -979,21 +994,45 @@ fn AppHeader(
                     "Home"
                 }
 
-                if !pages().is_empty() {
-                    for (index, info) in pages() {
+                // Main tabs (0, 1, 2)
+                for (index, info) in main_tabs {
+                    button {
+                        class: if page() == *index { "header-tab-button active" } else { "header-tab-button" },
+                        onclick: move |_| {
+                            page.set(*index);
+                            debug!("Switching to tab {}: {}", index, info.title);
+                        },
+                        "{info.title}"
+                    }
+                }
+                
+                // Dropdown for remaining tabs
+                if has_dropdown {
+                    div { class: "dropdown",
                         button {
-                            class: if page() == index { "header-tab-button active" } else { "header-tab-button" },
-                            onclick: move |_| {
-                                page.set(index);
-                                debug!("Switching to tab {}: {}", index, info.title);
+                            class: if dropdown_tabs.iter().any(|(idx, _)| page() == **idx) { 
+                                "header-tab-button active" 
+                            } else { 
+                                "header-tab-button" 
                             },
-                            "{info.title}"
+                            "More ▼"
+                        }
+                        div { class: "dropdown-content",
+                            for (index, info) in dropdown_tabs {
+                                button {
+                                    class: if page() == *index { "dropdown-item active" } else { "dropdown-item" },
+                                    onclick: move |_| {
+                                        page.set(*index);
+                                        debug!("Switching to dropdown tab {}: {}", index, info.title);
+                                    },
+                                    "{info.title}"
+                                }
+                            }
                         }
                     }
-                } else {
+                } else if pages().is_empty() {
                     // If no tabs, show a message for debugging purposes
                     span { style: "color: #888; font-style: italic;", "Loading tabs..." }
-
                 }
             }
             
@@ -1056,14 +1095,22 @@ pub(crate) fn app() -> Element {
                 let source = source.clone();
                 let branches = branches.clone();
                 let launcher = launcher.clone();
-                // FIXME: Somewhat slow
-                // FIXME: Some packs missing
-                futures::stream::iter(branches.iter().map(|x| init_branch(source.clone(), x.name.clone(), launcher.clone().unwrap(), pages.clone()))).for_each_concurrent(usize::MAX, |fut| async move {fut.await.unwrap();}).await; // FIXME: handle failed branch init
+                // Process branches concurrently
+                if let Some(launcher) = launcher {
+                    futures::stream::iter(branches.iter().map(|x| {
+                        init_branch(source.clone(), x.name.clone(), launcher.clone(), pages.clone())
+                    }))
+                    .for_each_concurrent(usize::MAX, |fut| async {
+                        match fut.await {
+                            Ok(_) => {},
+                            Err(e) => error!("Failed to initialize branch: {}", e),
+                        }
+                    }).await;
+                }
             }
         })
     };
 
-    
     // Update CSS whenever relevant values change
     let css_content = {
         let default_color = "#320625".to_string();
@@ -1098,11 +1145,16 @@ pub(crate) fn app() -> Element {
         
         debug!("Updating CSS with: color={}, bg_image={}, secondary_font={}, primary_font={}", bg_color, bg_image, secondary_font, primary_font);
         
+        // Add dropdown menu CSS
+        let dropdown_css = ".dropdown { position: relative; display: inline-block; }
+.dropdown-content { display: none; position: absolute; background-color: rgba(0, 0, 0, 0.8); min-width: 160px; box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4); z-index: 1000; border-radius: 4px; overflow: hidden; margin-top: 5px; max-height: 400px; overflow-y: auto; }
+.dropdown:hover .dropdown-content { display: block; }";
+        
         css
             .replace("<BG_COLOR>", &bg_color)
             .replace("<BG_IMAGE>", &bg_image)
             .replace("<SECONDARY_FONT>", &secondary_font)
-            .replace("<PRIMARY_FONT>", &primary_font)
+            .replace("<PRIMARY_FONT>", &primary_font) + dropdown_css
     };
 
     let mut modal_context = use_context_provider(ModalContext::default);
@@ -1155,21 +1207,40 @@ pub(crate) fn app() -> Element {
                         div { class: "loading-spinner" }
                         div { class: "loading-text", "Loading modpack information..." }
                     }
-                } else if page() == HOME_PAGE {
-                    HomePage {
-                        pages,
-                        page
-                    }
-                } else {
-                    for installer_profile in pages().get(&page()).cloned().unwrap().modpacks {
-                        // "{installer_profile.manifest.subtitle}"
-                        Version { // FIXME: does not show
-                            installer_profile,
-                            error: err.clone(),
-                        }
-                    }
+                } 
+                else {
+    if packs.read().is_none() {
+        div { class: "loading-container",
+            div { class: "loading-spinner" }
+            div { class: "loading-text", "Loading modpack information..." }
+        }
+    } else if page() == HOME_PAGE {
+        HomePage {
+            pages,
+            page
+        }
+    } else {
+        // Get current page info
+        if let Some(page_info) = pages().get(&page()) {
+            // Check if the page has modpacks
+            if !page_info.modpacks.is_empty() {
+                // Get the first modpack in the current tab group
+                let installer_profile = &page_info.modpacks[0].clone();
+                
+                Version {
+                    installer_profile: installer_profile.clone(),
+                    error: err.clone(),
                 }
-
+            } else {
+                // Fallback if no modpacks in this tab group
+                div { class: "loading-container",
+                    div { class: "loading-text", "No modpacks found in this tab group." }
+                }
+            }
+        } else {
+            // Fallback if page doesn't exist
+            div { class: "loading-container",
+                div { class: "loading-text", "Tab information not found." }
             }
         }
     }
