@@ -40,14 +40,19 @@ fn HomePage(
                         {
                             let modpack_subtitle = modpack.manifest.subtitle.clone();
                             let tab_title = info.title.clone(); // Clone before moving into closure
+                            let tab_index = index; // Create a stable reference to index
                             
                             rsx! {
                                 div { 
                                     class: "home-pack-card",
                                     style: "background-image: url('{info.background}'); background-color: {info.color};",
                                     onclick: move |_| {
-                                        page.set(index);
-                                        debug!("Navigating to tab {}: {}", index, tab_title);
+                                        let current_value = page();
+                                        // Only update if needed to avoid unnecessary rerenders
+                                        if current_value != tab_index {
+                                            page.set(tab_index);
+                                            debug!("Navigating to tab {}: {}", tab_index, tab_title);
+                                        }
                                     },
                                     div { class: "home-pack-info",
                                         h2 { class: "home-pack-title", "{modpack_subtitle}" }
@@ -547,25 +552,28 @@ fn feature_change(
         _ => panic!("Invalid bool from feature"),
     };
     
-    if enabled {
+    let should_update = {
+        let current_features = enabled_features.read();
+        let contains_feature = current_features.contains(&feat.id);
+        enabled != contains_feature
+    };
+    
+    if should_update {
         enabled_features.with_mut(|x| {
-            if !x.contains(&feat.id) {
+            if enabled && !x.contains(&feat.id) {
                 x.push(feat.id.clone());
+            } else if !enabled {
+                x.retain(|item| item != &feat.id);
             }
-        })
-    } else {
-        enabled_features.with_mut(|x| {
-            if x.contains(&feat.id) {
-                x.retain(|x| x != &feat.id);
-            }
-        })
+        });
     }
     
-    if local_features.read().is_some() {
-        let modify_res = local_features.unwrap().contains(&feat.id) != enabled;
-        if modify_count.with(|x| *x <= 1) {
-            modify.set(local_features.unwrap().contains(&feat.id) != enabled);
+    if let Some(local_feat) = local_features.read().as_ref() {
+        let modify_res = local_feat.contains(&feat.id) != enabled;
+        if modify_count.read() <= 1 {
+            modify.set(modify_res);
         }
+        
         if modify_res {
             modify_count.with_mut(|x| *x += 1);
         } else {
@@ -1327,7 +1335,10 @@ let css_content = {
         debug!("Is current page in pages map? {}", pages().contains_key(&page()));
     }
     
-    if page() == HOME_PAGE {
+    // Get a stable value for page that won't change during rendering
+    let current_page = page();
+    
+    if current_page == HOME_PAGE {
         {
             debug!("Rendering HomePage component");
         }
@@ -1335,10 +1346,10 @@ let css_content = {
             pages,
             page
         }
-    } else if let Some(page_info) = pages().get(&page()) {
+    } else if let Some(page_info) = pages().get(&current_page) {
         {
-            debug!("Rendering Version component for page {}", page());
-            debug!("Page info: {:?}", page_info);
+            debug!("Rendering Version component for page {}", current_page);
+            debug!("Page info title: {}", page_info.title);
             debug!("Modpacks count: {}", page_info.modpacks.len());
         }
         
