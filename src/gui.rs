@@ -39,18 +39,23 @@ fn HomePage(
                 for (index, info) in pages() {
                     // Using each modpack's subtitle rather than tab_title for the home page cards
                     for modpack in &info.modpacks {
-                        let modpack_subtitle = modpack.manifest.subtitle.clone();
-                        let tab_title = info.title.clone(); // Clone before moving into closure
-                        div { 
-                            class: "home-pack-card",
-                            style: "background-image: url('{info.background}'); background-color: {info.color};",
-                            onclick: move |_| {
-                                page.set(index);
-                                debug!("Navigating to tab {}: {}", index, tab_title);
-                            },
-                            div { class: "home-pack-info",
-                                h2 { class: "home-pack-title", "{modpack_subtitle}" }
-                                div { class: "home-pack-button", "View Modpack" }
+                        {
+                            let modpack_subtitle = modpack.manifest.subtitle.clone();
+                            let tab_title = info.title.clone(); // Clone before moving into closure
+                            
+                            rsx! {
+                                div { 
+                                    class: "home-pack-card",
+                                    style: "background-image: url('{info.background}'); background-color: {info.color};",
+                                    onclick: move |_| {
+                                        page.set(index);
+                                        debug!("Navigating to tab {}: {}", index, tab_title);
+                                    },
+                                    div { class: "home-pack-info",
+                                        h2 { class: "home-pack-title", "{modpack_subtitle}" }
+                                        div { class: "home-pack-button", "View Modpack" }
+                                    }
+                                }
                             }
                         }
                     }
