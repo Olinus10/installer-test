@@ -615,7 +615,6 @@ struct VersionProps {
     current_page: usize,
     tab_group: usize,
 }
-
 #[component]
 fn Version(props: VersionProps) -> Element {
     let installer_profile = props.installer_profile.clone();
@@ -893,7 +892,67 @@ fn Version(props: VersionProps) -> Element {
             }
         }
     }
-} show only if we have pages
+} #[component]
+fn AppHeader(
+    page: Signal<usize>, 
+    pages: Signal<BTreeMap<usize, TabInfo>>,
+    settings: Signal<bool>,
+    logo_url: Option<String>
+) -> Element {
+    // Log what tabs we have available
+    debug!("Rendering AppHeader with {} tabs", pages().len());
+    for (index, info) in pages().iter() {
+        debug!("  Tab {}: title={}", index, info.title);
+    }
+    
+    // We need to collect the info we need from pages() into local structures
+    // to avoid lifetime issues
+    let mut main_tab_indices = vec![];
+    let mut main_tab_titles = vec![];
+    let mut dropdown_tab_indices = vec![];
+    let mut dropdown_tab_titles = vec![];
+    
+    // Separate tab groups into main tabs (0, 1, 2) and dropdown tabs (3+)
+    for (index, info) in pages().iter() {
+        if *index <= 2 {
+            main_tab_indices.push(*index);
+            main_tab_titles.push(info.title.clone());
+        } else {
+            dropdown_tab_indices.push(*index);
+            dropdown_tab_titles.push(info.title.clone());
+        }
+    }
+    
+    let has_dropdown = !dropdown_tab_indices.is_empty();
+    let any_dropdown_active = dropdown_tab_indices.iter().any(|idx| page() == *idx);
+  
+    rsx!(
+        header { class: "app-header",
+            // Logo (if available) serves as home button
+            if let Some(url) = logo_url {
+                img { 
+                    class: "app-logo", 
+                    src: "{url}", 
+                    alt: "Logo",
+                    onclick: move |_| {
+                        page.set(HOME_PAGE);
+                        debug!("Navigating to home page via logo");
+                    },
+                    style: "cursor: pointer;"
+                }
+            }
+            
+            h1 { 
+                class: "app-title", 
+                onclick: move |_| {
+                    page.set(HOME_PAGE);
+                    debug!("Navigating to home page via title");
+                },
+                style: "cursor: pointer;",
+                "Modpack Installer" 
+            }
+            
+            // Tabs from pages - show only if we have pages
             div { class: "header-tabs",
                 // Home tab
                 button {
