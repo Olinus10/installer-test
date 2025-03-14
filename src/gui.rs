@@ -1321,6 +1321,17 @@ pub(crate) fn app() -> Element {
     // Determine which logo to use
     let logo_url = Some("https://raw.githubusercontent.com/Wynncraft-Overhaul/installer/master/src/assets/icon.png".to_string());
 
+    // Debug view state
+    debug!("Current page is: {}", page());
+    debug!("Current view is: {}", current_view());
+    debug!("Selected tab is: {}", selected_tab());
+    debug!("HOME_PAGE constant is: {}", HOME_PAGE);
+    debug!("Pages map contains keys: {:?}", pages().keys().collect::<Vec<_>>());
+    debug!("Is current page in pages map? {}", pages().contains_key(&page()));
+
+    // Create the main components with keys outside the rsx macro
+    let home_key = format!("home-page-{}", current_view());
+    
     rsx! {
         style { "{css_content}" }
         
@@ -1352,139 +1363,43 @@ pub(crate) fn app() -> Element {
                     error: err,
                     b64_id: URL_SAFE_NO_PAD.encode(props.modpack_source)
                 }
-            } else {
-                if packs.read().is_none() {
-                    div { class: "loading-container",
-                        div { class: "loading-spinner" }
-                        div { class: "loading-text", "Loading modpack information..." }
-                    }
-                } else {
-                    {
-                        debug!("Current page is: {}", page());
-                        debug!("Current view is: {}", current_view());
-                        debug!("Selected tab is: {}", selected_tab());
-                        debug!("HOME_PAGE constant is: {}", HOME_PAGE);
-                        debug!("Pages map contains keys: {:?}", pages().keys().collect::<Vec<_>>());
-                        debug!("Is current page in pages map? {}", pages().contains_key(&page()));
-                    }
-   let ui_content = {
-    if current_view() == "home" {
-        let home_page_key = format!("home-page-{}", current_view());
-        rsx! {
-            HomePage {
-                pages: pages,
-                page: page, 
-                key: "{home_page_key}"
-            }
-        }
-    } else if current_view() == "tab" {
-        if let Some(page_info) = pages().get(&selected_tab()) {
-            debug!("Rendering Version using current_view for tab {}", selected_tab());
-            debug!("Tab info: {:?}", page_info.title);
-            debug!("Modpacks count: {}", page_info.modpacks.len());
-            
-            if !page_info.modpacks.is_empty() {
-                let version_key = format!("version-{}", selected_tab());
-                rsx! {
-                    Version {
-                        installer_profile: page_info.modpacks[0].clone(),
-                        error: err.clone(),
-                        key: "{version_key}"
-                    }
-                }
-            } else {
-                rsx! {
-                    div { class: "loading-container",
-                        div { class: "loading-text", "No modpacks found in this tab group." }
-                    }
-                }
-            }
-        } else {
-            rsx! {
-                div { class: "loading-container",
-                    div { class: "loading-text", "Selected tab not found." }
-                }
-            }
-        }
-    } else {
-        rsx! {
-            div { class: "loading-container",
-                div { class: "loading-text", "Invalid view state." }
-            }
-        }
-    }
-};
-
-// Then use the ui_content in the final rsx! block
-rsx! {
-    style { "{css_content}" }
-    
-    Modal {}
-    
-    // Always render AppHeader if we're past the initial launcher selection or in settings
-    if !config.read().first_launch.unwrap_or(true) && launcher.is_some() && !*settings.read() {
-        AppHeader {
-            page,
-            pages,
-            settings,
-            logo_url
-        }
-    }
-
-    div { class: "main-container",
-        if settings() {
-            Settings {
-                config,
-                settings,
-                config_path: props.config_path.clone(),
-                error: err,
-                b64_id: URL_SAFE_NO_PAD.encode(props.modpack_source)
-            }
-        } else if config.read().first_launch.unwrap_or(true) || launcher.is_none() {
-            Launcher {
-                config,
-                config_path: props.config_path.clone(),
-                error: err,
-                b64_id: URL_SAFE_NO_PAD.encode(props.modpack_source)
-            }
-        } else {
-            if packs.read().is_none() {
+            } else if packs.read().is_none() {
                 div { class: "loading-container",
                     div { class: "loading-spinner" }
                     div { class: "loading-text", "Loading modpack information..." }
                 }
-            } else {
-                // Use a nested if-else structure directly in the RSX
-                if current_view() == "home" {
-                    HomePage {
-                        pages,
-                        page,
-                        key: format!("home-page-{}", current_view())
-                    }
-                } else if current_view() == "tab" {
-                    if let Some(page_info) = pages().get(&selected_tab()) {
-                        if !page_info.modpacks.is_empty() {
-                            Version {
-                                installer_profile: page_info.modpacks[0].clone(),
-                                error: err.clone(),
-                                key: format!("version-{}", selected_tab())
-                            }
-                        } else {
-                            div { class: "loading-container",
-                                div { class: "loading-text", "No modpacks found in this tab group." }
-                            }
+            } else if current_view() == "home" {
+                // Home page 
+                HomePage {
+                    pages,
+                    page,
+                    key: "{home_key}"
+                }
+            } else if current_view() == "tab" && pages().contains_key(&selected_tab()) {
+                // Tab page (with check to ensure the tab exists)
+                if let Some(tab_info) = pages().get(&selected_tab()) {
+                    if !tab_info.modpacks.is_empty() {
+                        Version {
+                            installer_profile: tab_info.modpacks[0].clone(),
+                            error: err.clone(),
+                            key: "version-{selected_tab()}"
                         }
                     } else {
                         div { class: "loading-container",
-                            div { class: "loading-text", "Selected tab not found." }
+                            div { class: "loading-text", "No modpacks found in this tab group." }
                         }
                     }
                 } else {
                     div { class: "loading-container",
-                        div { class: "loading-text", "Invalid view state." }
+                        div { class: "loading-text", "Selected tab not found." }
                     }
+                }
+            } else {
+                // Fallback for unknown view state
+                div { class: "loading-container",
+                    div { class: "loading-text", "Unknown view state." }
                 }
             }
         }
     }
-}}}}}}
+}
