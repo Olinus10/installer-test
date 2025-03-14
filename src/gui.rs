@@ -1322,7 +1322,7 @@ use_effect(move || {
     // Determine which logo to use
     let logo_url = Some("https://raw.githubusercontent.com/Wynncraft-Overhaul/installer/master/src/assets/icon.png".to_string());
 
-    rsx! {
+rsx! {
     style { "{css_content}" }
     
     Modal {}
@@ -1354,61 +1354,54 @@ use_effect(move || {
                 b64_id: URL_SAFE_NO_PAD.encode(props.modpack_source)
             }
         } else {
-if packs.read().is_none() {
-    div { class: "loading-container",
-        div { class: "loading-spinner" }
-        div { class: "loading-text", "Loading modpack information..." }
-    }
-} else {
-    {
-        debug!("Current page is: {}", page());
-        debug!("Current view is: {}", current_view());
-        debug!("Selected tab is: {}", selected_tab());
-        debug!("HOME_PAGE constant is: {}", HOME_PAGE);
-        debug!("Pages map contains keys: {:?}", pages().keys().collect::<Vec<_>>());
-        debug!("Is current page in pages map? {}", pages().contains_key(&page()));
-    }
-    
-    if current_view() == "home" {
-    HomePage {
-        pages,
-        page,
-        key: "home-page"  // Change this to
-        key: "home-page".to_string()
-    }
-} else if current_view() == "tab" {
-    if let Some(page_info) = pages().get(&selected_tab()) {
-        if !page_info.modpacks.is_empty() {
-            Version {
-                installer_profile: page_info.modpacks[0].clone(),
-                error: err.clone(),
-                key: format!("version-{}", selected_tab())
-                {
-            {
-                debug!("Rendering Version using current_view for tab {}", selected_tab());
-                debug!("Tab info: {:?}", page_info.title);
-                debug!("Modpacks count: {}", page_info.modpacks.len());
-            }
-            
-            if !page_info.modpacks.is_empty() {
-                Version {
-                    installer_profile: page_info.modpacks[0].clone(),
-                    error: err.clone(),
-                    key: {format!("version-{}", selected_tab())}
+            if packs.read().is_none() {
+                div { class: "loading-container",
+                    div { class: "loading-spinner" }
+                    div { class: "loading-text", "Loading modpack information..." }
                 }
             } else {
-                div { class: "loading-container",
-                    div { class: "loading-text", "No modpacks found in this tab group." }
+                {
+                    debug!("Current page is: {}", page());
+                    debug!("Current view is: {}", current_view());
+                    debug!("Selected tab is: {}", selected_tab());
+                    debug!("HOME_PAGE constant is: {}", HOME_PAGE);
+                    debug!("Pages map contains keys: {:?}", pages().keys().collect::<Vec<_>>());
+                    debug!("Is current page in pages map? {}", pages().contains_key(&page()));
                 }
-            }
-        } else {
-            div { class: "loading-container",
-                div { class: "loading-text", "Selected tab not found." }
+                
+                if current_view() == "home" {
+                    HomePage {
+                        pages,
+                        page,
+                        key: "home-page".to_string()
+                    }
+                } else if current_view() == "tab" {
+                    if let Some(page_info) = pages().get(&selected_tab()) {
+                        {
+                            debug!("Rendering Version using current_view for tab {}", selected_tab());
+                            debug!("Tab info: {:?}", page_info.title);
+                            debug!("Modpacks count: {}", page_info.modpacks.len());
+                        }
+                        
+                        if !page_info.modpacks.is_empty() {
+                            Version {
+                                installer_profile: page_info.modpacks[0].clone(),
+                                error: err.clone(),
+                                key: format!("version-{}", selected_tab())
+                            }
+                        } else {
+                            div { class: "loading-container",
+                                div { class: "loading-text", "No modpacks found in this tab group." }
+                            }
+                        }
+                    } else {
+                        div { class: "loading-container",
+                            div { class: "loading-text", "Selected tab not found." }
+                        }
                     }
                 }
             }
         }
     }
 }
-}
-}
+
