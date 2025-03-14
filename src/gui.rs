@@ -1367,51 +1367,96 @@ pub(crate) fn app() -> Element {
                         debug!("Pages map contains keys: {:?}", pages().keys().collect::<Vec<_>>());
                         debug!("Is current page in pages map? {}", pages().contains_key(&page()));
                     }
-                    
-                    
-if current_view() == "home" {
-    let home_page_key = format!("home-page-{}", current_view());
-    rsx! {
-        HomePage {
-            pages,
-            page,
-            key: "{home_page_key}"
+   let ui_content = {
+    if current_view() == "home" {
+        let home_page_key = format!("home-page-{}", current_view());
+        rsx! {
+            HomePage {
+                pages: pages,
+                page: page, 
+                key: "{home_page_key}"
+            }
         }
-    }
-} else if current_view() == "tab" {
-    if let Some(page_info) = pages().get(&selected_tab()) {
-        {
+    } else if current_view() == "tab" {
+        if let Some(page_info) = pages().get(&selected_tab()) {
             debug!("Rendering Version using current_view for tab {}", selected_tab());
             debug!("Tab info: {:?}", page_info.title);
             debug!("Modpacks count: {}", page_info.modpacks.len());
-        }
-        
-        if !page_info.modpacks.is_empty() {
-            let version_key = format!("version-{}", selected_tab());
-            rsx! {
-                Version {
-                    installer_profile: page_info.modpacks[0].clone(),
-                    error: err.clone(),
-                    key: "{version_key}"
+            
+            if !page_info.modpacks.is_empty() {
+                let version_key = format!("version-{}", selected_tab());
+                rsx! {
+                    Version {
+                        installer_profile: page_info.modpacks[0].clone(),
+                        error: err.clone(),
+                        key: "{version_key}"
+                    }
+                }
+            } else {
+                rsx! {
+                    div { class: "loading-container",
+                        div { class: "loading-text", "No modpacks found in this tab group." }
+                    }
                 }
             }
         } else {
             rsx! {
                 div { class: "loading-container",
-                    div { class: "loading-text", "No modpacks found in this tab group." }
+                    div { class: "loading-text", "Selected tab not found." }
                 }
             }
         }
     } else {
         rsx! {
             div { class: "loading-container",
-                div { class: "loading-text", "Selected tab not found." }
-                            }
-                        }
-                    }
-                }
+                div { class: "loading-text", "Invalid view state." }
             }
         }
     }
-}
-}
+};
+
+// Then use the ui_content in the final rsx! block
+rsx! {
+    style { "{css_content}" }
+    
+    Modal {}
+    
+    // Always render AppHeader if we're past the initial launcher selection or in settings
+    if !config.read().first_launch.unwrap_or(true) && launcher.is_some() && !*settings.read() {
+        AppHeader {
+            page,
+            pages,
+            settings,
+            logo_url
+        }
+    }
+
+    div { class: "main-container",
+        if settings() {
+            Settings {
+                config,
+                settings,
+                config_path: props.config_path.clone(),
+                error: err,
+                b64_id: URL_SAFE_NO_PAD.encode(props.modpack_source)
+            }
+        } else if config.read().first_launch.unwrap_or(true) || launcher.is_none() {
+            Launcher {
+                config,
+                config_path: props.config_path.clone(),
+                error: err,
+                b64_id: URL_SAFE_NO_PAD.encode(props.modpack_source)
+            }
+        } else {
+            if packs.read().is_none() {
+                div { class: "loading-container",
+                    div { class: "loading-spinner" }
+                    div { class: "loading-text", "Loading modpack information..." }
+                }
+            } else {
+                // Insert the dynamic UI content here
+                {ui_content}
+            }
+        }
+    }
+}}}}}}
