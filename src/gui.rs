@@ -1291,104 +1291,89 @@ pub(crate) fn app() -> Element {
 
     // Fixed RSX structure
     rsx! {
-        style { "{css_content}" },
-        Modal {},
-        
-        // Always render AppHeader if we're past the initial launcher selection or in settings
-        if !config.read().first_launch.unwrap_or(true) && launcher.is_some() && !*settings.read() {
-            AppHeader {
-                page,
-                pages,
+    style { "{css_content}" },
+    Modal {},
+    
+    // Always render AppHeader if we're past the initial launcher selection or in settings
+    if !config.read().first_launch.unwrap_or(true) && launcher.is_some() && !*settings.read() {
+        AppHeader {
+            page,
+            pages,
+            settings,
+            logo_url
+        }
+    },
+    
+    div { 
+        class: "main-container",
+        if settings() {
+            Settings {
+                config,
                 settings,
-                logo_url
+                config_path: props.config_path.clone(),
+                error: err,
+                b64_id: URL_SAFE_NO_PAD.encode(props.modpack_source)
             }
-        },
-        
-        div { 
-            class: "main-container",
-            if settings() {
-                Settings {
-                    config,
-                    settings,
-                    config_path: props.config_path.clone(),
-                    error: err,
-                    b64_id: URL_SAFE_NO_PAD.encode(props.modpack_source)
-                }
-            } else if config.read().first_launch.unwrap_or(true) || launcher.is_none() {
-                Launcher {
-                    config,
-                    config_path: props.config_path.clone(),
-                    error: err,
-                    b64_id: URL_SAFE_NO_PAD.encode(props.modpack_source)
+        } else if config.read().first_launch.unwrap_or(true) || launcher.is_none() {
+            Launcher {
+                config,
+                config_path: props.config_path.clone(),
+                error: err,
+                b64_id: URL_SAFE_NO_PAD.encode(props.modpack_source)
+            }
+        } else {
+            if packs.read().is_none() {
+                div { 
+                    class: "loading-container",
+                    div { class: "loading-spinner" },
+                    div { class: "loading-text", "Loading modpack information..." }
                 }
             } else {
-                if packs.read().is_none() {
-                    div { 
-                        class: "loading-container",
-                        div { class: "loading-spinner" },
-                        div { 
-                            class: "loading-text", 
-                            "Loading modpack information..." 
-                        }
-                    }
-                } else {
-                    {
-                        debug!("Current page is: {}", page());
-                        debug!("HOME_PAGE constant is: {}", HOME_PAGE);
-                        debug!("Pages map contains keys: {:?}", pages().keys().collect::<Vec<_>>());
-                        debug!("Is current page in pages map? {}", pages().contains_key(&page()));
-                    }
+                {
+                    debug!("Current page is: {}", page());
+                    debug!("HOME_PAGE constant is: {}", HOME_PAGE);
+                    debug!("Pages map contains keys: {:?}", pages().keys().collect::<Vec<_>>());
+                    debug!("Is current page in pages map? {}", pages().contains_key(&page()));
+                }
+                
+                {
+                    let current_page = page();
                     
-                    {
-                        let current_page = page();
+                    if current_page == HOME_PAGE {
+                        HomePage {
+                            pages,
+                            page
+                        }
+                    } else if let Some(page_info) = pages().get(&current_page) {
+                        {
+                            debug!("Rendering Version component for page {}", current_page);
+                            debug!("Page info title: {}", page_info.title);
+                            debug!("Modpacks count: {}", page_info.modpacks.len());
+                        }
                         
-                        if current_page == HOME_PAGE {
-                            HomePage {
-                                pages,
-                                page
+                        if !page_info.modpacks.is_empty() {
+                            // Render the Version component with the first modpack from the current tab
+                            Version {
+                                installer_profile: page_info.modpacks[0].clone(),
+                                error: err.clone()
                             }
-                        } else if let Some(page_info) = pages().get(&current_page) {
-    {
-        debug!("Rendering Version component for page {}", current_page);
-        debug!("Page info title: {}", page_info.title);
-        debug!("Modpacks count: {}", page_info.modpacks.len());
-    }
-    
-    if !page_info.modpacks.is_empty() {
-        // Render the Version component with the first modpack from the current tab
-        Version {
-            installer_profile: page_info.modpacks[0].clone(),
-            error: err.clone()
-        }
-    } else {
-        div { 
-            class: "loading-container",
-            // Child divs with correct comma placement
-            div { 
-                class: "loading-spinner" 
-            },  // Comma after the CLOSING brace of each child except the last
-            div { 
-                class: "loading-text", 
-                "No modpacks found in this tab group."
-            }  // No comma after the last child
-        }
-    }
-} else {
-    div { 
-        class: "loading-container",
-        // Child divs with correct comma placement
-        div { 
-            class: "loading-spinner" 
-        },  // Comma after the CLOSING brace of each child except the last
-        div { 
-            class: "loading-text", 
-            "Tab information not found."
-                                }
+                        } else {
+                            div { 
+                                class: "loading-container",
+                                div { class: "loading-spinner" },
+                                div { class: "loading-text", "No modpacks found in this tab group." }
                             }
+                        }
+                    } else {
+                        div { 
+                            class: "loading-container",
+                            div { class: "loading-spinner" },
+                            div { class: "loading-text", "Tab information not found." }
                         }
                     }
                 }
             }
         }
     }
+}
 }
