@@ -63,6 +63,8 @@ fn HomePage(
         }
     }
 }
+
+// Special value for home page
 const HOME_PAGE: usize = usize::MAX;
 
 #[component]
@@ -598,23 +600,10 @@ async fn process_branch(source: String, branch: String, launcher: Launcher) -> R
 struct VersionProps {
     installer_profile: InstallerProfile,
     error: Signal<Option<String>>,
-}
-
-#[derive(Clone)]
-pub(crate) struct AppProps {
-    pub branches: Vec<super::GithubBranch>,
-    pub modpack_source: String,
-    pub config: super::Config,
-    pub config_path: PathBuf,
-}
-
-#[derive(PartialEq, Props, Clone)]
-struct VersionProps {
-    installer_profile: InstallerProfile,
-    error: Signal<Option<String>>,
     current_page: usize,
     tab_group: usize,
 }
+
 #[component]
 fn Version(props: VersionProps) -> Element {
     let installer_profile = props.installer_profile.clone();
@@ -892,7 +881,9 @@ fn Version(props: VersionProps) -> Element {
             }
         }
     }
-} #[component]
+}
+
+#[component]
 fn AppHeader(
     page: Signal<usize>, 
     pages: Signal<BTreeMap<usize, TabInfo>>,
@@ -1032,13 +1023,6 @@ fn AppHeader(
 }
 
 #[derive(Clone)]
-pub(crate) struct AppProps {
-    pub branches: Vec<super::GithubBranch>,
-    pub modpack_source: String,
-    pub config: super::Config,
-    pub config_path: PathBuf,
-}
-
 pub(crate) fn app() -> Element {
     let props = use_context::<AppProps>();
     let css = include_str!("assets/style.css");
@@ -1100,13 +1084,13 @@ pub(crate) fn app() -> Element {
 
     // Build tabs map when branches are processed
     use_effect(move || {
-        if let Some(branch_results) = processed_branches_resource.read() {
-            debug!("Building tabs map from {} processed branches", branch_results.len());
+        if let Some(results) = processed_branches_resource.read().as_ref() {
+            debug!("Building tabs map from {} processed branches", results.len());
             
             // Create a new map to avoid repeated insertions in reactive context
             let mut new_pages_map = BTreeMap::new();
             
-            for (tab_group, profile) in branch_results {
+            for (tab_group, profile) in results {
                 let tab_title = profile.manifest.tab_title.clone().unwrap_or_else(|| profile.manifest.subtitle.clone());
                 let tab_color = profile.manifest.tab_color.clone().unwrap_or_else(|| String::from("#320625"));
                 let tab_background = profile.manifest.tab_background.clone().unwrap_or_else(|| {
@@ -1119,19 +1103,19 @@ pub(crate) fn app() -> Element {
                 let secondary_font = profile.manifest.tab_secondary_font.clone().unwrap_or_else(|| primary_font.clone());
                 
                 // Add profile to existing tab or create new tab
-                if let Some(tab_info) = new_pages_map.get_mut(&tab_group) {
+                if let Some(tab_info) = new_pages_map.get_mut(tab_group) {
                     if !tab_info.modpacks.iter().any(|p| p.modpack_branch == profile.modpack_branch) {
-                        tab_info.modpacks.push(profile);
+                        tab_info.modpacks.push(profile.clone());
                     }
                 } else {
-                    new_pages_map.insert(tab_group, TabInfo {
+                    new_pages_map.insert(*tab_group, TabInfo {
                         color: tab_color,
                         title: tab_title,
                         background: tab_background,
                         settings_background,
                         primary_font,
                         secondary_font,
-                        modpacks: vec![profile],
+                        modpacks: vec![profile.clone()],
                     });
                 }
             }
