@@ -1,25 +1,4 @@
-.dropdown-item {
-    display: block;
-    width: 100%;
-    padding: 8px 12px;
-    text-align: left;
-    background-color: transparent;
-    border: none;
-    font-family: "PRIMARY_FONT";
-    font-size: 0.9rem;
-    color: #fce8f6;
-    cursor: pointer;
-    transition: background-color 0.2s ease;
-}
-
-.dropdown-item:hover {
-    background-color: rgba(50, 6, 37, 0.8);
-}
-
-.dropdown-item.active {
-    background-color: var(--bg-color);
-    color: #fff;
-}@font-face {
+@font-face {
     font-family: "PRIMARY_FONT";
     src: url(<PRIMARY_FONT>);
     font-weight: normal;
@@ -57,6 +36,29 @@ body {
     overflow: hidden;
 }
 
+/* Dropdown menu styles */
+.dropdown {
+    position: relative;
+    display: inline-block;
+}
+
+.dropdown-content {
+    display: none;
+    position: absolute;
+    background-color: rgba(0, 0, 0, 0.8);
+    min-width: 160px;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
+    z-index: 1000;
+    border-radius: 4px;
+    overflow: hidden;
+    margin-top: 5px;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.dropdown:hover .dropdown-content {
+    display: block;
+}
 
 /* Custom Scrollbar Styling */
 ::-webkit-scrollbar {
