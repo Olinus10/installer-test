@@ -1376,7 +1376,7 @@ if packs.read().is_none() {
         HomePage {
             pages,
             page,
-            key: "home-page"
+            key: {"home-page"}
         }
     } else if current_view() == "tab" {
         if let Some(page_info) = pages().get(&selected_tab()) {
@@ -1390,7 +1390,7 @@ if packs.read().is_none() {
                 Version {
                     installer_profile: page_info.modpacks[0].clone(),
                     error: err.clone(),
-                    key: format!("version-{}", selected_tab())
+                    key: {format!("version-{}", selected_tab())}
                 }
             } else {
                 div { class: "loading-container",
