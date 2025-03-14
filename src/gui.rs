@@ -1167,14 +1167,15 @@ let css_content = {
     
     debug!("Updating CSS with: color={}, bg_image={}, secondary_font={}, primary_font={}", bg_color, bg_image, secondary_font, primary_font);
     
-    // Improved dropdown menu CSS
+    // Improved dropdown menu CSS with better hover behavior
     let dropdown_css = "
-/* Dropdown menu styles - refined version */
+/* Dropdown menu styles - with improved hover behavior */
 .dropdown {
     position: relative;
     display: inline-block;
 }
 
+/* Position the dropdown content */
 .dropdown-content {
     display: none;
     position: absolute;
@@ -1192,7 +1193,24 @@ let css_content = {
     border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-.dropdown:hover .dropdown-content {
+/* Show dropdown on hover with increased target area */
+.dropdown:hover .dropdown-content,
+.dropdown-content:hover {
+    display: block;
+}
+
+/* Add a pseudo-element to create an invisible connection between the button and dropdown */
+.dropdown::after {
+    content: '';
+    position: absolute;
+    height: 10px;
+    width: 100%;
+    left: 0;
+    top: 100%;
+    display: none;
+}
+
+.dropdown:hover::after {
     display: block;
 }
 
@@ -1203,7 +1221,7 @@ let css_content = {
     text-align: left;
     background-color: transparent;
     border: none;
-    font-family: \"PRIMARY_FONT\";
+    font-family: \\\"PRIMARY_FONT\\\";
     font-size: 0.9rem;
     color: #fce8f6;
     cursor: pointer;
