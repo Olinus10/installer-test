@@ -1,3 +1,5 @@
+// Updated GUI.rs file with fixes for UI issues
+
 use std::{collections::BTreeMap, path::PathBuf};
 
 use base64::{engine, Engine};
@@ -35,16 +37,19 @@ fn HomePage(
             
             div { class: "home-grid",
                 for (index, info) in pages() {
-                    div { 
-                        class: "home-pack-card",
-                        style: "background-image: url('{info.background}'); background-color: {info.color};",
-                        onclick: move |_| {
-                            page.set(index);
-                            debug!("Navigating to tab {}: {}", index, info.title);
-                        },
-                        div { class: "home-pack-info",
-                            h2 { class: "home-pack-title", "{info.title}" }
-                            div { class: "home-pack-button", "View Modpack" }
+                    // Using each modpack's subtitle rather than tab_title for the home page cards
+                    for modpack in &info.modpacks {
+                        div { 
+                            class: "home-pack-card",
+                            style: "background-image: url('{info.background}'); background-color: {info.color};",
+                            onclick: move |_| {
+                                page.set(index);
+                                debug!("Navigating to tab {}: {}", index, info.title);
+                            },
+                            div { class: "home-pack-info",
+                                h2 { class: "home-pack-title", "{modpack.manifest.subtitle}" }
+                                div { class: "home-pack-button", "View Modpack" }
+                            }
                         }
                     }
                 }
@@ -324,6 +329,7 @@ fn Settings(mut props: SettingsProps) -> Element {
         }
     }
 }
+
 #[derive(PartialEq, Props, Clone)]
 struct LauncherProps {
     config: Signal<super::Config>,
@@ -569,7 +575,6 @@ async fn init_branch(source: String, branch: String, launcher: Launcher, mut pag
     let profile = crate::init(source.to_owned(), branch.to_owned(), launcher).await?;
 
     // Process manifest data for tab information
-    // Extract and log the tab information for debugging
     debug!("Processing manifest tab information:");
     debug!("  subtitle: {}", profile.manifest.subtitle);
     debug!("  description length: {}", profile.manifest.description.len());
@@ -588,6 +593,10 @@ async fn init_branch(source: String, branch: String, launcher: Launcher, mut pag
 
     let tab_created = pages.read().contains_key(&tab_group);
     let movable_profile = profile.clone();
+    
+    // Use a consistent font for all tabs/components - use the Wynncraft Game Font
+    let consistent_font = "https://raw.githubusercontent.com/Wynncraft-Overhaul/installer/master/src/assets/Wynncraft_Game_Font.woff2".to_string();
+    
     use_effect(move || {
         let profile = &movable_profile;
         if !tab_created {
@@ -616,39 +625,17 @@ async fn init_branch(source: String, branch: String, launcher: Launcher, mut pag
                 String::from(default_bg)
             };
 
-            let settings_background = if let Some(ref settings_background) = profile.manifest.settings_background {
-                debug!("  settings_background: {}", settings_background);
-                settings_background.clone()
-            } else {
-                debug!("  settings_background: None, using tab_background");
-                tab_background.clone()
-            };
+            // Use a consistent background for settings - home background
+            let settings_background = "https://raw.githubusercontent.com/Wynncraft-Overhaul/installer/master/src/assets/background_installer.png".to_string();
 
-            let tab_secondary_font = if let Some(ref tab_secondary_font) = profile.manifest.tab_secondary_font {
-                debug!("  tab_secondary_font: {}", tab_secondary_font);
-                tab_secondary_font.clone()
-            } else {
-                let default_font = "https://raw.githubusercontent.com/Wynncraft-Overhaul/installer/master/src/assets/Wynncraft_Game_Font.woff2";
-                debug!("  tab_secondary_font: None, defaulting to '{}'", default_font);
-                String::from(default_font)
-            };
-
-            let tab_primary_font = if let Some(ref tab_primary_font) = profile.manifest.tab_primary_font {
-                debug!("  tab_primary_font: {}", tab_primary_font);
-                tab_primary_font.clone()
-            } else {
-                let default_font = "https://raw.githubusercontent.com/Wynncraft-Overhaul/installer/master/src/assets/Wynncraft_Game_Font.woff2";
-                debug!("  tab_primary_font: None, defaulting to '{}'", default_font);
-                String::from(default_font)
-            };
-
+            // Use a consistent font for all purposes
             let tab_info = TabInfo {
                 color: tab_color,
                 title: tab_title,
                 background: tab_background,
                 settings_background,
-                primary_font: tab_primary_font,
-                secondary_font: tab_secondary_font,
+                primary_font: consistent_font.clone(),
+                secondary_font: consistent_font.clone(),
                 modpacks: vec![],
             };
             pages.write().insert(tab_group, tab_info.clone());
@@ -661,8 +648,6 @@ async fn init_branch(source: String, branch: String, launcher: Launcher, mut pag
         pages.write().entry(tab_group).and_modify(move |x| x.modpacks.push(profile));
         debug!("Inserted {} into tab_group {}", branch, tab_group);
     });
-    // pages.write().entry(tab_group).and_modify(|x| x.modpacks.push(profile));
-
 
     Ok(())
 }
@@ -829,9 +814,8 @@ fn Version(installer_profile: InstallerProfile, error: Signal<Option<String>>) -
     } else {
         None
     };
-    debug!("Version: reached RSX");
+    
     rsx! {
-        "TEST"
         if *installing.read() {
             ProgressView {
                 value: install_progress(),
@@ -874,12 +858,13 @@ fn Version(installer_profile: InstallerProfile, error: Signal<Option<String>>) -
                     // Features heading
                     h2 { "Optional Features" }
                     
+                    // Debug log output of features
                     {
-                        debug!("Rendering {} features for manifest",
-                                  installer_profile.manifest.features.len());
+                        debug!("Rendering {} features for manifest", 
+                               installer_profile.manifest.features.len());
                         for feat in &installer_profile.manifest.features {
                             debug!("Feature: id={}, name={}, hidden={}, default={}",
-                                      feat.id, feat.name, feat.hidden, feat.default);
+                                  feat.id, feat.name, feat.hidden, feat.default);
                         }
                     }
                     
