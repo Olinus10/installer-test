@@ -44,16 +44,17 @@ fn HomePage(
                             
                             rsx! {
                                 div { 
-                                    class: "home-pack-card",
-                                    style: "background-image: url('{info.background}'); background-color: {info.color};",
-                                    onclick: move |_| {
-                                        let current_value = page();
-                                        // Only update if needed to avoid unnecessary rerenders
-                                        if current_value != tab_index {
-                                            page.set(tab_index);
-                                            debug!("Navigating to tab {}: {}", tab_index, tab_title);
-                                        }
-                                    },
+    class: "home-pack-card",
+    style: "background-image: url('{info.background}'); background-color: {info.color};",
+   onclick: move |evt| {
+    evt.stop_propagation(); // Add this line
+    let current_value = page();
+    // Only update if needed to avoid unnecessary rerenders
+    if current_value != tab_index {
+        page.set(tab_index);
+        debug!("Navigating to tab {}: {}", tab_index, tab_title);
+    }
+},
                                     div { class: "home-pack-info",
                                         h2 { class: "home-pack-title", "{modpack_subtitle}" }
                                         div { class: "home-pack-button", "View Modpack" }
@@ -537,7 +538,6 @@ fn FeatureCard(props: FeatureCardProps) -> Element {
         }
     }
 }
-
 fn feature_change(
     local_features: Signal<Option<Vec<String>>>,
     mut modify: Signal<bool>,
@@ -546,19 +546,20 @@ fn feature_change(
     mut modify_count: Signal<i32>,
     mut enabled_features: Signal<Vec<String>>,
 ) {
+    // Extract values first
     let enabled = match &*evt.data.value() {
         "true" => true,
         "false" => false,
         _ => panic!("Invalid bool from feature"),
     };
     
-    let should_update = {
-        let current_features = enabled_features.read();
-        let contains_feature = current_features.contains(&feat.id);
-        enabled != contains_feature
-    };
+    // Copy values we need for comparison
+    let current_features = enabled_features.read().clone();
+    let contains_feature = current_features.contains(&feat.id);
+    let current_count = *modify_count.read();
     
-    if should_update {
+    // Only update if necessary
+    if enabled != contains_feature {
         enabled_features.with_mut(|x| {
             if enabled && !x.contains(&feat.id) {
                 x.push(feat.id.clone());
@@ -568,9 +569,12 @@ fn feature_change(
         });
     }
     
+    // Handle modify signals in a separate step
     if let Some(local_feat) = local_features.read().as_ref() {
         let modify_res = local_feat.contains(&feat.id) != enabled;
-        if *modify_count.read() <= 1 {  // Use * to dereference
+        
+        // Schedule these operations separately to avoid infinite loop warnings
+        if current_count <= 1 {
             modify.set(modify_res);
         }
         
@@ -1275,6 +1279,19 @@ pub(crate) fn app() -> Element {
             .replace("<PRIMARY_FONT>", &primary_font) + dropdown_css
     };
 
+    // Add a proper handler to initialize the page when data is loaded
+let packs_loaded = use_memo(move || {
+    packs.read().is_some()
+});
+
+// Add this effect to ensure proper page updates when data is loaded
+use_effect(move || {
+    if packs_loaded() && page() != HOME_PAGE && !pages().contains_key(&page()) {
+        page.set(HOME_PAGE);
+        debug!("Resetting to home page because current page {} is not valid", page());
+    }
+});
+
     let mut modal_context = use_context_provider(ModalContext::default);
     if let Some(e) = err() {
         modal_context.open("Error", rsx! {
@@ -1335,38 +1352,38 @@ pub(crate) fn app() -> Element {
                     }
                     
                     if page() == HOME_PAGE {
-                        {
-                            debug!("Rendering HomePage component");
-                        }
-                        HomePage {
-                            pages,
-                            page
-                        }
-                    } else if let Some(page_info) = pages().get(&page()) {
-                        {
-                            debug!("Rendering Version component for page {}", page());
-                            debug!("Page info: {:?}", page_info);
-                            debug!("Modpacks count: {}", page_info.modpacks.len());
-                        }
-                        
-                        if !page_info.modpacks.is_empty() {
-                            // Render the Version component with the first modpack from the current tab
-                            Version {
-                                installer_profile: page_info.modpacks[0].clone(),
-                                error: err.clone()
-                            }
-                        } else {
-                            div { class: "loading-container",
-                                div { class: "loading-text", "No modpacks found in this tab group." }
-                            }
-                        }
-                    } else {
-                        div { class: "loading-container",
-                            div { class: "loading-text", "Tab information not found." }
-                        }
+    {
+        debug!("Rendering HomePage component");
+    }
+    rsx!(HomePage {
+        pages,
+        page
+    })
+} else if let Some(page_info) = pages().get(&page()) {
+    {
+        debug!("Rendering Version component for page {}", page());
+        debug!("Page info: {:?}", page_info);
+        debug!("Modpacks count: {}", page_info.modpacks.len());
+    }
+    
+    if !page_info.modpacks.is_empty() {
+        // Use an explicit rsx! macro here to ensure proper rendering
+        rsx!(Version {
+            installer_profile: page_info.modpacks[0].clone(),
+            error: err.clone()
+        })
+    } else {
+        rsx!(div { class: "loading-container",
+            div { class: "loading-text", "No modpacks found in this tab group." }
+        })
+    }
+} else {
+    rsx!(div { class: "loading-container",
+        div { class: "loading-text", "Tab information not found." }
+    })
+}
                     }
                 }
             }
         }
     }
-}
