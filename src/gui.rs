@@ -1290,11 +1290,9 @@ let css_content = {
     // Determine which logo to use
     let logo_url = Some("https://raw.githubusercontent.com/Wynncraft-Overhaul/installer/master/src/assets/icon.png".to_string());
 
-    rsx! {
-        style { "{css_content}" }
-
-        Modal {}
-
+rsx! {
+        style { "{css_content}" },
+        Modal {},
         // Always render AppHeader if we're past the initial launcher selection or in settings
         if !config.read().first_launch.unwrap_or(true) && launcher.is_some() && !*settings.read() {
             AppHeader {
@@ -1303,8 +1301,7 @@ let css_content = {
                 settings,
                 logo_url
             }
-        }
-
+        },
         div { 
             class: "main-container",
             if settings() {
