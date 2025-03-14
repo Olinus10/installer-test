@@ -1094,31 +1094,30 @@ pub(crate) fn app() -> Element {
     let config = use_signal(|| props.config);
     let settings = use_signal(|| false);
     let mut err: Signal<Option<String>> = use_signal(|| None);
-let page = use_signal(|| usize::MAX);
-let pages = use_signal(BTreeMap::<usize, TabInfo>::new);
+    let page = use_signal(|| usize::MAX);
+    let pages = use_signal(BTreeMap::<usize, TabInfo>::new);
 
-// Add these new signals for view management
-let current_view = use_signal(|| "home");
-let selected_tab = use_signal(|| usize::MAX);
+    // Add these new signals for view management
+    let current_view = use_signal(|| "home");
+    let selected_tab = use_signal(|| usize::MAX);
 
-debug!("Rendering page: {}, {:?}", page(), pages().get(&page()));
+    debug!("Rendering page: {}, {:?}", page(), pages().get(&page()));
 
-// Add this effect for debugging page changes
-use_effect(move || {
-    debug!("Page changed to: {}", page());
-    debug!("Is page in pages map? {}", pages().contains_key(&page()));
-});
+    // Add this effect for debugging page changes
+    use_effect(move || {
+        debug!("Page changed to: {}", page());
+        debug!("Is page in pages map? {}", pages().contains_key(&page()));
+    });
 
-// Add this effect to manage view state based on page changes
-use_effect(move || {
-    if page() == HOME_PAGE {
-        current_view.set("home");
-    } else if pages().contains_key(&page()) {
-        current_view.set("tab");
-        selected_tab.set(page());
-    }
-});
-
+    // Add this effect to manage view state based on page changes
+    use_effect(move || {
+        if page() == HOME_PAGE {
+            current_view.set("home");
+        } else if pages().contains_key(&page()) {
+            current_view.set("tab");
+            selected_tab.set(page());
+        }
+    });
 
     let cfg = config.with(|cfg| cfg.clone());
     let launcher = match super::get_launcher(&cfg.launcher) {
@@ -1297,17 +1296,17 @@ use_effect(move || {
     };
 
     // Add a proper handler to initialize the page when data is loaded
-let packs_loaded = use_memo(move || {
-    packs.read().is_some()
-});
+    let packs_loaded = use_memo(move || {
+        packs.read().is_some()
+    });
 
-// Add this effect to ensure proper page updates when data is loaded
-use_effect(move || {
-    if packs_loaded() && page() != HOME_PAGE && !pages().contains_key(&page()) {
-        page.set(HOME_PAGE);
-        debug!("Resetting to home page because current page {} is not valid", page());
-    }
-});
+    // Add this effect to ensure proper page updates when data is loaded
+    use_effect(move || {
+        if packs_loaded() && page() != HOME_PAGE && !pages().contains_key(&page()) {
+            page.set(HOME_PAGE);
+            debug!("Resetting to home page because current page {} is not valid", page());
+        }
+    });
 
     let mut modal_context = use_context_provider(ModalContext::default);
     if let Some(e) = err() {
@@ -1322,86 +1321,86 @@ use_effect(move || {
     // Determine which logo to use
     let logo_url = Some("https://raw.githubusercontent.com/Wynncraft-Overhaul/installer/master/src/assets/icon.png".to_string());
 
-rsx! {
-    style { "{css_content}" }
-    
-    Modal {}
-    
-    // Always render AppHeader if we're past the initial launcher selection or in settings
-    if !config.read().first_launch.unwrap_or(true) && launcher.is_some() && !*settings.read() {
-        AppHeader {
-            page,
-            pages,
-            settings,
-            logo_url
-        }
-    }
-
-    div { class: "main-container",
-        if settings() {
-            Settings {
-                config,
+    rsx! {
+        style { "{css_content}" }
+        
+        Modal {}
+        
+        // Always render AppHeader if we're past the initial launcher selection or in settings
+        if !config.read().first_launch.unwrap_or(true) && launcher.is_some() && !*settings.read() {
+            AppHeader {
+                page,
+                pages,
                 settings,
-                config_path: props.config_path.clone(),
-                error: err,
-                b64_id: URL_SAFE_NO_PAD.encode(props.modpack_source)
+                logo_url
             }
-        } else if config.read().first_launch.unwrap_or(true) || launcher.is_none() {
-            Launcher {
-                config,
-                config_path: props.config_path.clone(),
-                error: err,
-                b64_id: URL_SAFE_NO_PAD.encode(props.modpack_source)
-            }
-        } else {
-            if packs.read().is_none() {
-                div { class: "loading-container",
-                    div { class: "loading-spinner" }
-                    div { class: "loading-text", "Loading modpack information..." }
+        }
+
+        div { class: "main-container",
+            if settings() {
+                Settings {
+                    config,
+                    settings,
+                    config_path: props.config_path.clone(),
+                    error: err,
+                    b64_id: URL_SAFE_NO_PAD.encode(props.modpack_source)
+                }
+            } else if config.read().first_launch.unwrap_or(true) || launcher.is_none() {
+                Launcher {
+                    config,
+                    config_path: props.config_path.clone(),
+                    error: err,
+                    b64_id: URL_SAFE_NO_PAD.encode(props.modpack_source)
                 }
             } else {
-                {
-                    debug!("Current page is: {}", page());
-                    debug!("Current view is: {}", current_view());
-                    debug!("Selected tab is: {}", selected_tab());
-                    debug!("HOME_PAGE constant is: {}", HOME_PAGE);
-                    debug!("Pages map contains keys: {:?}", pages().keys().collect::<Vec<_>>());
-                    debug!("Is current page in pages map? {}", pages().contains_key(&page()));
-                }
-                
-                if current_view() == "home" {
-                    HomePage {
-                        pages,
-                        page,
-                        key: "home-page".to_string()
+                if packs.read().is_none() {
+                    div { class: "loading-container",
+                        div { class: "loading-spinner" }
+                        div { class: "loading-text", "Loading modpack information..." }
                     }
-                } else if current_view() == "tab" {
-                    if let Some(page_info) = pages().get(&selected_tab()) {
-                        {
-                            debug!("Rendering Version using current_view for tab {}", selected_tab());
-                            debug!("Tab info: {:?}", page_info.title);
-                            debug!("Modpacks count: {}", page_info.modpacks.len());
+                } else {
+                    {
+                        debug!("Current page is: {}", page());
+                        debug!("Current view is: {}", current_view());
+                        debug!("Selected tab is: {}", selected_tab());
+                        debug!("HOME_PAGE constant is: {}", HOME_PAGE);
+                        debug!("Pages map contains keys: {:?}", pages().keys().collect::<Vec<_>>());
+                        debug!("Is current page in pages map? {}", pages().contains_key(&page()));
+                    }
+                    
+                    if current_view() == "home" {
+                        HomePage {
+                            pages,
+                            page,
+                            key: "home-page".to_string()
                         }
-                        
-                        if !page_info.modpacks.is_empty() {
-                            Version {
-                                installer_profile: page_info.modpacks[0].clone(),
-                                error: err.clone(),
-                                key: format!("version-{}", selected_tab())
+                    } else if current_view() == "tab" {
+                        if let Some(page_info) = pages().get(&selected_tab()) {
+                            {
+                                debug!("Rendering Version using current_view for tab {}", selected_tab());
+                                debug!("Tab info: {:?}", page_info.title);
+                                debug!("Modpacks count: {}", page_info.modpacks.len());
+                            }
+                            
+                            if !page_info.modpacks.is_empty() {
+                                Version {
+                                    installer_profile: page_info.modpacks[0].clone(),
+                                    error: err.clone(),
+                                    key: format!("version-{}", selected_tab())
+                                }
+                            } else {
+                                div { class: "loading-container",
+                                    div { class: "loading-text", "No modpacks found in this tab group." }
+                                }
                             }
                         } else {
                             div { class: "loading-container",
-                                div { class: "loading-text", "No modpacks found in this tab group." }
+                                div { class: "loading-text", "Selected tab not found." }
                             }
-                        }
-                    } else {
-                        div { class: "loading-container",
-                            div { class: "loading-text", "Selected tab not found." }
                         }
                     }
                 }
             }
         }
     }
-}
 }
