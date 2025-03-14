@@ -1,4 +1,25 @@
-@font-face {
+.dropdown-item {
+    display: block;
+    width: 100%;
+    padding: 8px 12px;
+    text-align: left;
+    background-color: transparent;
+    border: none;
+    font-family: "PRIMARY_FONT";
+    font-size: 0.9rem;
+    color: #fce8f6;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.dropdown-item:hover {
+    background-color: rgba(50, 6, 37, 0.8);
+}
+
+.dropdown-item.active {
+    background-color: var(--bg-color);
+    color: #fff;
+}@font-face {
     font-family: "PRIMARY_FONT";
     src: url(<PRIMARY_FONT>);
     font-weight: normal;
@@ -35,6 +56,7 @@ body {
     height: 100vh;
     overflow: hidden;
 }
+
 
 /* Custom Scrollbar Styling */
 ::-webkit-scrollbar {
@@ -115,7 +137,6 @@ a:hover {
     text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
 }
 
-
 /* Header tabs with better spacing for more tabs */
 .header-tabs {
     display: flex;
@@ -188,14 +209,15 @@ a:hover {
 .home-container {
     max-width: 1200px;
     margin: 0 auto;
-    padding: 20px;
+    padding: 10px; /* Reduced padding */
     text-align: center;
 }
 
 .home-title {
     font-family: "PRIMARY_FONT";
     text-align: center;
-    margin-bottom: 30px;
+    margin-top: 0; /* Remove top margin */
+    margin-bottom: 20px; /* Reduced bottom margin */
     font-size: 2.5rem;
     color: #fce8f6;
     text-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
