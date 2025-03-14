@@ -1,5 +1,3 @@
-// Updated GUI.rs file with fixes for UI issues
-
 use std::{collections::BTreeMap, path::PathBuf};
 
 use base64::{engine, Engine};
@@ -660,8 +658,10 @@ async fn init_branch(source: String, branch: String, launcher: Launcher, mut pag
 
 #[component]
 fn Version(installer_profile: InstallerProfile, error: Signal<Option<String>>) -> Element {
-    debug!("Rendering Version component for source: {}, branch: {}",
-              installer_profile.modpack_source, installer_profile.modpack_branch);  
+    debug!("Rendering Version component for '{}' (source: {}, branch: {})",
+           installer_profile.manifest.subtitle,
+           installer_profile.modpack_source,
+           installer_profile.modpack_branch);  
 
     let mut installing = use_signal(|| false);
     let mut progress_status = use_signal(|| "");
@@ -684,7 +684,8 @@ fn Version(installer_profile: InstallerProfile, error: Signal<Option<String>>) -
             }
         }
 
-        debug!("Initial enabled features: {:?}", features);
+        debug!("Initial enabled features for '{}': {:?}",
+               installer_profile.manifest.subtitle, features);
         features
     });
 
@@ -821,6 +822,15 @@ fn Version(installer_profile: InstallerProfile, error: Signal<Option<String>>) -
         None
     };
     
+    // Log the features to help debug
+    debug!("Modpack '{}' has {} features", 
+           installer_profile.manifest.subtitle, 
+           installer_profile.manifest.features.len());
+           
+    for feat in &installer_profile.manifest.features {
+        debug!("Feature: id={}, name={}, hidden={}", feat.id, feat.name, feat.hidden);
+    }
+    
     rsx! {
         if *installing.read() {
             ProgressView {
@@ -864,36 +874,34 @@ fn Version(installer_profile: InstallerProfile, error: Signal<Option<String>>) -
                     // Features heading
                     h2 { "Optional Features" }
                     
-                    // Debug log output of features
-                    {
-                        debug!("Rendering {} features for manifest", 
-                               installer_profile.manifest.features.len());
-                        for feat in &installer_profile.manifest.features {
-                            debug!("Feature: id={}, name={}, hidden={}, default={}",
-                                  feat.id, feat.name, feat.hidden, feat.default);
-                        }
-                    }
-                    
                     // Feature cards in a responsive grid
                     div { class: "feature-cards-container",
                         for feat in installer_profile.manifest.features {
-                            if !feat.hidden {
-                                FeatureCard {
-                                    feature: feat.clone(),
-                                    enabled: if installer_profile.installed {
-                                        enabled_features.with(|x| x.contains(&feat.id))
-                                    } else {
-                                        feat.default
-                                    },
-                                    on_toggle: move |evt| {
-                                        feature_change(
-                                            local_features,
-                                            modify,
-                                            evt,
-                                            &feat,
-                                            modify_count,
-                                            enabled_features,
-                                        )
+                            {
+                                // Clone values to avoid ownership issues
+                                let feat_clone = feat.clone();
+                                let feat_id = feat.id.clone();
+                                
+                                if !feat.hidden {
+                                    rsx! {
+                                        FeatureCard {
+                                            feature: feat_clone,
+                                            enabled: if installer_profile.installed {
+                                                enabled_features.with(|x| x.contains(&feat_id))
+                                            } else {
+                                                feat.default
+                                            },
+                                            on_toggle: move |evt| {
+                                                feature_change(
+                                                    local_features,
+                                                    modify,
+                                                    evt,
+                                                    &feat,
+                                                    modify_count,
+                                                    enabled_features,
+                                                )
+                                            }
+                                        }
                                     }
                                 }
                             }
