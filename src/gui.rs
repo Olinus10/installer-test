@@ -1363,7 +1363,7 @@ let css_content = {
             }
 
             <div class="main-container">
-                if settings() {
+                {if settings() {
                     Settings {
                         config,
                         settings,
@@ -1384,28 +1384,28 @@ let css_content = {
                         <div class="loading-text">{"Loading modpack information..."}</div>
                     </div>
                 } else {
-                    // Debugging output
-                    <div>
-                        {"Current Page: "}{page()}
-                        {"Total Pages: "}{pages().len()}
-                        {"Pages: "}{format!("{:#?}", pages())}
-                    </div>
+                    <>
+                        // Debugging output
+                        <div>
+                            {"Current Page: "}{page()}
+                            {"Total Pages: "}{pages().len()}
+                            {"Pages: "}{format!("{:#?}", pages())}
+                        </div>
 
-                    if page() == HOME_PAGE {
-                        HomePage {
-                            pages,
-                            page
-                        }
-                    } else {
-                        // Extensive debugging for Version rendering
-                        for (tab_idx, tab_info) in pages() {
-                            <div>
-                                {"Tab Group: "}{tab_idx}
-                                {" Current Page: "}{page()}
-                                {" Modpacks in this group: "}{tab_info.modpacks.len()}
-                            </div>
-                            for installer_profile in &tab_info.modpacks {
-                                {
+                        {if page() == HOME_PAGE {
+                            HomePage {
+                                pages,
+                                page
+                            }
+                        } else {
+                            // Extensive debugging for Version rendering
+                            {for (tab_idx, tab_info) in pages() {
+                                <div>
+                                    {"Tab Group: "}{tab_idx}
+                                    {" Current Page: "}{page()}
+                                    {" Modpacks in this group: "}{tab_info.modpacks.len()}
+                                </div>
+                                {for installer_profile in &tab_info.modpacks {
                                     let profile = installer_profile.clone();
                                     Version {
                                         installer_profile: profile,
@@ -1413,12 +1413,12 @@ let css_content = {
                                         current_page: page(),
                                         tab_group: tab_idx,
                                     }
-                                }
-                            }
-                        }
-                    }
-                }
+                                }}
+                            }}
+                        }}
+                    </>
+                }}
             </div>
         </>
     }
-}}
+}
