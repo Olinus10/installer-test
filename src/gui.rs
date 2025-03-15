@@ -671,12 +671,25 @@ async fn init_branch(source: String, branch: String, launcher: Launcher, mut pag
     Ok(())
 }
 
+#[derive(PartialEq, Props, Clone)]
+struct VersionProps {
+    installer_profile: InstallerProfile,
+    error: Signal<Option<String>>,
+    current_page: usize,  // New prop
+    tab_group: usize,     // New prop
+}
+
 #[component]
-fn Version(installer_profile: InstallerProfile, error: Signal<Option<String>>) -> Element {
+fn Version(props: VersionProps) -> Element {
     debug!("Rendering Version component for '{}' (source: {}, branch: {})",
-           installer_profile.manifest.subtitle,
-           installer_profile.modpack_source,
-           installer_profile.modpack_branch);  
+           props.installer_profile.manifest.subtitle,
+           props.installer_profile.modpack_source,
+           props.installer_profile.modpack_branch);  
+
+    // Only render this component if its tab_group matches the current page
+    if props.current_page != props.tab_group {
+        return None;
+    }
 
     let mut installing = use_signal(|| false);
     let mut progress_status = use_signal(|| "");
@@ -687,6 +700,8 @@ fn Version(installer_profile: InstallerProfile, error: Signal<Option<String>>) -
     // Fix: Initialize enabled_features properly
     let enabled_features = use_signal(|| {
         let mut features = vec!["default".to_string()];
+        
+        let installer_profile = props.installer_profile.clone();
         
         if installer_profile.installed && installer_profile.local_manifest.is_some() {
             features = installer_profile.local_manifest.as_ref().unwrap().enabled_features.clone();
