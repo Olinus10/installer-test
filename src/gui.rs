@@ -678,7 +678,7 @@ struct VersionProps {
     tab_group: usize,
 }
 
-##[component]
+#[component]
 fn Version(mut props: VersionProps) -> Element {
     let installer_profile = props.installer_profile.clone();
     
