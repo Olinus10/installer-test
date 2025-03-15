@@ -1195,47 +1195,48 @@ pub(crate) fn app() -> Element {
         }
     });
 
-    // Update CSS whenever relevant values change
-    let css_content = {
-        let default_color = "#320625".to_string();
-        let default_bg = "https://raw.githubusercontent.com/Wynncraft-Overhaul/installer/master/src/assets/background_installer.png".to_string();
-        let default_font = "https://raw.githubusercontent.com/Wynncraft-Overhaul/installer/master/src/assets/Wynncraft_Game_Font.woff2".to_string();
-        
-        let bg_color = match pages().get(&page()) {
-            Some(x) => x.color.clone(),
-            None => default_color,
-        };
-        
-        let bg_image = match pages().get(&page()) {
-            Some(x) => {
-                if settings() {
-                    x.settings_background.clone()
-                } else {
-                    x.background.clone()
-                }
-            },
-            None => default_bg,
-        };
-        
-        let secondary_font = match pages().get(&page()) {
-            Some(x) => x.secondary_font.clone(),
-            None => default_font.clone(),
-        };
-        
-        let primary_font = match pages().get(&page()) {
-            Some(x) => x.primary_font.clone(),
-            None => default_font,
-        };
-        
-        debug!("Updating CSS with: color={}, bg_image={}, secondary_font={}, primary_font={}", bg_color, bg_image, secondary_font, primary_font);
+// Update the CSS generation section
+let css_content = {
+    let default_color = "#320625".to_string();
+    let default_bg = "https://raw.githubusercontent.com/Wynncraft-Overhaul/installer/master/src/assets/background_installer.png".to_string();
+    let default_font = "https://raw.githubusercontent.com/Wynncraft-Overhaul/installer/master/src/assets/Wynncraft_Game_Font.woff2".to_string();
+    
+    let bg_color = match pages().get(&page()) {
+        Some(x) => x.color.clone(),
+        None => default_color,
+    };
+    
+    let bg_image = match pages().get(&page()) {
+        Some(x) => {
+            if settings() {
+                x.settings_background.clone()
+            } else {
+                x.background.clone()
+            }
+        },
+        None => default_bg,
+    };
+    
+    let secondary_font = match pages().get(&page()) {
+        Some(x) => x.secondary_font.clone(),
+        None => default_font.clone(),
+    };
+    
+    let primary_font = match pages().get(&page()) {
+        Some(x) => x.primary_font.clone(),
+        None => default_font,
+    };
+    
+    debug!("Updating CSS with: color={}, bg_image={}, secondary_font={}, primary_font={}", 
+           bg_color, bg_image, secondary_font, primary_font);
         
         // Improved dropdown menu CSS with better hover behavior and font consistency
-        let dropdown_css = "
-/* Dropdown menu styles - with improved hover behavior and font consistency */
-.dropdown {
-    position: relative;
-    display: inline-block;
-}
+         let dropdown_css = "
+    /* Dropdown styles */
+    .dropdown { 
+        position: relative; 
+        display: inline-block; 
+    }
 
 /* Position the dropdown content */
 .dropdown-content {
@@ -1323,12 +1324,13 @@ pub(crate) fn app() -> Element {
     position: relative;
 }";
         
-        css
-            .replace("<BG_COLOR>", &bg_color)
-            .replace("<BG_IMAGE>", &bg_image)
-            .replace("<SECONDARY_FONT>", &secondary_font)
-            .replace("<PRIMARY_FONT>", &primary_font) + dropdown_css
-    };
+         css
+        .replace("<BG_COLOR>", &bg_color)
+        .replace("<BG_IMAGE>", &bg_image)
+        .replace("<SECONDARY_FONT>", &secondary_font)
+        .replace("<PRIMARY_FONT>", &primary_font) 
+        + dropdown_css
+};
 
 
     let mut modal_context = use_context_provider(ModalContext::default);
@@ -1345,8 +1347,9 @@ pub(crate) fn app() -> Element {
     let logo_url = Some("https://raw.githubusercontent.com/Wynncraft-Overhaul/installer/master/src/assets/icon.png".to_string());
     
      rsx! {
-        style { "{css_content}" }
-        
+    style { 
+        "{css_content}" 
+    }
         Modal {}
         
         // Always render AppHeader if we're past the initial launcher selection or in settings
