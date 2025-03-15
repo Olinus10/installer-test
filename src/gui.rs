@@ -1095,37 +1095,37 @@ pub fn app() -> Element {
             debug!("Building tabs map from {} processed branches", results.len());
             
             // Create a new map to avoid repeated insertions in reactive context
-            let mut new_pages_map = BTreeMap::new();
-            
-            for &(tab_group, ref profile) in results {
-                let tab_title = profile.manifest.tab_title.clone().unwrap_or_else(|| profile.manifest.subtitle.clone());
-                let tab_color = profile.manifest.tab_color.clone().unwrap_or_else(|| String::from("#320625"));
-                let tab_background = profile.manifest.tab_background.clone().unwrap_or_else(|| {
-                    String::from("https://raw.githubusercontent.com/Wynncraft-Overhaul/installer/master/src/assets/background_installer.png")
-                });
-                let settings_background = profile.manifest.settings_background.clone().unwrap_or_else(|| tab_background.clone());
-                let primary_font = profile.manifest.tab_primary_font.clone().unwrap_or_else(|| {
-                    String::from("https://raw.githubusercontent.com/Wynncraft-Overhaul/installer/master/src/assets/Wynncraft_Game_Font.woff2")
-                });
-                let secondary_font = profile.manifest.tab_secondary_font.clone().unwrap_or_else(|| primary_font.clone());
-                
-                // Add profile to existing tab or create new tab
-                if let Some(tab_info) = new_pages_map.get_mut(&tab_group) {
-                    if !tab_info.modpacks.iter().any(|p| p.modpack_branch == profile.modpack_branch) {
-                        tab_info.modpacks.push(profile.clone());
-                    }
-                } else {
-                    new_pages_map.insert(tab_group, TabInfo {
-                        color: tab_color,
-                        title: tab_title,
-                        background: tab_background,
-                        settings_background,
-                        primary_font,
-                        secondary_font,
-                        modpacks: vec![profile.clone()],
-                    });
-                }
-            }
+let mut new_pages_map: BTreeMap<usize, TabInfo> = BTreeMap::new();
+
+for &(tab_group, ref profile) in results {
+    let tab_title = profile.manifest.tab_title.clone().unwrap_or_else(|| profile.manifest.subtitle.clone());
+    let tab_color = profile.manifest.tab_color.clone().unwrap_or_else(|| String::from("#320625"));
+    let tab_background = profile.manifest.tab_background.clone().unwrap_or_else(|| {
+        String::from("https://raw.githubusercontent.com/Wynncraft-Overhaul/installer/master/src/assets/background_installer.png")
+    });
+    let settings_background = profile.manifest.settings_background.clone().unwrap_or_else(|| tab_background.clone());
+    let primary_font = profile.manifest.tab_primary_font.clone().unwrap_or_else(|| {
+        String::from("https://raw.githubusercontent.com/Wynncraft-Overhaul/installer/master/src/assets/Wynncraft_Game_Font.woff2")
+    });
+    let secondary_font = profile.manifest.tab_secondary_font.clone().unwrap_or_else(|| primary_font.clone());
+    
+    // Add profile to existing tab or create new tab
+    if let Some(tab_info) = new_pages_map.get_mut(&tab_group) {
+        if !tab_info.modpacks.iter().any(|p| p.modpack_branch == profile.modpack_branch) {
+            tab_info.modpacks.push(profile.clone());
+        }
+    } else {
+        new_pages_map.insert(tab_group, TabInfo {
+            color: tab_color,
+            title: tab_title,
+            background: tab_background,
+            settings_background,
+            primary_font,
+            secondary_font,
+            modpacks: vec![profile.clone()],
+        });
+    }
+}
             
             // Only update once with the complete map
             pages.set(new_pages_map);
