@@ -1346,56 +1346,67 @@ let css_content = {
     // Determine which logo to use
     let logo_url = Some("https://raw.githubusercontent.com/Wynncraft-Overhaul/installer/master/src/assets/icon.png".to_string());
     
-let css_content_str = css_content.as_str();
-rsx! {
-    style { "{css_content_str}" }
-    
-    Modal {}
-        
-        // Always render AppHeader if we're past the initial launcher selection or in settings
-        if !config.read().first_launch.unwrap_or(true) && launcher.is_some() && !settings() {
-            AppHeader {
-                page,
-                pages,
-                settings,
-                logo_url
+    let render = move || {
+          rsx! {
+        <>
+            <style>{css_content}</style>
+            <Modal />
+            
+            // Always render AppHeader if we're past the initial launcher selection or in settings
+            if !config.read().first_launch.unwrap_or(true) && launcher.is_some() && !settings() {
+                AppHeader {
+                    page,
+                    pages,
+                    settings,
+                    logo_url
+                }
             }
-        }
 
-        div { class: "main-container",
-            if settings() {
-                Settings { /* ... */ }
-            } else if config.read().first_launch.unwrap_or(true) || launcher.is_none() {
-                Launcher { /* ... */ }
-            } else if packs.read().is_none() {
-                div { class: "loading-container",
-                    div { class: "loading-spinner" }
-                    div { class: "loading-text", "Loading modpack information..." }
-                }
-            } else {
-                // Debugging output
-                div {
-                    "Current Page: {page()}",
-                    "Total Pages: {pages().len()}",
-                    "Pages: {:#?}", pages()
-                }
-
-                if page() == HOME_PAGE {
-                    HomePage {
-                        pages,
-                        page
+            <div class="main-container">
+                if settings() {
+                    Settings {
+                        config,
+                        settings,
+                        config_path: props.config_path.clone(),
+                        error: err,
+                        b64_id: URL_SAFE_NO_PAD.encode(props.modpack_source)
                     }
+                } else if config.read().first_launch.unwrap_or(true) || launcher.is_none() {
+                    Launcher {
+                        config,
+                        config_path: props.config_path.clone(),
+                        error: err,
+                        b64_id: URL_SAFE_NO_PAD.encode(props.modpack_source)
+                    }
+                } else if packs.read().is_none() {
+                    <div class="loading-container">
+                        <div class="loading-spinner" />
+                        <div class="loading-text">{"Loading modpack information..."}</div>
+                    </div>
                 } else {
-                    // Extensive debugging for Version rendering
-                    for (tab_idx, tab_info) in pages() {
-                        div {
-                            "Tab Group: {tab_idx}, Current Page: {page()}",
-                            "Modpacks in this group: {tab_info.modpacks.len()}"
+                    // Debugging output
+                    <div>
+                        {"Current Page: "}{page()}
+                        {"Total Pages: "}{pages().len()}
+                        {"Pages: "}{format!("{:#?}", pages())}
+                    </div>
+
+                    if page() == HOME_PAGE {
+                        HomePage {
+                            pages,
+                            page
                         }
-                        for installer_profile in &tab_info.modpacks {
-                            {
-                                let profile = installer_profile.clone();
-                                rsx!{
+                    } else {
+                        // Extensive debugging for Version rendering
+                        for (tab_idx, tab_info) in pages() {
+                            <div>
+                                {"Tab Group: "}{tab_idx}
+                                {" Current Page: "}{page()}
+                                {" Modpacks in this group: "}{tab_info.modpacks.len()}
+                            </div>
+                            for installer_profile in &tab_info.modpacks {
+                                {
+                                    let profile = installer_profile.clone();
                                     Version {
                                         installer_profile: profile,
                                         error: err.clone(),
@@ -1407,7 +1418,7 @@ rsx! {
                         }
                     }
                 }
-            }
-        }
+            </div>
+        </>
     }
-}
+}}
