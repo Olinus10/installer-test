@@ -1,7 +1,6 @@
 use std::{collections::BTreeMap, path::PathBuf};
 use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine}; // Added the Engine trait here
 use dioxus::prelude::*;
-use futures::StreamExt;
 use log::{error, debug};
 use modal::ModalContext;
 use modal::Modal; 
@@ -679,8 +678,8 @@ struct VersionProps {
     tab_group: usize,
 }
 
-#[component]
-fn Version(props: VersionProps) -> Element {
+##[component]
+fn Version(mut props: VersionProps) -> Element {
     let installer_profile = props.installer_profile.clone();
     
     debug!("Rendering Version component for '{}' (source: {}, branch: {})",
@@ -1111,7 +1110,7 @@ pub(crate) fn app() -> Element {
     let config = use_signal(|| props.config);
     let settings = use_signal(|| false);
     let mut err: Signal<Option<String>> = use_signal(|| None);
-    let mut page = use_signal(|| HOME_PAGE);
+    let page = use_signal(|| HOME_PAGE);
     let mut pages = use_signal(BTreeMap::<usize, TabInfo>::new);
 
     let cfg = config.with(|cfg| cfg.clone());
