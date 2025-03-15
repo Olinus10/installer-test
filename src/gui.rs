@@ -1104,6 +1104,8 @@ pub(crate) struct AppProps {
     pub config_path: PathBuf,
 }
 
+// Replace the entire app() function with this properly structured version
+
 pub(crate) fn app() -> Element {
     let props = use_context::<AppProps>();
     let css = include_str!("assets/style.css");
@@ -1333,7 +1335,6 @@ pub(crate) fn app() -> Element {
             + dropdown_css
     };
 
-
     let mut modal_context = use_context_provider(ModalContext::default);
     if let Some(e) = err() {
         modal_context.open("Error", rsx! {
@@ -1349,86 +1350,87 @@ pub(crate) fn app() -> Element {
     
     // Fix: Return the JSX from the app function
     rsx! {
-    div { class: "main-container",
-        {if settings() {
-            rsx! {
-                Settings {
-                    config,
-                    settings,
-                    config_path: props.config_path.clone(),
-                    error: err,
-                    b64_id: URL_SAFE_NO_PAD.encode(props.modpack_source)
-                }
-            }
-        } else if config.read().first_launch.unwrap_or(true) || launcher.is_none() {
-            rsx! {
-                Launcher {
-                    config,
-                    config_path: props.config_path.clone(),
-                    error: err,
-                    b64_id: URL_SAFE_NO_PAD.encode(props.modpack_source)
-                }
-            }
-        } else if packs.read().is_none() {
-            rsx! {
-                div { class: "loading-container",
-                    div { class: "loading-spinner" }
-                    div { class: "loading-text", "Loading modpack information..." }
-                }
-            }
-        } else {
-            // This is the key part - clearly separate HOME_PAGE rendering from other pages
-            if page() == HOME_PAGE {
+        div {
+            style { {css_content} }
+            Modal {}
+            
+            {if !config.read().first_launch.unwrap_or(true) && launcher.is_some() && !settings() {
                 rsx! {
-                    HomePage {
+                    AppHeader {
+                        page,
                         pages,
-                        page
+                        settings,
+                        logo_url
                     }
                 }
             } else {
-                // For non-home pages, render the Version components for the current page
-                // Add debugging to verify which tab is selected
-                debug!("Preparing to render content for page {}", page());
-                
-                rsx! {
-                    // This div ensures Version components have a parent container
-                    div { class: "version-page-container",
-                        {
-                            // Create a vector of Version components to render
-                            let versions: Vec<_> = pages()
-                                .iter()
-                                .flat_map(|(tab_idx, tab_info)| {
-                                    // Only include versions for the current page/tab
-                                    if *tab_idx == page() {
-                                        tab_info.modpacks
-                                            .iter()
-                                            .map(|profile| {
-                                                (profile.clone(), *tab_idx)
-                                            })
-                                            .collect::<Vec<_>>()
-                                    } else {
-                                        Vec::new()
-                                    }
-                                })
-                                .collect();
-                            
-                            debug!("Found {} versions to render for page {}", versions.len(), page());
-                            
-                            // Map the versions to Version components
-                            versions.into_iter().map(|(profile, tab_idx)| {
-                                rsx! {
-                                    Version {
-                                        installer_profile: profile,
-                                        error: err.clone(),
-                                        current_page: page(),
-                                        tab_group: tab_idx,
-                                    }
-                                }
-                            })
+                None
+            }}
+
+            div { class: "main-container",
+                {if settings() {
+                    rsx! {
+                        Settings {
+                            config,
+                            settings,
+                            config_path: props.config_path.clone(),
+                            error: err,
+                            b64_id: URL_SAFE_NO_PAD.encode(props.modpack_source)
                         }
                     }
-                }
+                } else if config.read().first_launch.unwrap_or(true) || launcher.is_none() {
+                    rsx! {
+                        Launcher {
+                            config,
+                            config_path: props.config_path.clone(),
+                            error: err,
+                            b64_id: URL_SAFE_NO_PAD.encode(props.modpack_source)
+                        }
+                    }
+                } else if packs.read().is_none() {
+                    rsx! {
+                        div { class: "loading-container",
+                            div { class: "loading-spinner" }
+                            div { class: "loading-text", "Loading modpack information..." }
+                        }
+                    }
+                } else {
+                    // Critical fix: This section was causing the issue
+                    if page() == HOME_PAGE {
+                        rsx! {
+                            HomePage {
+                                pages,
+                                page
+                            }
+                        }
+                    } else {
+                        rsx! {
+                            div { class: "version-page-container",
+                                // Debug which page we're on
+                                {
+                                    debug!("Rendering content for page {}", page());
+                                    
+                                    // Filter and render versions for the current page
+                                    pages().iter()
+                                        .filter(|(tab_idx, _)| **tab_idx == page())
+                                        .flat_map(|(tab_idx, tab_info)| {
+                                            tab_info.modpacks.iter().map(move |profile| {
+                                                rsx! {
+                                                    Version {
+                                                        installer_profile: profile.clone(),
+                                                        error: err.clone(),
+                                                        current_page: page(),
+                                                        tab_group: *tab_idx,
+                                                    }
+                                                }
+                                            })
+                                        })
+                                }
+                            }
+                        }
+                    }
+                }}
             }
-        }}
+        }
     }
 }
