@@ -675,16 +675,18 @@ async fn init_branch(source: String, branch: String, launcher: Launcher, mut pag
 struct VersionProps {
     installer_profile: InstallerProfile,
     error: Signal<Option<String>>,
-    current_page: usize,  // New prop
-    tab_group: usize,     // New prop
+    current_page: usize,
+    tab_group: usize,
 }
 
 #[component]
 fn Version(props: VersionProps) -> Element {
+    let installer_profile = props.installer_profile.clone();
+    
     debug!("Rendering Version component for '{}' (source: {}, branch: {})",
-           props.installer_profile.manifest.subtitle,
-           props.installer_profile.modpack_source,
-           props.installer_profile.modpack_branch);  
+           installer_profile.manifest.subtitle,
+           installer_profile.modpack_source,
+           installer_profile.modpack_branch);  
 
     // Only render this component if its tab_group matches the current page
     if props.current_page != props.tab_group {
@@ -700,8 +702,6 @@ fn Version(props: VersionProps) -> Element {
     // Fix: Initialize enabled_features properly
     let enabled_features = use_signal(|| {
         let mut features = vec!["default".to_string()];
-        
-        let installer_profile = props.installer_profile.clone();
         
         if installer_profile.installed && installer_profile.local_manifest.is_some() {
             features = installer_profile.local_manifest.as_ref().unwrap().enabled_features.clone();
@@ -783,7 +783,7 @@ fn Version(props: VersionProps) -> Element {
                                 );
                             }
                             Err(e) => {
-                                error.set(Some(
+                                props.error.set(Some(
                                     format!("{:#?}", e) + " (Failed to update modpack!)",
                                 ));
                                 installing.set(false);
@@ -816,7 +816,7 @@ fn Version(props: VersionProps) -> Element {
                                 );
                             }
                             Err(e) => {
-                                error.set(Some(
+                                props.error.set(Some(
                                     format!("{:#?}", e) + " (Failed to modify modpack!)",
                                 ));
                                 installing.set(false);
