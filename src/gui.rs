@@ -1195,142 +1195,142 @@ pub(crate) fn app() -> Element {
         }
     });
 
-// Update the CSS generation section
-let css_content = {
-    let default_color = "#320625".to_string();
-    let default_bg = "https://raw.githubusercontent.com/Wynncraft-Overhaul/installer/master/src/assets/background_installer.png".to_string();
-    let default_font = "https://raw.githubusercontent.com/Wynncraft-Overhaul/installer/master/src/assets/Wynncraft_Game_Font.woff2".to_string();
-    
-    let bg_color = match pages().get(&page()) {
-        Some(x) => x.color.clone(),
-        None => default_color,
-    };
-    
-    let bg_image = match pages().get(&page()) {
-        Some(x) => {
-            if settings() {
-                x.settings_background.clone()
-            } else {
-                x.background.clone()
-            }
-        },
-        None => default_bg,
-    };
-    
-    let secondary_font = match pages().get(&page()) {
-        Some(x) => x.secondary_font.clone(),
-        None => default_font.clone(),
-    };
-    
-    let primary_font = match pages().get(&page()) {
-        Some(x) => x.primary_font.clone(),
-        None => default_font,
-    };
-    
-    debug!("Updating CSS with: color={}, bg_image={}, secondary_font={}, primary_font={}", 
-           bg_color, bg_image, secondary_font, primary_font);
+    // Update the CSS generation section
+    let css_content = {
+        let default_color = "#320625".to_string();
+        let default_bg = "https://raw.githubusercontent.com/Wynncraft-Overhaul/installer/master/src/assets/background_installer.png".to_string();
+        let default_font = "https://raw.githubusercontent.com/Wynncraft-Overhaul/installer/master/src/assets/Wynncraft_Game_Font.woff2".to_string();
         
+        let bg_color = match pages().get(&page()) {
+            Some(x) => x.color.clone(),
+            None => default_color,
+        };
+        
+        let bg_image = match pages().get(&page()) {
+            Some(x) => {
+                if settings() {
+                    x.settings_background.clone()
+                } else {
+                    x.background.clone()
+                }
+            },
+            None => default_bg,
+        };
+        
+        let secondary_font = match pages().get(&page()) {
+            Some(x) => x.secondary_font.clone(),
+            None => default_font.clone(),
+        };
+        
+        let primary_font = match pages().get(&page()) {
+            Some(x) => x.primary_font.clone(),
+            None => default_font,
+        };
+        
+        debug!("Updating CSS with: color={}, bg_image={}, secondary_font={}, primary_font={}", 
+               bg_color, bg_image, secondary_font, primary_font);
+            
         // Improved dropdown menu CSS with better hover behavior and font consistency
-         let dropdown_css = "
-    /* Dropdown styles */
-    .dropdown { 
-        position: relative; 
-        display: inline-block; 
-    }
+        let dropdown_css = "
+        /* Dropdown styles */
+        .dropdown { 
+            position: relative; 
+            display: inline-block; 
+        }
 
-/* Position the dropdown content */
-.dropdown-content {
-    display: none;
-    position: absolute;
-    top: 100%;
-    left: 0;
-    background-color: rgba(0, 0, 0, 0.9);
-    min-width: 200px;
-    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.6);
-    z-index: 1000;
-    border-radius: 4px;
-    overflow: hidden;
-    margin-top: 5px;
-    max-height: 400px;
-    overflow-y: auto;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-}
+        /* Position the dropdown content */
+        .dropdown-content {
+            display: none;
+            position: absolute;
+            top: 100%;
+            left: 0;
+            background-color: rgba(0, 0, 0, 0.9);
+            min-width: 200px;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.6);
+            z-index: 1000;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 5px;
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
 
-/* Show dropdown on hover with increased target area */
-.dropdown:hover .dropdown-content,
-.dropdown-content:hover {
-    display: block;
-}
+        /* Show dropdown on hover with increased target area */
+        .dropdown:hover .dropdown-content,
+        .dropdown-content:hover {
+            display: block;
+        }
 
-/* Add a pseudo-element to create an invisible connection between the button and dropdown */
-.dropdown::after {
-    content: '';
-    position: absolute;
-    height: 10px;
-    width: 100%;
-    left: 0;
-    top: 100%;
-    display: none;
-}
+        /* Add a pseudo-element to create an invisible connection between the button and dropdown */
+        .dropdown::after {
+            content: '';
+            position: absolute;
+            height: 10px;
+            width: 100%;
+            left: 0;
+            top: 100%;
+            display: none;
+        }
 
-.dropdown:hover::after {
-    display: block;
-}
+        .dropdown:hover::after {
+            display: block;
+        }
 
-.dropdown-item {
-    display: block;
-    width: 100%;
-    padding: 10px 15px;
-    text-align: left;
-    background-color: transparent;
-    border: none;
-    /* Explicitly use the same font as header-tab-button */
-    font-family: \\\"PRIMARY_FONT\\\";
-    font-size: 0.9rem;
-    color: #fce8f6;
-    cursor: pointer;
-    transition: background-color 0.2s ease;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-}
+        .dropdown-item {
+            display: block;
+            width: 100%;
+            padding: 10px 15px;
+            text-align: left;
+            background-color: transparent;
+            border: none;
+            /* Explicitly use the same font as header-tab-button */
+            font-family: \\\"PRIMARY_FONT\\\";
+            font-size: 0.9rem;
+            color: #fce8f6;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
 
-.dropdown-item:last-child {
-    border-bottom: none;
-}
+        .dropdown-item:last-child {
+            border-bottom: none;
+        }
 
-.dropdown-item:hover {
-    background-color: rgba(50, 6, 37, 0.8);
-    border-color: rgba(255, 255, 255, 0.4);
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
-}
+        .dropdown-item:hover {
+            background-color: rgba(50, 6, 37, 0.8);
+            border-color: rgba(255, 255, 255, 0.4);
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+        }
 
-.dropdown-item.active {
-    background-color: var(--bg-color);
-    border-color: #fce8f6;
-    box-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
-    color: #fff;
-}
+        .dropdown-item.active {
+            background-color: var(--bg-color);
+            border-color: #fce8f6;
+            box-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
+            color: #fff;
+        }
 
-/* Fix for header-tabs to prevent dropdown from affecting it */
-.header-tabs {
-    display: flex;
-    gap: 5px;
-    margin: 0 10px;
-    flex-grow: 1;
-    justify-content: center;
-    flex-wrap: wrap;
-    overflow-x: visible;
-    scrollbar-width: thin;
-    max-width: 70%;
-    position: relative;
-}";
-        
-         css
-        .replace("<BG_COLOR>", &bg_color)
-        .replace("<BG_IMAGE>", &bg_image)
-        .replace("<SECONDARY_FONT>", &secondary_font)
-        .replace("<PRIMARY_FONT>", &primary_font) 
-        + dropdown_css
-};
+        /* Fix for header-tabs to prevent dropdown from affecting it */
+        .header-tabs {
+            display: flex;
+            gap: 5px;
+            margin: 0 10px;
+            flex-grow: 1;
+            justify-content: center;
+            flex-wrap: wrap;
+            overflow-x: visible;
+            scrollbar-width: thin;
+            max-width: 70%;
+            position: relative;
+        }";
+            
+        css
+            .replace("<BG_COLOR>", &bg_color)
+            .replace("<BG_IMAGE>", &bg_image)
+            .replace("<SECONDARY_FONT>", &secondary_font)
+            .replace("<PRIMARY_FONT>", &primary_font) 
+            + dropdown_css
+    };
 
 
     let mut modal_context = use_context_provider(ModalContext::default);
@@ -1346,90 +1346,84 @@ let css_content = {
     // Determine which logo to use
     let logo_url = Some("https://raw.githubusercontent.com/Wynncraft-Overhaul/installer/master/src/assets/icon.png".to_string());
     
-    let render = move || {
-          rsx!(
-        <div>
-            <style>{css_content}</style>
-            <Modal />
+    // Fix: Return the JSX from the app function
+    rsx! {
+        div {
+            style { {css_content} }
+            Modal {}
             
             {if !config.read().first_launch.unwrap_or(true) && launcher.is_some() && !settings() {
-                Some(AppHeader {
-                    page,
-                    pages,
-                    settings,
-                    logo_url
-                })
+                rsx! {
+                    AppHeader {
+                        page,
+                        pages,
+                        settings,
+                        logo_url
+                    }
+                }
             } else {
                 None
             }}
 
-            <div class="main-container">
+            div { class: "main-container",
                 {if settings() {
-                    Some(Settings {
-                        config,
-                        settings,
-                        config_path: props.config_path.clone(),
-                        error: err,
-                        b64_id: URL_SAFE_NO_PAD.encode(props.modpack_source)
-                    })
+                    rsx! {
+                        Settings {
+                            config,
+                            settings,
+                            config_path: props.config_path.clone(),
+                            error: err,
+                            b64_id: URL_SAFE_NO_PAD.encode(props.modpack_source)
+                        }
+                    }
                 } else if config.read().first_launch.unwrap_or(true) || launcher.is_none() {
-                    Some(Launcher {
-                        config,
-                        config_path: props.config_path.clone(),
-                        error: err,
-                        b64_id: URL_SAFE_NO_PAD.encode(props.modpack_source)
-                    })
+                    rsx! {
+                        Launcher {
+                            config,
+                            config_path: props.config_path.clone(),
+                            error: err,
+                            b64_id: URL_SAFE_NO_PAD.encode(props.modpack_source)
+                        }
+                    }
                 } else if packs.read().is_none() {
-                    Some(
-                        <div class="loading-container">
-                            <div class="loading-spinner" />
-                            <div class="loading-text">{"Loading modpack information..."}</div>
-                        </div>
-                    )
+                    rsx! {
+                        div { class: "loading-container",
+                            div { class: "loading-spinner" }
+                            div { class: "loading-text", "Loading modpack information..." }
+                        }
+                    }
                 } else {
-                    Some(
-                        <>
-                            <div>
-                                {"Current Page: "}{page()}
-                                {"Total Pages: "}{pages().len()}
-                                {"Pages: "}{format!("{:#?}", pages())}
-                            </div>
-
+                    rsx! {
+                        div {
                             {if page() == HOME_PAGE {
-                                Some(HomePage {
-                                    pages,
-                                    page
-                                })
+                                rsx! {
+                                    HomePage {
+                                        pages,
+                                        page
+                                    }
+                                }
                             } else {
-                                Some(
-                                    <>
-                                        {for (tab_idx, tab_info) in pages() {
-                                            <>
-                                                <div>
-                                                    {"Tab Group: "}{tab_idx}
-                                                    {" Current Page: "}{page()}
-                                                    {" Modpacks in this group: "}{tab_info.modpacks.len()}
-                                                </div>
-                                                {for installer_profile in &tab_info.modpacks {
-                                                    let profile = installer_profile.clone();
-                                                    Version {
-                                                        installer_profile: profile,
-                                                        error: err.clone(),
-                                                        current_page: page(),
-                                                        tab_group: tab_idx,
-                                                    }
-                                                }}
-                                            </>
+                                rsx! {
+                                    // Render versions for the current page
+                                    {for (tab_idx, tab_info) in pages() {
+                                        {for installer_profile in &tab_info.modpacks {
+                                            let profile = installer_profile.clone();
+                                            rsx! {
+                                                Version {
+                                                    installer_profile: profile,
+                                                    error: err.clone(),
+                                                    current_page: page(),
+                                                    tab_group: tab_idx,
+                                                }
+                                            }
                                         }}
-                                    </>
-                                )
+                                    }}
+                                }
                             }}
-                        </>
-                    )
+                        }
+                    }
                 }}
-            </div>
-        </div>
-    )
+            }
+        }
+    }
 }
-}
-
