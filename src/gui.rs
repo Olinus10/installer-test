@@ -659,7 +659,7 @@ fn Version(props: VersionProps) -> Element {
     });
     
     let movable_profile = installer_profile.clone();
-    let error = props.error.clone();
+    let mut error = props.error.clone();
     let on_submit = move |_| {
         // Calculate total items to process for progress tracking
         *install_item_amount.write() = movable_profile.manifest.mods.len()
@@ -1023,7 +1023,14 @@ fn AppHeader(
 }
 
 #[derive(Clone)]
-pub(crate) fn app() -> Element {
+pub struct AppProps {
+    pub branches: Vec<super::GithubBranch>,
+    pub modpack_source: String,
+    pub config: super::Config,
+    pub config_path: PathBuf,
+}
+
+pub fn app() -> Element {
     let props = use_context::<AppProps>();
     let css = include_str!("assets/style.css");
     let branches = props.branches.clone();
@@ -1090,7 +1097,7 @@ pub(crate) fn app() -> Element {
             // Create a new map to avoid repeated insertions in reactive context
             let mut new_pages_map = BTreeMap::new();
             
-            for (tab_group, profile) in results {
+            for &(tab_group, ref profile) in results {
                 let tab_title = profile.manifest.tab_title.clone().unwrap_or_else(|| profile.manifest.subtitle.clone());
                 let tab_color = profile.manifest.tab_color.clone().unwrap_or_else(|| String::from("#320625"));
                 let tab_background = profile.manifest.tab_background.clone().unwrap_or_else(|| {
@@ -1103,12 +1110,12 @@ pub(crate) fn app() -> Element {
                 let secondary_font = profile.manifest.tab_secondary_font.clone().unwrap_or_else(|| primary_font.clone());
                 
                 // Add profile to existing tab or create new tab
-                if let Some(tab_info) = new_pages_map.get_mut(tab_group) {
+                if let Some(tab_info) = new_pages_map.get_mut(&tab_group) {
                     if !tab_info.modpacks.iter().any(|p| p.modpack_branch == profile.modpack_branch) {
                         tab_info.modpacks.push(profile.clone());
                     }
                 } else {
-                    new_pages_map.insert(*tab_group, TabInfo {
+                    new_pages_map.insert(tab_group, TabInfo {
                         color: tab_color,
                         title: tab_title,
                         background: tab_background,
