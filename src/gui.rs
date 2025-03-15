@@ -1212,12 +1212,10 @@ pub(crate) fn app() -> Element {
             debug!("Switched to HOME_PAGE");
         } else {
             debug!("Switched to tab page: {}", page());
-            // Check if we have tab info for this page
             if let Some(tab_info) = pages().get(&page()) {
                 debug!("Tab info found for page {}: {} with {} modpacks", 
                        page(), tab_info.title, tab_info.modpacks.len());
                 
-                // Log all modpacks in this tab
                 for (idx, modpack) in tab_info.modpacks.iter().enumerate() {
                     debug!("  Modpack {}: {}", idx, modpack.manifest.subtitle);
                 }
@@ -1262,9 +1260,13 @@ pub(crate) fn app() -> Element {
         debug!("Updating CSS with: color={}, bg_image={}, secondary_font={}, primary_font={}", 
                bg_color, bg_image, secondary_font, primary_font);
             
-        // Use dropdown styles from your dropdown.css file if you created one
-        // otherwise keep the original approach
-        let dropdown_css = include_str!("assets/dropdown.css");
+        // For dropdown styles, we'll simplify to avoid include_str issues
+        let dropdown_css = "
+        /* Dropdown styles */
+        .dropdown { 
+            position: relative; 
+            display: inline-block; 
+        }";
             
         css
             .replace("<BG_COLOR>", &bg_color)
@@ -1287,12 +1289,13 @@ pub(crate) fn app() -> Element {
     // Determine which logo to use
     let logo_url = Some("https://raw.githubusercontent.com/Wynncraft-Overhaul/installer/master/src/assets/icon.png".to_string());
     
-    // Fix: Return the JSX from the app function
+    // The main root element
     rsx! {
         div {
             style { {css_content} }
             Modal {}
             
+            // Conditionally render header
             {if !config.read().first_launch.unwrap_or(true) && launcher.is_some() && !settings() {
                 rsx! {
                     AppHeader {
@@ -1306,7 +1309,9 @@ pub(crate) fn app() -> Element {
                 None
             }}
 
+            // Main container div
             div { class: "main-container",
+                // First condition: settings
                 {if settings() {
                     rsx! {
                         Settings {
@@ -1317,6 +1322,7 @@ pub(crate) fn app() -> Element {
                             b64_id: URL_SAFE_NO_PAD.encode(props.modpack_source)
                         }
                     }
+                // Second condition: first launch or no launcher
                 } else if config.read().first_launch.unwrap_or(true) || launcher.is_none() {
                     rsx! {
                         Launcher {
@@ -1326,6 +1332,7 @@ pub(crate) fn app() -> Element {
                             b64_id: URL_SAFE_NO_PAD.encode(props.modpack_source)
                         }
                     }
+                // Third condition: packs not loaded yet
                 } else if packs.read().is_none() {
                     rsx! {
                         div { class: "loading-container",
@@ -1333,8 +1340,8 @@ pub(crate) fn app() -> Element {
                             div { class: "loading-text", "Loading modpack information..." }
                         }
                     }
+                // Fourth condition: main content
                 } else {
-                    // Updated structure with better tabs handling
                     rsx! {
                         div { class: "content-wrapper",
                             // Home page component - only shown when page is HOME_PAGE
@@ -1346,36 +1353,30 @@ pub(crate) fn app() -> Element {
                                 }
                             }
                             
-                            // Version pages container
+                            // Render all version components
                             {
-                                // Iterate through all tab groups and render versions for each
-                                rsx! {
-                                    {
-                                        pages().iter().map(|(tab_group, tab_info)| {
-                                            // For each tab group, we render all its modpacks
-                                            rsx! {
-                                                {
-                                                    tab_info.modpacks.iter().map(|profile| {
-                                                        rsx! {
-                                                            Version {
-                                                                installer_profile: profile.clone(),
-                                                                error: err.clone(),
-                                                                current_page: page(),  // Current selected page
-                                                                tab_group: *tab_group, // This version's tab group
-                                                            }
-                                                        }
-                                                    })
+                                pages().iter().map(|(tab_group, tab_info)| {
+                                    rsx! {
+                                        {
+                                            tab_info.modpacks.iter().map(|profile| {
+                                                rsx! {
+                                                    Version {
+                                                        installer_profile: profile.clone(),
+                                                        error: err.clone(),
+                                                        current_page: page(),
+                                                        tab_group: *tab_group,
+                                                    }
                                                 }
-                                            }
-                                        })
+                                            })
+                                        }
                                     }
-                                }
+                                })
                             }
                         }
-                    }
-                }
-            }
-        }
-    }
-}
+                    } // End of content rsx
+                } // End of main content condition
+            } // End of main-container div
+        } // End of root div
+    } // End of root rsx
+} // End of app function
 
