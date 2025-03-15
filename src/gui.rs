@@ -1125,9 +1125,14 @@ pub(crate) fn app() -> Element {
         },
     };
 
-    let mut processed_branches = use_signal(|| Vec::<(usize, InstallerProfile)>::new());
+    // Debug logging for branches
+    debug!("Total branches: {}", branches.len());
+    for branch in &branches {
+        debug!("Branch: {}", branch.name);
+    }
 
-    let packs: Resource<()> = {
+    // Modified resource to process branches
+    let packs: Resource<Vec<(usize, InstallerProfile)>> = {
         let source = props.modpack_source.clone();
         let branches = branches.clone();
         let launcher = launcher.clone();
@@ -1136,52 +1141,58 @@ pub(crate) fn app() -> Element {
             let branches = branches.clone();
             let launcher = launcher.clone();
             async move {
+                let mut results = Vec::new();
                 if let Some(launcher) = launcher {
-                    let mut results = Vec::new();
-                    
                     for branch in &branches {
                         match crate::init(source.clone(), branch.name.clone(), launcher.clone()).await {
                             Ok(profile) => {
                                 let tab_group = profile.manifest.tab_group.unwrap_or(0);
                                 results.push((tab_group, profile));
+                                debug!("Processed branch: {} in tab group {}", branch.name, tab_group);
                             }
                             Err(e) => {
                                 error!("Failed to initialize branch {}: {}", branch.name, e);
                             }
                         }
                     }
-                    processed_branches.set(results.clone());
                 }
+                results
             }
         })
     };
 
-    // Rebuild pages map whenever processed_branches changes
+    // Effect to build pages map when branches are processed
     use_effect(move || {
-        let mut new_pages = BTreeMap::<usize, TabInfo>::new();
-        for (tab_group, profile) in processed_branches() {
-            let tab_title = profile.manifest.tab_title.clone().unwrap_or_else(|| profile.manifest.subtitle.clone());
-            let tab_color = profile.manifest.tab_color.clone().unwrap_or_else(|| String::from("#320625"));
-            let tab_background = profile.manifest.tab_background.clone().unwrap_or_else(|| {
-                String::from("https://raw.githubusercontent.com/Wynncraft-Overhaul/installer/master/src/assets/background_installer.png")
-            });
-            let settings_background = profile.manifest.settings_background.clone().unwrap_or_else(|| tab_background.clone());
-            let primary_font = profile.manifest.tab_primary_font.clone().unwrap_or_else(|| {
-                String::from("https://raw.githubusercontent.com/Wynncraft-Overhaul/installer/master/src/assets/Wynncraft_Game_Font.woff2")
-            });
-            let secondary_font = profile.manifest.tab_secondary_font.clone().unwrap_or_else(|| primary_font.clone());
+        if let Some(processed_branches) = packs.read().as_ref() {
+            debug!("Building pages map from {} processed branches", processed_branches.len());
+            
+            let mut new_pages = BTreeMap::<usize, TabInfo>::new();
+            for (tab_group, profile) in processed_branches {
+                let tab_title = profile.manifest.tab_title.clone().unwrap_or_else(|| profile.manifest.subtitle.clone());
+                let tab_color = profile.manifest.tab_color.clone().unwrap_or_else(|| String::from("#320625"));
+                let tab_background = profile.manifest.tab_background.clone().unwrap_or_else(|| {
+                    String::from("https://raw.githubusercontent.com/Wynncraft-Overhaul/installer/master/src/assets/background_installer.png")
+                });
+                let settings_background = profile.manifest.settings_background.clone().unwrap_or_else(|| tab_background.clone());
+                let primary_font = profile.manifest.tab_primary_font.clone().unwrap_or_else(|| {
+                    String::from("https://raw.githubusercontent.com/Wynncraft-Overhaul/installer/master/src/assets/Wynncraft_Game_Font.woff2")
+                });
+                let secondary_font = profile.manifest.tab_secondary_font.clone().unwrap_or_else(|| primary_font.clone());
 
-            new_pages.entry(tab_group).or_insert(TabInfo {
-                color: tab_color,
-                title: tab_title,
-                background: tab_background,
-                settings_background,
-                primary_font,
-                secondary_font,
-                modpacks: vec![profile.clone()],
-            });
+                new_pages.entry(*tab_group).or_insert(TabInfo {
+                    color: tab_color,
+                    title: tab_title,
+                    background: tab_background,
+                    settings_background,
+                    primary_font,
+                    secondary_font,
+                    modpacks: vec![profile.clone()],
+                });
+            }
+            
+            pages.set(new_pages);
+            debug!("Updated pages map with {} tabs", pages().len());
         }
-        pages.set(new_pages);
     });
 
     // Update CSS whenever relevant values change
@@ -1333,7 +1344,7 @@ pub(crate) fn app() -> Element {
     // Determine which logo to use
     let logo_url = Some("https://raw.githubusercontent.com/Wynncraft-Overhaul/installer/master/src/assets/icon.png".to_string());
     
-    rsx! {
+     rsx! {
         style { "{css_content}" }
         
         Modal {}
@@ -1350,33 +1361,34 @@ pub(crate) fn app() -> Element {
 
         div { class: "main-container",
             if settings() {
-                Settings {
-                    config,
-                    settings,
-                    config_path: props.config_path.clone(),
-                    error: err,
-                    b64_id: URL_SAFE_NO_PAD.encode(props.modpack_source)
-                }
+                Settings { /* ... */ }
             } else if config.read().first_launch.unwrap_or(true) || launcher.is_none() {
-                Launcher {
-                    config,
-                    config_path: props.config_path.clone(),
-                    error: err,
-                    b64_id: URL_SAFE_NO_PAD.encode(props.modpack_source)
-                }
+                Launcher { /* ... */ }
             } else if packs.read().is_none() {
                 div { class: "loading-container",
                     div { class: "loading-spinner" }
                     div { class: "loading-text", "Loading modpack information..." }
                 }
             } else {
+                // Debugging output
+                div {
+                    "Current Page: {page()}",
+                    "Total Pages: {pages().len()}",
+                    "Pages: {:#?}", pages()
+                }
+
                 if page() == HOME_PAGE {
                     HomePage {
                         pages,
                         page
                     }
                 } else {
+                    // Extensive debugging for Version rendering
                     for (tab_idx, tab_info) in pages() {
+                        div {
+                            "Tab Group: {tab_idx}, Current Page: {page()}",
+                            "Modpacks in this group: {tab_info.modpacks.len()}"
+                        }
                         for installer_profile in &tab_info.modpacks {
                             {
                                 let profile = installer_profile.clone();
