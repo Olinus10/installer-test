@@ -1394,7 +1394,7 @@ pub(crate) fn app() -> Element {
                             div { class: "loading-text", "Loading modpack information..." }
                         }
                     }
-                } else {
+        } else {
                     // Critical fix: This section was causing the issue
                     if page() == HOME_PAGE {
                         rsx! {
@@ -1429,8 +1429,8 @@ pub(crate) fn app() -> Element {
                             }
                         }
                     }
-                }}
+                }
             }
         }
     }
-}
+}}
