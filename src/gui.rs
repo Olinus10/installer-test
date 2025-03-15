@@ -1346,10 +1346,9 @@ let css_content = {
     // Determine which logo to use
     let logo_url = Some("https://raw.githubusercontent.com/Wynncraft-Overhaul/installer/master/src/assets/icon.png".to_string());
     
+let css_content_str = css_content.as_str();
 rsx! {
-    style { 
-        "{css_content}" 
-    }
+    style { "{css_content_str}" }
     
     Modal {}
         
