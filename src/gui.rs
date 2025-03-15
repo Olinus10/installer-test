@@ -1347,20 +1347,19 @@ let css_content = {
     let logo_url = Some("https://raw.githubusercontent.com/Wynncraft-Overhaul/installer/master/src/assets/icon.png".to_string());
     
     let render = move || {
-          rsx! {
+          rsx!(
         <>
             <style>{css_content}</style>
             <Modal />
             
-            // Always render AppHeader if we're past the initial launcher selection or in settings
-            if !config.read().first_launch.unwrap_or(true) && launcher.is_some() && !settings() {
+            {if !config.read().first_launch.unwrap_or(true) && launcher.is_some() && !settings() {
                 AppHeader {
                     page,
                     pages,
                     settings,
                     logo_url
                 }
-            }
+            }}
 
             <div class="main-container">
                 {if settings() {
@@ -1385,7 +1384,6 @@ let css_content = {
                     </div>
                 } else {
                     <>
-                        // Debugging output
                         <div>
                             {"Current Page: "}{page()}
                             {"Total Pages: "}{pages().len()}
@@ -1398,27 +1396,29 @@ let css_content = {
                                 page
                             }
                         } else {
-                            // Extensive debugging for Version rendering
-                            {for (tab_idx, tab_info) in pages() {
-                                <div>
-                                    {"Tab Group: "}{tab_idx}
-                                    {" Current Page: "}{page()}
-                                    {" Modpacks in this group: "}{tab_info.modpacks.len()}
-                                </div>
-                                {for installer_profile in &tab_info.modpacks {
-                                    let profile = installer_profile.clone();
-                                    Version {
-                                        installer_profile: profile,
-                                        error: err.clone(),
-                                        current_page: page(),
-                                        tab_group: tab_idx,
-                                    }
+                            <>
+                                {for (tab_idx, tab_info) in pages() {
+                                    <div>
+                                        {"Tab Group: "}{tab_idx}
+                                        {" Current Page: "}{page()}
+                                        {" Modpacks in this group: "}{tab_info.modpacks.len()}
+                                    </div>
+                                    {for installer_profile in &tab_info.modpacks {
+                                        let profile = installer_profile.clone();
+                                        Version {
+                                            installer_profile: profile,
+                                            error: err.clone(),
+                                            current_page: page(),
+                                            tab_group: tab_idx,
+                                        }
+                                    }}
                                 }}
-                            }}
+                            </>
                         }}
                     </>
                 }}
             </div>
         </>
-    }
+    )
+}
 }
