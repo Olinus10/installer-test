@@ -29,7 +29,7 @@ fn HomePage(
     debug!("Rendering HomePage with {} tabs", pages().len());
     debug!("Current page value: {}", page());
     
-    // The HomePage component's render logic remains largely the same
+    // The HomePage component's render logic needs to ensure it generates the proper grid layout
     rsx! {
         h1 { class: "home-title", "Available Modpacks" }
         
@@ -1099,26 +1099,27 @@ pub(crate) fn app() -> Element {
     });
 
     // Page transition effect for debugging
-use_effect(move || {
-    debug!("Page state changed to: {}", page());
-    if page() == HOME_PAGE {
-        debug!("Switched to HOME_PAGE");
-    } else {
-        debug!("Switched to tab page: {}", page());
-        // Check if we have tab info for this page
-        if let Some(tab_info) = pages().get(&page()) {
-            debug!("Tab info found for page {}: {} with {} modpacks", 
-                   page(), tab_info.title, tab_info.modpacks.len());
-            
-            // Log all modpacks in this tab
-            for (idx, modpack) in tab_info.modpacks.iter().enumerate() {
-                debug!("  Modpack {}: {}", idx, modpack.manifest.subtitle);
-            }
+    use_effect(move || {
+        debug!("Page state changed to: {}", page());
+        if page() == HOME_PAGE {
+            debug!("Switched to HOME_PAGE");
         } else {
-            debug!("No tab info found for page {}", page());
+            debug!("Switched to tab page: {}", page());
+            // Check if we have tab info for this page
+            if let Some(tab_info) = pages().get(&page()) {
+                debug!("Tab info found for page {}: {} with {} modpacks", 
+                       page(), tab_info.title, tab_info.modpacks.len());
+                
+                // Log all modpacks in this tab
+                for (idx, modpack) in tab_info.modpacks.iter().enumerate() {
+                    debug!("  Modpack {}: {}", idx, modpack.manifest.subtitle);
+                }
+            } else {
+                debug!("No tab info found for page {}", page());
+            }
         }
-    }
-});
+    });
+
 
     // Update the CSS generation section
     let css_content = {
@@ -1156,98 +1157,7 @@ use_effect(move || {
                bg_color, bg_image, secondary_font, primary_font);
             
         // Improved dropdown menu CSS with better hover behavior and font consistency
-        let dropdown_css = "
-        /* Dropdown styles */
-        .dropdown { 
-            position: relative; 
-            display: inline-block; 
-        }
-
-        /* Position the dropdown content */
-        .dropdown-content {
-            display: none;
-            position: absolute;
-            top: 100%;
-            left: 0;
-            background-color: rgba(0, 0, 0, 0.9);
-            min-width: 200px;
-            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.6);
-            z-index: 1000;
-            border-radius: 4px;
-            overflow: hidden;
-            margin-top: 5px;
-            max-height: 400px;
-            overflow-y: auto;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        /* Show dropdown on hover with increased target area */
-        .dropdown:hover .dropdown-content,
-        .dropdown-content:hover {
-            display: block;
-        }
-
-        /* Add a pseudo-element to create an invisible connection between the button and dropdown */
-        .dropdown::after {
-            content: '';
-            position: absolute;
-            height: 10px;
-            width: 100%;
-            left: 0;
-            top: 100%;
-            display: none;
-        }
-
-        .dropdown:hover::after {
-            display: block;
-        }
-
-        .dropdown-item {
-            display: block;
-            width: 100%;
-            padding: 10px 15px;
-            text-align: left;
-            background-color: transparent;
-            border: none;
-            /* Explicitly use the same font as header-tab-button */
-            font-family: \\\"PRIMARY_FONT\\\";
-            font-size: 0.9rem;
-            color: #fce8f6;
-            cursor: pointer;
-            transition: background-color 0.2s ease;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-        }
-
-        .dropdown-item:last-child {
-            border-bottom: none;
-        }
-
-        .dropdown-item:hover {
-            background-color: rgba(50, 6, 37, 0.8);
-            border-color: rgba(255, 255, 255, 0.4);
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
-        }
-
-        .dropdown-item.active {
-            background-color: var(--bg-color);
-            border-color: #fce8f6;
-            box-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
-            color: #fff;
-        }
-
-        /* Fix for header-tabs to prevent dropdown from affecting it */
-        .header-tabs {
-            display: flex;
-            gap: 5px;
-            margin: 0 10px;
-            flex-grow: 1;
-            justify-content: center;
-            flex-wrap: wrap;
-            overflow-x: visible;
-            scrollbar-width: thin;
-            max-width: 70%;
-            position: relative;
-        }";
+        let dropdown_css = include_str!("assets/dropdown.css");
             
         css
             .replace("<BG_COLOR>", &bg_color)
@@ -1272,82 +1182,102 @@ use_effect(move || {
     
     // Fix: Return the JSX from the app function
     rsx! {
-    div { class: "main-container",
-        {if settings() {
-            rsx! {
-                Settings {
-                    config,
-                    settings,
-                    config_path: props.config_path.clone(),
-                    error: err,
-                    b64_id: URL_SAFE_NO_PAD.encode(props.modpack_source)
-                }
-            }
-        } else if config.read().first_launch.unwrap_or(true) || launcher.is_none() {
-            rsx! {
-                Launcher {
-                    config,
-                    config_path: props.config_path.clone(),
-                    error: err,
-                    b64_id: URL_SAFE_NO_PAD.encode(props.modpack_source)
-                }
-            }
-        } else if packs.read().is_none() {
-            rsx! {
-                div { class: "loading-container",
-                    div { class: "loading-spinner" }
-                    div { class: "loading-text", "Loading modpack information..." }
-                }
-            }
-        } else {
-            // New structure with explicit class toggling based on current page
-            rsx! {
-                // Home page component
-                div { 
-                    class: if page() == HOME_PAGE { "home-container" } else { "home-container hidden" },
-                    HomePage {
+        div {
+            style { {css_content} }
+            Modal {}
+            
+            {if !config.read().first_launch.unwrap_or(true) && launcher.is_some() && !settings() {
+                rsx! {
+                    AppHeader {
+                        page,
                         pages,
-                        page
+                        settings,
+                        logo_url
                     }
                 }
-                
-                // Version pages container - only shown when not on home page
-                div { 
-                    class: if page() != HOME_PAGE { "version-page-container" } else { "version-page-container hidden" },
-                    {
-                        // Add more debug to help troubleshoot
-                        let current_page = page();
-                        debug!("Rendering content for page {}", current_page);
-                        
-                        // Look up just the tab info for this page
-                        if let Some(tab_info) = pages().get(&current_page) {
-                            debug!("Found tab info for page {}: {} modpacks", 
-                                  current_page, tab_info.modpacks.len());
-                            
-                            // Map the modpacks to Version components
-                            rsx! {
-                                {
-                                    tab_info.modpacks.iter().map(|profile| {
-                                        rsx! {
-                                            Version {
-                                                installer_profile: profile.clone(),
-                                                error: err.clone(),
-                                                current_page,
-                                                tab_group: current_page,
-                                            }
-                                        }
-                                    })
-                                }
-                            }
-                        } else {
-                            debug!("No tab info found for page {}", current_page);
-                            rsx! { div { "No modpack information found for this tab." } }
+            } else {
+                None
+            }}
+
+            div { class: "main-container",
+                {if settings() {
+                    rsx! {
+                        Settings {
+                            config,
+                            settings,
+                            config_path: props.config_path.clone(),
+                            error: err,
+                            b64_id: URL_SAFE_NO_PAD.encode(props.modpack_source)
                         }
                     }
-                }
+                } else if config.read().first_launch.unwrap_or(true) || launcher.is_none() {
+                    rsx! {
+                        Launcher {
+                            config,
+                            config_path: props.config_path.clone(),
+                            error: err,
+                            b64_id: URL_SAFE_NO_PAD.encode(props.modpack_source)
+                        }
+                    }
+                } else if packs.read().is_none() {
+                    rsx! {
+                        div { class: "loading-container",
+                            div { class: "loading-spinner" }
+                            div { class: "loading-text", "Loading modpack information..." }
+                        }
+                    }
+                } else {
+                    // Fixed structure
+                    rsx! {
+                        div { class: "content-wrapper",
+                            // Home page component
+                            div { 
+                                class: if page() == HOME_PAGE { "home-container" } else { "home-container hidden" },
+                                HomePage {
+                                    pages,
+                                    page
+                                }
+                            }
+                            
+                            // Version pages container - only shown when not on home page
+                            div { 
+                                class: if page() != HOME_PAGE { "version-page-container" } else { "version-page-container hidden" },
+                                {
+                                    // Add more debug to help troubleshoot
+                                    let current_page = page();
+                                    debug!("Rendering content for page {}", current_page);
+                                    
+                                    // Look up just the tab info for this page
+                                    if let Some(tab_info) = pages().get(&current_page) {
+                                        debug!("Found tab info for page {}: {} modpacks", 
+                                              current_page, tab_info.modpacks.len());
+                                        
+                                        // Map the modpacks to Version components
+                                        rsx! {
+                                            {
+                                                tab_info.modpacks.iter().map(|profile| {
+                                                    rsx! {
+                                                        Version {
+                                                            installer_profile: profile.clone(),
+                                                            error: err.clone(),
+                                                            current_page,
+                                                            tab_group: current_page,
+                                                        }
+                                                    }
+                                                })
+                                            }
+                                        }
+                                    } else {
+                                        debug!("No tab info found for page {}", current_page);
+                                        rsx! { div { "No modpack information found for this tab." } }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }}
             }
-        }}
+        }
     }
-}
 }
 
