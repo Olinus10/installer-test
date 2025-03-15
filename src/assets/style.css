@@ -114,6 +114,26 @@ body {
     color: #fff;
 }
 
+
+
+/* Add these styles to your style.css file to fix the version page visibility issues */
+
+.version-page-container {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    z-index: 1;
+}
+
+.home-container, .version-container {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    z-index: 1;
+}
+
+
+
 /* Custom Scrollbar Styling */
 ::-webkit-scrollbar {
     width: 10px;
