@@ -690,8 +690,8 @@ fn Version(mut props: VersionProps) -> Element {
            installer_profile.modpack_source,
            installer_profile.modpack_branch);
            
-    // We're changing how we check if this version should be displayed
-    // Instead of returning None, we'll use CSS to conditionally display
+    // IMPORTANT FIX: We now correctly check if this component should be visible
+    // based on comparing its tab_group with the current page
     let should_display = props.current_page == props.tab_group;
     
     debug!("Version component display state: should_display={} (current_page={}, tab_group={})",
@@ -703,7 +703,7 @@ fn Version(mut props: VersionProps) -> Element {
     let mut modify = use_signal(|| false);
     let mut modify_count = use_signal(|| 0);
 
-    // Fix: Initialize enabled_features properly
+    // Initialize enabled_features properly
     let enabled_features = use_signal(|| {
         let mut features = vec!["default".to_string()];
         
@@ -738,9 +738,116 @@ fn Version(mut props: VersionProps) -> Element {
     });
     
     let movable_profile = installer_profile.clone();
-    let on_submit = move |_| {
-        // Submit handler code remains the same
-        // ...
+    let on_submit = move |evt| {
+        evt.prevent_default();
+        // Calculate total items to process for progress tracking
+        *install_item_amount.write() = movable_profile.manifest.mods.len()
+            + movable_profile.manifest.resourcepacks.len()
+            + movable_profile.manifest.shaderpacks.len()
+            + movable_profile.manifest.include.len();
+        
+        let movable_profile = movable_profile.clone();
+        
+        async move {
+            let install = move |canceled| {
+                let mut installer_profile = movable_profile.clone();
+                spawn(async move {
+                    if canceled {
+                        return;
+                    }
+                    installing.set(true);
+                    installer_profile.enabled_features = enabled_features.read().clone();
+                    installer_profile.manifest.enabled_features = enabled_features.read().clone();
+                    local_features.set(Some(enabled_features.read().clone()));
+
+                    if !*installed.read() {
+                        progress_status.set("Installing");
+                        match crate::install(&installer_profile, move || {
+                            install_progress.with_mut(|x| *x += 1);
+                        })
+                        .await
+                        {
+                            Ok(_) => {
+                                let _ = isahc::post(
+                                    "https://tracking.commander07.workers.dev/track",
+                                    format!(
+                                        "{{
+                                    \"projectId\": \"55db8403a4f24f3aa5afd33fd1962888\",
+                                    \"dataSourceId\": \"{}\",
+                                    \"userAction\": \"update\",
+                                    \"additionalData\": {{
+                                        \"old_version\": \"{}\",
+                                        \"new_version\": \"{}\"
+                                    }}
+                                }}",
+                                        installer_profile.manifest.uuid,
+                                        installer_profile.local_manifest.unwrap().modpack_version,
+                                        installer_profile.manifest.modpack_version
+                                    ),
+                                );
+                            }
+                            Err(e) => {
+                                props.error.set(Some(
+                                    format!("{:#?}", e) + " (Failed to update modpack!)",
+                                ));
+                                installing.set(false);
+                                return;
+                            }
+                        }
+                        update_available.set(false);
+                    } else if *modify.read() {
+                        progress_status.set("Modifying");
+                        match super::update(&installer_profile, move || {
+                            *install_progress.write() += 1
+                        })
+                        .await
+                        {
+                            Ok(_) => {
+                                let _ = isahc::post(
+                                    "https://tracking.commander07.workers.dev/track",
+                                    format!(
+                                        "{{
+                                    \"projectId\": \"55db8403a4f24f3aa5afd33fd1962888\",
+                                    \"dataSourceId\": \"{}\",
+                                    \"userAction\": \"modify\",
+                                    \"additionalData\": {{
+                                        \"features\": {:?}
+                                    }}
+                                }}",
+                                        installer_profile.manifest.uuid,
+                                        installer_profile.manifest.enabled_features
+                                    ),
+                                );
+                            }
+                            Err(e) => {
+                                props.error.set(Some(
+                                    format!("{:#?}", e) + " (Failed to modify modpack!)",
+                                ));
+                                installing.set(false);
+                                return;
+                            }
+                        }
+                        modify.with_mut(|x| *x = false);
+                        modify_count.with_mut(|x| *x = 0);
+                        update_available.set(false);
+                    }
+                    installing.set(false);
+                });
+            };
+
+            if let Some(contents) = movable_profile.manifest.popup_contents.clone() {
+                use_context::<ModalContext>().open(
+                    movable_profile.manifest.popup_title.unwrap_or_default(),
+                    rsx!(div {
+                        dangerous_inner_html: "{contents}",
+                    }),
+                    true,
+                    Some(install),
+                )
+            } else {
+                install(false);
+            }
+        }
     };
 
     let install_disable = if *installed.read() && !*update_available.read() && !*modify.read() {
@@ -1227,55 +1334,42 @@ pub(crate) fn app() -> Element {
                         }
                     }
                 } else {
-                    // Fixed structure
-                    rsx! {
-                        div { class: "content-wrapper",
-                            // Home page component
-                            div { 
-                                class: if page() == HOME_PAGE { "home-container" } else { "home-container hidden" },
-                                HomePage {
-                                    pages,
-                                    page
-                                }
-                            }
-                            
-                            // Version pages container - only shown when not on home page
-                            div { 
-                                class: if page() != HOME_PAGE { "version-page-container" } else { "version-page-container hidden" },
+    // Updated structure with better tabs handling
+    rsx! {
+        div { class: "content-wrapper",
+            // Home page component - only shown when page is HOME_PAGE
+            div { 
+                class: if page() == HOME_PAGE { "home-container" } else { "home-container hidden" },
+                HomePage {
+                    pages,
+                    page
+                }
+            }
+            
+            // Version pages container
+            {
+                // Iterate through all tab groups and render versions for each
+                rsx! {
+                    {
+                        pages().iter().map(|(tab_group, tab_info)| {
+                            // For each tab group, we render all its modpacks
+                            rsx! {
                                 {
-                                    // Add more debug to help troubleshoot
-                                    let current_page = page();
-                                    debug!("Rendering content for page {}", current_page);
-                                    
-                                    // Look up just the tab info for this page
-                                    if let Some(tab_info) = pages().get(&current_page) {
-                                        debug!("Found tab info for page {}: {} modpacks", 
-                                              current_page, tab_info.modpacks.len());
-                                        
-                                        // Map the modpacks to Version components
+                                    tab_info.modpacks.iter().map(|profile| {
                                         rsx! {
-                                            {
-                                                tab_info.modpacks.iter().map(|profile| {
-                                                    rsx! {
-                                                        Version {
-                                                            installer_profile: profile.clone(),
-                                                            error: err.clone(),
-                                                            current_page,
-                                                            tab_group: current_page,
-                                                        }
-                                                    }
-                                                })
+                                            Version {
+                                                installer_profile: profile.clone(),
+                                                error: err.clone(),
+                                                current_page: page(),  // Current selected page
+                                                tab_group: *tab_group, // This version's tab group
                                             }
                                         }
-                                    } else {
-                                        debug!("No tab info found for page {}", current_page);
-                                        rsx! { div { "No modpack information found for this tab." } }
-                                    }
+                                    })
                                 }
                             }
-                        }
+                        })
                     }
-                }}
+                }
             }
         }
     }
