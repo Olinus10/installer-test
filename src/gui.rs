@@ -1,5 +1,5 @@
 use std::{collections::BTreeMap, path::PathBuf};
-use base64::{engine::general_purpose::URL_SAFE_NO_PAD};
+use base64::{Engine, engine::general_purpose::URL_SAFE_NO_PAD};
 use dioxus::prelude::*;
 use log::{error, debug};
 use modal::ModalContext;
@@ -1405,19 +1405,35 @@ pub(crate) fn app() -> Element {
                             } else {
                                 rsx! {
                                     // Render versions for the current page
-                                    {for (tab_idx, tab_info) in pages() {
-                                        {for installer_profile in &tab_info.modpacks {
-                                            let profile = installer_profile.clone();
-                                            rsx! {
-                                                Version {
-                                                    installer_profile: profile,
-                                                    error: err.clone(),
-                                                    current_page: page(),
-                                                    tab_group: tab_idx,
+                                    {
+                                        // Collect all versions that should be rendered
+                                        let mut versions = Vec::new();
+                                        for (tab_idx, tab_info) in pages().iter() {
+                                            for installer_profile in &tab_info.modpacks {
+                                                // Only render if this tab group matches the current page
+                                                if *tab_idx == page() {
+                                                    let profile = installer_profile.clone();
+                                                    versions.push((profile, *tab_idx));
                                                 }
                                             }
-                                        }}
-                                    }}
+                                        }
+                                        
+                                        // Render all versions
+                                        rsx! {
+                                            {
+                                                versions.into_iter().map(|(profile, tab_idx)| {
+                                                    rsx! {
+                                                        Version {
+                                                            installer_profile: profile,
+                                                            error: err.clone(),
+                                                            current_page: page(),
+                                                            tab_group: tab_idx,
+                                                        }
+                                                    }
+                                                })
+                                            }
+                                        }
+                                    }
                                 }
                             }}
                         }
