@@ -1368,69 +1368,78 @@ pub(crate) fn app() -> Element {
             }}
 
             div { class: "main-container",
-                {if settings() {
-                    rsx! {
-                        Settings {
-                            config,
-                            settings,
-                            config_path: props.config_path.clone(),
-                            error: err,
-                            b64_id: URL_SAFE_NO_PAD.encode(props.modpack_source)
-                        }
-                    }
-                } else if config.read().first_launch.unwrap_or(true) || launcher.is_none() {
-                    rsx! {
-                        Launcher {
-                            config,
-                            config_path: props.config_path.clone(),
-                            error: err,
-                            b64_id: URL_SAFE_NO_PAD.encode(props.modpack_source)
-                        }
-                    }
-                } else if packs.read().is_none() {
-                    rsx! {
-                        div { class: "loading-container",
-                            div { class: "loading-spinner" }
-                            div { class: "loading-text", "Loading modpack information..." }
-                        }
-                    }
+    {if settings() {
+        rsx! {
+            Settings {
+                config,
+                settings,
+                config_path: props.config_path.clone(),
+                error: err,
+                b64_id: URL_SAFE_NO_PAD.encode(props.modpack_source)
+            }
+        }
+    } else if config.read().first_launch.unwrap_or(true) || launcher.is_none() {
+        rsx! {
+            Launcher {
+                config,
+                config_path: props.config_path.clone(),
+                error: err,
+                b64_id: URL_SAFE_NO_PAD.encode(props.modpack_source)
+            }
+        }
+    } else if packs.read().is_none() {
+        rsx! {
+            div { class: "loading-container",
+                div { class: "loading-spinner" }
+                div { class: "loading-text", "Loading modpack information..." }
+            }
+        }
+    } else {
+        // Don't create another div wrapper here
+        if page() == HOME_PAGE {
+            rsx! {
+                HomePage {
+                    pages,
+                    page
+                }
+            }
         } else {
-                    // Critical fix: This section was causing the issue
-                    if page() == HOME_PAGE {
-                        rsx! {
-                            HomePage {
-                                pages,
-                                page
-                            }
-                        }
-                    } else {
-                        rsx! {
-                            div { class: "version-page-container",
-                                // Debug which page we're on
+            rsx! {
+                div { 
+                    class: "version-page-container",
+                    style: "display: block; width: 100%;",
+                    {
+                        // Add more debug to help troubleshoot
+                        let current_page = page();
+                        debug!("Rendering content for page {}", current_page);
+                        
+                        // Look up just the tab info for this page
+                        if let Some(tab_info) = pages().get(&current_page) {
+                            debug!("Found tab info for page {}: {} modpacks", 
+                                   current_page, tab_info.modpacks.len());
+                            
+                            // Map the modpacks to Version components
+                            rsx! {
                                 {
-                                    debug!("Rendering content for page {}", page());
-                                    
-                                    // Filter and render versions for the current page
-                                    pages().iter()
-                                        .filter(|(tab_idx, _)| **tab_idx == page())
-                                        .flat_map(|(tab_idx, tab_info)| {
-                                            tab_info.modpacks.iter().map(move |profile| {
-                                                rsx! {
-                                                    Version {
-                                                        installer_profile: profile.clone(),
-                                                        error: err.clone(),
-                                                        current_page: page(),
-                                                        tab_group: *tab_idx,
-                                                    }
-                                                }
-                                            })
-                                        })
+                                    tab_info.modpacks.iter().map(|profile| {
+                                        rsx! {
+                                            Version {
+                                                installer_profile: profile.clone(),
+                                                error: err.clone(),
+                                                current_page,
+                                                tab_group: current_page,
+                                            }
+                                        }
+                                    })
                                 }
                             }
+                        } else {
+                            debug!("No tab info found for page {}", current_page);
+                            rsx! { div { "No modpack information found for this tab." } }
                         }
                     }
                 }
             }
         }
-    }
-}}
+    }}
+}}}}
