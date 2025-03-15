@@ -686,9 +686,10 @@ fn Version(mut props: VersionProps) -> Element {
            installer_profile.manifest.subtitle,
            installer_profile.modpack_source,
            installer_profile.modpack_branch);  
-
     // Only render this component if its tab_group matches the current page
-    if props.current_page != props.tab_group {
+ if props.current_page != props.tab_group {
+        debug!("Version component not rendered: current_page={}, tab_group={}",
+               props.current_page, props.tab_group);
         return None;
     }
 
@@ -1348,98 +1349,86 @@ pub(crate) fn app() -> Element {
     
     // Fix: Return the JSX from the app function
     rsx! {
-        div {
-            style { {css_content} }
-            Modal {}
-            
-            {if !config.read().first_launch.unwrap_or(true) && launcher.is_some() && !settings() {
+    div { class: "main-container",
+        {if settings() {
+            rsx! {
+                Settings {
+                    config,
+                    settings,
+                    config_path: props.config_path.clone(),
+                    error: err,
+                    b64_id: URL_SAFE_NO_PAD.encode(props.modpack_source)
+                }
+            }
+        } else if config.read().first_launch.unwrap_or(true) || launcher.is_none() {
+            rsx! {
+                Launcher {
+                    config,
+                    config_path: props.config_path.clone(),
+                    error: err,
+                    b64_id: URL_SAFE_NO_PAD.encode(props.modpack_source)
+                }
+            }
+        } else if packs.read().is_none() {
+            rsx! {
+                div { class: "loading-container",
+                    div { class: "loading-spinner" }
+                    div { class: "loading-text", "Loading modpack information..." }
+                }
+            }
+        } else {
+            // This is the key part - clearly separate HOME_PAGE rendering from other pages
+            if page() == HOME_PAGE {
                 rsx! {
-                    AppHeader {
-                        page,
+                    HomePage {
                         pages,
-                        settings,
-                        logo_url
+                        page
                     }
                 }
             } else {
-                None
-            }}
-
-            div { class: "main-container",
-                {if settings() {
-                    rsx! {
-                        Settings {
-                            config,
-                            settings,
-                            config_path: props.config_path.clone(),
-                            error: err,
-                            b64_id: URL_SAFE_NO_PAD.encode(props.modpack_source)
-                        }
-                    }
-                } else if config.read().first_launch.unwrap_or(true) || launcher.is_none() {
-                    rsx! {
-                        Launcher {
-                            config,
-                            config_path: props.config_path.clone(),
-                            error: err,
-                            b64_id: URL_SAFE_NO_PAD.encode(props.modpack_source)
-                        }
-                    }
-                } else if packs.read().is_none() {
-                    rsx! {
-                        div { class: "loading-container",
-                            div { class: "loading-spinner" }
-                            div { class: "loading-text", "Loading modpack information..." }
-                        }
-                    }
-                } else {
-                    rsx! {
-                        div {
-                            {if page() == HOME_PAGE {
+                // For non-home pages, render the Version components for the current page
+                // Add debugging to verify which tab is selected
+                debug!("Preparing to render content for page {}", page());
+                
+                rsx! {
+                    // This div ensures Version components have a parent container
+                    div { class: "version-page-container",
+                        {
+                            // Create a vector of Version components to render
+                            let versions: Vec<_> = pages()
+                                .iter()
+                                .flat_map(|(tab_idx, tab_info)| {
+                                    // Only include versions for the current page/tab
+                                    if *tab_idx == page() {
+                                        tab_info.modpacks
+                                            .iter()
+                                            .map(|profile| {
+                                                (profile.clone(), *tab_idx)
+                                            })
+                                            .collect::<Vec<_>>()
+                                    } else {
+                                        Vec::new()
+                                    }
+                                })
+                                .collect();
+                            
+                            debug!("Found {} versions to render for page {}", versions.len(), page());
+                            
+                            // Map the versions to Version components
+                            versions.into_iter().map(|(profile, tab_idx)| {
                                 rsx! {
-                                    HomePage {
-                                        pages,
-                                        page
+                                    Version {
+                                        installer_profile: profile,
+                                        error: err.clone(),
+                                        current_page: page(),
+                                        tab_group: tab_idx,
                                     }
                                 }
-                            } else {
-                                rsx! {
-                                    // Render versions for the current page
-                                    {
-                                        // Collect all versions that should be rendered
-                                        let mut versions = Vec::new();
-                                        for (tab_idx, tab_info) in pages().iter() {
-                                            for installer_profile in &tab_info.modpacks {
-                                                // Only render if this tab group matches the current page
-                                                if *tab_idx == page() {
-                                                    let profile = installer_profile.clone();
-                                                    versions.push((profile, *tab_idx));
-                                                }
-                                            }
-                                        }
-                                        
-                                        // Render all versions
-                                        rsx! {
-                                            {
-                                                versions.into_iter().map(|(profile, tab_idx)| {
-                                                    rsx! {
-                                                        Version {
-                                                            installer_profile: profile,
-                                                            error: err.clone(),
-                                                            current_page: page(),
-                                                            tab_group: tab_idx,
-                                                        }
-                                                    }
-                                                })
-                                            }
-                                        }
-                                    }
-                                }
-                            }}
+                            })
                         }
                     }
-                }}
+                }
             }
-        }
+        }}
     }
 }
