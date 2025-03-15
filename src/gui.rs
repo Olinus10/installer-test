@@ -1,5 +1,5 @@
 use std::{collections::BTreeMap, path::PathBuf};
-use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine}; // Added the Engine trait here
+use base64::{engine::general_purpose::URL_SAFE_NO_PAD};
 use dioxus::prelude::*;
 use log::{error, debug};
 use modal::ModalContext;
@@ -1348,77 +1348,86 @@ let css_content = {
     
     let render = move || {
           rsx!(
-        <>
+        <div>
             <style>{css_content}</style>
             <Modal />
             
             {if !config.read().first_launch.unwrap_or(true) && launcher.is_some() && !settings() {
-                AppHeader {
+                Some(AppHeader {
                     page,
                     pages,
                     settings,
                     logo_url
-                }
+                })
+            } else {
+                None
             }}
 
             <div class="main-container">
                 {if settings() {
-                    Settings {
+                    Some(Settings {
                         config,
                         settings,
                         config_path: props.config_path.clone(),
                         error: err,
                         b64_id: URL_SAFE_NO_PAD.encode(props.modpack_source)
-                    }
+                    })
                 } else if config.read().first_launch.unwrap_or(true) || launcher.is_none() {
-                    Launcher {
+                    Some(Launcher {
                         config,
                         config_path: props.config_path.clone(),
                         error: err,
                         b64_id: URL_SAFE_NO_PAD.encode(props.modpack_source)
-                    }
+                    })
                 } else if packs.read().is_none() {
-                    <div class="loading-container">
-                        <div class="loading-spinner" />
-                        <div class="loading-text">{"Loading modpack information..."}</div>
-                    </div>
-                } else {
-                    <>
-                        <div>
-                            {"Current Page: "}{page()}
-                            {"Total Pages: "}{pages().len()}
-                            {"Pages: "}{format!("{:#?}", pages())}
+                    Some(
+                        <div class="loading-container">
+                            <div class="loading-spinner" />
+                            <div class="loading-text">{"Loading modpack information..."}</div>
                         </div>
+                    )
+                } else {
+                    Some(
+                        <>
+                            <div>
+                                {"Current Page: "}{page()}
+                                {"Total Pages: "}{pages().len()}
+                                {"Pages: "}{format!("{:#?}", pages())}
+                            </div>
 
-                        {if page() == HOME_PAGE {
-                            HomePage {
-                                pages,
-                                page
-                            }
-                        } else {
-                            <>
-                                {for (tab_idx, tab_info) in pages() {
-                                    <div>
-                                        {"Tab Group: "}{tab_idx}
-                                        {" Current Page: "}{page()}
-                                        {" Modpacks in this group: "}{tab_info.modpacks.len()}
-                                    </div>
-                                    {for installer_profile in &tab_info.modpacks {
-                                        let profile = installer_profile.clone();
-                                        Version {
-                                            installer_profile: profile,
-                                            error: err.clone(),
-                                            current_page: page(),
-                                            tab_group: tab_idx,
-                                        }
-                                    }}
-                                }}
-                            </>
-                        }}
-                    </>
+                            {if page() == HOME_PAGE {
+                                Some(HomePage {
+                                    pages,
+                                    page
+                                })
+                            } else {
+                                Some(
+                                    <>
+                                        {for (tab_idx, tab_info) in pages() {
+                                            <>
+                                                <div>
+                                                    {"Tab Group: "}{tab_idx}
+                                                    {" Current Page: "}{page()}
+                                                    {" Modpacks in this group: "}{tab_info.modpacks.len()}
+                                                </div>
+                                                {for installer_profile in &tab_info.modpacks {
+                                                    let profile = installer_profile.clone();
+                                                    Version {
+                                                        installer_profile: profile,
+                                                        error: err.clone(),
+                                                        current_page: page(),
+                                                        tab_group: tab_idx,
+                                                    }
+                                                }}
+                                            </>
+                                        }}
+                                    </>
+                                )
+                            }}
+                        </>
+                    )
                 }}
             </div>
-        </>
+        </div>
     )
-}
 }
