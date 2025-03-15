@@ -1227,7 +1227,6 @@ pub(crate) fn app() -> Element {
         }
     });
 
-
     // Update the CSS generation section
     let css_content = {
         let default_color = "#320625".to_string();
@@ -1263,7 +1262,8 @@ pub(crate) fn app() -> Element {
         debug!("Updating CSS with: color={}, bg_image={}, secondary_font={}, primary_font={}", 
                bg_color, bg_image, secondary_font, primary_font);
             
-        // Improved dropdown menu CSS with better hover behavior and font consistency
+        // Use dropdown styles from your dropdown.css file if you created one
+        // otherwise keep the original approach
         let dropdown_css = include_str!("assets/dropdown.css");
             
         css
@@ -1334,40 +1334,44 @@ pub(crate) fn app() -> Element {
                         }
                     }
                 } else {
-    // Updated structure with better tabs handling
-    rsx! {
-        div { class: "content-wrapper",
-            // Home page component - only shown when page is HOME_PAGE
-            div { 
-                class: if page() == HOME_PAGE { "home-container" } else { "home-container hidden" },
-                HomePage {
-                    pages,
-                    page
-                }
-            }
-            
-            // Version pages container
-            {
-                // Iterate through all tab groups and render versions for each
-                rsx! {
-                    {
-                        pages().iter().map(|(tab_group, tab_info)| {
-                            // For each tab group, we render all its modpacks
-                            rsx! {
-                                {
-                                    tab_info.modpacks.iter().map(|profile| {
-                                        rsx! {
-                                            Version {
-                                                installer_profile: profile.clone(),
-                                                error: err.clone(),
-                                                current_page: page(),  // Current selected page
-                                                tab_group: *tab_group, // This version's tab group
-                                            }
-                                        }
-                                    })
+                    // Updated structure with better tabs handling
+                    rsx! {
+                        div { class: "content-wrapper",
+                            // Home page component - only shown when page is HOME_PAGE
+                            div { 
+                                class: if page() == HOME_PAGE { "home-container" } else { "home-container hidden" },
+                                HomePage {
+                                    pages,
+                                    page
                                 }
                             }
-                        })
+                            
+                            // Version pages container
+                            {
+                                // Iterate through all tab groups and render versions for each
+                                rsx! {
+                                    {
+                                        pages().iter().map(|(tab_group, tab_info)| {
+                                            // For each tab group, we render all its modpacks
+                                            rsx! {
+                                                {
+                                                    tab_info.modpacks.iter().map(|profile| {
+                                                        rsx! {
+                                                            Version {
+                                                                installer_profile: profile.clone(),
+                                                                error: err.clone(),
+                                                                current_page: page(),  // Current selected page
+                                                                tab_group: *tab_group, // This version's tab group
+                                                            }
+                                                        }
+                                                    })
+                                                }
+                                            }
+                                        })
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }
