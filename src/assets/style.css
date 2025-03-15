@@ -12,6 +12,7 @@
     font-style: normal;
 }
 
+/* === Base Styles === */
 html,
 body {
     margin: 0;
@@ -36,146 +37,6 @@ body {
     overflow: hidden;
 }
 
-/* Dropdown menu styles - with improved hover behavior and font consistency */
-.dropdown {
-    position: relative;
-    display: inline-block;
-}
-
-/* Position the dropdown content */
-.dropdown-content {
-    display: none;
-    position: absolute;
-    top: 100%;
-    left: 0;
-    background-color: rgba(0, 0, 0, 0.9);
-    min-width: 200px;
-    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.6);
-    z-index: 1000;
-    border-radius: 4px;
-    overflow: hidden;
-    margin-top: 5px;
-    max-height: 400px;
-    overflow-y: auto;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-/* Show dropdown on hover with increased target area */
-.dropdown:hover .dropdown-content,
-.dropdown-content:hover {
-    display: block;
-}
-
-/* Add a pseudo-element to create an invisible connection between the button and dropdown */
-.dropdown::after {
-    content: '';
-    position: absolute;
-    height: 10px;
-    width: 100%;
-    left: 0;
-    top: 100%;
-    display: none;
-}
-
-.dropdown:hover::after {
-    display: block;
-}
-
-.dropdown-item {
-    display: block;
-    width: 100%;
-    padding: 10px 15px;
-    text-align: left;
-    background-color: transparent;
-    border: none;
-    /* Explicitly use the same font as header-tab-button */
-    font-family: "PRIMARY_FONT";
-    font-size: 0.9rem;
-    color: #fce8f6;
-    cursor: pointer;
-    transition: background-color 0.2s ease;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-}
-
-.dropdown-item:last-child {
-    border-bottom: none;
-}
-
-.dropdown-item:hover {
-    background-color: rgba(50, 6, 37, 0.8);
-    border-color: rgba(255, 255, 255, 0.4);
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
-}
-
-.dropdown-item.active {
-    background-color: var(--bg-color);
-    border-color: #fce8f6;
-    box-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
-    color: #fff;
-}
-
-/* Make sure all elements within Version containers are properly styled */
-.content-header, 
-.content-description, 
-.feature-cards-container, 
-.install-button-container {
-    position: relative;
-    z-index: 6;
-}
-
-/* Add these styles to your style.css file to fix the version page visibility issues */
-
-.version-page-container {
-    width: 100%;
-    height: 100%;
-    position: relative;
-    z-index: 1;
-}
-
-.home-container, 
-.version-container,
-.version-page-container {
-    width: 100%;
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    padding: 20px;
-    transition: opacity 0.3s ease;
-    opacity: 1;
-    visibility: visible;
-    z-index: 1;
-}
-
-/* Hide content when not active */
-.home-container.hidden,
-.version-container.hidden,
-.version-page-container.hidden {
-    opacity: 0;
-    visibility: hidden;
-    z-index: -1;
-}
-
-/* Custom Scrollbar Styling */
-::-webkit-scrollbar {
-    width: 10px;
-    height: 10px;
-}
-
-::-webkit-scrollbar-track {
-    background: rgba(0, 0, 0, 0.3);
-    border-radius: 5px;
-}
-
-::-webkit-scrollbar-thumb {
-    background: rgba(50, 6, 37, 0.8);
-    border-radius: 5px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-    background: rgba(80, 10, 60, 0.9);
-}
-
 button,
 input {
     color: #fce8f6;
@@ -195,7 +56,45 @@ a {
 a:hover {
     text-decoration: underline;
 }
-/* Make sure the app header is visible and properly positioned */
+
+/* === Custom Scrollbar === */
+::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+
+::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: rgba(50, 6, 37, 0.8);
+    border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(80, 10, 60, 0.9);
+}
+
+/* === Layout Structure === */
+/* Main container */
+.main-container {
+    height: calc(100vh - 80px);
+    overflow-y: auto;
+    padding: 0;
+    position: relative;
+}
+
+/* Content wrapper */
+.content-wrapper {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    overflow-y: auto;
+}
+
+/* === Header Styles === */
 .app-header {
     display: flex;
     justify-content: space-between;
@@ -236,7 +135,7 @@ a:hover {
     text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
 }
 
-/* Fix for header-tabs to prevent dropdown from affecting it */
+/* Header tabs */
 .header-tabs {
     display: flex;
     gap: 5px;
@@ -298,16 +197,81 @@ a:hover {
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
 }
 
-/* Main Container */
-.main-container {
-    height: calc(100vh - 80px);
-    overflow-y: auto;
-    padding: 0;
+/* === Dropdown Menu === */
+.dropdown {
     position: relative;
+    display: inline-block;
 }
 
+.dropdown-content {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    background-color: rgba(0, 0, 0, 0.9);
+    min-width: 200px;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.6);
+    z-index: 1000;
+    border-radius: 4px;
+    overflow: hidden;
+    margin-top: 5px;
+    max-height: 400px;
+    overflow-y: auto;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
 
-/* Home Container */
+.dropdown:hover .dropdown-content,
+.dropdown-content:hover {
+    display: block;
+}
+
+.dropdown::after {
+    content: '';
+    position: absolute;
+    height: 10px;
+    width: 100%;
+    left: 0;
+    top: 100%;
+    display: none;
+}
+
+.dropdown:hover::after {
+    display: block;
+}
+
+.dropdown-item {
+    display: block;
+    width: 100%;
+    padding: 10px 15px;
+    text-align: left;
+    background-color: transparent;
+    border: none;
+    font-family: "PRIMARY_FONT";
+    font-size: 0.9rem;
+    color: #fce8f6;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.dropdown-item:last-child {
+    border-bottom: none;
+}
+
+.dropdown-item:hover {
+    background-color: rgba(50, 6, 37, 0.8);
+    border-color: rgba(255, 255, 255, 0.4);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+}
+
+.dropdown-item.active {
+    background-color: var(--bg-color);
+    border-color: #fce8f6;
+    box-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
+    color: #fff;
+}
+
+/* === Home Page === */
 .home-container {
     max-width: 1200px;
     margin: 0 auto;
@@ -316,7 +280,7 @@ a:hover {
     text-align: center;
     opacity: 1;
     visibility: visible;
-    transition: opacity 0.3s ease;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
     z-index: 5;
 }
 
@@ -324,33 +288,31 @@ a:hover {
     opacity: 0;
     visibility: hidden;
     position: absolute;
+    pointer-events: none;
     top: 0;
     left: 0;
     width: 100%;
     z-index: -1;
 }
 
-
 .home-title {
     font-family: "PRIMARY_FONT";
     text-align: center;
-    margin-top: 0; /* Remove top margin */
-    margin-bottom: 20px; /* Reduced bottom margin */
+    margin-top: 0;
+    margin-bottom: 20px;
     font-size: 2.5rem;
     color: #fce8f6;
     text-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
 }
 
-/* Home Grid - Fix for card layout */
 .home-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
     gap: 20px;
     justify-items: center;
-    width: 100%;
 }
 
-/* Home Pack Card */
+/* Modpack cards */
 .home-pack-card {
     height: 180px;
     width: 250px;
@@ -413,7 +375,6 @@ a:hover {
     margin: 0 0 10px 0;
     font-size: 1.2rem;
     text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
-    /* Add ellipsis for long titles */
     overflow: hidden;
     text-overflow: ellipsis;
     display: -webkit-box;
@@ -436,35 +397,13 @@ a:hover {
     transform: scale(1.05);
 }
 
-/* Version Container */
-.version-container {
-    max-width: 1000px;
-    margin: 0 auto;
-    padding: 20px;
-    position: relative;
-    opacity: 1;
-    visibility: visible;
-    transition: opacity 0.3s ease;
-    z-index: 5;
-}
-
-.version-container.hidden {
-    opacity: 0;
-    visibility: hidden;
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    z-index: -1;
-}
-
-/* Version Page Container */
+/* === Version Page === */
 .version-page-container {
     width: 100%;
     position: relative;
     opacity: 1;
     visibility: visible;
-    transition: opacity 0.3s ease;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
     z-index: 5;
 }
 
@@ -472,12 +411,51 @@ a:hover {
     opacity: 0;
     visibility: hidden;
     position: absolute;
+    pointer-events: none;
     top: 0;
     left: 0;
     width: 100%;
     z-index: -1;
 }
 
+.version-container {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 20px;
+    position: relative;
+    opacity: 1;
+    visibility: visible;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+    z-index: 5;
+}
+
+.version-container.hidden {
+    opacity: 0;
+    visibility: hidden;
+    position: absolute;
+    pointer-events: none;
+    top: 0;
+    left: 0;
+    width: 100%;
+    z-index: -1;
+}
+
+.version-container form {
+    width: 100%;
+    max-width: 1000px;
+    margin: 0 auto;
+}
+
+.content-header, 
+.content-description, 
+.feature-cards-container, 
+.install-button-container {
+    max-width: 1000px;
+    margin-left: auto;
+    margin-right: auto;
+    position: relative;
+    z-index: 6;
+}
 
 .content-header {
     text-align: center;
@@ -500,13 +478,6 @@ a:hover {
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
 }
 
-/* Content Wrapper */
-.content-wrapper {
-    position: relative;
-    width: 100%;
-    height: 100%;
-}
-
 .credits-link {
     display: inline-block;
     margin-top: 15px;
@@ -522,7 +493,7 @@ a:hover {
     text-shadow: 0 0 5px rgba(255, 255, 255, 0.5);
 }
 
-/* Feature Cards */
+/* Feature cards */
 .feature-cards-container {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
@@ -593,7 +564,7 @@ a:hover {
     transform: scale(1.05);
 }
 
-/* Install Button */
+/* Install button */
 .install-button-container {
     text-align: center;
     margin: 20px 0;
@@ -621,7 +592,8 @@ a:hover {
     background-color: #555;
     cursor: not-allowed;
 }
-/* Credits Screen */
+
+/* === Credits Screen === */
 .credits-container {
     max-width: 900px;
     margin: 0 auto;
@@ -698,13 +670,12 @@ a:hover {
     transition: all 0.2s ease;
 }
 
-
 .credit-author:hover {
     color: #fff;
     text-shadow: 0 0 5px rgba(255, 255, 255, 0.5);
 }
 
-/* Settings Screen */
+/* === Settings Screen === */
 .settings-container {
     max-width: 700px;
     margin: 0 auto;
@@ -719,7 +690,6 @@ a:hover {
     text-align: center;
     margin-bottom: 20px;
     text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
-
 }
 
 .settings-form {
@@ -745,7 +715,6 @@ a:hover {
     padding: 10px;
     color: #fce8f6;
     width: 100%;
-
     transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
@@ -759,7 +728,6 @@ a:hover {
     display: flex;
     gap: 15px;
     margin-top: 20px;
-
 }
 
 .primary-button, 
@@ -805,7 +773,7 @@ a:hover {
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
 }
 
-/* Launcher Selection Screen */
+/* === Launcher Selection Screen === */
 .launcher-container, 
 .no-launcher-container {
     max-width: 700px;
@@ -821,9 +789,7 @@ a:hover {
     font-family: "SECONDARY_FONT";
     text-align: center;
     margin-bottom: 20px;
-
     text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
-
 }
 
 .launcher-form {
@@ -837,18 +803,16 @@ a:hover {
     line-height: 1.6;
 }
 
-/* Uninstall Modal */
+/* === Uninstall Modal === */
 .uninstall-list-container {
     max-height: 400px;
     overflow-y: auto;
-
 }
 
 .uninstall-list {
     list-style: none;
     padding: 0;
 }
-
 
 .uninstall-list-item {
     background-color: #d95248;
@@ -858,20 +822,16 @@ a:hover {
     width: 100%;
     text-align: left;
     margin-bottom: 8px;
-
     transition: all 0.2s ease;
-
 }
 
 .uninstall-list-item:hover {
     background-color: #c73c32;
-
     transform: translateY(-2px);
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
-
 }
 
-/* Progress Screen */
+/* === Progress Screen === */
 .progress-container {
     max-width: 700px;
     margin: 0 auto;
@@ -879,9 +839,7 @@ a:hover {
     border-radius: 8px;
     padding: 20px;
     text-align: center;
-
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
-
 }
 
 .progress-header {
@@ -891,9 +849,7 @@ a:hover {
 .progress-header h1 {
     font-family: "SECONDARY_FONT";
     margin: 0;
-
     text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
-
 }
 
 .progress-content {
@@ -909,9 +865,7 @@ a:hover {
     background-color: #333;
     margin-bottom: 20px;
     overflow: hidden;
-
     box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.5);
-
 }
 
 .progress-bar::-webkit-progress-bar {
@@ -922,9 +876,7 @@ a:hover {
 .progress-bar::-webkit-progress-value {
     background-color: #073c17;
     border-radius: 10px;
-
     box-shadow: 0 0 5px rgba(7, 60, 23, 0.5);
-
 }
 
 .progress-bar::-moz-progress-bar {
@@ -935,18 +887,15 @@ a:hover {
 .progress-status {
     font-size: 1.2rem;
     margin: 0;
-
     text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
 }
 
-/* Loading Containers */
-
+/* === Loading Container === */
 .loading-container {
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-
     height: 300px;
     padding: 40px;
     gap: 20px;
@@ -978,7 +927,7 @@ a:hover {
     text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
 }
 
-/* Navigation buttons */
+/* === Navigation Buttons === */
 .navigation-buttons {
     margin-bottom: 20px;
     padding: 0 20px;
@@ -1003,7 +952,7 @@ a:hover {
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
 }
 
-/* Error handling */
+/* === Error Handling === */
 .error-area {
     width: 100%;
     height: 150px;
@@ -1017,14 +966,12 @@ a:hover {
     resize: none;
 }
 
-/* Responsive fixes */
-
+/* === Responsive Fixes === */
 @media (max-width: 768px) {
     .app-header {
         flex-direction: column;
         height: auto;
         padding: 10px;
-
     }
     
     .header-tabs {
@@ -1035,7 +982,6 @@ a:hover {
     .home-grid {
         grid-template-columns: 1fr;
     }
-    
 
     .feature-cards-container {
         grid-template-columns: 1fr;
