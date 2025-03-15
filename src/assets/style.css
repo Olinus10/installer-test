@@ -125,14 +125,29 @@ body {
     z-index: 1;
 }
 
-.home-container, .version-container {
+.home-container, 
+.version-container,
+.version-page-container {
     width: 100%;
-    height: 100%;
-    position: relative;
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    padding: 20px;
+    transition: opacity 0.3s ease;
+    opacity: 1;
+    visibility: visible;
     z-index: 1;
 }
 
-
+/* Hide content when not active */
+.home-container.hidden,
+.version-container.hidden,
+.version-page-container.hidden {
+    opacity: 0;
+    visibility: hidden;
+    z-index: -1;
+}
 
 /* Custom Scrollbar Styling */
 ::-webkit-scrollbar {
@@ -275,18 +290,19 @@ a:hover {
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
 }
 
-/* Main Container */
+/* Main content container adjustments */
 .main-container {
     height: calc(100vh - 90px);
     overflow-y: auto;
     padding: 20px;
+    position: relative; /* Important for absolute positioning of children */
 }
 
-/* Home Container enhancements */
+/* Specific home container styling */
 .home-container {
     max-width: 1200px;
     margin: 0 auto;
-    padding: 10px; /* Reduced padding */
+    padding: 10px;
     text-align: center;
 }
 
@@ -394,11 +410,17 @@ a:hover {
     transform: scale(1.05);
 }
 
-/* Version/Details Screen */
+/* Specific version container styling */
 .version-container {
     max-width: 1000px;
     margin: 0 auto;
     padding: 20px;
+}
+
+/* Specific version page container styling */
+.version-page-container {
+    width: 100%;
+    height: 100%;
 }
 
 .content-header {
