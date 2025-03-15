@@ -1037,8 +1037,8 @@ pub fn app() -> Element {
     let config = use_signal(|| props.config);
     let settings = use_signal(|| false);
     let mut err: Signal<Option<String>> = use_signal(|| None);
-    let page = use_signal(|| HOME_PAGE);
-    let pages = use_signal(BTreeMap::<usize, TabInfo>::new);
+    let mut page = use_signal(|| HOME_PAGE);
+    let mut pages = use_signal(BTreeMap::<usize, TabInfo>::new);
 
     debug!("Rendering app with current page: {}", page());
     debug!("Pages map contains keys: {:?}", pages().keys().collect::<Vec<_>>());
