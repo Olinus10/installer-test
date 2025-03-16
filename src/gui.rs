@@ -749,6 +749,9 @@ let on_submit = move |_evt: FormEvent| {
     let profile_for_async = movable_profile.clone();
     
     async move {
+         // Store popup details before moving into closure
+        let popup_contents = profile_for_async.manifest.popup_contents.clone();
+        let popup_title = profile_for_async.manifest.popup_title.clone().unwrap_or_default();
         let install = move |canceled| {
                 let mut installer_profile = movable_profile.clone();
                 spawn(async move {
@@ -835,20 +838,20 @@ let on_submit = move |_evt: FormEvent| {
                 });
             };
 
-            if let Some(contents) = movable_profile.manifest.popup_contents.clone() {
-                use_context::<ModalContext>().open(
-                    movable_profile.manifest.popup_title.unwrap_or_default(),
-                    rsx!(div {
-                        dangerous_inner_html: "{contents}",
-                    }),
-                    true,
-                    Some(install),
-                )
-            } else {
-                install(false);
-            }
+            if let Some(contents) = popup_contents {
+            use_context::<ModalContext>().open(
+                popup_title,
+                rsx!(div {
+                    dangerous_inner_html: "{contents}",
+                }),
+                true,
+                Some(install),
+            )
+        } else {
+            install(false);
         }
-    };
+    }
+};
 
     let install_disable = if *installed.read() && !*update_available.read() && !*modify.read() {
         Some("true")
