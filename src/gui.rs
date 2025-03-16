@@ -39,8 +39,8 @@ fn HomePage(
                 for modpack in &info.modpacks {
                     {
                         let modpack_subtitle = modpack.manifest.subtitle.clone();
-                        let tab_title = info.title.clone(); // Clone before moving into closure
-                        let tab_index = index; // Create a stable reference to index
+let _tab_title = info.title.clone(); // Clone before moving into closure (unused)
+let tab_index = index; // Create a stable reference to index
                         
                         // Add debug logging to card click handler
                         let on_click = move |_| {
@@ -738,7 +738,9 @@ fn Version(mut props: VersionProps) -> Element {
     });
     
 let progress_title = installer_profile.manifest.subtitle.clone();
-
+let credits_manifest = installer_profile.manifest.clone();
+let credits_enabled_features = installer_profile.enabled_features.clone();
+    
 // Then define the on_submit handler that creates its own clone
 let on_submit = move |_evt: FormEvent| {
     // Create a new clone inside the closure
@@ -889,11 +891,11 @@ let on_submit = move |_evt: FormEvent| {
         status: progress_status.to_string()
                 }
             } else if *credits.read() {
-                Credits {
-                    manifest: installer_profile.manifest,
-                    enabled: installer_profile.enabled_features,
-                    credits
-                }
+                CCredits {
+    manifest: credits_manifest.clone(),
+    enabled: credits_enabled_features.clone(),
+    credits
+}
             } else {
                 form { onsubmit: on_submit,
                     // Header section with title and subtitle (using manifest data)
