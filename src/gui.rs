@@ -1378,6 +1378,4 @@ pub(crate) fn app() -> Element {
             } // End of main-container div
         } // End of root div
     } // End of root rsx
-} // End of app function
-} // End of app function
-
+}} 
