@@ -983,7 +983,7 @@ let on_submit = move |_evt: FormEvent| {
             }
         }
     }
-}
+}}
 // New header component with tabs
 #[component]
 fn AppHeader(
