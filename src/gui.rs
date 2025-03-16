@@ -738,18 +738,18 @@ fn Version(mut props: VersionProps) -> Element {
     });
     
     let movable_profile = installer_profile.clone();
-    let on_submit = move |evt| {
-        evt.prevent_default();
-        // Calculate total items to process for progress tracking
-        *install_item_amount.write() = movable_profile.manifest.mods.len()
-            + movable_profile.manifest.resourcepacks.len()
-            + movable_profile.manifest.shaderpacks.len()
-            + movable_profile.manifest.include.len();
-        
-        let movable_profile = movable_profile.clone();
-        
-        async move {
-            let install = move |canceled| {
+let on_submit = move |evt: FormEvent| {  // Add the FormEvent type here
+    evt.prevent_default();
+    // Calculate total items to process for progress tracking
+    *install_item_amount.write() = movable_profile.manifest.mods.len()
+        + movable_profile.manifest.resourcepacks.len()
+        + movable_profile.manifest.shaderpacks.len()
+        + movable_profile.manifest.include.len();
+    
+    let movable_profile = movable_profile.clone();
+    
+    async move {
+        let install = move |canceled| {
                 let mut installer_profile = movable_profile.clone();
                 spawn(async move {
                     if canceled {
