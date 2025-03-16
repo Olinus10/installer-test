@@ -881,6 +881,13 @@ fn Version(mut props: VersionProps) -> Element {
         debug!("Feature: id={}, name={}, hidden={}", feat.id, feat.name, feat.hidden);
     }
     
+    // Back button instead of using .set() on current_page
+    let page_signal = props.current_page;
+    let back_to_home = move |_| {
+        debug!("Back button clicked, returning to home");
+        page_signal.set(HOME_PAGE);
+    };
+    
     // SIMPLIFIED VERSION - NO VISIBILITY CLASS - WE RETURN NONE IF NOT VISIBLE
     rsx! {
         div { class: "simple-version-container",
@@ -888,10 +895,7 @@ fn Version(mut props: VersionProps) -> Element {
             div { class: "version-nav",
                 button {
                     class: "back-button",
-                    onclick: move |_| {
-                        debug!("Back button clicked, returning to home");
-                        props.current_page.set(HOME_PAGE);
-                    },
+                    onclick: back_to_home,
                     "← Back to All Modpacks"
                 }
             }
@@ -1378,48 +1382,47 @@ pub(crate) fn app() -> Element {
                             div { class: "loading-text", "Loading modpack information..." }
                         }
                     }
-                // SIMPLIFIED CONTENT APPROACH
+                // SIMPLIFIED CONTENT APPROACH - CORRECTED
                 } else {
                     // Main content with simplified structure
-                    {
-                        // Show a message if no pages/tabs found
-                        if pages().is_empty() {
-                            rsx! {
-                                div { class: "loading-container",
-                                    div { class: "loading-text", "No modpacks found. Please check your connection and reload." }
-                                }
+                    // Show a message if no pages/tabs found
+                    if pages().is_empty() {
+                        rsx! {
+                            div { class: "loading-container",
+                                div { class: "loading-text", "No modpacks found. Please check your connection and reload." }
                             }
-                        // Show the home page when HOME_PAGE is selected
-                        } else if page() == HOME_PAGE {
-                            rsx! {
-                                div { class: "simple-home-container",
-                                    h1 { class: "home-title", "Available Modpacks" }
-                                    
-                                    // Debug info
-                                    p { class: "debug-info", style: "color: gray; font-size: 12px;", 
-                                        "Loaded {pages().len()} tab groups. Click a card to view modpack details." 
-                                    }
-                                    
-                                    div { class: "simple-home-grid",
-                                        for (index, info) in pages() {
-                                            // For each tab group's modpacks
-                                            for modpack in &info.modpacks {
-                                                {
-                                                    let modpack_subtitle = modpack.manifest.subtitle.clone();
-                                                    let tab_index = index; // Create a stable reference to index
-                                                    
-                                                    rsx! {
-                                                        div { 
-                                                            class: "simple-home-card",
-                                                            style: "background-image: url('{info.background}'); background-color: {info.color};",
-                                                            onclick: move |_| {
-                                                                debug!("Card clicked: Changing page from {} to {}", page(), tab_index);
-                                                                page.set(tab_index);
-                                                            },
-                                                            div { class: "simple-home-card-info",
-                                                                h2 { class: "simple-home-card-title", "{modpack_subtitle}" }
-                                                                div { class: "simple-home-card-button", "View Modpack" }
-                                                            }
+                        }
+                    // Show the home page when HOME_PAGE is selected
+                    } else if page() == HOME_PAGE {
+                        rsx! {
+                            div { class: "simple-home-container",
+                                h1 { class: "home-title", "Available Modpacks" }
+                                
+                                // Debug info
+                                p { class: "debug-info", style: "color: gray; font-size: 12px;", 
+                                    "Loaded {pages().len()} tab groups. Click a card to view modpack details." 
+                                }
+                                
+                                div { class: "simple-home-grid",
+                                    for (index, info) in pages() {
+                                        // For each tab group's modpacks
+                                        for modpack in &info.modpacks {
+                                            {
+                                                let modpack_subtitle = modpack.manifest.subtitle.clone();
+                                                let tab_index = index; // Create a stable reference to index
+                                                let page_clone = page.clone();
+                                                
+                                                rsx! {
+                                                    div { 
+                                                        class: "simple-home-card",
+                                                        style: "background-image: url('{info.background}'); background-color: {info.color};",
+                                                        onclick: move |_| {
+                                                            debug!("Card clicked: Changing page from {} to {}", page_clone(), tab_index);
+                                                            page_clone.set(tab_index);
+                                                        },
+                                                        div { class: "simple-home-card-info",
+                                                            h2 { class: "simple-home-card-title", "{modpack_subtitle}" }
+                                                            div { class: "simple-home-card-button", "View Modpack" }
                                                         }
                                                     }
                                                 }
@@ -1428,31 +1431,38 @@ pub(crate) fn app() -> Element {
                                     }
                                 }
                             }
-                        // Show the version page when a tab is selected
-                        } else {
-                            // First check if the selected tab exists
-                            if let Some(tab_info) = pages().get(&page()) {
-                                // For each modpack in the selected tab
-                                for profile in &tab_info.modpacks {
-                                    rsx! {
+                        }
+                    // Show the version page when a tab is selected
+                    } else {
+                        // Only render a component if the selected tab exists
+                        if let Some(tab_info) = pages().get(&page()) {
+                            // Create a container to hold the Version components
+                            rsx! {
+                                div { class: "version-container-wrapper",
+                                    // For each modpack in the selected tab
+                                    for profile in &tab_info.modpacks {
                                         Version {
                                             installer_profile: profile.clone(),
                                             error: err.clone(),
-                                            current_page: page(),
-                                            tab_group: page(), // We're using the current page as tab_group
+                                            current_page: page,
+                                            tab_group: page(),
                                         }
                                     }
                                 }
-                            } else {
-                                // No tab found for this page
-                                rsx! {
-                                    div { class: "error-container",
-                                        h2 { "Tab Not Found" }
-                                        p { "The selected tab (ID: {page()}) could not be found." }
-                                        button {
-                                            onclick: move |_| page.set(HOME_PAGE),
-                                            "Return to Homepage"
-                                        }
+                            }
+                        } else {
+                            // No tab found for this page - create a simple error message
+                            let page_num = page();
+                            let go_home = move |_| {
+                                page.set(HOME_PAGE);
+                            };
+                            rsx! {
+                                div { class: "error-container",
+                                    h2 { "Tab Not Found" }
+                                    p { "The selected tab (ID: {page_num}) could not be found." }
+                                    button {
+                                        onclick: go_home,
+                                        "Return to Homepage"
                                     }
                                 }
                             }
