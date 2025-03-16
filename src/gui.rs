@@ -27,36 +27,33 @@ fn HomePage(
     page: Signal<usize>
 ) -> Element {
     debug!("Rendering HomePage with {} tabs", pages().len());
-    debug!("Current page value: {}", page());
     
-    // The HomePage component's render logic needs to ensure it generates the proper grid layout
     rsx! {
-        h1 { class: "home-title", "Available Modpacks" }
-        
-        div { class: "home-grid",
-            for (index, info) in pages() {
-                // Using each modpack's subtitle rather than tab_title for the home page cards
-                for modpack in &info.modpacks {
-                    {
-                        let modpack_subtitle = modpack.manifest.subtitle.clone();
-let _tab_title = info.title.clone(); // Clone before moving into closure (unused)
-let tab_index = index; // Create a stable reference to index
-                        
-                        // Add debug logging to card click handler
-                        let on_click = move |_| {
-                            debug!("HomePage card clicked: Changing page from {} to {}", page(), tab_index);
-                            page.set(tab_index);
-                            debug!("After setting: page is now {}", page());
-                        };
-                        
-                        rsx! {
-                            div { 
-                                class: "home-pack-card",
-                                style: "background-image: url('{info.background}'); background-color: {info.color};",
-                                onclick: on_click,
-                                div { class: "home-pack-info",
-                                    h2 { class: "home-pack-title", "{modpack_subtitle}" }
-                                    div { class: "home-pack-button", "View Modpack" }
+        div { class: "home-container",
+            h1 { class: "home-title", "Available Modpacks" }
+            
+            div { class: "home-grid",
+                for (index, info) in pages() {
+                    // Using each modpack's subtitle rather than tab_title for the home page cards
+                    for modpack in &info.modpacks {
+                        {
+                            let modpack_subtitle = modpack.manifest.subtitle.clone();
+                            let tab_title = info.title.clone(); // Clone before moving into closure
+                            let tab_index = index; // Create a stable reference to index
+                            
+                            rsx! {
+                                div { 
+                                    class: "home-pack-card",
+                                    style: "background-image: url('{info.background}'); background-color: {info.color};",
+                                    onclick: move |_| {
+                                        // Direct page change without complex state management
+                                        page.set(tab_index);
+                                        debug!("Navigating to tab {}: {}", tab_index, tab_title);
+                                    },
+                                    div { class: "home-pack-info",
+                                        h2 { class: "home-pack-title", "{modpack_subtitle}" }
+                                        div { class: "home-pack-button", "View Modpack" }
+                                    }
                                 }
                             }
                         }
@@ -683,43 +680,26 @@ struct VersionProps {
 
 #[component]
 fn Version(mut props: VersionProps) -> Element {
-    // Clone necessary data from props at the component level
     let installer_profile = props.installer_profile.clone();
     
     debug!("Rendering Version component for '{}' (source: {}, branch: {})",
            installer_profile.manifest.subtitle,
            installer_profile.modpack_source,
-           installer_profile.modpack_branch);
-           
-    // We're now using a simpler visibility check
-    let should_display = props.current_page == props.tab_group;
-    
-    debug!("Version component display state: should_display={} (current_page={}, tab_group={})",
-           should_display, props.current_page, props.tab_group);
-           
-    // If this Version shouldn't be displayed, return None early
-    if !should_display {
+           installer_profile.modpack_branch);  
+    // Only render this component if its tab_group matches the current page
+ if props.current_page != props.tab_group {
+        debug!("Version component not rendered: current_page={}, tab_group={}",
+               props.current_page, props.tab_group);
         return None;
     }
 
-    // Store all the data we need in signals
     let mut installing = use_signal(|| false);
     let mut progress_status = use_signal(|| "");
     let mut install_progress = use_signal(|| 0);
     let mut modify = use_signal(|| false);
     let mut modify_count = use_signal(|| 0);
-    let mut install_item_amount = use_signal(|| 0);
-    let mut credits = use_signal(|| false);
-    
-    // Store all the profile data that we'll need in signals
-    let subtitle = use_signal(|| installer_profile.manifest.subtitle.clone());
-    let description = use_signal(|| installer_profile.manifest.description.clone());
-    let features = use_signal(|| installer_profile.manifest.features.clone()); 
-    let manifest = use_signal(|| installer_profile.manifest.clone());
-    let installed = use_signal(|| installer_profile.installed);
-    let mut update_available = use_signal(|| installer_profile.update_available);
 
-    // Initialize enabled_features properly
+    // Fix: Initialize enabled_features properly
     let enabled_features = use_signal(|| {
         let mut features = vec!["default".to_string()];
         
@@ -738,6 +718,11 @@ fn Version(mut props: VersionProps) -> Element {
                installer_profile.manifest.subtitle, features);
         features
     });
+
+    let mut install_item_amount = use_signal(|| 0);
+    let mut credits = use_signal(|| false);
+    let installed = use_signal(|| installer_profile.installed);
+    let mut update_available = use_signal(|| installer_profile.update_available);
     
     // Clone local_manifest to prevent ownership issues
     let mut local_features = use_signal(|| {
@@ -748,37 +733,32 @@ fn Version(mut props: VersionProps) -> Element {
         }
     });
     
-    // Define the on_submit handler with simpler structure
-    let on_submit = move |_evt: FormEvent| {
-        // Clone the installer_profile for use in this closure
-        let profile_clone = installer_profile.clone();
-        
+    let movable_profile = installer_profile.clone();
+    let on_submit = move |_| {
         // Calculate total items to process for progress tracking
-        *install_item_amount.write() = profile_clone.manifest.mods.len()
-            + profile_clone.manifest.resourcepacks.len()
-            + profile_clone.manifest.shaderpacks.len()
-            + profile_clone.manifest.include.len();
+        *install_item_amount.write() = movable_profile.manifest.mods.len()
+            + movable_profile.manifest.resourcepacks.len()
+            + movable_profile.manifest.shaderpacks.len()
+            + movable_profile.manifest.include.len();
+        
+        let movable_profile = movable_profile.clone();
+        let movable_profile2 = movable_profile.clone();
         
         async move {
-            // Store popup details
-            let popup_contents = profile_clone.manifest.popup_contents.clone();
-            let popup_title = profile_clone.manifest.popup_title.clone().unwrap_or_default();
-            
             let install = move |canceled| {
-                // Create another clone inside this closure
-                let mut profile = profile_clone.clone();
+                let mut installer_profile = movable_profile.clone();
                 spawn(async move {
                     if canceled {
                         return;
                     }
                     installing.set(true);
-                    profile.enabled_features = enabled_features.read().clone();
-                    profile.manifest.enabled_features = enabled_features.read().clone();
+                    installer_profile.enabled_features = enabled_features.read().clone();
+                    installer_profile.manifest.enabled_features = enabled_features.read().clone();
                     local_features.set(Some(enabled_features.read().clone()));
 
                     if !*installed.read() {
                         progress_status.set("Installing");
-                        match crate::install(&profile, move || {
+                        match crate::install(&installer_profile, move || {
                             install_progress.with_mut(|x| *x += 1);
                         })
                         .await
@@ -796,9 +776,9 @@ fn Version(mut props: VersionProps) -> Element {
                                         \"new_version\": \"{}\"
                                     }}
                                 }}",
-                                        profile.manifest.uuid,
-                                        profile.local_manifest.unwrap().modpack_version,
-                                        profile.manifest.modpack_version
+                                        installer_profile.manifest.uuid,
+                                        installer_profile.local_manifest.unwrap().modpack_version,
+                                        installer_profile.manifest.modpack_version
                                     ),
                                 );
                             }
@@ -813,7 +793,7 @@ fn Version(mut props: VersionProps) -> Element {
                         update_available.set(false);
                     } else if *modify.read() {
                         progress_status.set("Modifying");
-                        match super::update(&profile, move || {
+                        match super::update(&installer_profile, move || {
                             *install_progress.write() += 1
                         })
                         .await
@@ -830,8 +810,8 @@ fn Version(mut props: VersionProps) -> Element {
                                         \"features\": {:?}
                                     }}
                                 }}",
-                                        profile.manifest.uuid,
-                                        profile.manifest.enabled_features
+                                        installer_profile.manifest.uuid,
+                                        installer_profile.manifest.enabled_features
                                     ),
                                 );
                             }
@@ -851,9 +831,9 @@ fn Version(mut props: VersionProps) -> Element {
                 });
             };
 
-            if let Some(contents) = popup_contents {
+            if let Some(contents) = movable_profile2.manifest.popup_contents {
                 use_context::<ModalContext>().open(
-                    popup_title,
+                    movable_profile2.manifest.popup_title.unwrap_or_default(),
                     rsx!(div {
                         dangerous_inner_html: "{contents}",
                     }),
@@ -874,55 +854,39 @@ fn Version(mut props: VersionProps) -> Element {
     
     // Log the features to help debug
     debug!("Modpack '{}' has {} features", 
-           subtitle(), 
-           features().len());
+           installer_profile.manifest.subtitle, 
+           installer_profile.manifest.features.len());
            
-    for feat in &features() {
+    for feat in &installer_profile.manifest.features {
         debug!("Feature: id={}, name={}, hidden={}", feat.id, feat.name, feat.hidden);
     }
     
-    // Back button instead of using .set() on current_page
-    let page_signal = props.current_page;
-    let back_to_home = move |_| {
-        debug!("Back button clicked, returning to home");
-        page_signal.set(HOME_PAGE);
-    };
-    
-    // SIMPLIFIED VERSION - NO VISIBILITY CLASS - WE RETURN NONE IF NOT VISIBLE
     rsx! {
-        div { class: "simple-version-container",
-            // Back button to return to home
-            div { class: "version-nav",
-                button {
-                    class: "back-button",
-                    onclick: back_to_home,
-                    "← Back to All Modpacks"
-                }
+        if *installing.read() {
+            ProgressView {
+                value: install_progress(),
+                max: install_item_amount() as i64,
+                title: installer_profile.manifest.subtitle,
+                status: progress_status.to_string()
             }
-            
-            if *installing.read() {
-                ProgressView {
-                    value: install_progress(),
-                    max: install_item_amount() as i64,
-                    title: subtitle(),
-                    status: progress_status.to_string()
-                }
-            } else if *credits.read() {
-                Credits {
-                    manifest: manifest(),
-                    enabled: enabled_features(),
-                    credits
-                }
-            } else {
+        } else if *credits.read() {
+            Credits {
+                manifest: installer_profile.manifest,
+                enabled: installer_profile.enabled_features,
+                credits
+            }
+        } else {
+            div { class: "version-container",
                 form { onsubmit: on_submit,
-                    // Header section with title and subtitle
+                    // Header section with title and subtitle (using manifest data)
                     div { class: "content-header",
-                        h1 { "{subtitle()}" }
+                        h1 { "{installer_profile.manifest.subtitle}" }
                     }
                     
-                    // Description section
+                    // Description section (using manifest data)
                     div { class: "content-description",
-                        dangerous_inner_html: "{description()}",
+                        // The 'dangerous_inner_html' directive renders HTML content safely
+                        dangerous_inner_html: "{installer_profile.manifest.description}",
                         
                         // Credits link
                         div {
@@ -942,7 +906,7 @@ fn Version(mut props: VersionProps) -> Element {
                     
                     // Feature cards in a responsive grid
                     div { class: "feature-cards-container",
-                        for feat in features() {
+                        for feat in installer_profile.manifest.features {
                             if !feat.hidden {
                                 {
                                     // Clone values to avoid ownership issues
@@ -952,7 +916,7 @@ fn Version(mut props: VersionProps) -> Element {
                                     rsx! {
                                         FeatureCard {
                                             feature: feat_clone,
-                                            enabled: if *installed.read() {
+                                            enabled: if installer_profile.installed {
                                                 enabled_features.with(|x| x.contains(&feat_id))
                                             } else {
                                                 feat.default
@@ -980,7 +944,7 @@ fn Version(mut props: VersionProps) -> Element {
                             r#type: "submit",
                             class: "main-install-button",
                             disabled: install_disable,
-                            if !*installed.read() {
+                            if !installer_profile.installed {
                                 "Install"
                             } else {
                                 if !*modify.read() { "Update" } else { "Modify" }
@@ -1200,21 +1164,6 @@ pub(crate) fn app() -> Element {
         })
     };
 
-    // Debug the packs resource loading state
-    use_effect(move || {
-        match packs.read().as_ref() {
-            Some(branch_data) => {
-                debug!("Packs resource loaded with {} items", branch_data.len());
-                for (idx, (group, profile)) in branch_data.iter().enumerate() {
-                    debug!("  Item {}: tab_group={}, profile={}", idx, group, profile.manifest.subtitle);
-                }
-            },
-            None => {
-                debug!("Packs resource is still None");
-            }
-        }
-    });
-
     // Effect to build pages map when branches are processed
     use_effect(move || {
         if let Some(processed_branches) = packs.read().as_ref() {
@@ -1246,26 +1195,6 @@ pub(crate) fn app() -> Element {
             
             pages.set(new_pages);
             debug!("Updated pages map with {} tabs", pages().len());
-        }
-    });
-
-    // Page transition effect for debugging
-    use_effect(move || {
-        debug!("Page state changed to: {}", page());
-        if page() == HOME_PAGE {
-            debug!("Switched to HOME_PAGE");
-        } else {
-            debug!("Switched to tab page: {}", page());
-            if let Some(tab_info) = pages().get(&page()) {
-                debug!("Tab info found for page {}: {} with {} modpacks", 
-                       page(), tab_info.title, tab_info.modpacks.len());
-                
-                for (idx, modpack) in tab_info.modpacks.iter().enumerate() {
-                    debug!("  Modpack {}: {}", idx, modpack.manifest.subtitle);
-                }
-            } else {
-                debug!("No tab info found for page {}", page());
-            }
         }
     });
 
@@ -1303,12 +1232,107 @@ pub(crate) fn app() -> Element {
         
         debug!("Updating CSS with: color={}, bg_image={}, secondary_font={}, primary_font={}", 
                bg_color, bg_image, secondary_font, primary_font);
-        
+            
+        // Improved dropdown menu CSS with better hover behavior and font consistency
+        let dropdown_css = "
+        /* Dropdown styles */
+        .dropdown { 
+            position: relative; 
+            display: inline-block; 
+        }
+
+        /* Position the dropdown content */
+        .dropdown-content {
+            display: none;
+            position: absolute;
+            top: 100%;
+            left: 0;
+            background-color: rgba(0, 0, 0, 0.9);
+            min-width: 200px;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.6);
+            z-index: 1000;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 5px;
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        /* Show dropdown on hover with increased target area */
+        .dropdown:hover .dropdown-content,
+        .dropdown-content:hover {
+            display: block;
+        }
+
+        /* Add a pseudo-element to create an invisible connection between the button and dropdown */
+        .dropdown::after {
+            content: '';
+            position: absolute;
+            height: 10px;
+            width: 100%;
+            left: 0;
+            top: 100%;
+            display: none;
+        }
+
+        .dropdown:hover::after {
+            display: block;
+        }
+
+        .dropdown-item {
+            display: block;
+            width: 100%;
+            padding: 10px 15px;
+            text-align: left;
+            background-color: transparent;
+            border: none;
+            /* Explicitly use the same font as header-tab-button */
+            font-family: \\\"PRIMARY_FONT\\\";
+            font-size: 0.9rem;
+            color: #fce8f6;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .dropdown-item:last-child {
+            border-bottom: none;
+        }
+
+        .dropdown-item:hover {
+            background-color: rgba(50, 6, 37, 0.8);
+            border-color: rgba(255, 255, 255, 0.4);
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+        }
+
+        .dropdown-item.active {
+            background-color: var(--bg-color);
+            border-color: #fce8f6;
+            box-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
+            color: #fff;
+        }
+
+        /* Fix for header-tabs to prevent dropdown from affecting it */
+        .header-tabs {
+            display: flex;
+            gap: 5px;
+            margin: 0 10px;
+            flex-grow: 1;
+            justify-content: center;
+            flex-wrap: wrap;
+            overflow-x: visible;
+            scrollbar-width: thin;
+            max-width: 70%;
+            position: relative;
+        }";
+            
         css
             .replace("<BG_COLOR>", &bg_color)
             .replace("<BG_IMAGE>", &bg_image)
             .replace("<SECONDARY_FONT>", &secondary_font)
-            .replace("<PRIMARY_FONT>", &primary_font)
+            .replace("<PRIMARY_FONT>", &primary_font) 
+            + dropdown_css
     };
 
     let mut modal_context = use_context_provider(ModalContext::default);
@@ -1324,20 +1348,12 @@ pub(crate) fn app() -> Element {
     // Determine which logo to use
     let logo_url = Some("https://raw.githubusercontent.com/Wynncraft-Overhaul/installer/master/src/assets/icon.png".to_string());
     
-    // Before rendering, log the state of the pages
-    debug!("Before rendering, pages contains {} entries", pages().len());
-    for (idx, (group, info)) in pages().iter().enumerate() {
-        debug!("  Page {}: tab_group={}, title={}, modpacks={}", 
-               idx, group, info.title, info.modpacks.len());
-    }
-    
-    // The main root element
+    // Fix: Return the JSX from the app function
     rsx! {
         div {
             style { {css_content} }
             Modal {}
             
-            // Conditionally render header
             {if !config.read().first_launch.unwrap_or(true) && launcher.is_some() && !settings() {
                 rsx! {
                     AppHeader {
@@ -1351,126 +1367,79 @@ pub(crate) fn app() -> Element {
                 None
             }}
 
-            // Main container div - SIMPLIFIED APPROACH
             div { class: "main-container",
-                // Settings screen
-                {if settings() {
-                    rsx! {
-                        Settings {
-                            config,
-                            settings,
-                            config_path: props.config_path.clone(),
-                            error: err,
-                            b64_id: URL_SAFE_NO_PAD.encode(props.modpack_source)
-                        }
-                    }
-                // First launch or no launcher screen
-                } else if config.read().first_launch.unwrap_or(true) || launcher.is_none() {
-                    rsx! {
-                        Launcher {
-                            config,
-                            config_path: props.config_path.clone(),
-                            error: err,
-                            b64_id: URL_SAFE_NO_PAD.encode(props.modpack_source)
-                        }
-                    }
-                // Packs not loaded yet
-                } else if packs.read().is_none() {
-                    rsx! {
-                        div { class: "loading-container",
-                            div { class: "loading-spinner" }
-                            div { class: "loading-text", "Loading modpack information..." }
-                        }
-                    }
-                // SIMPLIFIED CONTENT APPROACH - CORRECTED
-                } else {
-                    // Main content with simplified structure
-                    // Show a message if no pages/tabs found
-                    if pages().is_empty() {
-                        rsx! {
-                            div { class: "loading-container",
-                                div { class: "loading-text", "No modpacks found. Please check your connection and reload." }
-                            }
-                        }
-                    // Show the home page when HOME_PAGE is selected
-                    } else if page() == HOME_PAGE {
-                        rsx! {
-                            div { class: "simple-home-container",
-                                h1 { class: "home-title", "Available Modpacks" }
-                                
-                                // Debug info
-                                p { class: "debug-info", style: "color: gray; font-size: 12px;", 
-                                    "Loaded {pages().len()} tab groups. Click a card to view modpack details." 
-                                }
-                                
-                                div { class: "simple-home-grid",
-                                    for (index, info) in pages() {
-                                        // For each tab group's modpacks
-                                        for modpack in &info.modpacks {
-                                            {
-                                                let modpack_subtitle = modpack.manifest.subtitle.clone();
-                                                let tab_index = index; // Create a stable reference to index
-                                                let page_clone = page.clone();
-                                                
-                                                rsx! {
-                                                    div { 
-                                                        class: "simple-home-card",
-                                                        style: "background-image: url('{info.background}'); background-color: {info.color};",
-                                                        onclick: move |_| {
-                                                            debug!("Card clicked: Changing page from {} to {}", page_clone(), tab_index);
-                                                            page_clone.set(tab_index);
-                                                        },
-                                                        div { class: "simple-home-card-info",
-                                                            h2 { class: "simple-home-card-title", "{modpack_subtitle}" }
-                                                            div { class: "simple-home-card-button", "View Modpack" }
-                                                        }
-                                                    }
-                                                }
+    {if settings() {
+        rsx! {
+            Settings {
+                config,
+                settings,
+                config_path: props.config_path.clone(),
+                error: err,
+                b64_id: URL_SAFE_NO_PAD.encode(props.modpack_source)
+            }
+        }
+    } else if config.read().first_launch.unwrap_or(true) || launcher.is_none() {
+        rsx! {
+            Launcher {
+                config,
+                config_path: props.config_path.clone(),
+                error: err,
+                b64_id: URL_SAFE_NO_PAD.encode(props.modpack_source)
+            }
+        }
+    } else if packs.read().is_none() {
+        rsx! {
+            div { class: "loading-container",
+                div { class: "loading-spinner" }
+                div { class: "loading-text", "Loading modpack information..." }
+            }
+        }
+    } else {
+        // Don't create another div wrapper here
+        if page() == HOME_PAGE {
+            rsx! {
+                HomePage {
+                    pages,
+                    page
+                }
+            }
+        } else {
+            rsx! {
+                div { 
+                    class: "version-page-container",
+                    style: "display: block; width: 100%;",
+                    {
+                        // Add more debug to help troubleshoot
+                        let current_page = page();
+                        debug!("Rendering content for page {}", current_page);
+                        
+                        // Look up just the tab info for this page
+                        if let Some(tab_info) = pages().get(&current_page) {
+                            debug!("Found tab info for page {}: {} modpacks", 
+                                   current_page, tab_info.modpacks.len());
+                            
+                            // Map the modpacks to Version components
+                            rsx! {
+                                {
+                                    tab_info.modpacks.iter().map(|profile| {
+                                        rsx! {
+                                            Version {
+                                                installer_profile: profile.clone(),
+                                                error: err.clone(),
+                                                current_page,
+                                                tab_group: current_page,
                                             }
                                         }
-                                    }
-                                }
-                            }
-                        }
-                    // Show the version page when a tab is selected
-                    } else {
-                        // Only render a component if the selected tab exists
-                        if let Some(tab_info) = pages().get(&page()) {
-                            // Create a container to hold the Version components
-                            rsx! {
-                                div { class: "version-container-wrapper",
-                                    // For each modpack in the selected tab
-                                    for profile in &tab_info.modpacks {
-                                        Version {
-                                            installer_profile: profile.clone(),
-                                            error: err.clone(),
-                                            current_page: page,
-                                            tab_group: page(),
-                                        }
-                                    }
+                                    })
                                 }
                             }
                         } else {
-                            // No tab found for this page - create a simple error message
-                            let page_num = page();
-                            let go_home = move |_| {
-                                page.set(HOME_PAGE);
-                            };
-                            rsx! {
-                                div { class: "error-container",
-                                    h2 { "Tab Not Found" }
-                                    p { "The selected tab (ID: {page_num}) could not be found." }
-                                    button {
-                                        onclick: go_home,
-                                        "Return to Homepage"
-                                    }
-                                }
-                            }
+                            debug!("No tab info found for page {}", current_page);
+                            rsx! { div { "No modpack information found for this tab." } }
                         }
                     }
                 }
             }
         }
-    }
-}
-}
+    }}
+}}}}
