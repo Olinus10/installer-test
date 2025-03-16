@@ -58,15 +58,6 @@ a:hover {
 }
 
 
-/* Simple container styles that replace the complex positioning */
-
-/* Main container - basic styling */
-.main-container {
-    height: calc(100vh - 80px);
-    overflow-y: auto;
-    padding: 20px;
-}
-
 /* Simple home container with basic styling */
 .simple-home-container {
     max-width: 1200px;
@@ -147,6 +138,12 @@ a:hover {
     max-width: 1000px;
     margin: 0 auto;
     padding: 20px;
+}
+
+/* Container to hold Version components */
+.version-container-wrapper {
+    width: 100%;
+    position: relative;
 }
 
 /* Version navigation with back button */
