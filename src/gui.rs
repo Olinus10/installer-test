@@ -737,11 +737,21 @@ fn Version(mut props: VersionProps) -> Element {
         }
     });
     
+// For ProgressView
 let progress_title = installer_profile.manifest.subtitle.clone();
+
+// For Credits component
 let credits_manifest = installer_profile.manifest.clone();
 let credits_enabled_features = installer_profile.enabled_features.clone();
-    
-// Then define the on_submit handler that creates its own clone
+
+// For form content
+let description_html = installer_profile.manifest.description.clone();
+let is_installed = installer_profile.installed;
+
+// For features
+let features_list = installer_profile.manifest.features.clone();
+
+// Then define the on_submit handler with its own local clone
 let on_submit = move |_evt: FormEvent| {
     // Create a new clone inside the closure
     let movable_profile = installer_profile.clone();
@@ -882,93 +892,91 @@ let on_submit = move |_evt: FormEvent| {
     let visibility_class = if should_display { "version-container" } else { "version-container hidden" };
     
     rsx! {
-        div { class: "{visibility_class}",
-            if *installing.read() {
-    ProgressView {
-        value: install_progress(),
-        max: install_item_amount() as i64,
-        title: progress_title.clone(),
-        status: progress_status.to_string()
+    div { class: "{visibility_class}",
+        if *installing.read() {
+            ProgressView {
+                value: install_progress(),
+                max: install_item_amount() as i64,
+                title: progress_title.clone(),
+                status: progress_status.to_string()
+            }
+        } else if *credits.read() {
+            Credits {
+                manifest: credits_manifest.clone(),
+                enabled: credits_enabled_features.clone(),
+                credits
+            }
+        } else {
+            form { onsubmit: on_submit,
+                // Header section with title and subtitle
+                div { class: "content-header",
+                    h1 { "{progress_title}" }
                 }
-            } else if *credits.read() {
-                Credits {
-    manifest: credits_manifest.clone(),
-    enabled: credits_enabled_features.clone(),
-    credits
-}
-            } else {
-                form { onsubmit: on_submit,
-                    // Header section with title and subtitle (using manifest data)
-                    div { class: "content-header",
-                        h1 { "{progress_title}" }
-                    }
+                
+                // Description section
+                div { class: "content-description",
+                    dangerous_inner_html: "{description_html}",
                     
-                    // Description section (using manifest data)
-                    div { class: "content-description",
-                        // The 'dangerous_inner_html' directive renders HTML content safely
-                        dangerous_inner_html: "{installer_profile.manifest.description}",
-                        
-                        // Credits link
-                        div {
-                            a {
-                                class: "credits-link",
-                                onclick: move |evt| {
-                                    credits.set(true);
-                                    evt.stop_propagation();
-                                },
-                                "View Credits"
-                            }
+                    // Credits link
+                    div {
+                        a {
+                            class: "credits-link",
+                            onclick: move |evt| {
+                                credits.set(true);
+                                evt.stop_propagation();
+                            },
+                            "View Credits"
                         }
                     }
-                    
-                    // Features heading
-                    h2 { "Optional Features" }
-                    
-                    // Feature cards in a responsive grid
-                    div { class: "feature-cards-container",
-                        for feat in installer_profile.manifest.features {
-                            if !feat.hidden {
-                                {
-                                    // Clone values to avoid ownership issues
-                                    let feat_clone = feat.clone();
-                                    let feat_id = feat.id.clone();
-                                    
-                                    rsx! {
-                                        FeatureCard {
-                                            feature: feat_clone,
-                                            enabled: if installer_profile.installed {
-                                                enabled_features.with(|x| x.contains(&feat_id))
-                                            } else {
-                                                feat.default
-                                            },
-                                            on_toggle: move |evt| {
-                                                feature_change(
-                                                    local_features,
-                                                    modify,
-                                                    evt,
-                                                    &feat,
-                                                    modify_count,
-                                                    enabled_features,
-                                                )
-                                            }
+                }
+                
+                // Features heading
+                h2 { "Optional Features" }
+                
+                // Feature cards in a responsive grid
+                div { class: "feature-cards-container",
+                    for feat in &features_list {
+                        if !feat.hidden {
+                            {
+                                // Clone values to avoid ownership issues
+                                let feat_clone = feat.clone();
+                                let feat_id = feat.id.clone();
+                                
+                                rsx! {
+                                    FeatureCard {
+                                        feature: feat_clone,
+                                        enabled: if is_installed {
+                                            enabled_features.with(|x| x.contains(&feat_id))
+                                        } else {
+                                            feat.default
+                                        },
+                                        on_toggle: move |evt| {
+                                            feature_change(
+                                                local_features,
+                                                modify,
+                                                evt,
+                                                &feat,
+                                                modify_count,
+                                                enabled_features,
+                                            )
                                         }
                                     }
                                 }
                             }
                         }
                     }
-                    
-                    // Install/Update/Modify button at the bottom
-                    div { class: "install-button-container",
-                        button {
-                            r#type: "submit",
-                            class: "main-install-button",
-                            disabled: install_disable,
-                            if !installer_profile.installed {
-                                "Install"
-                            } else {
-                                if !*modify.read() { "Update" } else { "Modify" }
-                            }
+                }
+                
+                // Install/Update/Modify button at the bottom
+                div { class: "install-button-container",
+                    button {
+                        r#type: "submit",
+                        class: "main-install-button",
+                        disabled: install_disable,
+                        if !is_installed {
+                            "Install"
+                        } else {
+                            if !*modify.read() { "Update" } else { "Modify" }
                         }
                     }
                 }
