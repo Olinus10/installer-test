@@ -737,17 +737,16 @@ fn Version(mut props: VersionProps) -> Element {
         }
     });
     
-    let movable_profile = installer_profile.clone();
-let on_submit = move |evt: FormEvent| {
-    // No prevent_default needed here
-    
+let movable_profile = installer_profile.clone();
+let on_submit = move |_evt: FormEvent| {
     // Calculate total items to process for progress tracking
     *install_item_amount.write() = movable_profile.manifest.mods.len()
         + movable_profile.manifest.resourcepacks.len()
         + movable_profile.manifest.shaderpacks.len()
         + movable_profile.manifest.include.len();
     
-    let movable_profile = movable_profile.clone();
+    // Clone for the outer async block
+    let profile_for_async = movable_profile.clone();
     
     async move {
         let install = move |canceled| {
