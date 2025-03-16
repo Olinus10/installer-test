@@ -737,8 +737,11 @@ fn Version(mut props: VersionProps) -> Element {
         }
     });
     
+let progress_title = installer_profile.manifest.subtitle.clone();
+
+// Then define the on_submit handler that creates its own clone
 let on_submit = move |_evt: FormEvent| {
-    // Create the clone INSIDE the closure so it doesn't move the original
+    // Create a new clone inside the closure
     let movable_profile = installer_profile.clone();
     
     // Calculate total items to process for progress tracking
@@ -756,15 +759,17 @@ let on_submit = move |_evt: FormEvent| {
         let popup_title = profile_for_async.manifest.popup_title.clone().unwrap_or_default();
         
         let install = move |canceled| {
-                let mut installer_profile = movable_profile.clone();
-                spawn(async move {
-                    if canceled {
-                        return;
-                    }
-                    installing.set(true);
-                    installer_profile.enabled_features = enabled_features.read().clone();
-                    installer_profile.manifest.enabled_features = enabled_features.read().clone();
-                    local_features.set(Some(enabled_features.read().clone()));
+            // Create another clone inside this closure
+            let mut installer_profile = movable_profile.clone();
+            spawn(async move {
+                // Rest of the code stays the same
+                if canceled {
+                    return;
+                }
+                installing.set(true);
+                installer_profile.enabled_features = enabled_features.read().clone();
+                installer_profile.manifest.enabled_features = enabled_features.read().clone();
+                local_features.set(Some(enabled_features.read().clone()));
 
                     if !*installed.read() {
                         progress_status.set("Installing");
@@ -877,11 +882,11 @@ let on_submit = move |_evt: FormEvent| {
     rsx! {
         div { class: "{visibility_class}",
             if *installing.read() {
-                ProgressView {
-                    value: install_progress(),
-                    max: install_item_amount() as i64,
-                    title: installer_profile.manifest.subtitle,
-                    status: progress_status.to_string()
+    ProgressView {
+        value: install_progress(),
+        max: install_item_amount() as i64,
+        title: progress_title.clone(),
+        status: progress_status.to_string()
                 }
             } else if *credits.read() {
                 Credits {
@@ -893,7 +898,7 @@ let on_submit = move |_evt: FormEvent| {
                 form { onsubmit: on_submit,
                     // Header section with title and subtitle (using manifest data)
                     div { class: "content-header",
-                        h1 { "{installer_profile.manifest.subtitle}" }
+                        h1 { "{progress_title}" }
                     }
                     
                     // Description section (using manifest data)
