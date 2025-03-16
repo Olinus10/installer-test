@@ -891,7 +891,7 @@ let on_submit = move |_evt: FormEvent| {
         status: progress_status.to_string()
                 }
             } else if *credits.read() {
-                CCredits {
+                Credits {
     manifest: credits_manifest.clone(),
     enabled: credits_enabled_features.clone(),
     credits
