@@ -683,6 +683,7 @@ struct VersionProps {
 
 #[component]
 fn Version(mut props: VersionProps) -> Element {
+    // Clone necessary data from props at the component level
     let installer_profile = props.installer_profile.clone();
     
     debug!("Rendering Version component for '{}' (source: {}, branch: {})",
@@ -697,11 +698,23 @@ fn Version(mut props: VersionProps) -> Element {
     debug!("Version component display state: should_display={} (current_page={}, tab_group={})",
            should_display, props.current_page, props.tab_group);
 
+    // Store all the data we need in Signal/State values
+    // This ensures they're accessible throughout the component's lifecycle
     let mut installing = use_signal(|| false);
     let mut progress_status = use_signal(|| "");
     let mut install_progress = use_signal(|| 0);
     let mut modify = use_signal(|| false);
     let mut modify_count = use_signal(|| 0);
+    let mut install_item_amount = use_signal(|| 0);
+    let mut credits = use_signal(|| false);
+    
+    // Store all the profile data that we'll need in signals
+    let subtitle = use_signal(|| installer_profile.manifest.subtitle.clone());
+    let description = use_signal(|| installer_profile.manifest.description.clone());
+    let features = use_signal(|| installer_profile.manifest.features.clone()); 
+    let manifest = use_signal(|| installer_profile.manifest.clone());
+    let installed = use_signal(|| installer_profile.installed);
+    let mut update_available = use_signal(|| installer_profile.update_available);
 
     // Initialize enabled_features properly
     let enabled_features = use_signal(|| {
@@ -722,11 +735,6 @@ fn Version(mut props: VersionProps) -> Element {
                installer_profile.manifest.subtitle, features);
         features
     });
-
-    let mut install_item_amount = use_signal(|| 0);
-    let mut credits = use_signal(|| false);
-    let installed = use_signal(|| installer_profile.installed);
-    let mut update_available = use_signal(|| installer_profile.update_available);
     
     // Clone local_manifest to prevent ownership issues
     let mut local_features = use_signal(|| {
@@ -737,55 +745,37 @@ fn Version(mut props: VersionProps) -> Element {
         }
     });
     
-// For ProgressView
-let progress_title = installer_profile.manifest.subtitle.clone();
-
-// For Credits component
-let credits_manifest = installer_profile.manifest.clone();
-let credits_enabled_features = installer_profile.enabled_features.clone();
-
-// For form content
-let description_html = installer_profile.manifest.description.clone();
-let is_installed = installer_profile.installed;
-
-// For features
-let features_list = installer_profile.manifest.features.clone();
-
-// Then define the on_submit handler with its own local clone
-let on_submit = move |_evt: FormEvent| {
-    // Create a new clone inside the closure
-    let movable_profile = installer_profile.clone();
-    
-    // Calculate total items to process for progress tracking
-    *install_item_amount.write() = movable_profile.manifest.mods.len()
-        + movable_profile.manifest.resourcepacks.len()
-        + movable_profile.manifest.shaderpacks.len()
-        + movable_profile.manifest.include.len();
-    
-    // Clone for the outer async block
-    let profile_for_async = movable_profile.clone();
-    
-    async move {
-        // Store popup details before moving into closure
-        let popup_contents = profile_for_async.manifest.popup_contents.clone();
-        let popup_title = profile_for_async.manifest.popup_title.clone().unwrap_or_default();
+    // Define the on_submit handler - now it can capture the signals by reference
+    let on_submit = move |_evt: FormEvent| {
+        // Clone the installer_profile for use in this closure
+        let profile_clone = installer_profile.clone();
         
-        let install = move |canceled| {
-            // Create another clone inside this closure
-            let mut installer_profile = movable_profile.clone();
-            spawn(async move {
-                // Rest of the code stays the same
-                if canceled {
-                    return;
-                }
-                installing.set(true);
-                installer_profile.enabled_features = enabled_features.read().clone();
-                installer_profile.manifest.enabled_features = enabled_features.read().clone();
-                local_features.set(Some(enabled_features.read().clone()));
+        // Calculate total items to process for progress tracking
+        *install_item_amount.write() = profile_clone.manifest.mods.len()
+            + profile_clone.manifest.resourcepacks.len()
+            + profile_clone.manifest.shaderpacks.len()
+            + profile_clone.manifest.include.len();
+        
+        async move {
+            // Store popup details
+            let popup_contents = profile_clone.manifest.popup_contents.clone();
+            let popup_title = profile_clone.manifest.popup_title.clone().unwrap_or_default();
+            
+            let install = move |canceled| {
+                // Create another clone inside this closure
+                let mut profile = profile_clone.clone();
+                spawn(async move {
+                    if canceled {
+                        return;
+                    }
+                    installing.set(true);
+                    profile.enabled_features = enabled_features.read().clone();
+                    profile.manifest.enabled_features = enabled_features.read().clone();
+                    local_features.set(Some(enabled_features.read().clone()));
 
                     if !*installed.read() {
                         progress_status.set("Installing");
-                        match crate::install(&installer_profile, move || {
+                        match crate::install(&profile, move || {
                             install_progress.with_mut(|x| *x += 1);
                         })
                         .await
@@ -803,9 +793,9 @@ let on_submit = move |_evt: FormEvent| {
                                         \"new_version\": \"{}\"
                                     }}
                                 }}",
-                                        installer_profile.manifest.uuid,
-                                        installer_profile.local_manifest.unwrap().modpack_version,
-                                        installer_profile.manifest.modpack_version
+                                        profile.manifest.uuid,
+                                        profile.local_manifest.unwrap().modpack_version,
+                                        profile.manifest.modpack_version
                                     ),
                                 );
                             }
@@ -820,7 +810,7 @@ let on_submit = move |_evt: FormEvent| {
                         update_available.set(false);
                     } else if *modify.read() {
                         progress_status.set("Modifying");
-                        match super::update(&installer_profile, move || {
+                        match super::update(&profile, move || {
                             *install_progress.write() += 1
                         })
                         .await
@@ -837,8 +827,8 @@ let on_submit = move |_evt: FormEvent| {
                                         \"features\": {:?}
                                     }}
                                 }}",
-                                        installer_profile.manifest.uuid,
-                                        installer_profile.manifest.enabled_features
+                                        profile.manifest.uuid,
+                                        profile.manifest.enabled_features
                                     ),
                                 );
                             }
@@ -859,19 +849,19 @@ let on_submit = move |_evt: FormEvent| {
             };
 
             if let Some(contents) = popup_contents {
-            use_context::<ModalContext>().open(
-                popup_title,
-                rsx!(div {
-                    dangerous_inner_html: "{contents}",
-                }),
-                true,
-                Some(install),
-            )
-        } else {
-            install(false);
+                use_context::<ModalContext>().open(
+                    popup_title,
+                    rsx!(div {
+                        dangerous_inner_html: "{contents}",
+                    }),
+                    true,
+                    Some(install),
+                )
+            } else {
+                install(false);
+            }
         }
-    }
-};
+    };
 
     let install_disable = if *installed.read() && !*update_available.read() && !*modify.read() {
         Some("true")
@@ -881,10 +871,10 @@ let on_submit = move |_evt: FormEvent| {
     
     // Log the features to help debug
     debug!("Modpack '{}' has {} features", 
-           installer_profile.manifest.subtitle, 
-           installer_profile.manifest.features.len());
+           subtitle(), 
+           features().len());
            
-    for feat in &installer_profile.manifest.features {
+    for feat in &features() {
         debug!("Feature: id={}, name={}, hidden={}", feat.id, feat.name, feat.hidden);
     }
     
@@ -892,98 +882,99 @@ let on_submit = move |_evt: FormEvent| {
     let visibility_class = if should_display { "version-container" } else { "version-container hidden" };
     
     rsx! {
-    div { class: "{visibility_class}",
-        if *installing.read() {
-            ProgressView {
-                value: install_progress(),
-                max: install_item_amount() as i64,
-                title: progress_title.clone(),
-                status: progress_status.to_string()
-            }
-        } else if *credits.read() {
-            Credits {
-                manifest: credits_manifest.clone(),
-                enabled: credits_enabled_features.clone(),
-                credits
-            }
-        } else {
-            form { onsubmit: on_submit,
-                // Header section with title and subtitle
-                div { class: "content-header",
-                    h1 { "{progress_title}" }
+        div { class: "{visibility_class}",
+            if *installing.read() {
+                ProgressView {
+                    value: install_progress(),
+                    max: install_item_amount() as i64,
+                    title: subtitle(),
+                    status: progress_status.to_string()
                 }
-                
-                // Description section
-                div { class: "content-description",
-                    dangerous_inner_html: "{description_html}",
+            } else if *credits.read() {
+                Credits {
+                    manifest: manifest(),
+                    enabled: enabled_features(),
+                    credits
+                }
+            } else {
+                form { onsubmit: on_submit,
+                    // Header section with title and subtitle
+                    div { class: "content-header",
+                        h1 { "{subtitle()}" }
+                    }
                     
-                    // Credits link
-                    div {
-                        a {
-                            class: "credits-link",
-                            onclick: move |evt| {
-                                credits.set(true);
-                                evt.stop_propagation();
-                            },
-                            "View Credits"
+                    // Description section
+                    div { class: "content-description",
+                        dangerous_inner_html: "{description()}",
+                        
+                        // Credits link
+                        div {
+                            a {
+                                class: "credits-link",
+                                onclick: move |evt| {
+                                    credits.set(true);
+                                    evt.stop_propagation();
+                                },
+                                "View Credits"
+                            }
                         }
                     }
-                }
-                
-                // Features heading
-                h2 { "Optional Features" }
-                
-                // Feature cards in a responsive grid
-                div { class: "feature-cards-container",
-                    for feat in &features_list {
-                        if !feat.hidden {
-                            {
-                                // Clone values to avoid ownership issues
-                                let feat_clone = feat.clone();
-                                let feat_id = feat.id.clone();
-                                
-                                rsx! {
-                                    FeatureCard {
-                                        feature: feat_clone,
-                                        enabled: if is_installed {
-                                            enabled_features.with(|x| x.contains(&feat_id))
-                                        } else {
-                                            feat.default
-                                        },
-                                        on_toggle: move |evt| {
-                                            feature_change(
-                                                local_features,
-                                                modify,
-                                                evt,
-                                                &feat,
-                                                modify_count,
-                                                enabled_features,
-                                            )
+                    
+                    // Features heading
+                    h2 { "Optional Features" }
+                    
+                    // Feature cards in a responsive grid
+                    div { class: "feature-cards-container",
+                        for feat in features() {
+                            if !feat.hidden {
+                                {
+                                    // Clone values to avoid ownership issues
+                                    let feat_clone = feat.clone();
+                                    let feat_id = feat.id.clone();
+                                    
+                                    rsx! {
+                                        FeatureCard {
+                                            feature: feat_clone,
+                                            enabled: if *installed.read() {
+                                                enabled_features.with(|x| x.contains(&feat_id))
+                                            } else {
+                                                feat.default
+                                            },
+                                            on_toggle: move |evt| {
+                                                feature_change(
+                                                    local_features,
+                                                    modify,
+                                                    evt,
+                                                    &feat,
+                                                    modify_count,
+                                                    enabled_features,
+                                                )
+                                            }
                                         }
                                     }
                                 }
                             }
                         }
                     }
-                }
-                
-                // Install/Update/Modify button at the bottom
-                div { class: "install-button-container",
-                    button {
-                        r#type: "submit",
-                        class: "main-install-button",
-                        disabled: install_disable,
-                        if !is_installed {
-                            "Install"
-                        } else {
-                            if !*modify.read() { "Update" } else { "Modify" }
+                    
+                    // Install/Update/Modify button at the bottom
+                    div { class: "install-button-container",
+                        button {
+                            r#type: "submit",
+                            class: "main-install-button",
+                            disabled: install_disable,
+                            if !*installed.read() {
+                                "Install"
+                            } else {
+                                if !*modify.read() { "Update" } else { "Modify" }
+                            }
                         }
                     }
                 }
             }
         }
     }
-}}
+}
 // New header component with tabs
 #[component]
 fn AppHeader(
