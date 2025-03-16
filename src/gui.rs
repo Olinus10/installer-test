@@ -738,8 +738,9 @@ fn Version(mut props: VersionProps) -> Element {
     });
     
     let movable_profile = installer_profile.clone();
-let on_submit = move |evt: FormEvent| {  // Add the FormEvent type here
-    evt.prevent_default();
+let on_submit = move |evt: FormEvent| {
+    // No prevent_default needed here
+    
     // Calculate total items to process for progress tracking
     *install_item_amount.write() = movable_profile.manifest.mods.len()
         + movable_profile.manifest.resourcepacks.len()
