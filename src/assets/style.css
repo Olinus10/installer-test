@@ -57,6 +57,138 @@ a:hover {
     text-decoration: underline;
 }
 
+
+/* Simple container styles that replace the complex positioning */
+
+/* Main container - basic styling */
+.main-container {
+    height: calc(100vh - 80px);
+    overflow-y: auto;
+    padding: 20px;
+}
+
+/* Simple home container with basic styling */
+.simple-home-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+    text-align: center;
+}
+
+/* Simple home grid using basic grid layout */
+.simple-home-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 20px;
+    margin: 20px 0;
+}
+
+/* Simple home card styling */
+.simple-home-card {
+    height: 180px;
+    width: 250px;
+    border-radius: 8px;
+    background-size: cover;
+    background-position: center;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);
+    cursor: pointer;
+    display: block;
+    margin: 0 auto;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
+}
+
+.simple-home-card:hover {
+    transform: translateY(-5px) scale(1.02);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.7);
+    filter: brightness(1.1);
+}
+
+.simple-home-card-info {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 15px;
+    background: linear-gradient(transparent, rgba(0, 0, 0, 0.8));
+    text-align: center;
+}
+
+.simple-home-card-title {
+    font-family: "SECONDARY_FONT";
+    margin: 0 0 10px 0;
+    font-size: 1.2rem;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+}
+
+.simple-home-card-button {
+    display: inline-block;
+    background-color: rgba(7, 60, 23, 0.8);
+    padding: 8px 16px;
+    border-radius: 4px;
+    font-family: "SECONDARY_FONT";
+    transition: background-color 0.2s ease, transform 0.2s ease;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+}
+
+.simple-home-card:hover .simple-home-card-button {
+    background-color: rgba(7, 60, 23, 1);
+    transform: scale(1.05);
+}
+
+/* Simple version container styling */
+.simple-version-container {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+/* Version navigation with back button */
+.version-nav {
+    margin-bottom: 20px;
+}
+
+.back-button {
+    display: inline-block;
+    background-color: rgba(0, 0, 0, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+    padding: 8px 16px;
+    font-family: "SECONDARY_FONT";
+    color: #fce8f6;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.back-button:hover {
+    background-color: rgba(50, 6, 37, 0.8);
+    transform: translateY(-2px);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+}
+
+/* Error container */
+.error-container {
+    max-width: 600px;
+    margin: 50px auto;
+    padding: 20px;
+    background-color: rgba(0, 0, 0, 0.7);
+    border-radius: 8px;
+    text-align: center;
+}
+
+/* Debug info */
+.debug-info {
+    margin: 10px 0;
+    font-style: italic;
+}
+
+
 /* === Custom Scrollbar === */
 ::-webkit-scrollbar {
     width: 10px;
