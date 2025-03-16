@@ -737,8 +737,10 @@ fn Version(mut props: VersionProps) -> Element {
         }
     });
     
-let movable_profile = installer_profile.clone();
 let on_submit = move |_evt: FormEvent| {
+    // Create the clone INSIDE the closure so it doesn't move the original
+    let movable_profile = installer_profile.clone();
+    
     // Calculate total items to process for progress tracking
     *install_item_amount.write() = movable_profile.manifest.mods.len()
         + movable_profile.manifest.resourcepacks.len()
@@ -749,9 +751,10 @@ let on_submit = move |_evt: FormEvent| {
     let profile_for_async = movable_profile.clone();
     
     async move {
-         // Store popup details before moving into closure
+        // Store popup details before moving into closure
         let popup_contents = profile_for_async.manifest.popup_contents.clone();
         let popup_title = profile_for_async.manifest.popup_title.clone().unwrap_or_default();
+        
         let install = move |canceled| {
                 let mut installer_profile = movable_profile.clone();
                 spawn(async move {
