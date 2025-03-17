@@ -456,7 +456,7 @@ fn Launcher(props: LauncherProps) -> Element {
 }
 
 #[component]
-fn CustomMultiMCButton(props: LauncherProps) -> Element {
+fn CustomMultiMCButton(mut props: LauncherProps) -> Element {
     let custom_multimc = move |_evt| {
         let directory_dialog = rfd::FileDialog::new()
             .set_title("Pick root directory of desired MultiMC based launcher.")
@@ -1151,16 +1151,6 @@ fn AppHeader(
         }
     )
 }
-
-#[derive(Clone)]
-pub(crate) struct AppProps {
-    pub branches: Vec<super::GithubBranch>,
-    pub modpack_source: String,
-    pub config: super::Config,
-    pub config_path: PathBuf,
-}
-
-// Replace the entire app() function with this properly structured version
 
 #[derive(Clone)]
 pub(crate) struct AppProps {
