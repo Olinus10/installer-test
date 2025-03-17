@@ -5,7 +5,7 @@ use log::{error, debug};
 use modal::ModalContext;
 use modal::Modal;
 
-// Import the necessary types from the main module - note the correct names!
+// Import the necessary types from the main module
 use crate::{
     get_app_data, get_installed_packs, get_launcher, uninstall, 
     InstallerProfile, Launcher, PackName
@@ -83,6 +83,7 @@ fn HomePage(
 }
 // Special value for home page
 const HOME_PAGE: usize = usize::MAX;
+
 
 #[component]
 fn ProgressView(value: i64, max: i64, status: String, title: String) -> Element {
@@ -235,7 +236,7 @@ struct SettingsProps {
 }
 
 #[component]
-fn Settings(mut props: SettingsProps) -> Element {
+fn Settings(props: SettingsProps) -> Element {
     let mut vanilla = None;
     let mut multimc = None;
     let mut prism = None;
@@ -354,14 +355,7 @@ fn Settings(mut props: SettingsProps) -> Element {
     }
 }
 
-#[derive(PartialEq, Props, Clone)]
-struct LauncherProps {
-    config: Signal<super::Config>,
-    config_path: PathBuf,
-    error: Signal<Option<String>>,
-    b64_id: String,
-}
-
+// IMPORTANT: Combined the two LauncherProps structs into one
 #[derive(PartialEq, Props, Clone)]
 struct LauncherProps {
     config: Signal<super::Config>,
@@ -371,7 +365,7 @@ struct LauncherProps {
 }
 
 #[component]
-fn Launcher(mut props: LauncherProps) -> Element {
+fn Launcher(props: LauncherProps) -> Element {
     let mut vanilla = None;
     let mut multimc = None;
     let mut prism = None;
@@ -386,12 +380,14 @@ fn Launcher(mut props: LauncherProps) -> Element {
         || super::get_multimc_folder("PrismLauncher").is_ok();
         
     if !has_supported_launcher {
-        rsx!(NoLauncherFound {
-            config: props.config,
-            config_path: props.config_path,
-            error: props.error,
-            b64_id: props.b64_id.clone()
-        })
+        rsx! {
+            NoLauncherFound {
+                config: props.config,
+                config_path: props.config_path,
+                error: props.error,
+                b64_id: props.b64_id.clone()
+            }
+        }
     } else {
         rsx! {
             div { class: "launcher-container",
@@ -460,7 +456,7 @@ fn Launcher(mut props: LauncherProps) -> Element {
 }
 
 #[component]
-fn CustomMultiMCButton(mut props: LauncherProps) -> Element {
+fn CustomMultiMCButton(props: LauncherProps) -> Element {
     let custom_multimc = move |_evt| {
         let directory_dialog = rfd::FileDialog::new()
             .set_title("Pick root directory of desired MultiMC based launcher.")
@@ -707,7 +703,7 @@ struct VersionProps {
 }
 
 #[component]
-fn Version(mut props: VersionProps) -> Element {
+fn Version(props: VersionProps) -> Element {
     let installer_profile = props.installer_profile.clone();
     
     debug!("Version component for '{}' - current_page: {}, tab_group: {}",
@@ -1029,6 +1025,10 @@ fn AppHeader(
         }
     }
     
+    // Sort the tab indices to ensure order
+    main_tab_indices.sort();
+    dropdown_tab_indices.sort();
+    
     let has_dropdown = !dropdown_tab_indices.is_empty();
     let any_dropdown_active = dropdown_tab_indices.iter().any(|idx| page() == *idx);
   
@@ -1073,13 +1073,19 @@ fn AppHeader(
                 // Main tabs (1-3)
                 {
                     main_tab_indices.iter().enumerate().map(|(i, &index)| {
-                        let title = main_tab_titles[i].clone();
+                        let title_index = main_tab_indices.iter().position(|&idx| idx == index).unwrap_or(i);
+                        let title = if title_index < main_tab_titles.len() {
+                            main_tab_titles[title_index].clone()
+                        } else {
+                            format!("Tab {}", index)
+                        };
+                        
                         rsx!(
                             button {
                                 class: if page() == index { "header-tab-button active" } else { "header-tab-button" },
                                 onclick: move |_| {
                                     debug!("TAB CLICK: Changing page from {} to {}", page(), index);
-                                    // Use set instead of write().clone_from()
+                                    // Set page directly
                                     page.set(index);
                                     debug!("TAB CLICK RESULT: Page is now {}", page());
                                 },
@@ -1089,7 +1095,7 @@ fn AppHeader(
                     })
                 }
                 
-                // Dropdown for remaining tabs (4+)
+                // Dropdown for remaining tabs (4+) - placed outside the flow to avoid affecting scrolling
                 if has_dropdown {
                     div { 
                         class: "dropdown",
@@ -1105,12 +1111,18 @@ fn AppHeader(
                             class: "dropdown-content",
                             {
                                 dropdown_tab_indices.iter().enumerate().map(|(i, &index)| {
-                                    let title = dropdown_tab_titles[i].clone();
+                                    let title_index = dropdown_tab_indices.iter().position(|&idx| idx == index).unwrap_or(i);
+                                    let title = if title_index < dropdown_tab_titles.len() {
+                                        dropdown_tab_titles[title_index].clone()
+                                    } else {
+                                        format!("Tab {}", index)
+                                    };
+                                    
                                     rsx!(
                                         button {
                                             class: if page() == index { "dropdown-item active" } else { "dropdown-item" },
                                             onclick: move |_| {
-                                                // Use set instead of write
+                                                // Set page directly
                                                 page.set(index);
                                                 debug!("Switching to dropdown tab {}: {}", index, title);
                                             },
@@ -1150,9 +1162,16 @@ pub(crate) struct AppProps {
 
 // Replace the entire app() function with this properly structured version
 
+#[derive(Clone)]
+pub(crate) struct AppProps {
+    pub branches: Vec<super::GithubBranch>,
+    pub modpack_source: String,
+    pub config: super::Config,
+    pub config_path: PathBuf,
+}
+
 pub(crate) fn app() -> Element {
     let props = use_context::<AppProps>();
-    // Include both the original CSS and our improved styles
     let css = include_str!("assets/style.css");
     let branches = props.branches.clone();
     let config = use_signal(|| props.config);
@@ -1219,7 +1238,9 @@ pub(crate) fn app() -> Element {
                         match crate::init(source.clone(), branch.name.clone(), launcher.clone()).await {
                             Ok(profile) => {
                                 // Adjust tab_group numbering to start from 1 instead of 0
-                                let tab_group = profile.manifest.tab_group.unwrap_or(1);
+                                let tab_group = if let Some(group) = profile.manifest.tab_group {
+                                    if group == 0 { 1 } else { group }
+                                } else { 1 };
                                 results.push((tab_group, profile));
                                 debug!("Processed branch: {} in tab group {}", branch.name, tab_group);
                             }
@@ -1236,48 +1257,54 @@ pub(crate) fn app() -> Element {
 
     // Effect to build pages map when branches are processed
     use_effect(move || {
-    if let Some(processed_branches) = packs.read().as_ref() {
-        debug!("Building pages map from {} processed branches", processed_branches.len());
-        
-        let mut new_pages = BTreeMap::<usize, TabInfo>::new();
-        for (tab_group, profile) in processed_branches {
-            // Ensure tab_group is at least 1
-            // Dereference tab_group when comparing, and use the correct type for the result
-            let adjusted_tab_group = if *tab_group == 0 { 1 } else { *tab_group };
+        if let Some(processed_branches) = packs.read().as_ref() {
+            debug!("Building pages map from {} processed branches", processed_branches.len());
             
-            // Add debug to see which tab groups are being processed
-            debug!("Processing tab_group: {} for profile: {}", 
-                   adjusted_tab_group, profile.manifest.subtitle);
-            
-            let tab_title = profile.manifest.tab_title.clone().unwrap_or_else(|| profile.manifest.subtitle.clone());
-            let tab_color = profile.manifest.tab_color.clone().unwrap_or_else(|| String::from("#320625"));
-            let tab_background = profile.manifest.tab_background.clone().unwrap_or_else(|| {
-                String::from("https://raw.githubusercontent.com/Wynncraft-Overhaul/installer/master/src/assets/background_installer.png")
-            });
-            let settings_background = profile.manifest.settings_background.clone().unwrap_or_else(|| tab_background.clone());
-            let primary_font = profile.manifest.tab_primary_font.clone().unwrap_or_else(|| {
-                String::from("https://raw.githubusercontent.com/Wynncraft-Overhaul/installer/master/src/assets/Wynncraft_Game_Font.woff2")
-            });
-            let secondary_font = profile.manifest.tab_secondary_font.clone().unwrap_or_else(|| primary_font.clone());
+            let mut new_pages = BTreeMap::<usize, TabInfo>::new();
+            for (tab_group, profile) in processed_branches {
+                // Ensure tab_group is at least 1
+                let adjusted_tab_group = if *tab_group == 0 { 1 } else { *tab_group };
+                
+                // Add debug to see which tab groups are being processed
+                debug!("Processing tab_group: {} for profile: {}", 
+                       adjusted_tab_group, profile.manifest.subtitle);
+                
+                let tab_title = profile.manifest.tab_title.clone().unwrap_or_else(|| profile.manifest.subtitle.clone());
+                let tab_color = profile.manifest.tab_color.clone().unwrap_or_else(|| String::from("#320625"));
+                let tab_background = profile.manifest.tab_background.clone().unwrap_or_else(|| {
+                    String::from("https://raw.githubusercontent.com/Wynncraft-Overhaul/installer/master/src/assets/background_installer.png")
+                });
+                let settings_background = profile.manifest.settings_background.clone().unwrap_or_else(|| tab_background.clone());
+                let primary_font = profile.manifest.tab_primary_font.clone().unwrap_or_else(|| {
+                    String::from("https://raw.githubusercontent.com/Wynncraft-Overhaul/installer/master/src/assets/Wynncraft_Game_Font.woff2")
+                });
+                let secondary_font = profile.manifest.tab_secondary_font.clone().unwrap_or_else(|| primary_font.clone());
 
-            // Use the adjusted value
-            new_pages.entry(adjusted_tab_group).or_insert(TabInfo {
-                color: tab_color,
-                title: tab_title,
-                background: tab_background,
-                settings_background,
-                primary_font,
-                secondary_font,
-                modpacks: vec![profile.clone()],
-            });
+                // Use the adjusted value
+                if let Some(tab_info) = new_pages.get_mut(&adjusted_tab_group) {
+                    // Tab exists, add the profile
+                    tab_info.modpacks.push(profile.clone());
+                } else {
+                    // Tab doesn't exist, create it
+                    new_pages.insert(adjusted_tab_group, TabInfo {
+                        color: tab_color,
+                        title: tab_title,
+                        background: tab_background,
+                        settings_background,
+                        primary_font,
+                        secondary_font,
+                        modpacks: vec![profile.clone()],
+                    });
+                }
+            }
+            
+            pages.set(new_pages);
+            debug!("Updated pages map with {} tabs", pages().len());
         }
-        
-        pages.set(new_pages);
-        debug!("Updated pages map with {} tabs", pages().len());
-    }
-});
+    });
 
     // Update the CSS generation section
+        // Update the CSS generation section
     let css_content = {
         let default_color = "#320625".to_string();
         let default_bg = "https://raw.githubusercontent.com/Wynncraft-Overhaul/installer/master/src/assets/background_installer.png".to_string();
@@ -1312,315 +1339,11 @@ pub(crate) fn app() -> Element {
         debug!("Updating CSS with: color={}, bg_image={}, secondary_font={}, primary_font={}", 
                bg_color, bg_image, secondary_font, primary_font);
             
-        // Our improved dropdown menu CSS with better hover behavior and font consistency
-        let improved_css = "
-        /* Content header improvements */
-        .content-header {
-            text-align: center;
-            padding: 30px 0 15px 0;
-            position: relative;
-        }
-        
-        .content-header h1 {
-            font-family: \"SECONDARY_FONT\";
-            font-size: 3.5rem;
-            margin: 0;
-            text-shadow: 0 4px 12px rgba(0, 0, 0, 0.8);
-            background: linear-gradient(180deg, #fce8f6 0%, #d8b8d0 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            animation: glow 2s ease-in-out infinite alternate;
-            position: relative;
-            display: inline-block;
-        }
-        
-        /* Clean description without the box */
-        .content-description-clean {
-            max-width: 85%;
-            margin: 0 auto 30px auto;
-            line-height: 1.6;
-            text-align: center;
-            position: relative;
-            font-size: 1.1rem;
-            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
-        }
-        
-        .content-description-clean p:first-child {
-            font-size: 1.2rem;
-            margin-top: 0;
-        }
-        
-        /* Feature cards container - more compact */
-        .feature-cards-container {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-            gap: 15px;
-            margin-bottom: 40px;
-            padding: 5px;
-            max-height: none;
-            overflow-y: visible;
-        }
-        
-        /* Feature cards - smaller, more compact */
-        .feature-card {
-            background-color: rgba(0, 0, 0, 0.7);
-            border-radius: 8px;
-            padding: 12px;
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
-            display: flex;
-            flex-direction: column;
-            height: auto;
-            min-height: 120px;
-            max-height: 220px;
-            overflow-y: auto;
-        }
-        
-        .feature-card.feature-enabled {
-            border-left: 4px solid #073c17;
-        }
-        
-        .feature-card.feature-disabled {
-            border-left: 4px solid #d95248;
-        }
-        
-        .feature-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
-        }
-        
-        .feature-card-title {
-            font-family: \"SECONDARY_FONT\";
-            margin: 0 0 8px 0;
-            font-size: 1.2rem;
-        }
-        
-        .feature-card-description {
-            flex-grow: 1;
-            margin-bottom: 12px;
-            font-size: 0.85rem;
-            line-height: 1.4;
-            color: #ddd;
-            max-height: 80px;
-            overflow-y: auto;
-        }
-        
-        /* Feature toggle button improvements */
-        .feature-toggle-button {
-            align-self: flex-end;
-            padding: 6px 14px;
-            border-radius: 4px;
-            font-family: \"SECONDARY_FONT\";
-            text-align: center;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            user-select: none;
-            display: inline-block;
-            font-size: 0.9rem;
-        }
-        
-        .feature-toggle-button.enabled {
-            background-color: #073c17;
-        }
-        
-        .feature-toggle-button.disabled {
-            background-color: #d95248;
-        }
-        
-        .feature-toggle-button:hover {
-            opacity: 0.9;
-            transform: scale(1.05);
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.4);
-        }
-        
-        /* Install button container - centered and fixed */
-        .install-button-container-centered {
-            text-align: center;
-            margin: 40px 0;
-            padding: 10px;
-            position: relative;
-            width: 100%;
-        }
-        
-        /* Enhanced install button */
-        .main-install-button {
-            background-color: #073c17;
-            border: none;
-            border-radius: 8px;
-            padding: 18px 70px;
-            font-family: \"SECONDARY_FONT\";
-            font-size: 2rem;
-            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4), 0 0 20px rgba(7, 60, 23, 0.3);
-            transition: all 0.3s ease;
-            color: #fce8f6;
-            position: relative;
-            overflow: hidden;
-            cursor: pointer;
-            min-width: 320px;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            /* Ensure the button is fully visible */
-            margin-bottom: 60px;
-        }
-        
-        .main-install-button:hover:not([disabled]) {
-            transform: translateY(-5px) scale(1.05);
-            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.5), 0 0 30px rgba(7, 60, 23, 0.7);
-            background-color: #0a4d1e;
-            text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
-        }
-        
-        .main-install-button:active:not([disabled]) {
-            transform: translateY(-2px) scale(1.02);
-        }
-        
-        /* Shine effect */
-        .main-install-button::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(
-                90deg, 
-                transparent, 
-                rgba(255, 255, 255, 0.2), 
-                rgba(255, 255, 255, 0.4), 
-                transparent
-            );
-            transition: none;
-            z-index: 1;
-        }
-        
-        .main-install-button:hover::before {
-            left: 100%;
-            transition: left 0.7s ease-in-out;
-        }
-        
-        /* Trending/Popular pack indicator for homepage */
-        .home-pack-card.trending {
-            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.6), 0 0 0 3px rgba(255, 215, 0, 0.5);
-            position: relative;
-        }
-        
-        .trending-badge {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            background-color: rgba(255, 215, 0, 0.9);
-            color: #000;
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 0.8rem;
-            font-weight: bold;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
-            text-transform: uppercase;
-            z-index: 10;
-        }
-        
-        .home-pack-card.trending:hover {
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.7), 0 0 0 4px rgba(255, 215, 0, 0.7), 0 0 20px rgba(255, 215, 0, 0.5);
-        }
-        
-        /* Dropdown styles */
-        .dropdown { 
-            position: relative; 
-            display: inline-block; 
-        }
-
-        /* Position the dropdown content */
-        .dropdown-content {
-            display: none;
-            position: absolute;
-            top: 100%;
-            left: 0;
-            background-color: rgba(0, 0, 0, 0.9);
-            min-width: 200px;
-            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.6);
-            z-index: 1000;
-            border-radius: 4px;
-            overflow: hidden;
-            margin-top: 5px;
-            max-height: 400px;
-            overflow-y: auto;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        /* Show dropdown on hover with increased target area */
-        .dropdown:hover .dropdown-content,
-        .dropdown-content:hover {
-            display: block;
-        }
-
-        /* Add a pseudo-element to create an invisible connection between the button and dropdown */
-        .dropdown::after {
-            content: '';
-            position: absolute;
-            height: 10px;
-            width: 100%;
-            left: 0;
-            top: 100%;
-            display: none;
-        }
-
-        .dropdown:hover::after {
-            display: block;
-        }
-
-        .dropdown-item {
-            display: block;
-            width: 100%;
-            padding: 10px 15px;
-            text-align: left;
-            background-color: transparent;
-            border: none;
-            /* Explicitly use the same font as header-tab-button */
-            font-family: \"PRIMARY_FONT\";
-            font-size: 0.9rem;
-            color: #fce8f6;
-            cursor: pointer;
-            transition: background-color 0.2s ease;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-        }
-
-        .dropdown-item:last-child {
-            border-bottom: none;
-        }
-
-        .dropdown-item:hover {
-            background-color: rgba(50, 6, 37, 0.8);
-            border-color: rgba(255, 255, 255, 0.4);
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
-        }
-
-        .dropdown-item.active {
-            background-color: var(--bg-color);
-            border-color: #fce8f6;
-            box-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
-            color: #fff;
-        }
-
-        /* Fix for header-tabs to prevent dropdown from affecting it */
-        .header-tabs {
-            display: flex;
-            gap: 5px;
-            margin: 0 10px;
-            flex-grow: 1;
-            justify-content: center;
-            flex-wrap: wrap;
-            overflow-x: visible;
-            scrollbar-width: thin;
-            max-width: 70%;
-            position: relative;
-        }";
-            
         css
             .replace("<BG_COLOR>", &bg_color)
             .replace("<BG_IMAGE>", &bg_image)
             .replace("<SECONDARY_FONT>", &secondary_font)
-            .replace("<PRIMARY_FONT>", &primary_font) 
-            + improved_css
+            .replace("<PRIMARY_FONT>", &primary_font)
     };
 
     let mut modal_context = use_context_provider(ModalContext::default);
@@ -1659,7 +1382,6 @@ pub(crate) fn app() -> Element {
                 None
             }}
 
-            
             div { class: "main-container",
                 {if settings() {
                     rsx! {
@@ -1688,11 +1410,6 @@ pub(crate) fn app() -> Element {
                         }
                     }
                 } else {
-                    // Content for when packs are loaded
-                    let current_page = page();
-                    debug!("RENDER DECISION: current_page={}, HOME_PAGE={}, is_home={}",
-                           current_page, HOME_PAGE, current_page == HOME_PAGE);
-                    
                     if current_page == HOME_PAGE {
                         debug!("RENDERING: HomePage");
                         rsx! {
@@ -1708,19 +1425,21 @@ pub(crate) fn app() -> Element {
                         let pages_map = pages();
                         
                         if let Some(tab_info) = pages_map.get(&current_page) {
+                            // Check if this part is working
                             debug!("FOUND tab group {} with {} modpacks", 
-                                  current_page, tab_info.modpacks.len());
+                                current_page, tab_info.modpacks.len());
                             
-                            // Clone modpacks for rendering
-                            let modpacks = tab_info.modpacks.clone();
-                            debug!("Cloned {} modpacks for rendering", modpacks.len());
-                            
-                            if !modpacks.is_empty() {
-                                // Simplified: Just render the first modpack in the Version component
+                            // Get the first modpack in this tab group
+                            if !tab_info.modpacks.is_empty() {
+                                // Clone the first profile to avoid ownership issues
+                                let profile = tab_info.modpacks[0].clone();
+                                debug!("Rendering modpack profile: {}", profile.manifest.subtitle);
+                                
+                                // Render the Version component with the profile
                                 rsx! {
                                     Version {
-                                        installer_profile: modpacks[0].clone(),
-                                        error: err.clone(),
+                                        installer_profile: profile,
+                                        error: err,
                                         current_page,
                                         tab_group: current_page
                                     }
@@ -1733,9 +1452,8 @@ pub(crate) fn app() -> Element {
                             rsx! { div { "No modpack information found for this tab." } }
                         }
                     }
-                }}
-            }
                 }
             }
         }
-    
+    }
+}}
