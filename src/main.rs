@@ -440,6 +440,8 @@ struct Manifest {
     remote_include: Option<Vec<RemoteInclude>>,
     include: Vec<Include>,
     features: Vec<Feature>,
+    // Add trending indicator field
+    trend: Option<bool>,
     #[serde(default = "default_enabled_features")]
     enabled_features: Vec<String>,
     included_files: Option<HashMap<String, Included>>,
@@ -449,6 +451,7 @@ struct Manifest {
     min_mem: Option<i32>,
     java_args: Option<String>,
 }
+
 #[allow(non_snake_case)]
 #[derive(Debug, Deserialize, Serialize)]
 struct LauncherProfile {
