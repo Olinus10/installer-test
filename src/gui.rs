@@ -1406,35 +1406,35 @@ pub(crate) fn app() -> Element {
 } else {
     // Debug statement outside of the RSX block
     let current_page = page();
-    if let Some(tab_info) = pages().get(&current_page) {
+    let tab_info = pages().get(&current_page);
+    
+    if let Some(info) = tab_info {
         debug!("Rendering content for page {}: {} modpacks", 
-               current_page, tab_info.modpacks.len());
+               current_page, info.modpacks.len());
+    } else {
+        debug!("No tab info found for page {}", current_page);
     }
     
+    // Simplified RSX structure for Version components
     rsx! {
         div { 
             class: "version-page-container",
             style: "display: block; width: 100%;",
             
-            // Find the tab info for the current page
-            if let Some(tab_info) = pages().get(&page()) {
-                // Using a rsx! block to render all modpacks
-                rsx! {
-                    {
-                        tab_info.modpacks.iter().map(|profile| {
-                            rsx! {
-                                Version {
-                                    installer_profile: profile.clone(),
-                                    error: err.clone(),
-                                    current_page: page(),
-                                    tab_group: page(), // Pass the current page as tab_group
-                                }
-                            }
-                        })
+            if let Some(info) = tab_info {
+                // Render modpacks for this tab
+                {info.modpacks.iter().map(|profile| {
+                    rsx! {
+                        Version {
+                            installer_profile: profile.clone(),
+                            error: err.clone(),
+                            current_page: current_page,
+                            tab_group: current_page,
+                        }
                     }
-                }
+                })}
             } else {
-                rsx! { div { "No modpack information found for this tab." } }
+                div { "No modpack information found for this tab." }
             }
         }
     }
