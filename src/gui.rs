@@ -1652,6 +1652,7 @@ pub(crate) fn app() -> Element {
                 None
             }}
 
+            
             div { class: "main-container",
                 {if settings() {
                     rsx! {
@@ -1680,70 +1681,54 @@ pub(crate) fn app() -> Element {
                         }
                     }
                 } else {
-                    let content = {
-    let current_page = page();
-    debug!("RENDER DECISION: current_page={}, HOME_PAGE={}, is_home={}",
-           current_page, HOME_PAGE, current_page == HOME_PAGE);
-    
-    if current_page == HOME_PAGE {
-        debug!("RENDERING: HomePage");
-        rsx! {
-            HomePage {
-                pages,
-                page
-            }
-        }
-    } else {
-        debug!("RENDERING: Content for page {}", current_page);
-        
-        // Get tab info without temporary references
-        let pages_map = pages();
-        
-        if let Some(tab_info) = pages_map.get(&current_page) {
-            debug!("FOUND tab group {} with {} modpacks", 
-                  current_page, tab_info.modpacks.len());
-            
-            // Clone modpacks for rendering
-            let modpacks = tab_info.modpacks.clone();
-            debug!("Cloned {} modpacks for rendering", modpacks.len());
-            
-            if !modpacks.is_empty() {
-                // Simplified: Just render the first modpack in the Version component
-                rsx! {
-                    Version {
-                        installer_profile: modpacks[0].clone(),
-                        error: err.clone(),
-                        current_page,
-                        tab_group: current_page
+                    // Content for when packs are loaded
+                    let current_page = page();
+                    debug!("RENDER DECISION: current_page={}, HOME_PAGE={}, is_home={}",
+                           current_page, HOME_PAGE, current_page == HOME_PAGE);
+                    
+                    if current_page == HOME_PAGE {
+                        debug!("RENDERING: HomePage");
+                        rsx! {
+                            HomePage {
+                                pages,
+                                page
+                            }
+                        }
+                    } else {
+                        debug!("RENDERING: Content for page {}", current_page);
+                        
+                        // Get tab info without temporary references
+                        let pages_map = pages();
+                        
+                        if let Some(tab_info) = pages_map.get(&current_page) {
+                            debug!("FOUND tab group {} with {} modpacks", 
+                                  current_page, tab_info.modpacks.len());
+                            
+                            // Clone modpacks for rendering
+                            let modpacks = tab_info.modpacks.clone();
+                            debug!("Cloned {} modpacks for rendering", modpacks.len());
+                            
+                            if !modpacks.is_empty() {
+                                // Simplified: Just render the first modpack in the Version component
+                                rsx! {
+                                    Version {
+                                        installer_profile: modpacks[0].clone(),
+                                        error: err.clone(),
+                                        current_page,
+                                        tab_group: current_page
+                                    }
+                                }
+                            } else {
+                                rsx! { div { "No modpack information found for this tab." } }
+                            }
+                        } else {
+                            debug!("NO TAB INFO found for page {}", current_page);
+                            rsx! { div { "No modpack information found for this tab." } }
+                        }
                     }
-                }
-            } else {
-                rsx! { div { "No modpack information found for this tab." } }
+                }}
             }
-        } else {
-            debug!("NO TAB INFO found for page {}", current_page);
-            rsx! { div { "No modpack information found for this tab." } }
-        }
-    }
-};
-
-// Then use content in the appropriate place in your main container
-rsx! {
-    div { class: "main-container",
-        {if settings() {
-            // Settings render...
-        } else if config.read().first_launch.unwrap_or(true) || launcher.is_none() {
-            // Launcher render...
-        } else if packs.read().is_none() {
-            // Loading render...
-        } else {
-            // Use the content variable here
-            content
-        }}
-    }
-}
                 }
             }
         }
-    }
-}}
+    
