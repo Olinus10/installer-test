@@ -1439,9 +1439,10 @@ pub(crate) fn app() -> Element {
                         debug!("RENDERING: Content for page {}", current_page);
                         
                         // Get tab info and modpacks
-                        let tab_info_option = pages().get(&current_page);
-                        
-                        if let Some(tab_info) = tab_info_option {
+let pages_map = pages(); // Create a local binding for the pages value
+let tab_info_option = pages_map.get(&current_page);
+
+if let Some(tab_info) = tab_info_option {
                             debug!("FOUND tab group {} with {} modpacks", 
                                    current_page, tab_info.modpacks.len());
                             
