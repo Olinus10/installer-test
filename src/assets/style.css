@@ -401,6 +401,13 @@ a:hover {
     padding: 20px;
 }
 
+/* Ensure button is always visible and doesn't get cut off */
+.version-container {
+    padding-bottom: 70px; /* Add extra padding at bottom */
+    position: relative;
+    overflow: visible; /* Allow button to extend beyond container */
+}
+
 .content-header {
     text-align: center;
     margin-bottom: 20px;
@@ -440,12 +447,12 @@ a:hover {
 /* Feature Cards */
 .feature-cards-container {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
     gap: 20px;
     margin-bottom: 30px;
-    max-height: 500px;
-    overflow-y: auto;
     padding: 5px;
+    max-height: none; /* Remove the fixed height causing double scroll */
+    overflow-y: visible; /* Remove scrolling on container */
 }
 
 .feature-card {
@@ -455,7 +462,8 @@ a:hover {
     transition: transform 0.2s ease, box-shadow 0.2s ease;
     display: flex;
     flex-direction: column;
-    height: 100%;
+    height: auto; /* Allow cards to size according to content */
+    min-height: 150px;
 }
 
 .feature-card.feature-enabled {
@@ -508,34 +516,64 @@ a:hover {
     transform: scale(1.05);
 }
 
-/* Install Button */
+// Enhanced install button styles
+
 .install-button-container {
     text-align: center;
-    margin: 20px 0;
+    margin: 30px 0;
+    padding: 10px;
+    position: relative;
 }
 
 .main-install-button {
     background-color: #073c17;
     border: none;
     border-radius: 6px;
-    padding: 12px 50px;
+    padding: 16px 60px;
     font-family: "SECONDARY_FONT";
-    font-size: 1.5rem;
+    font-size: 1.8rem;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
-    transition: all 0.2s ease;
+    transition: all 0.3s ease;
     color: #fce8f6;
+    position: relative;
+    overflow: hidden;
+    cursor: pointer;
+    min-width: 300px;
 }
 
 .main-install-button:hover:not([disabled]) {
-    transform: translateY(-2px) scale(1.03);
-    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4), 0 0 15px rgba(7, 60, 23, 0.4);
+    transform: translateY(-3px) scale(1.05);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4), 0 0 25px rgba(7, 60, 23, 0.6);
     background-color: #0a4d1e;
 }
 
-.main-install-button:disabled {
-    background-color: #555;
-    cursor: not-allowed;
+.main-install-button:active:not([disabled]) {
+    transform: translateY(-1px) scale(1.02);
 }
+
+/* Shine effect */
+.main-install-button::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+        90deg, 
+        transparent, 
+        rgba(255, 255, 255, 0.1), 
+        rgba(255, 255, 255, 0.3), 
+        transparent
+    );
+    transition: none;
+}
+
+.main-install-button:hover::before {
+    left: 100%;
+    transition: left 0.7s ease-in-out;
+}
+
 /* Credits Screen */
 .credits-container {
     max-width: 900px;
