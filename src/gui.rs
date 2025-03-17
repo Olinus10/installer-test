@@ -1395,8 +1395,9 @@ pub(crate) fn app() -> Element {
             }
         }
     } else {
-        // Don't create another div wrapper here
-        if page() == HOME_PAGE {
+        // Replace the content section with this approach that handles the borrowing issue correctly
+
+if page() == HOME_PAGE {
     rsx! {
         HomePage {
             pages,
@@ -1404,26 +1405,32 @@ pub(crate) fn app() -> Element {
         }
     }
 } else {
-    // Debug statement outside of the RSX block
+    // Get the current page outside the RSX block
     let current_page = page();
-    let tab_info = pages().get(&current_page);
     
-    if let Some(info) = tab_info {
-        debug!("Rendering content for page {}: {} modpacks", 
-               current_page, info.modpacks.len());
-    } else {
-        debug!("No tab info found for page {}", current_page);
-    }
+    // Create a local copy of the data to avoid borrowing issues
+    let modpacks_to_render = {
+        if let Some(tab_info) = pages().get(&current_page) {
+            debug!("Rendering content for page {}: {} modpacks", 
+                   current_page, tab_info.modpacks.len());
+            
+            // Clone the modpacks to avoid borrowing issues
+            tab_info.modpacks.clone()
+        } else {
+            debug!("No tab info found for page {}", current_page);
+            Vec::new()
+        }
+    };
     
-    // Simplified RSX structure for Version components
+    // Now use the local copy in the RSX
     rsx! {
         div { 
             class: "version-page-container",
             style: "display: block; width: 100%;",
             
-            if let Some(info) = tab_info {
-                // Render modpacks for this tab
-                {info.modpacks.iter().map(|profile| {
+            if !modpacks_to_render.is_empty() {
+                // Render modpacks for this tab using our local copy
+                {modpacks_to_render.iter().map(|profile| {
                     rsx! {
                         Version {
                             installer_profile: profile.clone(),
