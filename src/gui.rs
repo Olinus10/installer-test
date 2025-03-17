@@ -1397,49 +1397,41 @@ pub(crate) fn app() -> Element {
     } else {
         // Don't create another div wrapper here
         if page() == HOME_PAGE {
-            rsx! {
-                HomePage {
-                    pages,
-                    page
-                }
-            }
-        } else {
-            rsx! {
-                div { 
-                    class: "version-page-container",
-                    style: "display: block; width: 100%;",
-                    {
-                        // Add more debug to help troubleshoot
-                        let current_page = page();
-                        debug!("Rendering content for page {}", current_page);
-                        
-                        // Look up just the tab info for this page
-                        if let Some(tab_info) = pages().get(&current_page) {
-                            debug!("Found tab info for page {}: {} modpacks", 
-                                   current_page, tab_info.modpacks.len());
-                            
-                            // Map the modpacks to Version components
-                            rsx! {
-                                {
-                                    tab_info.modpacks.iter().map(|profile| {
-                                        rsx! {
-                                            Version {
-                                                installer_profile: profile.clone(),
-                                                error: err.clone(),
-                                                current_page,
-                                                tab_group: current_page,
-                                            }
-                                        }
-                                    })
-                                }
+    rsx! {
+        HomePage {
+            pages,
+            page
+        }
+    }
+} else {
+    rsx! {
+        div { 
+            class: "version-page-container",
+            style: "display: block; width: 100%;",
+            {
+                // Find the tab info for the current page
+                if let Some(tab_info) = pages().get(&page()) {
+                    debug!("Rendering content for page {}: {} modpacks", 
+                           page(), tab_info.modpacks.len());
+                    
+                    // Render all modpacks belonging to this tab group
+                    tab_info.modpacks.iter().map(|profile| {
+                        rsx! {
+                            Version {
+                                installer_profile: profile.clone(),
+                                error: err.clone(),
+                                current_page: page(),
+                                tab_group: page(), // Pass the current page as tab_group
                             }
-                        } else {
-                            debug!("No tab info found for page {}", current_page);
-                            rsx! { div { "No modpack information found for this tab." } }
                         }
-                    }
+                    })
+                } else {
+                    debug!("No tab info found for page {}", page());
+                    rsx! { div { "No modpack information found for this tab." } }
                 }
             }
         }
-    }}
+    }
+}
+}}
 }}}}
