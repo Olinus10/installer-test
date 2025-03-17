@@ -20,6 +20,40 @@ struct TabInfo {
     modpacks: Vec<InstallerProfile>,
 }
 
+#[derive(Deserialize, Serialize, Debug, Clone)]
+pub struct Manifest {
+    pub name: String,
+    pub subtitle: String,
+    pub description: String,
+    pub uuid: String,
+    pub modpack_version: String,
+    pub mc_version: String,
+    pub modloader: String,
+    pub modloader_version: String,
+    pub features: Vec<Feature>,
+    pub install_overrides: Vec<String>,
+    pub authors: Vec<Author>,
+    pub popup_title: Option<String>,
+    pub popup_contents: Option<String>,
+    pub mods: Vec<Mod>,
+    pub shaderpacks: Vec<ShaderPack>,
+    pub resourcepacks: Vec<ResourcePack>,
+    pub include: Vec<Include>,
+    pub icon: Option<String>,
+    // Tab customization options
+    pub tab_group: Option<usize>,
+    pub tab_title: Option<String>,
+    pub tab_color: Option<String>,
+    pub tab_background: Option<String>,
+    pub settings_background: Option<String>,
+    pub tab_primary_font: Option<String>,
+    pub tab_secondary_font: Option<String>,
+    // Trending modpack indicator
+    pub trend: Option<bool>,
+    #[serde(default)]
+    pub enabled_features: Vec<String>,
+}
+
 // Home Page component to display all available modpacks as a grid
 #[component]
 fn HomePage(
@@ -34,32 +68,39 @@ fn HomePage(
             
             div { class: "home-grid",
                 for (index, info) in pages() {
-                    for modpack in &info.modpacks {
-                        {
-                            let modpack_subtitle = modpack.manifest.subtitle.clone();
-                            let tab_title = info.title.clone(); 
-                            let tab_index = index; 
-                            
-                            rsx! {
-                                div { 
-                                    class: "home-pack-card",
-                                    style: "background-image: url('{info.background}'); background-color: {info.color};",
-                                    onclick: move |_| {
-                                        // CRITICAL FIX: Make sure this changes the page
-                                        let old_page = page();
-                                        debug!("HOME CLICK: Changing page from {} to {} ({}) - HOME_PAGE={}", 
-                                               old_page, tab_index, tab_title, HOME_PAGE);
+                    // Only include tab_group >= 1 (skip 0 as requested)
+                    if index >= 1 {
+                        for modpack in &info.modpacks {
+                            {
+                                let modpack_subtitle = modpack.manifest.subtitle.clone();
+                                let tab_title = info.title.clone(); 
+                                let tab_index = index;
+                                let is_trending = modpack.manifest.trend.unwrap_or(false);
+                                
+                                rsx! {
+                                    div { 
+                                        class: if is_trending { "home-pack-card trending" } else { "home-pack-card" },
+                                        style: "background-image: url('{info.background}'); background-color: {info.color};",
+                                        onclick: move |_| {
+                                            debug!("HOME CLICK: Changing page from {} to {} ({}) - HOME_PAGE={}", 
+                                                page(), tab_index, tab_title, HOME_PAGE);
+                                            
+                                            // Force update page signal
+                                            page.write().clone_from(&tab_index);
+                                            
+                                            // Double-check update worked
+                                            debug!("HOME CLICK RESULT: Page is now {}", page());
+                                        },
                                         
-                                        // Force update page signal
-                                        page.write().clone_from(&tab_index);
+                                        // Add the trending marker for popular packs
+                                        if is_trending {
+                                            div { class: "trending-badge", "Popular" }
+                                        }
                                         
-                                        // Double-check update worked
-                                        let new_page = page();
-                                        debug!("HOME CLICK RESULT: Page is now {}", new_page);
-                                    },
-                                    div { class: "home-pack-info",
-                                        h2 { class: "home-pack-title", "{modpack_subtitle}" }
-                                        div { class: "home-pack-button", "View Modpack" }
+                                        div { class: "home-pack-info",
+                                            h2 { class: "home-pack-title", "{modpack_subtitle}" }
+                                            div { class: "home-pack-button", "View Modpack" }
+                                        }
                                     }
                                 }
                             }
@@ -527,7 +568,7 @@ fn FeatureCard(props: FeatureCardProps) -> Element {
                 div { class: "feature-card-description", "{description}" }
             }
             
-            // Toggle button with hidden checkbox
+            // Toggle button with hidden checkbox for better interactivity
             label {
                 class: if enabled { "feature-toggle-button enabled" } else { "feature-toggle-button disabled" },
                 input {
@@ -543,6 +584,7 @@ fn FeatureCard(props: FeatureCardProps) -> Element {
     }
 }
 
+// Fix for feature_change function to properly handle toggling
 fn feature_change(
     local_features: Signal<Option<Vec<String>>>,
     mut modify: Signal<bool>,
@@ -600,12 +642,14 @@ async fn init_branch(source: String, branch: String, launcher: Launcher, mut pag
     debug!("  subtitle: {}", profile.manifest.subtitle);
     debug!("  description length: {}", profile.manifest.description.len());
 
+    // Adjust tab_group to start from 1 instead of 0
     let tab_group = if let Some(tab_group) = profile.manifest.tab_group {
-        debug!("  tab_group: {}", tab_group);
-        tab_group
+        debug!("  Original tab_group: {}", tab_group);
+        // Ensure it's at least 1
+        if tab_group == 0 { 1 } else { tab_group }
     } else {
-        debug!("  tab_group: None, defaulting to 0");
-        0
+        debug!("  tab_group: None, defaulting to 1");
+        1 // Default to tab group 1 instead of 0
     };
 
     // Check if this profile already exists in the tab group
@@ -879,13 +923,13 @@ fn Version(mut props: VersionProps) -> Element {
         } else {
             div { class: "version-container",
                 form { onsubmit: on_submit,
-                    // Header section with title and subtitle (using manifest data)
+                    // Improved streamlined header section with title and subtitle
                     div { class: "content-header",
                         h1 { "{installer_profile.manifest.subtitle}" }
                     }
                     
-                    // Description section (using manifest data)
-                    div { class: "content-description",
+                    // Clean description section with no box
+                    div { class: "content-description-clean",
                         // The 'dangerous_inner_html' directive renders HTML content safely
                         dangerous_inner_html: "{installer_profile.manifest.description}",
                         
@@ -905,45 +949,68 @@ fn Version(mut props: VersionProps) -> Element {
                     // Features heading
                     h2 { "Optional Features" }
                     
-                    // Feature cards in a responsive grid
+                    // Compact feature cards in a responsive grid
                     div { class: "feature-cards-container",
-    {installer_profile.manifest.features.iter().filter(|feat| !feat.hidden).map(|feat| {
-        let feat_id = feat.id.clone();
-        let feat_name = feat.name.clone();
-        let feat_description = feat.description.clone();
-        let is_enabled = installer_profile.enabled_features.contains(&feat_id) || feat.default;
-        
-        rsx! {
-            div { 
-                class: if is_enabled { "feature-card feature-enabled" } else { "feature-card feature-disabled" },
-                h3 { class: "feature-card-title", "{feat_name}" }
-                
-                // Render description if available
-                if let Some(description) = feat_description {
-                    div { class: "feature-card-description", "{description}" }
-                }
-                
-                // Toggle button 
-                div {
-                    class: if is_enabled { "feature-toggle-button enabled" } else { "feature-toggle-button disabled" },
-                    if is_enabled { "Enabled" } else { "Disabled" }
-                }
-            }
-        }
-    })}
-}
+                        for feat in installer_profile.manifest.features {
+                            if !feat.hidden {
+                                {
+                                    let feat_id = feat.id.clone();
+                                    let is_enabled = enabled_features.read().contains(&feat_id) || feat.default;
+                                    
+                                    rsx! {
+                                        div { 
+                                            class: if is_enabled { "feature-card feature-enabled" } else { "feature-card feature-disabled" },
+                                            h3 { class: "feature-card-title", "{feat.name}" }
+                                            
+                                            // Render description if available
+                                            if let Some(description) = &feat.description {
+                                                div { class: "feature-card-description", "{description}" }
+                                            }
+                                            
+                                            // Improved toggle button with clickable functionality
+                                            label {
+                                                class: if is_enabled { "feature-toggle-button enabled" } else { "feature-toggle-button disabled" },
+                                                
+                                                // Hidden checkbox to track state
+                                                input {
+                                                    r#type: "checkbox",
+                                                    name: "{feat_id}",
+                                                    checked: if is_enabled { Some("true") } else { None },
+                                                    onchange: move |evt| {
+                                                        // Call feature_change to toggle the feature
+                                                        feature_change(
+                                                            local_features,
+                                                            modify,
+                                                            evt,
+                                                            &feat,
+                                                            modify_count,
+                                                            enabled_features,
+                                                        );
+                                                    },
+                                                    style: "display: none;"
+                                                }
+                                                
+                                                if is_enabled { "Enabled" } else { "Disabled" }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
                     
-                    // Install/Update/Modify button at the bottom
-                    div { class: "install-button-container",
-    button {
-        class: "main-install-button",
-        if !installer_profile.installed {
-            "Install"
-        } else if installer_profile.update_available {
-            "Update"
-        } else {
-            "Modify"
-        }
+                    // Prominent and centered install button
+                    div { class: "install-button-container-centered",
+                        button {
+                            class: "main-install-button",
+                            disabled: install_disable,
+                            if !*installed.read() {
+                                "Install"
+                            } else if *update_available.read() {
+                                "Update"
+                            } else {
+                                "Modify"
+                            }
                         }
                     }
                 }
@@ -972,12 +1039,12 @@ fn AppHeader(
     let mut dropdown_tab_indices = vec![];
     let mut dropdown_tab_titles = vec![];
     
-    // Separate tab groups into main tabs (0, 1, 2) and dropdown tabs (3+)
+    // Separate tab groups into main tabs (1-3) and dropdown tabs (4+)
     for (index, info) in pages().iter() {
-        if *index <= 2 {
+        if *index >= 1 && *index <= 3 {
             main_tab_indices.push(*index);
             main_tab_titles.push(info.title.clone());
-        } else {
+        } else if *index > 3 {
             dropdown_tab_indices.push(*index);
             dropdown_tab_titles.push(info.title.clone());
         }
@@ -1024,26 +1091,26 @@ fn AppHeader(
                     "Home"
                 }
 
-                // Main tabs (0, 1, 2)
+                // Main tabs (1-3)
                 {
                     main_tab_indices.iter().enumerate().map(|(i, &index)| {
                         let title = main_tab_titles[i].clone();
                         rsx!(
                             button {
-        class: if page() == index { "header-tab-button active" } else { "header-tab-button" },
-        onclick: move |_| {
-            debug!("TAB CLICK: Changing page from {} to {}", page(), index);
-            // CRITICAL FIX: Use write() for more direct access
-            page.write().clone_from(&index);
-            debug!("TAB CLICK RESULT: Page is now {}", page());
-        },
-        "{title}"
-    }
+                                class: if page() == index { "header-tab-button active" } else { "header-tab-button" },
+                                onclick: move |_| {
+                                    debug!("TAB CLICK: Changing page from {} to {}", page(), index);
+                                    // Use write() for more direct access
+                                    page.write().clone_from(&index);
+                                    debug!("TAB CLICK RESULT: Page is now {}", page());
+                                },
+                                "{title}"
+                            }
                         )
                     })
                 }
                 
-                // Dropdown for remaining tabs - placed outside the flow to avoid affecting scrolling
+                // Dropdown for remaining tabs (4+) - placed outside the flow to avoid affecting scrolling
                 if has_dropdown {
                     div { 
                         class: "dropdown",
@@ -1105,6 +1172,7 @@ pub(crate) struct AppProps {
 
 pub(crate) fn app() -> Element {
     let props = use_context::<AppProps>();
+    // Include both the original CSS and our improved styles
     let css = include_str!("assets/style.css");
     let branches = props.branches.clone();
     let config = use_signal(|| props.config);
@@ -1170,7 +1238,8 @@ pub(crate) fn app() -> Element {
                     for branch in &branches {
                         match crate::init(source.clone(), branch.name.clone(), launcher.clone()).await {
                             Ok(profile) => {
-                                let tab_group = profile.manifest.tab_group.unwrap_or(0);
+                                // Adjust tab_group numbering to start from 1 instead of 0
+                                let tab_group = profile.manifest.tab_group.unwrap_or(1);
                                 results.push((tab_group, profile));
                                 debug!("Processed branch: {} in tab group {}", branch.name, tab_group);
                             }
@@ -1254,8 +1323,217 @@ pub(crate) fn app() -> Element {
         debug!("Updating CSS with: color={}, bg_image={}, secondary_font={}, primary_font={}", 
                bg_color, bg_image, secondary_font, primary_font);
             
-        // Improved dropdown menu CSS with better hover behavior and font consistency
-        let dropdown_css = "
+        // Our improved dropdown menu CSS with better hover behavior and font consistency
+        let improved_css = "
+        /* Content header improvements */
+        .content-header {
+            text-align: center;
+            padding: 30px 0 15px 0;
+            position: relative;
+        }
+        
+        .content-header h1 {
+            font-family: \"SECONDARY_FONT\";
+            font-size: 3.5rem;
+            margin: 0;
+            text-shadow: 0 4px 12px rgba(0, 0, 0, 0.8);
+            background: linear-gradient(180deg, #fce8f6 0%, #d8b8d0 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: glow 2s ease-in-out infinite alternate;
+            position: relative;
+            display: inline-block;
+        }
+        
+        /* Clean description without the box */
+        .content-description-clean {
+            max-width: 85%;
+            margin: 0 auto 30px auto;
+            line-height: 1.6;
+            text-align: center;
+            position: relative;
+            font-size: 1.1rem;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+        }
+        
+        .content-description-clean p:first-child {
+            font-size: 1.2rem;
+            margin-top: 0;
+        }
+        
+        /* Feature cards container - more compact */
+        .feature-cards-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 15px;
+            margin-bottom: 40px;
+            padding: 5px;
+            max-height: none;
+            overflow-y: visible;
+        }
+        
+        /* Feature cards - smaller, more compact */
+        .feature-card {
+            background-color: rgba(0, 0, 0, 0.7);
+            border-radius: 8px;
+            padding: 12px;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            display: flex;
+            flex-direction: column;
+            height: auto;
+            min-height: 120px;
+            max-height: 220px;
+            overflow-y: auto;
+        }
+        
+        .feature-card.feature-enabled {
+            border-left: 4px solid #073c17;
+        }
+        
+        .feature-card.feature-disabled {
+            border-left: 4px solid #d95248;
+        }
+        
+        .feature-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+        
+        .feature-card-title {
+            font-family: \"SECONDARY_FONT\";
+            margin: 0 0 8px 0;
+            font-size: 1.2rem;
+        }
+        
+        .feature-card-description {
+            flex-grow: 1;
+            margin-bottom: 12px;
+            font-size: 0.85rem;
+            line-height: 1.4;
+            color: #ddd;
+            max-height: 80px;
+            overflow-y: auto;
+        }
+        
+        /* Feature toggle button improvements */
+        .feature-toggle-button {
+            align-self: flex-end;
+            padding: 6px 14px;
+            border-radius: 4px;
+            font-family: \"SECONDARY_FONT\";
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            user-select: none;
+            display: inline-block;
+            font-size: 0.9rem;
+        }
+        
+        .feature-toggle-button.enabled {
+            background-color: #073c17;
+        }
+        
+        .feature-toggle-button.disabled {
+            background-color: #d95248;
+        }
+        
+        .feature-toggle-button:hover {
+            opacity: 0.9;
+            transform: scale(1.05);
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.4);
+        }
+        
+        /* Install button container - centered and fixed */
+        .install-button-container-centered {
+            text-align: center;
+            margin: 40px 0;
+            padding: 10px;
+            position: relative;
+            width: 100%;
+        }
+        
+        /* Enhanced install button */
+        .main-install-button {
+            background-color: #073c17;
+            border: none;
+            border-radius: 8px;
+            padding: 18px 70px;
+            font-family: \"SECONDARY_FONT\";
+            font-size: 2rem;
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4), 0 0 20px rgba(7, 60, 23, 0.3);
+            transition: all 0.3s ease;
+            color: #fce8f6;
+            position: relative;
+            overflow: hidden;
+            cursor: pointer;
+            min-width: 320px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            /* Ensure the button is fully visible */
+            margin-bottom: 60px;
+        }
+        
+        .main-install-button:hover:not([disabled]) {
+            transform: translateY(-5px) scale(1.05);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.5), 0 0 30px rgba(7, 60, 23, 0.7);
+            background-color: #0a4d1e;
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+        }
+        
+        .main-install-button:active:not([disabled]) {
+            transform: translateY(-2px) scale(1.02);
+        }
+        
+        /* Shine effect */
+        .main-install-button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(
+                90deg, 
+                transparent, 
+                rgba(255, 255, 255, 0.2), 
+                rgba(255, 255, 255, 0.4), 
+                transparent
+            );
+            transition: none;
+            z-index: 1;
+        }
+        
+        .main-install-button:hover::before {
+            left: 100%;
+            transition: left 0.7s ease-in-out;
+        }
+        
+        /* Trending/Popular pack indicator for homepage */
+        .home-pack-card.trending {
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.6), 0 0 0 3px rgba(255, 215, 0, 0.5);
+            position: relative;
+        }
+        
+        .trending-badge {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background-color: rgba(255, 215, 0, 0.9);
+            color: #000;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+            text-transform: uppercase;
+            z-index: 10;
+        }
+        
+        .home-pack-card.trending:hover {
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.7), 0 0 0 4px rgba(255, 215, 0, 0.7), 0 0 20px rgba(255, 215, 0, 0.5);
+        }
+        
         /* Dropdown styles */
         .dropdown { 
             position: relative; 
@@ -1309,7 +1587,7 @@ pub(crate) fn app() -> Element {
             background-color: transparent;
             border: none;
             /* Explicitly use the same font as header-tab-button */
-            font-family: \\\"PRIMARY_FONT\\\";
+            font-family: \"PRIMARY_FONT\";
             font-size: 0.9rem;
             color: #fce8f6;
             cursor: pointer;
@@ -1353,7 +1631,7 @@ pub(crate) fn app() -> Element {
             .replace("<BG_IMAGE>", &bg_image)
             .replace("<SECONDARY_FONT>", &secondary_font)
             .replace("<PRIMARY_FONT>", &primary_font) 
-            + dropdown_css
+            + improved_css
     };
 
     let mut modal_context = use_context_provider(ModalContext::default);
@@ -1369,7 +1647,7 @@ pub(crate) fn app() -> Element {
     // Determine which logo to use
     let logo_url = Some("https://raw.githubusercontent.com/Wynncraft-Overhaul/installer/master/src/assets/icon.png".to_string());
     
-    // Fix: Return the JSX from the app function
+    // Current page for rendering decision
     let current_page = page();
     debug!("RENDER DECISION: current_page={}, HOME_PAGE={}, is_home={}",
            current_page, HOME_PAGE, current_page == HOME_PAGE);
@@ -1420,134 +1698,53 @@ pub(crate) fn app() -> Element {
                         }
                     }
                 } else {
-                    // DIAGNOSTIC CONTENT RENDERING SECTION
                     if current_page == HOME_PAGE {
-    debug!("RENDERING: HomePage");
-    rsx! {
-        HomePage {
-            pages,
-            page
-        }
-    }
-} else {
-    debug!("RENDERING: Content for page {}", current_page);
-    
-    // Get tab info without temporary references
-    let pages_map = pages();
-    
-    if let Some(tab_info) = pages_map.get(&current_page) {
-        debug!("FOUND tab group {} with {} modpacks", 
-               current_page, tab_info.modpacks.len());
-        
-        // CRITICAL FIX: Get all modpacks before rendering
-        let modpacks = tab_info.modpacks.clone();
-        debug!("Cloned {} modpacks for rendering", modpacks.len());
-        
-        // Log each modpack outside the RSX
-        for profile in &modpacks {
-            debug!("Preparing to render modpack: {}", profile.manifest.subtitle);
-        }
-        
-        // Directly return the RSX without unnecessary nesting
-        rsx! {
-            div { 
-                class: "version-page-container",
-                style: "display: block; width: 100%;",
-                
-                for profile in modpacks {
-                    // Debug statements MUST NOT be inside RSX blocks
-                    div { 
-                        class: "version-container",
-                        
-                        // Header section
-                        div { class: "content-header",
-                            h1 { "{profile.manifest.subtitle}" }
+                        debug!("RENDERING: HomePage");
+                        rsx! {
+                            HomePage {
+                                pages,
+                                page
+                            }
                         }
+                    } else {
+                        debug!("RENDERING: Content for page {}", current_page);
                         
-                        // Description section
-                        div { class: "content-description",
-                            dangerous_inner_html: "{profile.manifest.description}",
+                        // Get tab info without temporary references
+                        let pages_map = pages();
+                        
+                        if let Some(tab_info) = pages_map.get(&current_page) {
+                            debug!("FOUND tab group {} with {} modpacks", 
+                                  current_page, tab_info.modpacks.len());
                             
-                            // Credits link
-                            div {
-                                a { 
-                                    class: "credits-link",
-                                    "View Credits"
+                            // Clone modpacks for rendering
+                            let modpacks = tab_info.modpacks.clone();
+                            debug!("Cloned {} modpacks for rendering", modpacks.len());
+                            
+                            // Log each modpack before rendering
+                            for profile in &modpacks {
+                                debug!("Preparing to render modpack: {}", profile.manifest.subtitle);
+                            }
+                            
+                            // Directly render the first modpack in version component
+                            if !modpacks.is_empty() {
+                                rsx! {
+                                    Version {
+                                        installer_profile: modpacks[0].clone(),
+                                        error: err,
+                                        current_page,
+                                        tab_group: current_page
+                                    }
                                 }
+                            } else {
+                                rsx! { div { "No modpack information found for this tab." } }
                             }
-                        }
-                        
-                        // Features heading
-                        h2 { "Optional Features" }
-                        
-                        // Feature cards
-                        
-
-div { class: "feature-cards-container",
-    for feat in profile.manifest.features {
-        if !feat.hidden {
-            {
-                // Move this Rust code outside the RSX by wrapping it in its own block
-                let feat_id = feat.id.clone();
-                let feat_name = feat.name.clone();
-                let feat_description = feat.description.clone();
-                
-                // Check if feature is enabled
-                let is_enabled = profile.enabled_features.contains(&feat_id) || feat.default;
-                
-                // Extract feature toggle function parameters for this feature
-                let feature_clone = feat.clone();
-                
-                // Return the RSX from this block
-                rsx! {
-                    div { 
-                        class: if is_enabled { "feature-card feature-enabled" } else { "feature-card feature-disabled" },
-                        h3 { class: "feature-card-title", "{feat_name}" }
-                        
-                        // Description if available
-                        if let Some(description) = &feat_description {
-                            div { class: "feature-card-description", "{description}" }
-                        }
-                        
-                        // Toggle button with proper functionality
-                        label {
-                            class: if is_enabled { "feature-toggle-button enabled" } else { "feature-toggle-button disabled" },
-                            
-                            // Hidden checkbox to track state
-                            input {
-                                r#type: "checkbox",
-                                name: "{feat_id}",
-                                checked: if is_enabled { Some("true") } else { None },
-                                onchange: move |evt| {
-                                    // Here we'll call a proper feature_change function
-                                    debug!("Feature toggle changed: {}", feat_id);
-                                    
-                                    // You would call your feature_change function here
-                                    // feature_change(local_features, modify, evt, &feature_clone, modify_count, enabled_features);
-                                },
-                                style: "display: none;"
-                            }
-                            
-                            if is_enabled { "Enabled" } else { "Disabled" }
+                        } else {
+                            debug!("NO TAB INFO found for page {}", current_page);
+                            rsx! { div { "No modpack information found for this tab." } }
                         }
                     }
                 }
             }
         }
     }
-}
-                        
-                        // Install button
-                        div { class: "install-button-container",
-                            button { class: "main-install-button", "Install" }
-                        }
-                    }
-                }
-            }
-        }
-    } else {
-        debug!("NO TAB INFO found for page {}", current_page);
-        rsx! { div { "No modpack information found for this tab." } }
-    }
-}
-}}}}}}
+}}
