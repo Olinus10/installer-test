@@ -1422,55 +1422,53 @@ pub(crate) fn app() -> Element {
                 } else {
                     // DIAGNOSTIC CONTENT RENDERING SECTION
                     if current_page == HOME_PAGE {
-                        debug!("RENDERING: HomePage");
-                        rsx! {
-                            HomePage {
-                                pages,
-                                page
-                            }
-                        }
-                    } else {
-                        debug!("RENDERING: Content for page {}", current_page);
-                        
-                        // Get tab info and modpacks
-let pages_map = pages(); // Create a local binding for the pages value
-let tab_info_option = pages_map.get(&current_page);
-
-if let Some(tab_info) = tab_info_option {
-    debug!("FOUND tab group {} with {} modpacks", 
-           current_page, tab_info.modpacks.len());
-    
-    // CRITICAL FIX: Get all modpacks before rendering
-    let modpacks = tab_info.modpacks.clone();
-    
+    debug!("RENDERING: HomePage");
     rsx! {
-        div { 
-            class: "version-page-container",
-            
-            // IMPORTANT: Force render all modpacks in this tab
-            {modpacks.iter().map(|profile| {
-                debug!("  Rendering modpack: {}", profile.manifest.subtitle);
+        HomePage {
+            pages,
+            page
+        }
+    }
+} else {
+    debug!("RENDERING: Content for page {}", current_page);
+    
+    // Get tab info without temporary references
+    let pages_map = pages();
+    
+    if let Some(tab_info) = pages_map.get(&current_page) {
+        debug!("FOUND tab group {} with {} modpacks", 
+               current_page, tab_info.modpacks.len());
+        
+        // CRITICAL FIX: Get all modpacks before rendering
+        let modpacks = tab_info.modpacks.clone();
+        debug!("Cloned {} modpacks for rendering", modpacks.len());
+        
+        // Directly return the RSX without unnecessary nesting
+        rsx! {
+            div { 
+                class: "version-page-container",
+                style: "display: block; width: 100%;",
                 
-                let installer_profile = profile.clone();
-                
-                rsx! {
-                    div { class: "version-container",
-                        // Header section with title
+                for profile in modpacks {
+                    // Directly embed the modpack rendering
+                    debug!("Rendering modpack: {}", profile.manifest.subtitle);
+                    
+                    div { 
+                        class: "version-container",
+                        
+                        // Header section
                         div { class: "content-header",
-                            h1 { "{installer_profile.manifest.subtitle}" }
+                            h1 { "{profile.manifest.subtitle}" }
                         }
                         
                         // Description section
                         div { class: "content-description",
-                            dangerous_inner_html: "{installer_profile.manifest.description}",
+                            dangerous_inner_html: "{profile.manifest.description}",
                             
                             // Credits link
                             div {
-                                a {
+                                a { 
                                     class: "credits-link",
-                                    onclick: move |_| {
-                                        debug!("Credits link clicked for {}", installer_profile.manifest.subtitle);
-                                    },
                                     "View Credits"
                                 }
                             }
@@ -1479,54 +1477,36 @@ if let Some(tab_info) = tab_info_option {
                         // Features heading
                         h2 { "Optional Features" }
                         
-                        // Feature cards in a responsive grid
+                        // Feature cards
                         div { class: "feature-cards-container",
-                            {installer_profile.manifest.features.iter().filter(|feat| !feat.hidden).map(|feat| {
-                                let feat_id = feat.id.clone();
-                                let feat_name = feat.name.clone();
-                                let feat_description = feat.description.clone();
-                                let is_enabled = installer_profile.enabled_features.contains(&feat_id) || feat.default;
-                                
-                                rsx! {
+                            for feat in profile.manifest.features {
+                                if !feat.hidden {
+                                    // Basic feature card without complex logic
                                     div { 
-                                        class: if is_enabled { "feature-card feature-enabled" } else { "feature-card feature-disabled" },
-                                        h3 { class: "feature-card-title", "{feat_name}" }
+                                        class: "feature-card feature-enabled",
+                                        h3 { class: "feature-card-title", "{feat.name}" }
                                         
-                                        // Render description if available
-                                        if let Some(description) = feat_description {
+                                        if let Some(description) = &feat.description {
                                             div { class: "feature-card-description", "{description}" }
                                         }
                                         
-                                        // Toggle button 
-                                        div {
-                                            class: if is_enabled { "feature-toggle-button enabled" } else { "feature-toggle-button disabled" },
-                                            if is_enabled { "Enabled" } else { "Disabled" }
-                                        }
+                                        div { class: "feature-toggle-button enabled", "Enabled" }
                                     }
-                                }
-                            })}
-                        }
-                        
-                        // Install/Update/Modify button
-                        div { class: "install-button-container",
-                            button {
-                                class: "main-install-button",
-                                if !installer_profile.installed {
-                                    "Install"
-                                } else if installer_profile.update_available {
-                                    "Update"
-                                } else {
-                                    "Modify"
                                 }
                             }
                         }
+                        
+                        // Install button
+                        div { class: "install-button-container",
+                            button { class: "main-install-button", "Install" }
+                        }
                     }
                 }
-            })}
+            }
         }
+    } else {
+        debug!("NO TAB INFO found for page {}", current_page);
+        rsx! { div { "No modpack information found for this tab." } }
     }
-} else {
-    debug!("NO TAB INFO found for page {}", current_page);
-    rsx! { div { "No modpack information found for this tab." } }
 }
-}}}}}}}
+}}}}}}
