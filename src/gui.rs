@@ -907,49 +907,43 @@ fn Version(mut props: VersionProps) -> Element {
                     
                     // Feature cards in a responsive grid
                     div { class: "feature-cards-container",
-                        for feat in installer_profile.manifest.features {
-                            if !feat.hidden {
-                                {
-                                    // Clone values to avoid ownership issues
-                                    let feat_clone = feat.clone();
-                                    let feat_id = feat.id.clone();
-                                    
-                                    rsx! {
-                                        FeatureCard {
-                                            feature: feat_clone,
-                                            enabled: if installer_profile.installed {
-                                                enabled_features.with(|x| x.contains(&feat_id))
-                                            } else {
-                                                feat.default
-                                            },
-                                            on_toggle: move |evt| {
-                                                feature_change(
-                                                    local_features,
-                                                    modify,
-                                                    evt,
-                                                    &feat,
-                                                    modify_count,
-                                                    enabled_features,
-                                                )
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
+    {installer_profile.manifest.features.iter().filter(|feat| !feat.hidden).map(|feat| {
+        let feat_id = feat.id.clone();
+        let feat_name = feat.name.clone();
+        let feat_description = feat.description.clone();
+        let is_enabled = installer_profile.enabled_features.contains(&feat_id) || feat.default;
+        
+        rsx! {
+            div { 
+                class: if is_enabled { "feature-card feature-enabled" } else { "feature-card feature-disabled" },
+                h3 { class: "feature-card-title", "{feat_name}" }
+                
+                // Render description if available
+                if let Some(description) = feat_description {
+                    div { class: "feature-card-description", "{description}" }
+                }
+                
+                // Toggle button 
+                div {
+                    class: if is_enabled { "feature-toggle-button enabled" } else { "feature-toggle-button disabled" },
+                    if is_enabled { "Enabled" } else { "Disabled" }
+                }
+            }
+        }
+    })}
+}
                     
                     // Install/Update/Modify button at the bottom
                     div { class: "install-button-container",
-                        button {
-                            r#type: "submit",
-                            class: "main-install-button",
-                            disabled: install_disable,
-                            if !installer_profile.installed {
-                                "Install"
-                            } else {
-                                if !*modify.read() { "Update" } else { "Modify" }
-                            }
+    button {
+        class: "main-install-button",
+        if !installer_profile.installed {
+            "Install"
+        } else if installer_profile.update_available {
+            "Update"
+        } else {
+            "Modify"
+        }
                         }
                     }
                 }
@@ -1455,47 +1449,78 @@ if let Some(tab_info) = tab_info_option {
                                     
                                     // IMPORTANT: Force render all modpacks in this tab
                                     {modpacks.iter().map(|profile| {
-                                        debug!("  Rendering modpack: {}", profile.manifest.subtitle);
-                                        
-                                        // CRITICAL FIX: Remove the filtering in Version component
-                                        // by directly embedding the Version component contents
-                                        let installer_profile = profile.clone();
-                                        
-                                        rsx! {
-                                            // Version component directly embedded to bypass any filters
-                                            div { class: "version-container",
-                                                // Simplified version of your Version component
-                                                div { class: "content-header",
-                                                    h1 { "{installer_profile.manifest.subtitle}" }
-                                                }
-                                                div { class: "content-description",
-                                                    dangerous_inner_html: "{installer_profile.manifest.description}",
-                                                }
-                                                div { class: "feature-cards-container",
-                                                    "Feature cards would go here"
-                                                }
-                                                div { class: "install-button-container",
-                                                    button {
-                                                        class: "main-install-button",
-                                                        "Install"  // Simplified for testing
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    })}
-                                    
-                                    if modpacks.is_empty() {
-                                        div { "No modpack information found for this tab." }
-                                    }
-                                }
+    debug!("  Rendering modpack: {}", profile.manifest.subtitle);
+    
+    let installer_profile = profile.clone();
+    
+    rsx! {
+        div { class: "version-container",
+            // Header section with title
+            div { class: "content-header",
+                h1 { "{installer_profile.manifest.subtitle}" }
+            }
+            
+            // Description section
+            div { class: "content-description",
+                dangerous_inner_html: "{installer_profile.manifest.description}",
+                
+                // Credits link
+                div {
+                    a {
+                        class: "credits-link",
+                        onclick: move |_| {
+                            debug!("Credits link clicked for {}", installer_profile.manifest.subtitle);
+                        },
+                        "View Credits"
+                    }
+                }
+            }
+            
+            // Features heading
+            h2 { "Optional Features" }
+            
+            // Feature cards in a responsive grid
+            div { class: "feature-cards-container",
+                {installer_profile.manifest.features.iter().filter(|feat| !feat.hidden).map(|feat| {
+                    let feat_id = feat.id.clone();
+                    let feat_name = feat.name.clone();
+                    let feat_description = feat.description.clone();
+                    let is_enabled = installer_profile.enabled_features.contains(&feat_id) || feat.default;
+                    
+                    rsx! {
+                        div { 
+                            class: if is_enabled { "feature-card feature-enabled" } else { "feature-card feature-disabled" },
+                            h3 { class: "feature-card-title", "{feat_name}" }
+                            
+                            // Render description if available
+                            if let Some(description) = feat_description {
+                                div { class: "feature-card-description", "{description}" }
                             }
-                        } else {
-                            debug!("NO TAB INFO found for page {}", current_page);
-                            rsx! { div { "No modpack information found for this tab." } }
+                            
+                            // Toggle button 
+                            div {
+                                class: if is_enabled { "feature-toggle-button enabled" } else { "feature-toggle-button disabled" },
+                                if is_enabled { "Enabled" } else { "Disabled" }
+                            }
                         }
                     }
-                }}
+                })}
+            }
+            
+            // Install/Update/Modify button
+            div { class: "install-button-container",
+                button {
+                    class: "main-install-button",
+                    if !installer_profile.installed {
+                        "Install"
+                    } else if installer_profile.update_available {
+                        "Update"
+                    } else {
+                        "Modify"
+                    }
+                }
             }
         }
     }
-}
+})}
+}}}}}}}}}}
