@@ -1443,6 +1443,11 @@ pub(crate) fn app() -> Element {
         let modpacks = tab_info.modpacks.clone();
         debug!("Cloned {} modpacks for rendering", modpacks.len());
         
+        // Log each modpack outside the RSX
+        for profile in &modpacks {
+            debug!("Preparing to render modpack: {}", profile.manifest.subtitle);
+        }
+        
         // Directly return the RSX without unnecessary nesting
         rsx! {
             div { 
@@ -1450,9 +1455,7 @@ pub(crate) fn app() -> Element {
                 style: "display: block; width: 100%;",
                 
                 for profile in modpacks {
-                    // Directly embed the modpack rendering
-                    debug!("Rendering modpack: {}", profile.manifest.subtitle);
-                    
+                    // Debug statements MUST NOT be inside RSX blocks
                     div { 
                         class: "version-container",
                         
