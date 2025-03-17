@@ -1437,90 +1437,96 @@ let pages_map = pages(); // Create a local binding for the pages value
 let tab_info_option = pages_map.get(&current_page);
 
 if let Some(tab_info) = tab_info_option {
-                            debug!("FOUND tab group {} with {} modpacks", 
-                                   current_page, tab_info.modpacks.len());
-                            
-                            // CRITICAL FIX: Get all modpacks before rendering
-                            let modpacks = tab_info.modpacks.clone();
-                            
-                            rsx! {
-                                div { 
-                                    class: "version-page-container",
-                                    
-                                    // IMPORTANT: Force render all modpacks in this tab
-                                    {modpacks.iter().map(|profile| {
-    debug!("  Rendering modpack: {}", profile.manifest.subtitle);
+    debug!("FOUND tab group {} with {} modpacks", 
+           current_page, tab_info.modpacks.len());
     
-    let installer_profile = profile.clone();
+    // CRITICAL FIX: Get all modpacks before rendering
+    let modpacks = tab_info.modpacks.clone();
     
     rsx! {
-        div { class: "version-container",
-            // Header section with title
-            div { class: "content-header",
-                h1 { "{installer_profile.manifest.subtitle}" }
-            }
+        div { 
+            class: "version-page-container",
             
-            // Description section
-            div { class: "content-description",
-                dangerous_inner_html: "{installer_profile.manifest.description}",
+            // IMPORTANT: Force render all modpacks in this tab
+            {modpacks.iter().map(|profile| {
+                debug!("  Rendering modpack: {}", profile.manifest.subtitle);
                 
-                // Credits link
-                div {
-                    a {
-                        class: "credits-link",
-                        onclick: move |_| {
-                            debug!("Credits link clicked for {}", installer_profile.manifest.subtitle);
-                        },
-                        "View Credits"
-                    }
-                }
-            }
-            
-            // Features heading
-            h2 { "Optional Features" }
-            
-            // Feature cards in a responsive grid
-            div { class: "feature-cards-container",
-                {installer_profile.manifest.features.iter().filter(|feat| !feat.hidden).map(|feat| {
-                    let feat_id = feat.id.clone();
-                    let feat_name = feat.name.clone();
-                    let feat_description = feat.description.clone();
-                    let is_enabled = installer_profile.enabled_features.contains(&feat_id) || feat.default;
-                    
-                    rsx! {
-                        div { 
-                            class: if is_enabled { "feature-card feature-enabled" } else { "feature-card feature-disabled" },
-                            h3 { class: "feature-card-title", "{feat_name}" }
+                let installer_profile = profile.clone();
+                
+                rsx! {
+                    div { class: "version-container",
+                        // Header section with title
+                        div { class: "content-header",
+                            h1 { "{installer_profile.manifest.subtitle}" }
+                        }
+                        
+                        // Description section
+                        div { class: "content-description",
+                            dangerous_inner_html: "{installer_profile.manifest.description}",
                             
-                            // Render description if available
-                            if let Some(description) = feat_description {
-                                div { class: "feature-card-description", "{description}" }
-                            }
-                            
-                            // Toggle button 
+                            // Credits link
                             div {
-                                class: if is_enabled { "feature-toggle-button enabled" } else { "feature-toggle-button disabled" },
-                                if is_enabled { "Enabled" } else { "Disabled" }
+                                a {
+                                    class: "credits-link",
+                                    onclick: move |_| {
+                                        debug!("Credits link clicked for {}", installer_profile.manifest.subtitle);
+                                    },
+                                    "View Credits"
+                                }
+                            }
+                        }
+                        
+                        // Features heading
+                        h2 { "Optional Features" }
+                        
+                        // Feature cards in a responsive grid
+                        div { class: "feature-cards-container",
+                            {installer_profile.manifest.features.iter().filter(|feat| !feat.hidden).map(|feat| {
+                                let feat_id = feat.id.clone();
+                                let feat_name = feat.name.clone();
+                                let feat_description = feat.description.clone();
+                                let is_enabled = installer_profile.enabled_features.contains(&feat_id) || feat.default;
+                                
+                                rsx! {
+                                    div { 
+                                        class: if is_enabled { "feature-card feature-enabled" } else { "feature-card feature-disabled" },
+                                        h3 { class: "feature-card-title", "{feat_name}" }
+                                        
+                                        // Render description if available
+                                        if let Some(description) = feat_description {
+                                            div { class: "feature-card-description", "{description}" }
+                                        }
+                                        
+                                        // Toggle button 
+                                        div {
+                                            class: if is_enabled { "feature-toggle-button enabled" } else { "feature-toggle-button disabled" },
+                                            if is_enabled { "Enabled" } else { "Disabled" }
+                                        }
+                                    }
+                                }
+                            })}
+                        }
+                        
+                        // Install/Update/Modify button
+                        div { class: "install-button-container",
+                            button {
+                                class: "main-install-button",
+                                if !installer_profile.installed {
+                                    "Install"
+                                } else if installer_profile.update_available {
+                                    "Update"
+                                } else {
+                                    "Modify"
+                                }
                             }
                         }
                     }
-                })}
-            }
-            
-            // Install/Update/Modify button
-            div { class: "install-button-container",
-                button {
-                    class: "main-install-button",
-                    if !installer_profile.installed {
-                        "Install"
-                    } else if installer_profile.update_available {
-                        "Update"
-                    } else {
-                        "Modify"
-                    }
                 }
-            }
+            })}
         }
     }
-})}
-}}}}}}}}}}
+} else {
+    debug!("NO TAB INFO found for page {}", current_page);
+    rsx! { div { "No modpack information found for this tab." } }
+}
+}}}}}}}
