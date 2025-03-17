@@ -52,11 +52,10 @@ fn HomePage(
                                         class: if is_trending { "home-pack-card trending" } else { "home-pack-card" },
                                         style: "background-image: url('{info.background}'); background-color: {info.color};",
                                         onclick: move |_| {
-                                            // Log current page and target
                                             debug!("HOME CLICK: Changing page from {} to {} ({}) - HOME_PAGE={}", 
                                                 page(), tab_index, tab_title, HOME_PAGE);
                                             
-                                            // Set the page explicitly instead of using clone_from
+                                            // Force update page signal
                                             page.set(tab_index);
                                             
                                             // Double-check update worked
@@ -84,7 +83,6 @@ fn HomePage(
 }
 // Special value for home page
 const HOME_PAGE: usize = usize::MAX;
-
 
 #[component]
 fn ProgressView(value: i64, max: i64, status: String, title: String) -> Element {
@@ -354,6 +352,14 @@ fn Settings(mut props: SettingsProps) -> Element {
             }
         }
     }
+}
+
+#[derive(PartialEq, Props, Clone)]
+struct LauncherProps {
+    config: Signal<super::Config>,
+    config_path: PathBuf,
+    error: Signal<Option<String>>,
+    b64_id: String,
 }
 
 #[derive(PartialEq, Props, Clone)]
@@ -762,6 +768,7 @@ fn Version(mut props: VersionProps) -> Element {
         
         async move {
             let install = move |canceled| {
+                debug!("Beginning installation process for {}", movable_profile.manifest.subtitle);
                 let mut installer_profile = movable_profile.clone();
                 spawn(async move {
                     if canceled {
