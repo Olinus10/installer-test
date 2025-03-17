@@ -1408,27 +1408,29 @@ pub(crate) fn app() -> Element {
         div { 
             class: "version-page-container",
             style: "display: block; width: 100%;",
-            {
-                // Find the tab info for the current page
-                if let Some(tab_info) = pages().get(&page()) {
-                    debug!("Rendering content for page {}: {} modpacks", 
-                           page(), tab_info.modpacks.len());
+            
+            // Find the tab info for the current page
+            if let Some(tab_info) = pages().get(&page()) {
+                debug!("Rendering content for page {}: {} modpacks", 
+                       page(), tab_info.modpacks.len());
                     
-                    // Render all modpacks belonging to this tab group
-                    tab_info.modpacks.iter().map(|profile| {
-                        rsx! {
-                            Version {
-                                installer_profile: profile.clone(),
-                                error: err.clone(),
-                                current_page: page(),
-                                tab_group: page(), // Pass the current page as tab_group
+                // Using a rsx! block to render all modpacks
+                rsx! {
+                    {
+                        tab_info.modpacks.iter().map(|profile| {
+                            rsx! {
+                                Version {
+                                    installer_profile: profile.clone(),
+                                    error: err.clone(),
+                                    current_page: page(),
+                                    tab_group: page(), // Pass the current page as tab_group
+                                }
                             }
-                        }
-                    })
-                } else {
-                    debug!("No tab info found for page {}", page());
-                    rsx! { div { "No modpack information found for this tab." } }
+                        })
+                    }
                 }
+            } else {
+                rsx! { div { "No modpack information found for this tab." } }
             }
         }
     }
