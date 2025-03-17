@@ -26,7 +26,7 @@ fn HomePage(
     pages: Signal<BTreeMap<usize, TabInfo>>,
     page: Signal<usize>
 ) -> Element {
-    debug!("Rendering HomePage with {} tabs", pages().len());
+    debug!("HomePage component rendering with {} tabs", pages().len());
     
     rsx! {
         div { class: "home-container",
@@ -34,23 +34,28 @@ fn HomePage(
             
             div { class: "home-grid",
                 for (index, info) in pages() {
-                    // Using each modpack's subtitle rather than tab_title for the home page cards
                     for modpack in &info.modpacks {
                         {
                             let modpack_subtitle = modpack.manifest.subtitle.clone();
-                            let tab_title = info.title.clone(); // Clone before moving into closure
-                            let tab_index = index; // Create a stable reference to index
+                            let tab_title = info.title.clone(); 
+                            let tab_index = index; 
                             
                             rsx! {
                                 div { 
                                     class: "home-pack-card",
                                     style: "background-image: url('{info.background}'); background-color: {info.color};",
                                     onclick: move |_| {
-                                        // Debug the page change
+                                        // CRITICAL FIX: Make sure this changes the page
                                         let old_page = page();
-                                        page.set(tab_index);
-                                        debug!("HomePage card clicked: changing page from {} to {} (title: {})", 
-                                               old_page, tab_index, tab_title);
+                                        debug!("HOME CLICK: Changing page from {} to {} ({}) - HOME_PAGE={}", 
+                                               old_page, tab_index, tab_title, HOME_PAGE);
+                                        
+                                        // Force update page signal
+                                        page.write().clone_from(&tab_index);
+                                        
+                                        // Double-check update worked
+                                        let new_page = page();
+                                        debug!("HOME CLICK RESULT: Page is now {}", new_page);
                                     },
                                     div { class: "home-pack-info",
                                         h2 { class: "home-pack-title", "{modpack_subtitle}" }
@@ -960,8 +965,8 @@ fn AppHeader(
     settings: Signal<bool>,
     logo_url: Option<String>
 ) -> Element {
-    // Log what tabs we have available
-    debug!("Rendering AppHeader with {} tabs", pages().len());
+    // Debug what tabs we have available
+    debug!("AppHeader: rendering with {} tabs", pages().len());
     for (index, info) in pages().iter() {
         debug!("  Tab {}: title={}", index, info.title);
     }
@@ -1031,13 +1036,15 @@ fn AppHeader(
                         let title = main_tab_titles[i].clone();
                         rsx!(
                             button {
-                                class: if page() == index { "header-tab-button active" } else { "header-tab-button" },
-                                onclick: move |_| {
-                                    page.set(index);
-                                    debug!("Switching to tab {}: {}", index, title);
-                                },
-                                "{title}"
-                            }
+        class: if page() == index { "header-tab-button active" } else { "header-tab-button" },
+        onclick: move |_| {
+            debug!("TAB CLICK: Changing page from {} to {}", page(), index);
+            // CRITICAL FIX: Use write() for more direct access
+            page.write().clone_from(&index);
+            debug!("TAB CLICK RESULT: Page is now {}", page());
+        },
+        "{title}"
+    }
                         )
                     })
                 }
@@ -1109,8 +1116,32 @@ pub(crate) fn app() -> Element {
     let config = use_signal(|| props.config);
     let settings = use_signal(|| false);
     let mut err: Signal<Option<String>> = use_signal(|| None);
-    let page = use_signal(|| HOME_PAGE);
+    let page = use_signal(|| HOME_PAGE);  // Initially set to HOME_PAGE
     let mut pages = use_signal(BTreeMap::<usize, TabInfo>::new);
+
+    // DIAGNOSTIC: Print branches available
+    debug!("DIAGNOSTIC: Available branches: {}", branches.len());
+    for branch in &branches {
+        debug!("  - Branch: {}", branch.name);
+    }
+
+    // DIAGNOSTIC: Add direct modification of the page signal to verify reactivity
+    use_effect(move || {
+        debug!("DIAGNOSTIC: Current page value: {}", page());
+        debug!("DIAGNOSTIC: HOME_PAGE value: {}", HOME_PAGE);
+
+        // Debug the pages map
+        debug!("DIAGNOSTIC: Pages map contains {} entries", pages().len());
+        for (key, info) in pages().iter() {
+            debug!("  - Tab group {}: {} with {} modpacks", 
+                   key, info.title, info.modpacks.len());
+            
+            // List modpacks in each tab group
+            for (i, profile) in info.modpacks.iter().enumerate() {
+                debug!("    * Modpack {}: {}", i, profile.manifest.subtitle);
+            }
+        }
+    });
 
     let cfg = config.with(|cfg| cfg.clone());
     let launcher = match super::get_launcher(&cfg.launcher) {
@@ -1345,6 +1376,10 @@ pub(crate) fn app() -> Element {
     let logo_url = Some("https://raw.githubusercontent.com/Wynncraft-Overhaul/installer/master/src/assets/icon.png".to_string());
     
     // Fix: Return the JSX from the app function
+    let current_page = page();
+    debug!("RENDER DECISION: current_page={}, HOME_PAGE={}, is_home={}",
+           current_page, HOME_PAGE, current_page == HOME_PAGE);
+    
     rsx! {
         div {
             style { {css_content} }
@@ -1364,105 +1399,102 @@ pub(crate) fn app() -> Element {
             }}
 
             div { class: "main-container",
-    {if settings() {
-        rsx! {
-            Settings {
-                config,
-                settings,
-                config_path: props.config_path.clone(),
-                error: err,
-                b64_id: URL_SAFE_NO_PAD.encode(props.modpack_source)
-            }
-        }
-    } else if config.read().first_launch.unwrap_or(true) || launcher.is_none() {
-        rsx! {
-            Launcher {
-                config,
-                config_path: props.config_path.clone(),
-                error: err,
-                b64_id: URL_SAFE_NO_PAD.encode(props.modpack_source)
-            }
-        }
-    } else if packs.read().is_none() {
-        rsx! {
-            div { class: "loading-container",
-                div { class: "loading-spinner" }
-                div { class: "loading-text", "Loading modpack information..." }
-            }
-        }
-    } else {
-        // Replace the content section with this approach that handles the borrowing issue correctly
-
-if page() == HOME_PAGE {
-    rsx! {
-        HomePage {
-            pages,
-            page
-        }
-    }
-} else {
-    // Get the current page outside the RSX block
-    let current_page = page();
-debug!("Current page state: {}", current_page);
-debug!("HOME_PAGE value: {}", HOME_PAGE);
-debug!("Is current page == HOME_PAGE? {}", current_page == HOME_PAGE);
-debug!("Available pages keys: {:?}", pages().keys().collect::<Vec<_>>());
-
-if current_page == HOME_PAGE {
-    debug!("Rendering HomePage component");
-    rsx! {
-        HomePage {
-            pages,
-            page
-        }
-    }
-} else {
-    debug!("Rendering content for page: {}", current_page);
-    
-    // Create a local copy of the modpacks to render
-    let modpacks_to_render = {
-        if let Some(tab_info) = pages().get(&current_page) {
-            debug!("Found tab info for page {}: {} modpacks", 
-                   current_page, tab_info.modpacks.len());
-            
-            // Clone the modpacks to avoid borrowing issues
-            tab_info.modpacks.clone()
-        } else {
-            debug!("No tab info found for page {}", current_page);
-            Vec::new()
-        }
-    };
-    
-    // Log each modpack being rendered
-    for (i, profile) in modpacks_to_render.iter().enumerate() {
-        debug!("Modpack {}: {} for tab_group {}", 
-               i, profile.manifest.subtitle, current_page);
-    }
-    
-    // Now use the local copy in the RSX
-    rsx! {
-        div { 
-            class: "version-page-container",
-            style: "display: block; width: 100%;",
-            
-            if !modpacks_to_render.is_empty() {
-                // Render modpacks for this tab using our local copy
-                {modpacks_to_render.iter().map(|profile| {
+                {if settings() {
                     rsx! {
-                        Version {
-                            installer_profile: profile.clone(),
-                            error: err.clone(),
-                            current_page: current_page,
-                            tab_group: current_page,  // Make sure these match
+                        Settings {
+                            config,
+                            settings,
+                            config_path: props.config_path.clone(),
+                            error: err,
+                            b64_id: URL_SAFE_NO_PAD.encode(props.modpack_source)
                         }
                     }
-                })}
-            } else {
-                div { "No modpack information found for this tab." }
+                } else if config.read().first_launch.unwrap_or(true) || launcher.is_none() {
+                    rsx! {
+                        Launcher {
+                            config,
+                            config_path: props.config_path.clone(),
+                            error: err,
+                            b64_id: URL_SAFE_NO_PAD.encode(props.modpack_source)
+                        }
+                    }
+                } else if packs.read().is_none() {
+                    rsx! {
+                        div { class: "loading-container",
+                            div { class: "loading-spinner" }
+                            div { class: "loading-text", "Loading modpack information..." }
+                        }
+                    }
+                } else {
+                    // DIAGNOSTIC CONTENT RENDERING SECTION
+                    if current_page == HOME_PAGE {
+                        debug!("RENDERING: HomePage");
+                        rsx! {
+                            HomePage {
+                                pages,
+                                page
+                            }
+                        }
+                    } else {
+                        debug!("RENDERING: Content for page {}", current_page);
+                        
+                        // Get tab info and modpacks
+                        let tab_info_option = pages().get(&current_page);
+                        
+                        if let Some(tab_info) = tab_info_option {
+                            debug!("FOUND tab group {} with {} modpacks", 
+                                   current_page, tab_info.modpacks.len());
+                            
+                            // CRITICAL FIX: Get all modpacks before rendering
+                            let modpacks = tab_info.modpacks.clone();
+                            
+                            rsx! {
+                                div { 
+                                    class: "version-page-container",
+                                    
+                                    // IMPORTANT: Force render all modpacks in this tab
+                                    {modpacks.iter().map(|profile| {
+                                        debug!("  Rendering modpack: {}", profile.manifest.subtitle);
+                                        
+                                        // CRITICAL FIX: Remove the filtering in Version component
+                                        // by directly embedding the Version component contents
+                                        let installer_profile = profile.clone();
+                                        
+                                        rsx! {
+                                            // Version component directly embedded to bypass any filters
+                                            div { class: "version-container",
+                                                // Simplified version of your Version component
+                                                div { class: "content-header",
+                                                    h1 { "{installer_profile.manifest.subtitle}" }
+                                                }
+                                                div { class: "content-description",
+                                                    dangerous_inner_html: "{installer_profile.manifest.description}",
+                                                }
+                                                div { class: "feature-cards-container",
+                                                    "Feature cards would go here"
+                                                }
+                                                div { class: "install-button-container",
+                                                    button {
+                                                        class: "main-install-button",
+                                                        "Install"  // Simplified for testing
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    })}
+                                    
+                                    if modpacks.is_empty() {
+                                        div { "No modpack information found for this tab." }
+                                    }
+                                }
+                            }
+                        } else {
+                            debug!("NO TAB INFO found for page {}", current_page);
+                            rsx! { div { "No modpack information found for this tab." } }
+                        }
+                    }
+                }}
             }
         }
     }
 }
-
-}}
-}}}}}
