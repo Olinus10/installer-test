@@ -3,13 +3,9 @@ use base64::{Engine, engine::general_purpose::URL_SAFE_NO_PAD};
 use dioxus::prelude::*;
 use log::{error, debug};
 use modal::ModalContext;
-use modal::Modal;
+use modal::Modal; 
 
-// Import the necessary types from the main module
-use crate::{
-    get_app_data, get_installed_packs, get_launcher, uninstall, 
-    InstallerProfile, Launcher, PackName
-};
+use crate::{get_app_data, get_installed_packs, get_launcher, uninstall, InstallerProfile, Launcher, PackName};
 
 mod modal;
 
@@ -38,39 +34,32 @@ fn HomePage(
             
             div { class: "home-grid",
                 for (index, info) in pages() {
-                    // Only include tab_group >= 1 (skip 0 as requested)
-                    if index >= 1 {
-                        for modpack in &info.modpacks {
-                            {
-                                let modpack_subtitle = modpack.manifest.subtitle.clone();
-                                let tab_title = info.title.clone(); 
-                                let tab_index = index;
-                                let is_trending = modpack.manifest.trend.unwrap_or(false);
-                                
-                                rsx! {
-                                    div { 
-                                        class: if is_trending { "home-pack-card trending" } else { "home-pack-card" },
-                                        style: "background-image: url('{info.background}'); background-color: {info.color};",
-                                        onclick: move |_| {
-                                            debug!("HOME CLICK: Changing page from {} to {} ({}) - HOME_PAGE={}", 
-                                                page(), tab_index, tab_title, HOME_PAGE);
-                                            
-                                            // Force update page signal
-                                            page.set(tab_index);
-                                            
-                                            // Double-check update worked
-                                            debug!("HOME CLICK RESULT: Page is now {}", page());
-                                        },
+                    for modpack in &info.modpacks {
+                        {
+                            let modpack_subtitle = modpack.manifest.subtitle.clone();
+                            let tab_title = info.title.clone(); 
+                            let tab_index = index; 
+                            
+                            rsx! {
+                                div { 
+                                    class: "home-pack-card",
+                                    style: "background-image: url('{info.background}'); background-color: {info.color};",
+                                    onclick: move |_| {
+                                        // CRITICAL FIX: Make sure this changes the page
+                                        let old_page = page();
+                                        debug!("HOME CLICK: Changing page from {} to {} ({}) - HOME_PAGE={}", 
+                                               old_page, tab_index, tab_title, HOME_PAGE);
                                         
-                                        // Add the trending marker for popular packs
-                                        if is_trending {
-                                            div { class: "trending-badge", "Popular" }
-                                        }
+                                        // Force update page signal
+                                        page.write().clone_from(&tab_index);
                                         
-                                        div { class: "home-pack-info",
-                                            h2 { class: "home-pack-title", "{modpack_subtitle}" }
-                                            div { class: "home-pack-button", "View Modpack" }
-                                        }
+                                        // Double-check update worked
+                                        let new_page = page();
+                                        debug!("HOME CLICK RESULT: Page is now {}", new_page);
+                                    },
+                                    div { class: "home-pack-info",
+                                        h2 { class: "home-pack-title", "{modpack_subtitle}" }
+                                        div { class: "home-pack-button", "View Modpack" }
                                     }
                                 }
                             }
@@ -236,7 +225,7 @@ struct SettingsProps {
 }
 
 #[component]
-fn Settings(props: SettingsProps) -> Element {
+fn Settings(mut props: SettingsProps) -> Element {
     let mut vanilla = None;
     let mut multimc = None;
     let mut prism = None;
@@ -355,7 +344,6 @@ fn Settings(props: SettingsProps) -> Element {
     }
 }
 
-// IMPORTANT: Combined the two LauncherProps structs into one
 #[derive(PartialEq, Props, Clone)]
 struct LauncherProps {
     config: Signal<super::Config>,
@@ -365,7 +353,7 @@ struct LauncherProps {
 }
 
 #[component]
-fn Launcher(props: LauncherProps) -> Element {
+fn Launcher(mut props: LauncherProps) -> Element {
     let mut vanilla = None;
     let mut multimc = None;
     let mut prism = None;
@@ -380,14 +368,12 @@ fn Launcher(props: LauncherProps) -> Element {
         || super::get_multimc_folder("PrismLauncher").is_ok();
         
     if !has_supported_launcher {
-        rsx! {
-            NoLauncherFound {
-                config: props.config,
-                config_path: props.config_path,
-                error: props.error,
-                b64_id: props.b64_id.clone()
-            }
-        }
+        rsx!(NoLauncherFound {
+            config: props.config,
+            config_path: props.config_path,
+            error: props.error,
+            b64_id: props.b64_id.clone()
+        })
     } else {
         rsx! {
             div { class: "launcher-container",
@@ -541,7 +527,7 @@ fn FeatureCard(props: FeatureCardProps) -> Element {
                 div { class: "feature-card-description", "{description}" }
             }
             
-            // Toggle button with hidden checkbox for better interactivity
+            // Toggle button with hidden checkbox
             label {
                 class: if enabled { "feature-toggle-button enabled" } else { "feature-toggle-button disabled" },
                 input {
@@ -557,12 +543,11 @@ fn FeatureCard(props: FeatureCardProps) -> Element {
     }
 }
 
-// Fix for feature_change function to properly handle toggling
 fn feature_change(
     local_features: Signal<Option<Vec<String>>>,
     mut modify: Signal<bool>,
     evt: FormEvent,
-    feat: &crate::Feature,  // Use full path here
+    feat: &super::Feature,
     mut modify_count: Signal<i32>,
     mut enabled_features: Signal<Vec<String>>,
 ) {
@@ -615,14 +600,12 @@ async fn init_branch(source: String, branch: String, launcher: Launcher, mut pag
     debug!("  subtitle: {}", profile.manifest.subtitle);
     debug!("  description length: {}", profile.manifest.description.len());
 
-    // Adjust tab_group to start from 1 instead of 0
     let tab_group = if let Some(tab_group) = profile.manifest.tab_group {
-        debug!("  Original tab_group: {}", tab_group);
-        // Ensure it's at least 1
-        if tab_group == 0 { 1 } else { tab_group }
+        debug!("  tab_group: {}", tab_group);
+        tab_group
     } else {
-        debug!("  tab_group: None, defaulting to 1");
-        1 // Default to tab group 1 instead of 0
+        debug!("  tab_group: None, defaulting to 0");
+        0
     };
 
     // Check if this profile already exists in the tab group
@@ -703,7 +686,7 @@ struct VersionProps {
 }
 
 #[component]
-fn Version(props: VersionProps) -> Element {
+fn Version(mut props: VersionProps) -> Element {
     let installer_profile = props.installer_profile.clone();
     
     debug!("Version component for '{}' - current_page: {}, tab_group: {}",
@@ -764,7 +747,6 @@ fn Version(props: VersionProps) -> Element {
         
         async move {
             let install = move |canceled| {
-                debug!("Beginning installation process for {}", movable_profile.manifest.subtitle);
                 let mut installer_profile = movable_profile.clone();
                 spawn(async move {
                     if canceled {
@@ -897,13 +879,13 @@ fn Version(props: VersionProps) -> Element {
         } else {
             div { class: "version-container",
                 form { onsubmit: on_submit,
-                    // Improved streamlined header section with title and subtitle
+                    // Header section with title and subtitle (using manifest data)
                     div { class: "content-header",
                         h1 { "{installer_profile.manifest.subtitle}" }
                     }
                     
-                    // Clean description section with no box
-                    div { class: "content-description-clean",
+                    // Description section (using manifest data)
+                    div { class: "content-description",
                         // The 'dangerous_inner_html' directive renders HTML content safely
                         dangerous_inner_html: "{installer_profile.manifest.description}",
                         
@@ -923,69 +905,45 @@ fn Version(props: VersionProps) -> Element {
                     // Features heading
                     h2 { "Optional Features" }
                     
-                    // Compact feature cards in a responsive grid
+                    // Feature cards in a responsive grid
                     div { class: "feature-cards-container",
-                        for feat in installer_profile.manifest.features {
-                            if !feat.hidden {
-                                {
-                                    let feat_id = feat.id.clone();
-                                    let feat_clone = feat.clone(); // Clone feature for use in closure
-                                    let is_enabled = enabled_features.read().contains(&feat_id) || feat.default;
-                                    
-                                    rsx! {
-                                        div { 
-                                            class: if is_enabled { "feature-card feature-enabled" } else { "feature-card feature-disabled" },
-                                            h3 { class: "feature-card-title", "{feat.name}" }
-                                            
-                                            // Render description if available
-                                            if let Some(description) = &feat.description {
-                                                div { class: "feature-card-description", "{description}" }
-                                            }
-                                            
-                                            // Improved toggle button with clickable functionality
-                                            label {
-                                                class: if is_enabled { "feature-toggle-button enabled" } else { "feature-toggle-button disabled" },
-                                                
-                                                // Hidden checkbox to track state
-                                                input {
-                                                    r#type: "checkbox",
-                                                    name: "{feat_id}",
-                                                    checked: if is_enabled { Some("true") } else { None },
-                                                    onchange: move |evt| {
-                                                        // Call feature_change to toggle the feature
-                                                        feature_change(
-                                                            local_features,
-                                                            modify,
-                                                            evt,
-                                                            &feat_clone,
-                                                            modify_count,
-                                                            enabled_features,
-                                                        );
-                                                    },
-                                                    style: "display: none;"
-                                                }
-                                                
-                                                if is_enabled { "Enabled" } else { "Disabled" }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
+    {installer_profile.manifest.features.iter().filter(|feat| !feat.hidden).map(|feat| {
+        let feat_id = feat.id.clone();
+        let feat_name = feat.name.clone();
+        let feat_description = feat.description.clone();
+        let is_enabled = installer_profile.enabled_features.contains(&feat_id) || feat.default;
+        
+        rsx! {
+            div { 
+                class: if is_enabled { "feature-card feature-enabled" } else { "feature-card feature-disabled" },
+                h3 { class: "feature-card-title", "{feat_name}" }
+                
+                // Render description if available
+                if let Some(description) = feat_description {
+                    div { class: "feature-card-description", "{description}" }
+                }
+                
+                // Toggle button 
+                div {
+                    class: if is_enabled { "feature-toggle-button enabled" } else { "feature-toggle-button disabled" },
+                    if is_enabled { "Enabled" } else { "Disabled" }
+                }
+            }
+        }
+    })}
+}
                     
-                    // Prominent and centered install button
-                    div { class: "install-button-container-centered",
-                        button {
-                            class: "main-install-button",
-                            disabled: install_disable,
-                            if !*installed.read() {
-                                "Install"
-                            } else if *update_available.read() {
-                                "Update"
-                            } else {
-                                "Modify"
-                            }
+                    // Install/Update/Modify button at the bottom
+                    div { class: "install-button-container",
+    button {
+        class: "main-install-button",
+        if !installer_profile.installed {
+            "Install"
+        } else if installer_profile.update_available {
+            "Update"
+        } else {
+            "Modify"
+        }
                         }
                     }
                 }
@@ -1014,20 +972,16 @@ fn AppHeader(
     let mut dropdown_tab_indices = vec![];
     let mut dropdown_tab_titles = vec![];
     
-    // Separate tab groups into main tabs (1-3) and dropdown tabs (4+)
+    // Separate tab groups into main tabs (0, 1, 2) and dropdown tabs (3+)
     for (index, info) in pages().iter() {
-        if *index >= 1 && *index <= 3 {
+        if *index <= 2 {
             main_tab_indices.push(*index);
             main_tab_titles.push(info.title.clone());
-        } else if *index > 3 {
+        } else {
             dropdown_tab_indices.push(*index);
             dropdown_tab_titles.push(info.title.clone());
         }
     }
-    
-    // Sort the tab indices to ensure order
-    main_tab_indices.sort();
-    dropdown_tab_indices.sort();
     
     let has_dropdown = !dropdown_tab_indices.is_empty();
     let any_dropdown_active = dropdown_tab_indices.iter().any(|idx| page() == *idx);
@@ -1070,32 +1024,26 @@ fn AppHeader(
                     "Home"
                 }
 
-                // Main tabs (1-3)
+                // Main tabs (0, 1, 2)
                 {
                     main_tab_indices.iter().enumerate().map(|(i, &index)| {
-                        let title_index = main_tab_indices.iter().position(|&idx| idx == index).unwrap_or(i);
-                        let title = if title_index < main_tab_titles.len() {
-                            main_tab_titles[title_index].clone()
-                        } else {
-                            format!("Tab {}", index)
-                        };
-                        
+                        let title = main_tab_titles[i].clone();
                         rsx!(
                             button {
-                                class: if page() == index { "header-tab-button active" } else { "header-tab-button" },
-                                onclick: move |_| {
-                                    debug!("TAB CLICK: Changing page from {} to {}", page(), index);
-                                    // Set page directly
-                                    page.set(index);
-                                    debug!("TAB CLICK RESULT: Page is now {}", page());
-                                },
-                                "{title}"
-                            }
+        class: if page() == index { "header-tab-button active" } else { "header-tab-button" },
+        onclick: move |_| {
+            debug!("TAB CLICK: Changing page from {} to {}", page(), index);
+            // CRITICAL FIX: Use write() for more direct access
+            page.write().clone_from(&index);
+            debug!("TAB CLICK RESULT: Page is now {}", page());
+        },
+        "{title}"
+    }
                         )
                     })
                 }
                 
-                // Dropdown for remaining tabs (4+) - placed outside the flow to avoid affecting scrolling
+                // Dropdown for remaining tabs - placed outside the flow to avoid affecting scrolling
                 if has_dropdown {
                     div { 
                         class: "dropdown",
@@ -1111,18 +1059,11 @@ fn AppHeader(
                             class: "dropdown-content",
                             {
                                 dropdown_tab_indices.iter().enumerate().map(|(i, &index)| {
-                                    let title_index = dropdown_tab_indices.iter().position(|&idx| idx == index).unwrap_or(i);
-                                    let title = if title_index < dropdown_tab_titles.len() {
-                                        dropdown_tab_titles[title_index].clone()
-                                    } else {
-                                        format!("Tab {}", index)
-                                    };
-                                    
+                                    let title = dropdown_tab_titles[i].clone();
                                     rsx!(
                                         button {
                                             class: if page() == index { "dropdown-item active" } else { "dropdown-item" },
                                             onclick: move |_| {
-                                                // Set page directly
                                                 page.set(index);
                                                 debug!("Switching to dropdown tab {}: {}", index, title);
                                             },
@@ -1159,6 +1100,8 @@ pub(crate) struct AppProps {
     pub config: super::Config,
     pub config_path: PathBuf,
 }
+
+// Replace the entire app() function with this properly structured version
 
 pub(crate) fn app() -> Element {
     let props = use_context::<AppProps>();
@@ -1227,10 +1170,7 @@ pub(crate) fn app() -> Element {
                     for branch in &branches {
                         match crate::init(source.clone(), branch.name.clone(), launcher.clone()).await {
                             Ok(profile) => {
-                                // Adjust tab_group numbering to start from 1 instead of 0
-                                let tab_group = if let Some(group) = profile.manifest.tab_group {
-                                    if group == 0 { 1 } else { group }
-                                } else { 1 };
+                                let tab_group = profile.manifest.tab_group.unwrap_or(0);
                                 results.push((tab_group, profile));
                                 debug!("Processed branch: {} in tab group {}", branch.name, tab_group);
                             }
@@ -1252,13 +1192,6 @@ pub(crate) fn app() -> Element {
             
             let mut new_pages = BTreeMap::<usize, TabInfo>::new();
             for (tab_group, profile) in processed_branches {
-                // Ensure tab_group is at least 1
-                let adjusted_tab_group = if *tab_group == 0 { 1 } else { *tab_group };
-                
-                // Add debug to see which tab groups are being processed
-                debug!("Processing tab_group: {} for profile: {}", 
-                       adjusted_tab_group, profile.manifest.subtitle);
-                
                 let tab_title = profile.manifest.tab_title.clone().unwrap_or_else(|| profile.manifest.subtitle.clone());
                 let tab_color = profile.manifest.tab_color.clone().unwrap_or_else(|| String::from("#320625"));
                 let tab_background = profile.manifest.tab_background.clone().unwrap_or_else(|| {
@@ -1270,22 +1203,15 @@ pub(crate) fn app() -> Element {
                 });
                 let secondary_font = profile.manifest.tab_secondary_font.clone().unwrap_or_else(|| primary_font.clone());
 
-                // Use the adjusted value
-                if let Some(tab_info) = new_pages.get_mut(&adjusted_tab_group) {
-                    // Tab exists, add the profile
-                    tab_info.modpacks.push(profile.clone());
-                } else {
-                    // Tab doesn't exist, create it
-                    new_pages.insert(adjusted_tab_group, TabInfo {
-                        color: tab_color,
-                        title: tab_title,
-                        background: tab_background,
-                        settings_background,
-                        primary_font,
-                        secondary_font,
-                        modpacks: vec![profile.clone()],
-                    });
-                }
+                new_pages.entry(*tab_group).or_insert(TabInfo {
+                    color: tab_color,
+                    title: tab_title,
+                    background: tab_background,
+                    settings_background,
+                    primary_font,
+                    secondary_font,
+                    modpacks: vec![profile.clone()],
+                });
             }
             
             pages.set(new_pages);
@@ -1294,7 +1220,6 @@ pub(crate) fn app() -> Element {
     });
 
     // Update the CSS generation section
-        // Update the CSS generation section
     let css_content = {
         let default_color = "#320625".to_string();
         let default_bg = "https://raw.githubusercontent.com/Wynncraft-Overhaul/installer/master/src/assets/background_installer.png".to_string();
@@ -1329,11 +1254,106 @@ pub(crate) fn app() -> Element {
         debug!("Updating CSS with: color={}, bg_image={}, secondary_font={}, primary_font={}", 
                bg_color, bg_image, secondary_font, primary_font);
             
+        // Improved dropdown menu CSS with better hover behavior and font consistency
+        let dropdown_css = "
+        /* Dropdown styles */
+        .dropdown { 
+            position: relative; 
+            display: inline-block; 
+        }
+
+        /* Position the dropdown content */
+        .dropdown-content {
+            display: none;
+            position: absolute;
+            top: 100%;
+            left: 0;
+            background-color: rgba(0, 0, 0, 0.9);
+            min-width: 200px;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.6);
+            z-index: 1000;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 5px;
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        /* Show dropdown on hover with increased target area */
+        .dropdown:hover .dropdown-content,
+        .dropdown-content:hover {
+            display: block;
+        }
+
+        /* Add a pseudo-element to create an invisible connection between the button and dropdown */
+        .dropdown::after {
+            content: '';
+            position: absolute;
+            height: 10px;
+            width: 100%;
+            left: 0;
+            top: 100%;
+            display: none;
+        }
+
+        .dropdown:hover::after {
+            display: block;
+        }
+
+        .dropdown-item {
+            display: block;
+            width: 100%;
+            padding: 10px 15px;
+            text-align: left;
+            background-color: transparent;
+            border: none;
+            /* Explicitly use the same font as header-tab-button */
+            font-family: \\\"PRIMARY_FONT\\\";
+            font-size: 0.9rem;
+            color: #fce8f6;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .dropdown-item:last-child {
+            border-bottom: none;
+        }
+
+        .dropdown-item:hover {
+            background-color: rgba(50, 6, 37, 0.8);
+            border-color: rgba(255, 255, 255, 0.4);
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+        }
+
+        .dropdown-item.active {
+            background-color: var(--bg-color);
+            border-color: #fce8f6;
+            box-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
+            color: #fff;
+        }
+
+        /* Fix for header-tabs to prevent dropdown from affecting it */
+        .header-tabs {
+            display: flex;
+            gap: 5px;
+            margin: 0 10px;
+            flex-grow: 1;
+            justify-content: center;
+            flex-wrap: wrap;
+            overflow-x: visible;
+            scrollbar-width: thin;
+            max-width: 70%;
+            position: relative;
+        }";
+            
         css
             .replace("<BG_COLOR>", &bg_color)
             .replace("<BG_IMAGE>", &bg_image)
             .replace("<SECONDARY_FONT>", &secondary_font)
-            .replace("<PRIMARY_FONT>", &primary_font)
+            .replace("<PRIMARY_FONT>", &primary_font) 
+            + dropdown_css
     };
 
     let mut modal_context = use_context_provider(ModalContext::default);
@@ -1349,7 +1369,7 @@ pub(crate) fn app() -> Element {
     // Determine which logo to use
     let logo_url = Some("https://raw.githubusercontent.com/Wynncraft-Overhaul/installer/master/src/assets/icon.png".to_string());
     
-    // Current page for rendering decision
+    // Fix: Return the JSX from the app function
     let current_page = page();
     debug!("RENDER DECISION: current_page={}, HOME_PAGE={}, is_home={}",
            current_page, HOME_PAGE, current_page == HOME_PAGE);
@@ -1400,50 +1420,134 @@ pub(crate) fn app() -> Element {
                         }
                     }
                 } else {
+                    // DIAGNOSTIC CONTENT RENDERING SECTION
                     if current_page == HOME_PAGE {
-                        debug!("RENDERING: HomePage");
-                        rsx! {
-                            HomePage {
-                                pages,
-                                page
+    debug!("RENDERING: HomePage");
+    rsx! {
+        HomePage {
+            pages,
+            page
+        }
+    }
+} else {
+    debug!("RENDERING: Content for page {}", current_page);
+    
+    // Get tab info without temporary references
+    let pages_map = pages();
+    
+    if let Some(tab_info) = pages_map.get(&current_page) {
+        debug!("FOUND tab group {} with {} modpacks", 
+               current_page, tab_info.modpacks.len());
+        
+        // CRITICAL FIX: Get all modpacks before rendering
+        let modpacks = tab_info.modpacks.clone();
+        debug!("Cloned {} modpacks for rendering", modpacks.len());
+        
+        // Log each modpack outside the RSX
+        for profile in &modpacks {
+            debug!("Preparing to render modpack: {}", profile.manifest.subtitle);
+        }
+        
+        // Directly return the RSX without unnecessary nesting
+        rsx! {
+            div { 
+                class: "version-page-container",
+                style: "display: block; width: 100%;",
+                
+                for profile in modpacks {
+                    // Debug statements MUST NOT be inside RSX blocks
+                    div { 
+                        class: "version-container",
+                        
+                        // Header section
+                        div { class: "content-header",
+                            h1 { "{profile.manifest.subtitle}" }
+                        }
+                        
+                        // Description section
+                        div { class: "content-description",
+                            dangerous_inner_html: "{profile.manifest.description}",
+                            
+                            // Credits link
+                            div {
+                                a { 
+                                    class: "credits-link",
+                                    "View Credits"
+                                }
                             }
                         }
-                    } else {
-                        debug!("RENDERING: Content for page {}", current_page);
                         
-                        // Get tab info without temporary references
-                        let pages_map = pages();
+                        // Features heading
+                        h2 { "Optional Features" }
                         
-                        if let Some(tab_info) = pages_map.get(&current_page) {
-                            // Check if this part is working
-                            debug!("FOUND tab group {} with {} modpacks", 
-                                current_page, tab_info.modpacks.len());
+                        // Feature cards
+                        
+
+div { class: "feature-cards-container",
+    for feat in profile.manifest.features {
+        if !feat.hidden {
+            {
+                // Move this Rust code outside the RSX by wrapping it in its own block
+                let feat_id = feat.id.clone();
+                let feat_name = feat.name.clone();
+                let feat_description = feat.description.clone();
+                
+                // Check if feature is enabled
+                let is_enabled = profile.enabled_features.contains(&feat_id) || feat.default;
+                
+                // Extract feature toggle function parameters for this feature
+                let feature_clone = feat.clone();
+                
+                // Return the RSX from this block
+                rsx! {
+                    div { 
+                        class: if is_enabled { "feature-card feature-enabled" } else { "feature-card feature-disabled" },
+                        h3 { class: "feature-card-title", "{feat_name}" }
+                        
+                        // Description if available
+                        if let Some(description) = &feat_description {
+                            div { class: "feature-card-description", "{description}" }
+                        }
+                        
+                        // Toggle button with proper functionality
+                        label {
+                            class: if is_enabled { "feature-toggle-button enabled" } else { "feature-toggle-button disabled" },
                             
-                            // Get the first modpack in this tab group
-                            if !tab_info.modpacks.is_empty() {
-                                // Clone the first profile to avoid ownership issues
-                                let profile = tab_info.modpacks[0].clone();
-                                debug!("Rendering modpack profile: {}", profile.manifest.subtitle);
-                                
-                                // Render the Version component with the profile
-                                rsx! {
-                                    Version {
-                                        installer_profile: profile,
-                                        error: err,
-                                        current_page,
-                                        tab_group: current_page
-                                    }
-                                }
-                            } else {
-                                rsx! { div { "No modpack information found for this tab." } }
+                            // Hidden checkbox to track state
+                            input {
+                                r#type: "checkbox",
+                                name: "{feat_id}",
+                                checked: if is_enabled { Some("true") } else { None },
+                                onchange: move |evt| {
+                                    // Here we'll call a proper feature_change function
+                                    debug!("Feature toggle changed: {}", feat_id);
+                                    
+                                    // You would call your feature_change function here
+                                    // feature_change(local_features, modify, evt, &feature_clone, modify_count, enabled_features);
+                                },
+                                style: "display: none;"
                             }
-                        } else {
-                            debug!("NO TAB INFO found for page {}", current_page);
-                            rsx! { div { "No modpack information found for this tab." } }
+                            
+                            if is_enabled { "Enabled" } else { "Disabled" }
                         }
                     }
                 }
             }
         }
     }
-}}
+}
+                        
+                        // Install button
+                        div { class: "install-button-container",
+                            button { class: "main-install-button", "Install" }
+                        }
+                    }
+                }
+            }
+        }
+    } else {
+        debug!("NO TAB INFO found for page {}", current_page);
+        rsx! { div { "No modpack information found for this tab." } }
+    }
+}
+}}}}}}
