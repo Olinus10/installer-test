@@ -408,25 +408,75 @@ a:hover {
     overflow: visible; /* Allow button to extend beyond container */
 }
 
+
+/* Section headings */
+.version-container h2 {
+    text-align: center;
+    margin: 30px 0 20px 0;
+    font-family: "SECONDARY_FONT";
+    font-size: 2rem;
+    position: relative;
+    overflow: hidden;
+    padding: 0 15px;
+}
+
+.version-container h2::before,
+.version-container h2::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    width: 35%;
+    height: 1px;
+    background: linear-gradient(to right, transparent, rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0.2));
+}
+
+.version-container h2::before {
+    left: -5%;
+}
+
+.version-container h2::after {
+    right: -5%;
+    background: linear-gradient(to left, transparent, rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0.2));
+}
+
+
+// Improved title and description layout
+
 .content-header {
     text-align: center;
-    margin-bottom: 20px;
+    margin-bottom: 10px;
+    padding: 30px 0 20px 0;
+    position: relative;
 }
 
 .content-header h1 {
     font-family: "SECONDARY_FONT";
-    font-size: 2.2rem;
+    font-size: 3rem;
     margin: 0;
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+    text-shadow: 0 4px 8px rgba(0, 0, 0, 0.6);
+    background: linear-gradient(180deg, #fce8f6 0%, #d8b8d0 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    animation: glow 2s ease-in-out infinite alternate;
 }
 
 .content-description {
     background-color: rgba(0, 0, 0, 0.7);
-    border-radius: 8px;
-    padding: 20px;
-    margin-bottom: 30px;
+    border-radius: 12px;
+    padding: 25px 35px;
+    margin: 0 auto 30px auto;
     line-height: 1.6;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+    position: relative;
+    max-width: 85%;
+    text-align: center;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.content-description p:first-child {
+    font-size: 1.1rem;
+    margin-top: 0;
 }
 
 .credits-link {
@@ -436,12 +486,14 @@ a:hover {
     color: #fce8f6;
     text-decoration: none;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: all 0.3s ease;
+    opacity: 0.8;
 }
 
 .credits-link:hover {
     text-decoration: underline;
-    text-shadow: 0 0 5px rgba(255, 255, 255, 0.5);
+    text-shadow: 0 0 8px rgba(255, 255, 255, 0.7);
+    opacity: 1;
 }
 
 /* Feature Cards */
@@ -922,6 +974,16 @@ a:hover {
 @keyframes spin {
     to { transform: rotate(360deg); }
 }
+
+@keyframes glow {
+    from {
+        text-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
+    }
+    to {
+        text-shadow: 0 0 20px rgba(255, 255, 255, 0.4);
+    }
+}
+
 
 .loading-text {
     font-size: 20px;
