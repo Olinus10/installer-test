@@ -5,11 +5,10 @@ use log::{error, debug};
 use modal::ModalContext;
 use modal::Modal;
 
-// Import the necessary types from the main module
+// Import the necessary types from the main module - note the correct names!
 use crate::{
     get_app_data, get_installed_packs, get_launcher, uninstall, 
-    InstallerProfile, Launcher, PackName, Feature, Author, Mod, 
-    ShaderPack, ResourcePack, Include
+    InstallerProfile, Launcher, PackName
 };
 
 mod modal;
