@@ -46,9 +46,11 @@ fn HomePage(
                                     class: "home-pack-card",
                                     style: "background-image: url('{info.background}'); background-color: {info.color};",
                                     onclick: move |_| {
-                                        // Direct page change without complex state management
+                                        // Debug the page change
+                                        let old_page = page();
                                         page.set(tab_index);
-                                        debug!("Navigating to tab {}: {}", tab_index, tab_title);
+                                        debug!("HomePage card clicked: changing page from {} to {} (title: {})", 
+                                               old_page, tab_index, tab_title);
                                     },
                                     div { class: "home-pack-info",
                                         h2 { class: "home-pack-title", "{modpack_subtitle}" }
@@ -682,16 +684,10 @@ struct VersionProps {
 fn Version(mut props: VersionProps) -> Element {
     let installer_profile = props.installer_profile.clone();
     
-    debug!("Rendering Version component for '{}' (source: {}, branch: {})",
+    debug!("Version component for '{}' - current_page: {}, tab_group: {}",
            installer_profile.manifest.subtitle,
-           installer_profile.modpack_source,
-           installer_profile.modpack_branch);  
-    // Only render this component if its tab_group matches the current page
- if props.current_page != props.tab_group {
-        debug!("Version component not rendered: current_page={}, tab_group={}",
-               props.current_page, props.tab_group);
-        return None;
-    }
+           props.current_page,
+           props.tab_group);
 
     let mut installing = use_signal(|| false);
     let mut progress_status = use_signal(|| "");
@@ -1407,11 +1403,26 @@ if page() == HOME_PAGE {
 } else {
     // Get the current page outside the RSX block
     let current_page = page();
+debug!("Current page state: {}", current_page);
+debug!("HOME_PAGE value: {}", HOME_PAGE);
+debug!("Is current page == HOME_PAGE? {}", current_page == HOME_PAGE);
+debug!("Available pages keys: {:?}", pages().keys().collect::<Vec<_>>());
+
+if current_page == HOME_PAGE {
+    debug!("Rendering HomePage component");
+    rsx! {
+        HomePage {
+            pages,
+            page
+        }
+    }
+} else {
+    debug!("Rendering content for page: {}", current_page);
     
-    // Create a local copy of the data to avoid borrowing issues
+    // Create a local copy of the modpacks to render
     let modpacks_to_render = {
         if let Some(tab_info) = pages().get(&current_page) {
-            debug!("Rendering content for page {}: {} modpacks", 
+            debug!("Found tab info for page {}: {} modpacks", 
                    current_page, tab_info.modpacks.len());
             
             // Clone the modpacks to avoid borrowing issues
@@ -1421,6 +1432,12 @@ if page() == HOME_PAGE {
             Vec::new()
         }
     };
+    
+    // Log each modpack being rendered
+    for (i, profile) in modpacks_to_render.iter().enumerate() {
+        debug!("Modpack {}: {} for tab_group {}", 
+               i, profile.manifest.subtitle, current_page);
+    }
     
     // Now use the local copy in the RSX
     rsx! {
@@ -1436,7 +1453,7 @@ if page() == HOME_PAGE {
                             installer_profile: profile.clone(),
                             error: err.clone(),
                             current_page: current_page,
-                            tab_group: current_page,
+                            tab_group: current_page,  // Make sure these match
                         }
                     }
                 })}
@@ -1446,5 +1463,6 @@ if page() == HOME_PAGE {
         }
     }
 }
+
 }}
-}}}}
+}}}}}
