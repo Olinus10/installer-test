@@ -52,11 +52,12 @@ fn HomePage(
                                         class: if is_trending { "home-pack-card trending" } else { "home-pack-card" },
                                         style: "background-image: url('{info.background}'); background-color: {info.color};",
                                         onclick: move |_| {
+                                            // Log current page and target
                                             debug!("HOME CLICK: Changing page from {} to {} ({}) - HOME_PAGE={}", 
                                                 page(), tab_index, tab_title, HOME_PAGE);
                                             
-                                            // Force update page signal
-                                            page.write().clone_from(&tab_index);
+                                            // Set the page explicitly instead of using clone_from
+                                            page.set(tab_index);
                                             
                                             // Double-check update worked
                                             debug!("HOME CLICK RESULT: Page is now {}", page());
@@ -925,6 +926,7 @@ fn Version(mut props: VersionProps) -> Element {
                             if !feat.hidden {
                                 {
                                     let feat_id = feat.id.clone();
+                                    let feat_clone = feat.clone(); // Clone feature for use in closure
                                     let is_enabled = enabled_features.read().contains(&feat_id) || feat.default;
                                     
                                     rsx! {
@@ -952,7 +954,7 @@ fn Version(mut props: VersionProps) -> Element {
                                                             local_features,
                                                             modify,
                                                             evt,
-                                                            &feat,
+                                                            &feat_clone,
                                                             modify_count,
                                                             enabled_features,
                                                         );
@@ -1070,8 +1072,8 @@ fn AppHeader(
                                 class: if page() == index { "header-tab-button active" } else { "header-tab-button" },
                                 onclick: move |_| {
                                     debug!("TAB CLICK: Changing page from {} to {}", page(), index);
-                                    // Use write() for more direct access
-                                    page.write().clone_from(&index);
+                                    // Use set instead of write().clone_from()
+                                    page.set(index);
                                     debug!("TAB CLICK RESULT: Page is now {}", page());
                                 },
                                 "{title}"
@@ -1080,7 +1082,7 @@ fn AppHeader(
                     })
                 }
                 
-                // Dropdown for remaining tabs (4+) - placed outside the flow to avoid affecting scrolling
+                // Dropdown for remaining tabs (4+)
                 if has_dropdown {
                     div { 
                         class: "dropdown",
@@ -1101,6 +1103,7 @@ fn AppHeader(
                                         button {
                                             class: if page() == index { "dropdown-item active" } else { "dropdown-item" },
                                             onclick: move |_| {
+                                                // Use set instead of write
                                                 page.set(index);
                                                 debug!("Switching to dropdown tab {}: {}", index, title);
                                             },
@@ -1677,44 +1680,66 @@ pub(crate) fn app() -> Element {
                         }
                     }
                 } else {
-                    if current_page == HOME_PAGE {
-    debug!("RENDERING: HomePage");
-    rsx! {
-        HomePage {
-            pages,
-            page
-        }
-    }
-} else {
-    debug!("RENDERING: Content for page {}", current_page);
+                    let content = {
+    let current_page = page();
+    debug!("RENDER DECISION: current_page={}, HOME_PAGE={}, is_home={}",
+           current_page, HOME_PAGE, current_page == HOME_PAGE);
     
-    // Get tab info without temporary references
-    let pages_map = pages();
-    
-    if let Some(tab_info) = pages_map.get(&current_page) {
-        // Check if this part is working
-        debug!("FOUND tab group {} with {} modpacks", 
-               current_page, tab_info.modpacks.len());
-        
-        // Clone modpacks for rendering
-        let modpacks = tab_info.modpacks.clone();
-        
-        // Directly render the first modpack in version component
-        if !modpacks.is_empty() {
-            rsx! {
-                Version {
-                    installer_profile: modpacks[0].clone(),
-                    error: err,
-                    current_page,
-                    tab_group: current_page
-                }
+    if current_page == HOME_PAGE {
+        debug!("RENDERING: HomePage");
+        rsx! {
+            HomePage {
+                pages,
+                page
             }
-        } else {
-            rsx! { div { "No modpack information found for this tab." } }
         }
     } else {
-        debug!("NO TAB INFO found for page {}", current_page);
-        rsx! { div { "No modpack information found for this tab." } }
+        debug!("RENDERING: Content for page {}", current_page);
+        
+        // Get tab info without temporary references
+        let pages_map = pages();
+        
+        if let Some(tab_info) = pages_map.get(&current_page) {
+            debug!("FOUND tab group {} with {} modpacks", 
+                  current_page, tab_info.modpacks.len());
+            
+            // Clone modpacks for rendering
+            let modpacks = tab_info.modpacks.clone();
+            debug!("Cloned {} modpacks for rendering", modpacks.len());
+            
+            if !modpacks.is_empty() {
+                // Simplified: Just render the first modpack in the Version component
+                rsx! {
+                    Version {
+                        installer_profile: modpacks[0].clone(),
+                        error: err.clone(),
+                        current_page,
+                        tab_group: current_page
+                    }
+                }
+            } else {
+                rsx! { div { "No modpack information found for this tab." } }
+            }
+        } else {
+            debug!("NO TAB INFO found for page {}", current_page);
+            rsx! { div { "No modpack information found for this tab." } }
+        }
+    }
+};
+
+// Then use content in the appropriate place in your main container
+rsx! {
+    div { class: "main-container",
+        {if settings() {
+            // Settings render...
+        } else if config.read().first_launch.unwrap_or(true) || launcher.is_none() {
+            // Launcher render...
+        } else if packs.read().is_none() {
+            // Loading render...
+        } else {
+            // Use the content variable here
+            content
+        }}
     }
 }
                 }
