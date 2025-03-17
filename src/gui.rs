@@ -20,40 +20,6 @@ struct TabInfo {
     modpacks: Vec<InstallerProfile>,
 }
 
-#[derive(Deserialize, Serialize, Debug, Clone)]
-pub struct Manifest {
-    pub name: String,
-    pub subtitle: String,
-    pub description: String,
-    pub uuid: String,
-    pub modpack_version: String,
-    pub mc_version: String,
-    pub modloader: String,
-    pub modloader_version: String,
-    pub features: Vec<Feature>,
-    pub install_overrides: Vec<String>,
-    pub authors: Vec<Author>,
-    pub popup_title: Option<String>,
-    pub popup_contents: Option<String>,
-    pub mods: Vec<Mod>,
-    pub shaderpacks: Vec<ShaderPack>,
-    pub resourcepacks: Vec<ResourcePack>,
-    pub include: Vec<Include>,
-    pub icon: Option<String>,
-    // Tab customization options
-    pub tab_group: Option<usize>,
-    pub tab_title: Option<String>,
-    pub tab_color: Option<String>,
-    pub tab_background: Option<String>,
-    pub settings_background: Option<String>,
-    pub tab_primary_font: Option<String>,
-    pub tab_secondary_font: Option<String>,
-    // Trending modpack indicator
-    pub trend: Option<bool>,
-    #[serde(default)]
-    pub enabled_features: Vec<String>,
-}
-
 // Home Page component to display all available modpacks as a grid
 #[component]
 fn HomePage(
