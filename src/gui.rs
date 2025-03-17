@@ -559,7 +559,7 @@ fn feature_change(
     local_features: Signal<Option<Vec<String>>>,
     mut modify: Signal<bool>,
     evt: FormEvent,
-    feat: &super::Feature,
+    feat: &crate::Feature,  // Use full path here
     mut modify_count: Signal<i32>,
     mut enabled_features: Signal<Vec<String>>,
 ) {
@@ -1226,11 +1226,17 @@ pub(crate) fn app() -> Element {
 
     // Effect to build pages map when branches are processed
     use_effect(move || {
-        if let Some(processed_branches) = packs.read().as_ref() {
-            debug!("Building pages map from {} processed branches", processed_branches.len());
+    if let Some(processed_branches) = packs.read().as_ref() {
+        debug!("Building pages map from {} processed branches", processed_branches.len());
+        
+        let mut new_pages = BTreeMap::<usize, TabInfo>::new();
+        for (tab_group, profile) in processed_branches {
+            // Ensure tab_group is at least 1
+            let tab_group = if *tab_group == 0 { 1 } else { *tab_group };
             
-            let mut new_pages = BTreeMap::<usize, TabInfo>::new();
-            for (tab_group, profile) in processed_branches {
+            // Add debug to see which tab groups are being processed
+            debug!("Processing tab_group: {} for profile: {}", 
+                   tab_group, profile.manifest.subtitle);
                 let tab_title = profile.manifest.tab_title.clone().unwrap_or_else(|| profile.manifest.subtitle.clone());
                 let tab_color = profile.manifest.tab_color.clone().unwrap_or_else(|| String::from("#320625"));
                 let tab_background = profile.manifest.tab_background.clone().unwrap_or_else(|| {
@@ -1254,7 +1260,7 @@ pub(crate) fn app() -> Element {
             }
             
             pages.set(new_pages);
-            debug!("Updated pages map with {} tabs", pages().len());
+        debug!("Updated pages map with {} tabs", pages().len());
         }
     });
 
@@ -1669,50 +1675,45 @@ pub(crate) fn app() -> Element {
                     }
                 } else {
                     if current_page == HOME_PAGE {
-                        debug!("RENDERING: HomePage");
-                        rsx! {
-                            HomePage {
-                                pages,
-                                page
-                            }
-                        }
-                    } else {
-                        debug!("RENDERING: Content for page {}", current_page);
-                        
-                        // Get tab info without temporary references
-                        let pages_map = pages();
-                        
-                        if let Some(tab_info) = pages_map.get(&current_page) {
-                            debug!("FOUND tab group {} with {} modpacks", 
-                                  current_page, tab_info.modpacks.len());
-                            
-                            // Clone modpacks for rendering
-                            let modpacks = tab_info.modpacks.clone();
-                            debug!("Cloned {} modpacks for rendering", modpacks.len());
-                            
-                            // Log each modpack before rendering
-                            for profile in &modpacks {
-                                debug!("Preparing to render modpack: {}", profile.manifest.subtitle);
-                            }
-                            
-                            // Directly render the first modpack in version component
-                            if !modpacks.is_empty() {
-                                rsx! {
-                                    Version {
-                                        installer_profile: modpacks[0].clone(),
-                                        error: err,
-                                        current_page,
-                                        tab_group: current_page
-                                    }
-                                }
-                            } else {
-                                rsx! { div { "No modpack information found for this tab." } }
-                            }
-                        } else {
-                            debug!("NO TAB INFO found for page {}", current_page);
-                            rsx! { div { "No modpack information found for this tab." } }
-                        }
-                    }
+    debug!("RENDERING: HomePage");
+    rsx! {
+        HomePage {
+            pages,
+            page
+        }
+    }
+} else {
+    debug!("RENDERING: Content for page {}", current_page);
+    
+    // Get tab info without temporary references
+    let pages_map = pages();
+    
+    if let Some(tab_info) = pages_map.get(&current_page) {
+        // Check if this part is working
+        debug!("FOUND tab group {} with {} modpacks", 
+               current_page, tab_info.modpacks.len());
+        
+        // Clone modpacks for rendering
+        let modpacks = tab_info.modpacks.clone();
+        
+        // Directly render the first modpack in version component
+        if !modpacks.is_empty() {
+            rsx! {
+                Version {
+                    installer_profile: modpacks[0].clone(),
+                    error: err,
+                    current_page,
+                    tab_group: current_page
+                }
+            }
+        } else {
+            rsx! { div { "No modpack information found for this tab." } }
+        }
+    } else {
+        debug!("NO TAB INFO found for page {}", current_page);
+        rsx! { div { "No modpack information found for this tab." } }
+    }
+}
                 }
             }
         }
