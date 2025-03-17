@@ -1232,7 +1232,7 @@ pub(crate) fn app() -> Element {
         let mut new_pages = BTreeMap::<usize, TabInfo>::new();
         for (tab_group, profile) in processed_branches {
             // Ensure tab_group is at least 1
-            let tab_group = if *tab_group == 0 { 1 } else { *tab_group };
+            let tab_group = if tab_group == 0 { 1 } else { tab_group };
             
             // Add debug to see which tab groups are being processed
             debug!("Processing tab_group: {} for profile: {}", 
@@ -1248,7 +1248,7 @@ pub(crate) fn app() -> Element {
                 });
                 let secondary_font = profile.manifest.tab_secondary_font.clone().unwrap_or_else(|| primary_font.clone());
 
-                new_pages.entry(*tab_group).or_insert(TabInfo {
+                new_pages.entry(tab_group).or_insert(TabInfo {
                     color: tab_color,
                     title: tab_title,
                     background: tab_background,
