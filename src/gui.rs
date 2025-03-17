@@ -1404,6 +1404,13 @@ pub(crate) fn app() -> Element {
         }
     }
 } else {
+    // Debug statement outside of the RSX block
+    let current_page = page();
+    if let Some(tab_info) = pages().get(&current_page) {
+        debug!("Rendering content for page {}: {} modpacks", 
+               current_page, tab_info.modpacks.len());
+    }
+    
     rsx! {
         div { 
             class: "version-page-container",
@@ -1411,9 +1418,6 @@ pub(crate) fn app() -> Element {
             
             // Find the tab info for the current page
             if let Some(tab_info) = pages().get(&page()) {
-                debug!("Rendering content for page {}: {} modpacks", 
-                       page(), tab_info.modpacks.len());
-                    
                 // Using a rsx! block to render all modpacks
                 rsx! {
                     {
