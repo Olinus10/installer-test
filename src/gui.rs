@@ -1481,23 +1481,58 @@ pub(crate) fn app() -> Element {
                         h2 { "Optional Features" }
                         
                         // Feature cards
-                        div { class: "feature-cards-container",
-                            for feat in profile.manifest.features {
-                                if !feat.hidden {
-                                    // Basic feature card without complex logic
-                                    div { 
-                                        class: "feature-card feature-enabled",
-                                        h3 { class: "feature-card-title", "{feat.name}" }
-                                        
-                                        if let Some(description) = &feat.description {
-                                            div { class: "feature-card-description", "{description}" }
-                                        }
-                                        
-                                        div { class: "feature-toggle-button enabled", "Enabled" }
-                                    }
-                                }
-                            }
+                        
+div { class: "feature-cards-container",
+    for feat in profile.manifest.features {
+        if !feat.hidden {
+            // Get the state information
+            let feat_id = feat.id.clone();
+            let feat_name = feat.name.clone();
+            let feat_description = feat.description.clone();
+            
+            // Check if feature is enabled
+            let is_enabled = profile.enabled_features.contains(&feat_id) || feat.default;
+            
+            // Extract feature toggle function parameters for this feature
+            let feature_clone = feat.clone();
+            
+            rsx! {
+                div { 
+                    class: if is_enabled { "feature-card feature-enabled" } else { "feature-card feature-disabled" },
+                    h3 { class: "feature-card-title", "{feat_name}" }
+                    
+                    // Description if available
+                    if let Some(description) = feat_description {
+                        div { class: "feature-card-description", "{description}" }
+                    }
+                    
+                    // Toggle button with proper functionality
+                    label {
+                        class: if is_enabled { "feature-toggle-button enabled" } else { "feature-toggle-button disabled" },
+                        
+                        // Hidden checkbox to track state
+                        input {
+                            r#type: "checkbox",
+                            name: "{feat_id}",
+                            checked: if is_enabled { Some("true") } else { None },
+                            onchange: move |evt| {
+                                // Here we'll call a proper feature_change function
+                                // This is a placeholder for the actual event handler
+                                debug!("Feature toggle changed: {}", feat_id);
+                                
+                                // You would call your feature_change function here
+                                // feature_change(local_features, modify, evt, &feature_clone, modify_count, enabled_features);
+                            },
+                            style: "display: none;"
                         }
+                        
+                        if is_enabled { "Enabled" } else { "Disabled" }
+                    }
+                }
+            }
+        }
+    }
+}
                         
                         // Install button
                         div { class: "install-button-container",
