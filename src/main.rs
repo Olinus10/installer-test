@@ -1765,7 +1765,7 @@ fn main() {
                 .with_resizable(true)
                 .with_title("Majestic Overhaul Installer")
                 .with_inner_size(LogicalSize::new(1280, 720)) // Updated to 720p standard
-                .with_min_inner_size(LogicalSize::new(800, 600)) // Add minimum size constraint
+                .with_min_inner_size(LogicalSize::new(960, 540)) // Add minimum size constraint
         ).with_icon(
             Icon::from_rgba(icon.to_rgba8().to_vec(), icon.width(), icon.height()).unwrap(),
         ).with_data_directory(
