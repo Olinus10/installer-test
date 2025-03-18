@@ -992,27 +992,44 @@ a:hover {
 
 /* Trending/Popular pack indicator for homepage */
 .home-pack-card.trending {
-    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.6), 0 0 0 3px rgba(255, 215, 0, 0.5);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.6), 0 0 0 3px rgba(255, 215, 0, 0.8);
     position: relative;
+    transform: scale(1.03);
+    z-index: 5;
+    animation: trending-pulse 3s infinite alternate;
 }
 
 .trending-badge {
     position: absolute;
     top: 10px;
     right: 10px;
-    background-color: rgba(255, 215, 0, 0.9);
+    background: linear-gradient(135deg, #ffd700, #ffa500);
     color: #000;
-    padding: 4px 12px;
+    padding: 6px 14px;
     border-radius: 20px;
-    font-size: 0.8rem;
+    font-size: 0.85rem;
     font-weight: bold;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+    font-family: "SECONDARY_FONT";
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.4);
     text-transform: uppercase;
     z-index: 10;
+    letter-spacing: 0.5px;
+    border: 1px solid rgba(255, 255, 255, 0.5);
 }
 
 .home-pack-card.trending:hover {
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.7), 0 0 0 4px rgba(255, 215, 0, 0.7), 0 0 20px rgba(255, 215, 0, 0.5);
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.7), 0 0 0 4px rgba(255, 215, 0, 0.9), 0 0 25px rgba(255, 215, 0, 0.6);
+    transform: translateY(-8px) scale(1.05);
+    animation: none;
+}
+
+@keyframes trending-pulse {
+    0% {
+        box-shadow: 0 6px 12px rgba(0, 0, 0, 0.6), 0 0 0 3px rgba(255, 215, 0, 0.7);
+    }
+    100% {
+        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.6), 0 0 0 4px rgba(255, 215, 0, 0.9), 0 0 15px rgba(255, 215, 0, 0.3);
+    }
 }
 
 @keyframes spin {
