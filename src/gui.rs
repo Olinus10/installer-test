@@ -42,28 +42,29 @@ fn HomePage(
                             
                             // Check if this modpack is trending
                             let is_trending = modpack.manifest.trend.unwrap_or(false);
-                            let trending_class = if is_trending { "home-pack-card trending" } else { "home-pack-card" };
                             
                             rsx! {
                                 // Create a wrapper div for trending modpacks
                                 if is_trending {
-                                    div { class: "trending-card-wrapper",
-                                        // Add the crown outside the card but in the wrapper
+                                    div { 
+                                        class: "trending-card-wrapper",
+                                        onclick: move |_| {
+                                            let old_page = page();
+                                            debug!("HOME CLICK: Changing page from {} to {} ({}) - HOME_PAGE={}", 
+                                                old_page, tab_index, tab_title, HOME_PAGE);
+                                            
+                                            page.write().clone_from(&tab_index);
+                                            
+                                            let new_page = page();
+                                            debug!("HOME CLICK RESULT: Page is now {}", new_page);
+                                        },
+                                        
+                                        // Add the star outside the card but in the wrapper
                                         div { class: "trending-crown" }
                                         
                                         div { 
-                                            class: "{trending_class}",
+                                            class: "home-pack-card trending",
                                             style: "background-image: url('{info.background}'); background-color: {info.color};",
-                                            onclick: move |_| {
-                                                let old_page = page();
-                                                debug!("HOME CLICK: Changing page from {} to {} ({}) - HOME_PAGE={}", 
-                                                    old_page, tab_index, tab_title, HOME_PAGE);
-                                                
-                                                page.write().clone_from(&tab_index);
-                                                
-                                                let new_page = page();
-                                                debug!("HOME CLICK RESULT: Page is now {}", new_page);
-                                            },
                                             
                                             // Add trending badge
                                             div { class: "trending-badge", "Popular" }
