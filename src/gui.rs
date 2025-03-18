@@ -564,19 +564,21 @@ fn FeatureCard(props: FeatureCardProps) -> Element {
             
             // Toggle button with hidden checkbox
             label {
-                class: if enabled { "feature-toggle-button enabled" } else { "feature-toggle-button disabled" },
-                
-                // Hidden checkbox to track state
-                input {
-                    r#type: "checkbox",
-                    name: "{feature_id}",
-                    checked: if enabled { Some("true") } else { None },
-                    onchange: move |evt| props.on_toggle.call(evt),
-                    style: "display: none;"
-                }
-                
-                if enabled { "Enabled" } else { "Disabled" }
-            }
+    class: if is_enabled { "feature-toggle-button enabled" } else { "feature-toggle-button disabled" },
+    
+    // Hidden checkbox to track state
+    input {
+        r#type: "checkbox",
+        name: "{feat_id}",
+        checked: if is_enabled { Some("true") } else { None },
+        onchange: move |evt| {
+            feature_toggle(evt, feature_for_toggle.clone());
+        },
+        style: "display: none;"
+    }
+    
+    if is_enabled { "Enabled" } else { "Disabled" }
+}
         }
     }
 }
@@ -739,7 +741,7 @@ fn Version(mut props: VersionProps) -> Element {
     let mut modify_count = use_signal(|| 0);
 
     // Fix: Initialize enabled_features properly
-    let mut enabled_features = use_signal(|| {
+    let enabled_features = use_signal(|| {
         let mut features = vec!["default".to_string()];
         
         if installer_profile.installed && installer_profile.local_manifest.is_some() {
@@ -760,7 +762,7 @@ fn Version(mut props: VersionProps) -> Element {
 
     let mut install_item_amount = use_signal(|| 0);
     let mut credits = use_signal(|| false);
-    let mut installed = use_signal(|| installer_profile.installed);
+    let installed = use_signal(|| installer_profile.installed);
     let mut update_available = use_signal(|| installer_profile.update_available);
     
     // Clone local_manifest to prevent ownership issues
@@ -773,7 +775,7 @@ fn Version(mut props: VersionProps) -> Element {
     });
     
     // Add a function to handle feature toggle
-    let mut feature_toggle = move |evt: FormEvent, feat: super::Feature| {
+    let feature_toggle = move |evt: FormEvent, feat: super::Feature| {
         let enabled = match &*evt.data.value() {
             "true" => true,
             "false" => false,
@@ -1011,28 +1013,49 @@ fn Version(mut props: VersionProps) -> Element {
                     
                     // Feature cards in a responsive grid - FIXED VERSION
                     div { class: "feature-cards-container",
-    // Filter out hidden features
-    {installer_profile.manifest.features.iter().filter(|feat| !feat.hidden).map(|feat| {
-        let feat_id = feat.id.clone();
-        let feat_name = feat.name.clone();
-        let feat_description = feat.description.clone();
+                        // Filter out hidden features
+                        {installer_profile.manifest.features.iter().filter(|feat| !feat.hidden).map(|feat| {
+                            let feat_id = feat.id.clone();
+                            let feat_name = feat.name.clone();
+                            let feat_description = feat.description.clone();
                             
-                             let is_enabled = enabled_features.read().contains(&feat_id);
-        
-        // Clone feature for the event handler
-        let feature_for_toggle = feat.clone();
-        let feature_toggle_clone = feature_toggle.clone();
-        
-                            FeatureCard {
-                feature: feature_for_toggle,
-                enabled: is_enabled,
-                on_toggle: move |evt| {
-                    feature_toggle_clone(evt, feature_for_toggle.clone());
-                }
-            }
-        }
-    })}
-}
+                            // Check if this feature is enabled
+                            let is_enabled = enabled_features.read().contains(&feat_id);
+                            
+                            // Clone feature for the event handler
+                            let feature_for_toggle = feat.clone();
+                            
+                            rsx! {
+                                div { 
+                                    class: if is_enabled { "feature-card feature-enabled" } else { "feature-card feature-disabled" },
+                                    h3 { class: "feature-card-title", "{feat_name}" }
+                                    
+                                    // Render description if available
+                                    if let Some(description) = feat_description {
+                                        div { class: "feature-card-description", "{description}" }
+                                    }
+                                    
+                                    // Toggle button with checkbox for proper state tracking
+                                    label {
+                                        class: if is_enabled { "feature-toggle-button enabled" } else { "feature-toggle-button disabled" },
+                                        
+                                        // Hidden checkbox to track state
+                                        input {
+                                            r#type: "checkbox",
+                                            name: "{feat_id}",
+                                            checked: if is_enabled { Some("true") } else { None },
+                                            onchange: move |evt| {
+                                                feature_toggle(evt, feature_for_toggle.clone());
+                                            },
+                                            style: "display: none;"
+                                        }
+                                        
+                                        if is_enabled { "Enabled" } else { "Disabled" }
+                                    }
+                                }
+                            }
+                        })}
+                    }
                     
                     // Install/Update/Modify button at the bottom
                     div { class: "install-button-container-centered",
