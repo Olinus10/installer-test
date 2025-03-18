@@ -40,9 +40,13 @@ fn HomePage(
                             let tab_title = info.title.clone(); 
                             let tab_index = index; 
                             
+                            // Check if this modpack is trending
+                            let is_trending = modpack.manifest.trend.unwrap_or(false);
+                            let trending_class = if is_trending { "home-pack-card trending" } else { "home-pack-card" };
+                            
                             rsx! {
                                 div { 
-                                    class: "home-pack-card",
+                                    class: "{trending_class}",
                                     style: "background-image: url('{info.background}'); background-color: {info.color};",
                                     onclick: move |_| {
                                         // CRITICAL FIX: Make sure this changes the page
@@ -57,6 +61,12 @@ fn HomePage(
                                         let new_page = page();
                                         debug!("HOME CLICK RESULT: Page is now {}", new_page);
                                     },
+                                    
+                                    // Add trending badge if needed
+                                    if is_trending {
+                                        div { class: "trending-badge", "Popular" }
+                                    }
+                                    
                                     div { class: "home-pack-info",
                                         h2 { class: "home-pack-title", "{modpack_subtitle}" }
                                         div { class: "home-pack-button", "View Modpack" }
