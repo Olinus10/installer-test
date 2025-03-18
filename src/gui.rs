@@ -548,31 +548,38 @@ struct FeatureCardProps {
 }
 
 #[component]
-fn FeatureCard(props: FeatureCardProps) -> Element {
-    let enabled = props.enabled;
-    let feature_id = props.feature.id.clone();
+fn FeatureCard(
+    feature: super::Feature,
+    is_enabled: bool,
+    on_toggle: EventHandler<FormEvent>,
+) -> Element {
+    let feat_id = feature.id.clone();
     
     rsx! {
         div { 
-            class: if enabled { "feature-card feature-enabled" } else { "feature-card feature-disabled" },
-            h3 { class: "feature-card-title", "{props.feature.name}" }
+            class: if is_enabled { "feature-card feature-enabled" } else { "feature-card feature-disabled" },
+            h3 { class: "feature-card-title", "{feature.name}" }
             
             // Render description if available
-            if let Some(description) = &props.feature.description {
+            if let Some(description) = &feature.description {
                 div { class: "feature-card-description", "{description}" }
             }
             
-            // Toggle button with hidden checkbox
+            // Toggle button with a properly wired checkbox
             label {
-                class: if enabled { "feature-toggle-button enabled" } else { "feature-toggle-button disabled" },
+                class: if is_enabled { "feature-toggle-button enabled" } else { "feature-toggle-button disabled" },
+                
+                // This hidden checkbox tracks the state
                 input {
                     r#type: "checkbox",
-                    name: "{feature_id}",
-                    checked: if enabled { Some("true") } else { None },
-                    onchange: move |evt| props.on_toggle.call(evt),
-                    style: "display: none;"
+                    name: "{feat_id}",
+                    checked: if is_enabled { Some("true") } else { None },
+                    onchange: move |evt| on_toggle.call(evt),
+                    style: "display: none;" // Hide the checkbox itself
                 }
-                if enabled { "Enabled" } else { "Disabled" }
+                
+                // Display the button text based on current state
+                if is_enabled { "Enabled" } else { "Disabled" }
             }
         }
     }
@@ -949,21 +956,50 @@ fn Version(mut props: VersionProps) -> Element {
         let is_enabled = installer_profile.enabled_features.contains(&feat_id) || feat.default;
         
         rsx! {
-            div { 
-                class: if is_enabled { "feature-card feature-enabled" } else { "feature-card feature-disabled" },
-                h3 { class: "feature-card-title", "{feat_name}" }
-                
-                // Render description if available
-                if let Some(description) = feat_description {
-                    div { class: "feature-card-description", "{description}" }
-                }
-                
-                // Toggle button 
-                div {
-                    class: if is_enabled { "feature-toggle-button enabled" } else { "feature-toggle-button disabled" },
-                    if is_enabled { "Enabled" } else { "Disabled" }
+            div {
+    installer_profile.manifest.features.iter()
+        .filter(|feat| !feat.hidden)
+        .map(|feat| {
+            let feat_id = feat.id.clone();
+            let feat_clone = feat.clone();
+            let is_enabled = enabled_features.read().contains(&feat_id);
+            
+            rsx! {
+                FeatureCard {
+                    feature: feat_clone,
+                    is_enabled: is_enabled,
+                    on_toggle: move |evt| {
+                        // Your toggle logic here
+                        let is_now_enabled = evt.data.value() == "true";
+                        enabled_features.with_mut(|features| {
+                            if is_now_enabled && !features.contains(&feat_id) {
+                                features.push(feat_id.clone());
+                            } else if !is_now_enabled {
+                                features.retain(|id| id != &feat_id);
+                            }
+                        });
+                        
+                        // Update modify signals
+                        if let Some(local_feat) = local_features.read().as_ref() {
+                            let modify_res = local_feat.contains(&feat_id) != is_now_enabled;
+                            
+                            if modify_res {
+                                modify.set(true);
+                                modify_count.with_mut(|x| *x += 1);
+                            } else if *modify_count.read() > 0 {
+                                modify_count.with_mut(|x| *x -= 1);
+                                if *modify_count.read() <= 0 {
+                                    modify.set(false);
+                                }
+                            }
+                        }
+                        
+                        debug!("Feature toggle changed: {}", feat_id);
+                    }
                 }
             }
+        })
+}
         }
     })}
 }
