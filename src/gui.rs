@@ -1,5 +1,5 @@
 use std::{collections::BTreeMap, path::PathBuf};
-use base64::{Engine, engine::general_purpose::URL_SAFE_NO_PAD};
+use base64::{engine::general_purpose::URL_SAFE_NO_PAD};
 use dioxus::prelude::*;
 use log::{error, debug};
 use modal::ModalContext;
@@ -571,7 +571,8 @@ fn FeatureCard(props: FeatureCardProps) -> Element {
                     r#type: "checkbox",
                     name: "{feature_id}",
                     checked: if enabled { Some("true") } else { None },
-                    onchange: props.on_toggle,
+                    // Convert EventHandler to a closure
+                    onchange: move |evt| props.on_toggle.call(evt),
                     style: "display: none;"
                 }
                 
@@ -1009,51 +1010,52 @@ fn Version(mut props: VersionProps) -> Element {
                     // Features heading
                     h2 { "Optional Features" }
                     
-                    // Feature cards in a responsive grid - FIXED VERSION
-                    div { class: "feature-cards-container",
-                        // Filter out hidden features
-                        {installer_profile.manifest.features.iter().filter(|feat| !feat.hidden).map(|feat| {
-                            let feat_id = feat.id.clone();
-                            let feat_name = feat.name.clone();
-                            let feat_description = feat.description.clone();
-                            
-                            // Check if this feature is enabled
-                            let is_enabled = enabled_features.read().contains(&feat_id);
-                            
-                            // Clone feature for the event handler
-                            let feature_for_toggle = feat.clone();
-                            
-                            rsx! {
-                                div { 
-                                    class: if is_enabled { "feature-card feature-enabled" } else { "feature-card feature-disabled" },
-                                    h3 { class: "feature-card-title", "{feat_name}" }
-                                    
-                                    // Render description if available
-                                    if let Some(description) = feat_description {
-                                        div { class: "feature-card-description", "{description}" }
-                                    }
-                                    
-                                    // Toggle button with checkbox for proper state tracking
-                                    label {
-                                        class: if is_enabled { "feature-toggle-button enabled" } else { "feature-toggle-button disabled" },
-                                        
-                                        // Hidden checkbox to track state
-                                        input {
-                                            r#type: "checkbox",
-                                            name: "{feat_id}",
-                                            checked: if is_enabled { Some("true") } else { None },
-                                            onchange: move |evt| {
-                                                feature_toggle(evt, feature_for_toggle.clone());
-                                            },
-                                            style: "display: none;"
-                                        }
-                                        
-                                        if is_enabled { "Enabled" } else { "Disabled" }
-                                    }
-                                }
-                            }
-                        })}
+                    // Feature cards in a responsive grid
+div { class: "feature-cards-container",
+    // Filter out hidden features
+    {installer_profile.manifest.features.iter().filter(|feat| !feat.hidden).map(|feat| {
+        let feat_id = feat.id.clone();
+        let feat_name = feat.name.clone();
+        let feat_description = feat.description.clone();
+        
+        // Check if this feature is enabled
+        let is_enabled = enabled_features.read().contains(&feat_id);
+        
+        // Clone feature for the event handler
+        let feature_for_toggle = feat.clone();
+        
+        rsx! {
+            div { 
+                class: if is_enabled { "feature-card feature-enabled" } else { "feature-card feature-disabled" },
+                h3 { class: "feature-card-title", "{feat_name}" }
+                
+                // Render description if available
+                if let Some(description) = &feat_description {
+                    div { class: "feature-card-description", "{description}" }
+                }
+                
+                // Toggle button with checkbox for proper state tracking
+                label {
+                    class: if is_enabled { "feature-toggle-button enabled" } else { "feature-toggle-button disabled" },
+                    
+                    // Hidden checkbox to track state
+                    input {
+                        r#type: "checkbox",
+                        name: "{feat_id}",
+                        checked: if is_enabled { Some("true") } else { None },
+                        onchange: move |evt| {
+                            feature_toggle(evt, feature_for_toggle.clone());
+                        },
+                        style: "display: none;"
                     }
+                    
+                    if is_enabled { "Enabled" } else { "Disabled" }
+                }
+            }
+        }
+    })}
+}
+                    
                     
                     // Install/Update/Modify button at the bottom
                     div { class: "install-button-container-centered",
@@ -1609,52 +1611,47 @@ pub(crate) fn app() -> Element {
                         
 
 div { class: "feature-cards-container",
-    for feat in profile.manifest.features {
-    if !feat.hidden {
-        {
-            // Move this Rust code outside the RSX by wrapping it in its own block
-            let feat_id = feat.id.clone();
-            let feat_name = feat.name.clone();
-            let feat_description = feat.description.clone();
-            
-            // Check if feature is enabled
-            let enabled = profile.enabled_features.contains(&feat_id) || feat.default;
-            
-            // Return the RSX from this block
-            rsx! {
-                div { 
-                    class: if enabled { "feature-card feature-enabled" } else { "feature-card feature-disabled" },
-                    h3 { class: "feature-card-title", "{feat_name}" }
-                    
-                    // Description if available
-                    if let Some(description) = &feat_description {
-                        div { class: "feature-card-description", "{description}" }
-                    }
-                    
-                    // Toggle button with proper functionality
-                    label {
-                        class: if enabled { "feature-toggle-button enabled" } else { "feature-toggle-button disabled" },
+    {
+        profile.manifest.features.iter()
+            .filter(|feat| !feat.hidden)
+            .map(|feat| {
+                let feat_id = feat.id.clone();
+                let feat_name = feat.name.clone();
+                let feat_description = feat.description.clone();
+                
+                // Check if feature is enabled
+                let enabled = profile.enabled_features.contains(&feat_id) || feat.default;
+                
+                rsx! {
+                    div { 
+                        class: if enabled { "feature-card feature-enabled" } else { "feature-card feature-disabled" },
+                        h3 { class: "feature-card-title", "{feat_name}" }
                         
-                        // Hidden checkbox to track state
-                        input {
-                            r#type: "checkbox",
-                            name: "{feat_id}",
-                            checked: if enabled { Some("true") } else { None },
-                            onchange: move |_evt| {
-                                // Here we'll call a proper feature_change function
-                                debug!("Feature toggle changed: {}", feat_id);
-                                
-                                // You would call your feature_change function here
-                                // feature_change(local_features, modify, evt, &feat, modify_count, enabled_features);
-                            },
-                            style: "display: none;"
+                        // Description if available
+                        if let Some(description) = &feat_description {
+                            div { class: "feature-card-description", "{description}" }
                         }
                         
-                        if enabled { "Enabled" } else { "Disabled" }
+                        // Toggle button with proper functionality
+                        label {
+                            class: if enabled { "feature-toggle-button enabled" } else { "feature-toggle-button disabled" },
+                            
+                            // Hidden checkbox to track state
+                            input {
+                                r#type: "checkbox",
+                                name: "{feat_id}",
+                                checked: if enabled { Some("true") } else { None },
+                                onchange: move |_evt| {
+                                    debug!("Feature toggle changed: {}", feat_id);
+                                },
+                                style: "display: none;"
+                            }
+                            
+                            if enabled { "Enabled" } else { "Disabled" }
+                        }
                     }
                 }
-            }
-        }
+            })
     }
 }
                         
@@ -1671,4 +1668,4 @@ div { class: "feature-cards-container",
         rsx! { div { "No modpack information found for this tab." } }
     }
 }
-}}}}}}}
+}}}}}}
