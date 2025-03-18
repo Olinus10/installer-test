@@ -986,7 +986,7 @@ fn Version(mut props: VersionProps) -> Element {
         }
     }
 }
-// New header component with tabs
+/// New header component with tabs - updated to display tab groups 1-3 in main row
 #[component]
 fn AppHeader(
     page: Signal<usize>, 
@@ -1007,9 +1007,9 @@ fn AppHeader(
     let mut dropdown_tab_indices = vec![];
     let mut dropdown_tab_titles = vec![];
     
-    // Separate tab groups into main tabs (0, 1, 2) and dropdown tabs (3+)
+    // Separate tab groups into main tabs (1, 2, 3) and dropdown tabs (0, 4+)
     for (index, info) in pages().iter() {
-        if *index <= 2 {
+        if *index >= 1 && *index <= 3 {
             main_tab_indices.push(*index);
             main_tab_titles.push(info.title.clone());
         } else {
@@ -1059,21 +1059,21 @@ fn AppHeader(
                     "Home"
                 }
 
-                // Main tabs (0, 1, 2)
+                // Main tabs (1, 2, 3)
                 {
                     main_tab_indices.iter().enumerate().map(|(i, &index)| {
                         let title = main_tab_titles[i].clone();
                         rsx!(
                             button {
-        class: if page() == index { "header-tab-button active" } else { "header-tab-button" },
-        onclick: move |_| {
-            debug!("TAB CLICK: Changing page from {} to {}", page(), index);
-            // CRITICAL FIX: Use write() for more direct access
-            page.write().clone_from(&index);
-            debug!("TAB CLICK RESULT: Page is now {}", page());
-        },
-        "{title}"
-    }
+                                class: if page() == index { "header-tab-button active" } else { "header-tab-button" },
+                                onclick: move |_| {
+                                    debug!("TAB CLICK: Changing page from {} to {}", page(), index);
+                                    // CRITICAL FIX: Use write() for more direct access
+                                    page.write().clone_from(&index);
+                                    debug!("TAB CLICK RESULT: Page is now {}", page());
+                                },
+                                "{title}"
+                            }
                         )
                     })
                 }
