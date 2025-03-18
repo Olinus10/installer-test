@@ -991,6 +991,7 @@ a:hover {
 }
 
 /* Trending/Popular pack indicator for homepage */
+/* Trending/Popular pack indicator for homepage */
 .home-pack-card.trending {
     box-shadow: 0 8px 16px rgba(0, 0, 0, 0.7), 0 0 0 4px rgba(255, 215, 0, 0.8), 0 0 30px rgba(255, 215, 0, 0.4);
     position: relative;
@@ -1123,17 +1124,30 @@ a:hover {
     position: relative;
     width: 100%;
     max-width: 800px;
-    margin: 30px auto 10px auto; /* Add top margin for the crown */
+    margin: 30px auto 10px auto; /* Add top margin for the star */
     grid-column: 1 / -1; /* Make trending cards span the entire row */
     justify-self: center;
     z-index: 15;
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+/* Add hover effect to the wrapper to include the star */
+.trending-card-wrapper:hover {
+    transform: translateY(-10px) scale(1.07);
+}
+
+/* When wrapper is hovered, adjust the card too */
+.trending-card-wrapper:hover .home-pack-card.trending {
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.7), 0 0 0 5px rgba(255, 215, 0, 0.9), 0 0 40px rgba(255, 215, 0, 0.7);
+    transform: none; /* Remove the card's transform since the wrapper handles it */
+    animation: none;
 }
 
 /* Trending/Popular pack indicator for homepage */
 .home-pack-card.trending {
     box-shadow: 0 8px 16px rgba(0, 0, 0, 0.7), 0 0 0 4px rgba(255, 215, 0, 0.8), 0 0 30px rgba(255, 215, 0, 0.4);
     position: relative;
-    transform: scale(1.05);
+    transform: none; /* Remove individual transform */
     z-index: 10;
     width: 100%;
     height: 200px;
@@ -1144,21 +1158,29 @@ a:hover {
     animation: trending-pulse 3s infinite alternate;
 }
 
-/* Crown positioned outside and above the card */
+/* Star positioned outside and above the card - using a proper star shape */
 .trending-card-wrapper .trending-crown {
     position: absolute;
     top: -25px; /* Position above the card */
     left: 50%;
     transform: translateX(-50%);
     width: 40px;
-    height: 30px;
+    height: 40px;
     background-image: linear-gradient(135deg, #ffd700, #ffa500);
+    /* 5-pointed star shape */
     clip-path: polygon(
         50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 
         50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%
     );
     z-index: 30; /* Ensure it stays on top */
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.4);
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+/* Adjust the star on hover */
+.trending-card-wrapper:hover .trending-crown {
+    transform: translateX(-50%) scale(1.2);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5), 0 0 20px rgba(255, 215, 0, 0.8);
 }
 
 @keyframes trending-pulse {
