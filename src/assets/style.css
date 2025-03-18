@@ -308,14 +308,15 @@ a:hover {
     text-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
 }
 
-/* Home grid layout for better card arrangement */
+/* Ensure proper spacing between trending card and regular cards */
 .home-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); /* Increased width */
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: 20px;
   justify-items: center;
   width: 100%;
   box-sizing: border-box;
+  padding-top: 5px; /* Add a little padding at the top */
 }
 
 /* Regular card styling */
@@ -1011,14 +1012,14 @@ a:hover {
 }
 
 
-/* Trending card styling */
+/* Trending card styling - reduced height */
 .home-pack-card.trending {
   box-shadow: 0 8px 16px rgba(0, 0, 0, 0.7), 0 0 0 4px rgba(255, 215, 0, 0.8), 0 0 30px rgba(255, 215, 0, 0.4);
   position: relative;
   transform: none;
   z-index: 10;
   width: 100%;
-  height: 180px; /* Reduced height for less scrolling */
+  height: 160px; /* Reduced from 180px to make thinner */
   transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
   display: flex;
   flex-direction: column;
@@ -1089,6 +1090,14 @@ a:hover {
     animation: badge-pulse 2s infinite alternate;
 }
 
+/* Make sure badge is still properly positioned */
+.trending-badge {
+  top: 12px;
+  right: 15px;
+  padding: 6px 18px;
+  font-size: 0.95rem;
+}
+
 .home-pack-card.trending .home-pack-info {
     /* Use a more gradual gradient that starts higher and has more transparency */
     background: linear-gradient(to top, 
@@ -1136,19 +1145,20 @@ a:hover {
     box-shadow: 0 5px 15px rgba(0, 0, 0, 0.4);
 }
 
-/* Trending card wrapper styling */
+/* Trending card wrapper styling - increased width, improved positioning */
 .trending-card-wrapper {
   position: relative;
   width: 100%;
-  max-width: 950px; /* Wider for better visibility */
+  max-width: 1100px; /* Increased from 950px for wider appearance */
   height: auto;
-  margin: 30px auto 20px auto; /* Add space above and below */
+  margin: 30px auto 25px auto; /* Slightly more space below */
   grid-column: 1 / -1; /* Make trending cards span the entire row */
   justify-self: center;
   z-index: 15;
   transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
   box-sizing: border-box;
 }
+
 /* Add hover effect to the wrapper to include the star */
 .trending-card-wrapper:hover {
     transform: translateY(-10px) scale(1.07);
@@ -1211,6 +1221,12 @@ a:hover {
     transform: translateX(-50%) scale(1.2);
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5), 0 0 20px rgba(255, 215, 0, 0.8);
 }
+
+/* Fix inconsistent height declaration */
+.home-pack-card.trending {
+  height: 160px !important; /* Ensure this height takes precedence */
+}
+
 
 @keyframes trending-pulse {
     0% {
@@ -1373,4 +1389,16 @@ a:hover {
   .feature-cards-container {
     grid-template-columns: 1fr;
   }
+}
+
+/* Adjust title for better fit in thinner card */
+.home-pack-card.trending .home-pack-title {
+  font-size: 1.4rem;
+  margin-bottom: 10px;
+  padding: 0 15px;
+}
+
+/* Ensure trending card info section is properly sized */
+.home-pack-card.trending .home-pack-info {
+  padding-top: 30px; /* Reduced from 40px for thinner card */
 }
