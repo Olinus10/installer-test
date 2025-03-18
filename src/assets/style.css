@@ -351,17 +351,6 @@ a:hover {
     filter: brightness(1.1);
 }
 
-.home-pack-info {
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    padding: 15px;
-    background: linear-gradient(transparent, rgba(0, 0, 0, 0.8));
-    text-align: center;
-    transition: transform 0.3s ease, background 0.3s ease;
-}
-
 .home-pack-card:hover .home-pack-info {
     background: linear-gradient(transparent, rgba(0, 0, 0, 0.9));
 }
@@ -990,7 +979,7 @@ a:hover {
     animation: spin 1s ease-in-out infinite;
 }
 
-/* Trending/Popular pack indicator for homepage */
+
 /* Trending/Popular pack indicator for homepage */
 .home-pack-card.trending {
     box-shadow: 0 8px 16px rgba(0, 0, 0, 0.7), 0 0 0 4px rgba(255, 215, 0, 0.8), 0 0 30px rgba(255, 215, 0, 0.4);
@@ -1239,7 +1228,6 @@ a:hover {
         left: -150%;
     }
 }
-
 //end of trend
 
 @keyframes spin {
