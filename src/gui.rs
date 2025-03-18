@@ -564,16 +564,21 @@ fn FeatureCard(props: FeatureCardProps) -> Element {
             
             // Toggle button with hidden checkbox
             label {
-                class: if enabled { "feature-toggle-button enabled" } else { "feature-toggle-button disabled" },
-                input {
-                    r#type: "checkbox",
-                    name: "{feature_id}",
-                    checked: if enabled { Some("true") } else { None },
-                    onchange: move |evt| props.on_toggle.call(evt),
-                    style: "display: none;"
-                }
-                if enabled { "Enabled" } else { "Disabled" }
-            }
+    class: if is_enabled { "feature-toggle-button enabled" } else { "feature-toggle-button disabled" },
+    
+    // Hidden checkbox to track state
+    input {
+        r#type: "checkbox",
+        name: "{feat_id}",
+        checked: if is_enabled { Some("true") } else { None },
+        onchange: move |evt| {
+            feature_toggle(evt, feature_for_toggle.clone());
+        },
+        style: "display: none;"
+    }
+    
+    if is_enabled { "Enabled" } else { "Disabled" }
+}
         }
     }
 }
