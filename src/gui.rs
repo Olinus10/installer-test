@@ -65,6 +65,8 @@ fn HomePage(
                                     // Add trending badge if needed
                                     if is_trending {
                                         div { class: "trending-badge", "Popular" }
+                                        // Add decorative crown shape
+                                        div { class: "trending-crown" }
                                     }
                                     
                                     div { class: "home-pack-info",
