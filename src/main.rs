@@ -1760,22 +1760,23 @@ fn main() {
     }
     info!("Running installer with config: {config:#?}");
     LaunchBuilder::desktop().with_cfg(
-        DioxusConfig::new().with_window(
-                WindowBuilder::new()
-                    .with_resizable(true)
-                    .with_title("Majestic Overhaul Installer")
-                    .with_inner_size(LogicalSize::new(960, 540))
-            ).with_icon(
-                Icon::from_rgba(icon.to_rgba8().to_vec(), icon.width(), icon.height()).unwrap(),
-            ).with_data_directory(
-                env::temp_dir().join(".WC_OVHL")
-            ).with_menu(None)
-        ).with_context(gui::AppProps {
-            branches,
-            modpack_source: String::from(REPO),
-            config,
-            config_path,
-        }).launch(gui::app);
+    DioxusConfig::new().with_window(
+            WindowBuilder::new()
+                .with_resizable(true)
+                .with_title("Majestic Overhaul Installer")
+                .with_inner_size(LogicalSize::new(1280, 720)) // Updated to 720p standard
+                .with_min_inner_size(LogicalSize::new(800, 600)) // Add minimum size constraint
+        ).with_icon(
+            Icon::from_rgba(icon.to_rgba8().to_vec(), icon.width(), icon.height()).unwrap(),
+        ).with_data_directory(
+            env::temp_dir().join(".WC_OVHL")
+        ).with_menu(None)
+    ).with_context(gui::AppProps {
+        branches,
+        modpack_source: String::from(REPO),
+        config,
+        config_path,
+    }).launch(gui::app);
 }
 
 #[derive(Debug, Clone, Eq, PartialEq)]
