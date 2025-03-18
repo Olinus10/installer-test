@@ -1004,9 +1004,12 @@ a:hover {
     margin: 10px auto;
     justify-self: center;
     transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
 }
 
-/* Sparkling particle overlay */
+/* Sparkling particle overlay - subtle sparkles that move slowly */
 .home-pack-card.trending::after {
     content: '';
     position: absolute;
@@ -1015,36 +1018,38 @@ a:hover {
     right: 0;
     bottom: 0;
     background-image: 
-        radial-gradient(circle at 30% 20%, rgba(255, 255, 255, 0.3) 0%, rgba(255, 255, 255, 0) 20%),
-        radial-gradient(circle at 70% 60%, rgba(255, 255, 255, 0.3) 0%, rgba(255, 255, 255, 0) 20%),
-        radial-gradient(circle at 20% 80%, rgba(255, 255, 255, 0.3) 0%, rgba(255, 255, 255, 0) 20%),
-        radial-gradient(circle at 80% 30%, rgba(255, 255, 255, 0.3) 0%, rgba(255, 255, 255, 0) 20%);
+        radial-gradient(circle at 30% 20%, rgba(255, 255, 255, 0.2) 0%, rgba(255, 255, 255, 0) 10%),
+        radial-gradient(circle at 70% 60%, rgba(255, 255, 255, 0.2) 0%, rgba(255, 255, 255, 0) 10%),
+        radial-gradient(circle at 20% 80%, rgba(255, 255, 255, 0.2) 0%, rgba(255, 255, 255, 0) 10%),
+        radial-gradient(circle at 80% 30%, rgba(255, 255, 255, 0.2) 0%, rgba(255, 255, 255, 0) 10%);
     pointer-events: none;
     z-index: 1;
     border-radius: 8px;
-    animation: sparkle 6s infinite linear;
+    animation: sparkle 8s infinite linear;
+    opacity: 0.7;
 }
 
-/* Golden ribbon effect */
+/* More subtle diagonal shimmer */
 .home-pack-card.trending::before {
     content: '';
     position: absolute;
     top: 0;
-    left: 0;
+    left: -150%;
     width: 100%;
     height: 100%;
     background: linear-gradient(45deg, 
         rgba(255, 215, 0, 0) 0%, 
-        rgba(255, 215, 0, 0.5) 25%, 
-        rgba(255, 215, 0, 0.7) 50%, 
-        rgba(255, 215, 0, 0.5) 75%, 
+        rgba(255, 215, 0, 0.1) 30%, 
+        rgba(255, 215, 0, 0.3) 47%, 
+        rgba(255, 215, 0, 0.3) 53%,
+        rgba(255, 215, 0, 0.1) 70%,
         rgba(255, 215, 0, 0) 100%);
-    background-size: 200% 200%;
-    opacity: 0.5;
+    opacity: 0.7;
     border-radius: 8px;
     pointer-events: none;
-    animation: shine 3s infinite linear;
+    animation: gentle-shine 5s infinite ease-in-out;
     z-index: 0;
+    transform: skewX(-20deg);
 }
 
 .trending-badge {
@@ -1067,15 +1072,29 @@ a:hover {
 }
 
 .home-pack-card.trending .home-pack-info {
-    background: linear-gradient(to top, rgba(0, 0, 0, 0.9) 0%, rgba(0, 0, 0, 0.7) 80%, transparent 100%);
-    padding: 25px 20px;
+    /* Use a more gradual gradient that starts higher and has more transparency */
+    background: linear-gradient(to top, 
+        rgba(0, 0, 0, 0.85) 0%, 
+        rgba(0, 0, 0, 0.6) 40%, 
+        rgba(0, 0, 0, 0.2) 80%,
+        rgba(0, 0, 0, 0) 100%);
+    padding-top: 40px; /* Extend padding to create a more gradual appearance */
+    padding-bottom: 15px;
     height: auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-end;
+    border-radius: 0 0 8px 8px;
+    position: relative;
+    z-index: 5;
 }
 
 .home-pack-card.trending .home-pack-title {
     font-size: 1.5rem;
     margin-bottom: 12px;
-    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.8), 0 0 5px rgba(255, 215, 0, 0.5);
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.7); /* Less harsh text shadow */
+    color: #fff;
 }
 
 .home-pack-card.trending .home-pack-button {
@@ -1084,6 +1103,7 @@ a:hover {
     padding: 10px 24px;
     font-size: 1.1rem;
     transition: all 0.3s ease;
+    margin-bottom: 10px;
 }
 
 .home-pack-card.trending:hover {
@@ -1096,6 +1116,23 @@ a:hover {
     background-color: rgba(255, 215, 0, 1);
     transform: scale(1.1);
     box-shadow: 0 5px 15px rgba(0, 0, 0, 0.4);
+}
+
+/* Special feature: add a "crown" icon to trending modpacks */
+.home-pack-card.trending .trending-crown {
+    position: absolute;
+    top: -15px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 40px;
+    height: 30px;
+    background-image: linear-gradient(135deg, #ffd700, #ffa500);
+    clip-path: polygon(
+        50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 
+        50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%
+    );
+    z-index: 10;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.4);
 }
 
 @keyframes trending-pulse {
@@ -1113,7 +1150,7 @@ a:hover {
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5), 0 0 15px rgba(255, 215, 0, 0.5);
     }
     100% {
-        transform: scale(1.1);
+        transform: scale(1.05);
         box-shadow: 0 6px 18px rgba(0, 0, 0, 0.5), 0 0 30px rgba(255, 215, 0, 0.8);
     }
 }
@@ -1121,20 +1158,30 @@ a:hover {
 @keyframes sparkle {
     0% {
         background-position: 0% 0%, 100% 100%, 0% 100%, 100% 0%;
+        opacity: 0.5;
+    }
+    50% {
+        opacity: 0.8;
     }
     100% {
         background-position: 100% 100%, 0% 0%, 100% 0%, 0% 100%;
+        opacity: 0.5;
     }
 }
 
-@keyframes shine {
+@keyframes gentle-shine {
     0% {
-        background-position: 200% 0;
+        left: -150%;
+    }
+    50% {
+        left: 150%;
     }
     100% {
-        background-position: 0 0;
+        left: -150%;
     }
 }
+
+//end of trend
 
 @keyframes spin {
     to { transform: rotate(360deg); }
