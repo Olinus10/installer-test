@@ -45,33 +45,55 @@ fn HomePage(
                             let trending_class = if is_trending { "home-pack-card trending" } else { "home-pack-card" };
                             
                             rsx! {
-                                div { 
-                                    class: "{trending_class}",
-                                    style: "background-image: url('{info.background}'); background-color: {info.color};",
-                                    onclick: move |_| {
-                                        // CRITICAL FIX: Make sure this changes the page
-                                        let old_page = page();
-                                        debug!("HOME CLICK: Changing page from {} to {} ({}) - HOME_PAGE={}", 
-                                               old_page, tab_index, tab_title, HOME_PAGE);
-                                        
-                                        // Force update page signal
-                                        page.write().clone_from(&tab_index);
-                                        
-                                        // Double-check update worked
-                                        let new_page = page();
-                                        debug!("HOME CLICK RESULT: Page is now {}", new_page);
-                                    },
-                                    
-                                    // Add trending badge if needed
-                                    if is_trending {
-                                        div { class: "trending-badge", "Popular" }
-                                        // Add decorative crown shape
+                                // Create a wrapper div for trending modpacks
+                                if is_trending {
+                                    div { class: "trending-card-wrapper",
+                                        // Add the crown outside the card but in the wrapper
                                         div { class: "trending-crown" }
+                                        
+                                        div { 
+                                            class: "{trending_class}",
+                                            style: "background-image: url('{info.background}'); background-color: {info.color};",
+                                            onclick: move |_| {
+                                                let old_page = page();
+                                                debug!("HOME CLICK: Changing page from {} to {} ({}) - HOME_PAGE={}", 
+                                                    old_page, tab_index, tab_title, HOME_PAGE);
+                                                
+                                                page.write().clone_from(&tab_index);
+                                                
+                                                let new_page = page();
+                                                debug!("HOME CLICK RESULT: Page is now {}", new_page);
+                                            },
+                                            
+                                            // Add trending badge
+                                            div { class: "trending-badge", "Popular" }
+                                            
+                                            div { class: "home-pack-info",
+                                                h2 { class: "home-pack-title", "{modpack_subtitle}" }
+                                                div { class: "home-pack-button", "View Modpack" }
+                                            }
+                                        }
                                     }
-                                    
-                                    div { class: "home-pack-info",
-                                        h2 { class: "home-pack-title", "{modpack_subtitle}" }
-                                        div { class: "home-pack-button", "View Modpack" }
+                                } else {
+                                    // Regular non-trending card
+                                    div { 
+                                        class: "home-pack-card",
+                                        style: "background-image: url('{info.background}'); background-color: {info.color};",
+                                        onclick: move |_| {
+                                            let old_page = page();
+                                            debug!("HOME CLICK: Changing page from {} to {} ({}) - HOME_PAGE={}", 
+                                                old_page, tab_index, tab_title, HOME_PAGE);
+                                            
+                                            page.write().clone_from(&tab_index);
+                                            
+                                            let new_page = page();
+                                            debug!("HOME CLICK RESULT: Page is now {}", new_page);
+                                        },
+                                        
+                                        div { class: "home-pack-info",
+                                            h2 { class: "home-pack-title", "{modpack_subtitle}" }
+                                            div { class: "home-pack-button", "View Modpack" }
+                                        }
                                     }
                                 }
                             }
