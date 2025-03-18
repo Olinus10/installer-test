@@ -308,20 +308,23 @@ a:hover {
     justify-items: center;
 }
 
+/* Enhanced regular cards */
 .home-pack-card {
     height: 180px;
     width: 250px;
-    border-radius: 8px;
+    border-radius: 10px;
     background-size: cover;
     background-position: center;
     position: relative;
     overflow: hidden;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);
-    transition: transform 0.3s ease, box-shadow 0.3s ease, filter 0.3s ease;
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.6);
+    transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275),
+                box-shadow 0.4s ease,
+                filter 0.4s ease;
     cursor: pointer;
-    /* New glow effect */
-    position: relative;
+    border: 1px solid rgba(255, 255, 255, 0.1);
 }
+
 
 .home-pack-card::before {
     content: '';
@@ -1062,21 +1065,19 @@ a:hover {
 }
 
 .home-pack-card.trending .home-pack-info {
-    /* Use a more gradual gradient that starts higher and has more transparency */
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
     background: linear-gradient(to top, 
         rgba(0, 0, 0, 0.85) 0%, 
         rgba(0, 0, 0, 0.6) 40%, 
         rgba(0, 0, 0, 0.2) 80%,
         rgba(0, 0, 0, 0) 100%);
-    padding-top: 40px; /* Extend padding to create a more gradual appearance */
+    padding-top: 40px;
     padding-bottom: 15px;
-    height: auto;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: flex-end;
+    text-align: center;
     border-radius: 0 0 8px 8px;
-    position: relative;
     z-index: 5;
 }
 
@@ -1229,6 +1230,24 @@ a:hover {
     }
 }
 //end of trend
+
+/* Fix for the regular card info section */
+.home-pack-info {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 15px;
+    background: linear-gradient(to top, 
+        rgba(0, 0, 0, 0.9) 0%, 
+        rgba(0, 0, 0, 0.7) 50%, 
+        rgba(0, 0, 0, 0.2) 90%, 
+        rgba(0, 0, 0, 0) 100%);
+    text-align: center;
+    transition: transform 0.3s ease, background 0.3s ease;
+    width: 100%;
+    z-index: 2;
+}
 
 @keyframes spin {
     to { transform: rotate(360deg); }
