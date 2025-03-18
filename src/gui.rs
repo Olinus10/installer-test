@@ -548,38 +548,34 @@ struct FeatureCardProps {
 }
 
 #[component]
-fn FeatureCard(
-    feature: super::Feature,
-    is_enabled: bool,
-    on_toggle: EventHandler<FormEvent>,
-) -> Element {
-    let feat_id = feature.id.clone();
+fn FeatureCard(props: FeatureCardProps) -> Element {
+    let feat_id = props.feature.id.clone();
     
     rsx! {
         div { 
-            class: if is_enabled { "feature-card feature-enabled" } else { "feature-card feature-disabled" },
-            h3 { class: "feature-card-title", "{feature.name}" }
+            class: if props.enabled { "feature-card feature-enabled" } else { "feature-card feature-disabled" },
+            h3 { class: "feature-card-title", "{props.feature.name}" }
             
             // Render description if available
-            if let Some(description) = &feature.description {
+            if let Some(description) = &props.feature.description {
                 div { class: "feature-card-description", "{description}" }
             }
             
             // Toggle button with a properly wired checkbox
             label {
-                class: if is_enabled { "feature-toggle-button enabled" } else { "feature-toggle-button disabled" },
+                class: if props.enabled { "feature-toggle-button enabled" } else { "feature-toggle-button disabled" },
                 
                 // This hidden checkbox tracks the state
                 input {
                     r#type: "checkbox",
                     name: "{feat_id}",
-                    checked: if is_enabled { Some("true") } else { None },
-                    onchange: move |evt| on_toggle.call(evt),
+                    checked: if props.enabled { Some("true") } else { None },
+                    onchange: move |evt| props.on_toggle.call(evt),
                     style: "display: none;" // Hide the checkbox itself
                 }
                 
                 // Display the button text based on current state
-                if is_enabled { "Enabled" } else { "Disabled" }
+                if props.enabled { "Enabled" } else { "Disabled" }
             }
         }
     }
