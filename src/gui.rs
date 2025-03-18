@@ -741,7 +741,7 @@ fn Version(mut props: VersionProps) -> Element {
     let mut modify_count = use_signal(|| 0);
 
     // Fix: Initialize enabled_features properly
-    let enabled_features = use_signal(|| {
+    let mut enabled_features = use_signal(|| {
         let mut features = vec!["default".to_string()];
         
         if installer_profile.installed && installer_profile.local_manifest.is_some() {
@@ -762,7 +762,7 @@ fn Version(mut props: VersionProps) -> Element {
 
     let mut install_item_amount = use_signal(|| 0);
     let mut credits = use_signal(|| false);
-    let installed = use_signal(|| installer_profile.installed);
+    let mut installed = use_signal(|| installer_profile.installed);
     let mut update_available = use_signal(|| installer_profile.update_available);
     
     // Clone local_manifest to prevent ownership issues
@@ -775,7 +775,7 @@ fn Version(mut props: VersionProps) -> Element {
     });
     
     // Add a function to handle feature toggle
-    let feature_toggle = move |evt: FormEvent, feat: super::Feature| {
+    let mut feature_toggle = move |evt: FormEvent, feat: super::Feature| {
         let enabled = match &*evt.data.value() {
             "true" => true,
             "false" => false,
