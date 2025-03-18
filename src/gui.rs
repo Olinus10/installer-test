@@ -565,17 +565,13 @@ fn FeatureCard(props: FeatureCardProps) -> Element {
             // Toggle button with hidden checkbox
             label {
                 class: if enabled { "feature-toggle-button enabled" } else { "feature-toggle-button disabled" },
-                
-                // Hidden checkbox to track state
                 input {
                     r#type: "checkbox",
                     name: "{feature_id}",
                     checked: if enabled { Some("true") } else { None },
-                    // Convert EventHandler to a closure
                     onchange: move |evt| props.on_toggle.call(evt),
                     style: "display: none;"
                 }
-                
                 if enabled { "Enabled" } else { "Disabled" }
             }
         }
@@ -740,28 +736,28 @@ fn Version(mut props: VersionProps) -> Element {
     let mut modify_count = use_signal(|| 0);
 
     // Fix: Initialize enabled_features properly
-    let mut enabled_features = use_signal(|| {
-    let mut features = vec!["default".to_string()];
-    
-    if installer_profile.installed && installer_profile.local_manifest.is_some() {
-        features = installer_profile.local_manifest.as_ref().unwrap().enabled_features.clone();
-    } else {
-        // Add default features
-        for feat in &installer_profile.manifest.features {
-            if feat.default {
-                features.push(feat.id.clone());
+    let enabled_features = use_signal(|| {
+        let mut features = vec!["default".to_string()];
+        
+        if installer_profile.installed && installer_profile.local_manifest.is_some() {
+            features = installer_profile.local_manifest.as_ref().unwrap().enabled_features.clone();
+        } else {
+            // Add default features
+            for feat in &installer_profile.manifest.features {
+                if feat.default {
+                    features.push(feat.id.clone());
+                }
             }
         }
-    }
 
-    debug!("Initial enabled features for '{}': {:?}",
-           installer_profile.manifest.subtitle, features);
-    features
-});
+        debug!("Initial enabled features for '{}': {:?}",
+               installer_profile.manifest.subtitle, features);
+        features
+    });
 
     let mut install_item_amount = use_signal(|| 0);
     let mut credits = use_signal(|| false);
-    let mut installed = use_signal(|| installer_profile.installed);
+    let installed = use_signal(|| installer_profile.installed);
     let mut update_available = use_signal(|| installer_profile.update_available);
     
     // Clone local_manifest to prevent ownership issues
@@ -772,43 +768,6 @@ fn Version(mut props: VersionProps) -> Element {
             None
         }
     });
-    
-    // Add a function to handle feature toggle
-    let mut feature_toggle = move |evt: FormEvent, feat: super::Feature| {
-    let enabled = match &*evt.data.value() {
-        "true" => true,
-        "false" => false,
-        _ => false,
-    };
-    
-    debug!("Feature toggle: {} -> {}", feat.id, enabled);
-    
-    enabled_features.with_mut(|features| {
-        if enabled {
-            if !features.contains(&feat.id) {
-                features.push(feat.id.clone());
-            }
-        } else {
-            features.retain(|id| *id != feat.id);
-        }
-    });
-    
-    // Handle modify status - check if we're changing from the original configuration
-    if let Some(local_feat) = local_features.read().as_ref() {
-        let was_enabled = local_feat.contains(&feat.id);
-        let is_enabled = enabled_features.read().contains(&feat.id);
-        
-        // Only consider as modified if the state is different from original
-        if was_enabled != is_enabled {
-            modify_count.with_mut(|x| *x += 1);
-        } else {
-            modify_count.with_mut(|x| *x -= 1);
-        }
-        
-        // Update modify flag if any features have been modified
-        modify.set(*modify_count.read() > 0);
-    }
-};
     
     let movable_profile = installer_profile.clone();
     let on_submit = move |_| {
@@ -847,36 +806,6 @@ fn Version(mut props: VersionProps) -> Element {
                                         "{{
                                     \"projectId\": \"55db8403a4f24f3aa5afd33fd1962888\",
                                     \"dataSourceId\": \"{}\",
-                                    \"userAction\": \"install\",
-                                    \"additionalData\": {{}}
-                                }}",
-                                        installer_profile.manifest.uuid
-                                    ),
-                                );
-                                *installed.write() = true;
-                            }
-                            Err(e) => {
-                                props.error.set(Some(
-                                    format!("{:#?}", e) + " (Failed to install modpack!)",
-                                ));
-                                installing.set(false);
-                                return;
-                            }
-                        }
-                    } else if *update_available.read() {
-                        progress_status.set("Updating");
-                        match crate::update(&installer_profile, move || {
-                            *install_progress.write() += 1
-                        })
-                        .await
-                        {
-                            Ok(_) => {
-                                let _ = isahc::post(
-                                    "https://tracking.commander07.workers.dev/track",
-                                    format!(
-                                        "{{
-                                    \"projectId\": \"55db8403a4f24f3aa5afd33fd1962888\",
-                                    \"dataSourceId\": \"{}\",
                                     \"userAction\": \"update\",
                                     \"additionalData\": {{
                                         \"old_version\": \"{}\",
@@ -884,7 +813,7 @@ fn Version(mut props: VersionProps) -> Element {
                                     }}
                                 }}",
                                         installer_profile.manifest.uuid,
-                                        installer_profile.local_manifest.as_ref().unwrap().modpack_version,
+                                        installer_profile.local_manifest.unwrap().modpack_version,
                                         installer_profile.manifest.modpack_version
                                     ),
                                 );
@@ -900,7 +829,7 @@ fn Version(mut props: VersionProps) -> Element {
                         update_available.set(false);
                     } else if *modify.read() {
                         progress_status.set("Modifying");
-                        match crate::update(&installer_profile, move || {
+                        match super::update(&installer_profile, move || {
                             *install_progress.write() += 1
                         })
                         .await
@@ -930,8 +859,9 @@ fn Version(mut props: VersionProps) -> Element {
                                 return;
                             }
                         }
-                        modify.set(false);
-                        modify_count.set(0);
+                        modify.with_mut(|x| *x = false);
+                        modify_count.with_mut(|x| *x = 0);
+                        update_available.set(false);
                     }
                     installing.set(false);
                 });
@@ -978,7 +908,7 @@ fn Version(mut props: VersionProps) -> Element {
         } else if *credits.read() {
             Credits {
                 manifest: installer_profile.manifest,
-                enabled: enabled_features.read().clone(),
+                enabled: installer_profile.enabled_features,
                 credits
             }
         } else {
@@ -990,7 +920,7 @@ fn Version(mut props: VersionProps) -> Element {
                     }
                     
                     // Description section (using manifest data)
-                    div { class: "content-description-clean",
+                    div { class: "content-description",
                         // The 'dangerous_inner_html' directive renders HTML content safely
                         dangerous_inner_html: "{installer_profile.manifest.description}",
                         
@@ -1011,18 +941,12 @@ fn Version(mut props: VersionProps) -> Element {
                     h2 { "Optional Features" }
                     
                     // Feature cards in a responsive grid
-div { class: "feature-cards-container",
-    // Filter out hidden features
+                    div { class: "feature-cards-container",
     {installer_profile.manifest.features.iter().filter(|feat| !feat.hidden).map(|feat| {
         let feat_id = feat.id.clone();
         let feat_name = feat.name.clone();
         let feat_description = feat.description.clone();
-        
-        // Check if this feature is enabled
-        let is_enabled = enabled_features.read().contains(&feat_id);
-        
-        // Clone feature for the event handler
-        let feature_for_toggle = feat.clone();
+        let is_enabled = installer_profile.enabled_features.contains(&feat_id) || feat.default;
         
         rsx! {
             div { 
@@ -1030,25 +954,13 @@ div { class: "feature-cards-container",
                 h3 { class: "feature-card-title", "{feat_name}" }
                 
                 // Render description if available
-                if let Some(description) = &feat_description {
+                if let Some(description) = feat_description {
                     div { class: "feature-card-description", "{description}" }
                 }
                 
-                // Toggle button with checkbox for proper state tracking
-                label {
+                // Toggle button 
+                div {
                     class: if is_enabled { "feature-toggle-button enabled" } else { "feature-toggle-button disabled" },
-                    
-                    // Hidden checkbox to track state
-                    input {
-                        r#type: "checkbox",
-                        name: "{feat_id}",
-                        checked: if is_enabled { Some("true") } else { None },
-                        onchange: move |evt| {
-                            feature_toggle(evt, feature_for_toggle.clone());
-                        },
-                        style: "display: none;"
-                    }
-                    
                     if is_enabled { "Enabled" } else { "Disabled" }
                 }
             }
@@ -1056,21 +968,17 @@ div { class: "feature-cards-container",
     })}
 }
                     
-                    
                     // Install/Update/Modify button at the bottom
-                    div { class: "install-button-container-centered",
-                        button {
-                            class: "main-install-button",
-                            disabled: install_disable,
-                            if !*installed.read() {
-                                "Install"
-                            } else if *update_available.read() {
-                                "Update"
-                            } else if *modify.read() {
-                                "Apply Changes"
-                            } else {
-                                "No Changes"
-                            }
+                    div { class: "install-button-container",
+    button {
+        class: "main-install-button",
+        if !installer_profile.installed {
+            "Install"
+        } else if installer_profile.update_available {
+            "Update"
+        } else {
+            "Modify"
+        }
                         }
                     }
                 }
@@ -1611,20 +1519,24 @@ pub(crate) fn app() -> Element {
                         
 
 div { class: "feature-cards-container",
-    {
-        profile.manifest.features.iter()
-            .filter(|feat| !feat.hidden)
-            .map(|feat| {
+    for feat in profile.manifest.features {
+        if !feat.hidden {
+            {
+                // Move this Rust code outside the RSX by wrapping it in its own block
                 let feat_id = feat.id.clone();
                 let feat_name = feat.name.clone();
                 let feat_description = feat.description.clone();
                 
                 // Check if feature is enabled
-                let enabled = profile.enabled_features.contains(&feat_id) || feat.default;
+                let is_enabled = profile.enabled_features.contains(&feat_id) || feat.default;
                 
+                // Extract feature toggle function parameters for this feature
+                let feature_clone = feat.clone();
+                
+                // Return the RSX from this block
                 rsx! {
                     div { 
-                        class: if enabled { "feature-card feature-enabled" } else { "feature-card feature-disabled" },
+                        class: if is_enabled { "feature-card feature-enabled" } else { "feature-card feature-disabled" },
                         h3 { class: "feature-card-title", "{feat_name}" }
                         
                         // Description if available
@@ -1634,24 +1546,29 @@ div { class: "feature-cards-container",
                         
                         // Toggle button with proper functionality
                         label {
-                            class: if enabled { "feature-toggle-button enabled" } else { "feature-toggle-button disabled" },
+                            class: if is_enabled { "feature-toggle-button enabled" } else { "feature-toggle-button disabled" },
                             
                             // Hidden checkbox to track state
                             input {
                                 r#type: "checkbox",
                                 name: "{feat_id}",
-                                checked: if enabled { Some("true") } else { None },
-                                onchange: move |_evt| {
+                                checked: if is_enabled { Some("true") } else { None },
+                                onchange: move |evt| {
+                                    // Here we'll call a proper feature_change function
                                     debug!("Feature toggle changed: {}", feat_id);
+                                    
+                                    // You would call your feature_change function here
+                                    // feature_change(local_features, modify, evt, &feature_clone, modify_count, enabled_features);
                                 },
                                 style: "display: none;"
                             }
                             
-                            if enabled { "Enabled" } else { "Disabled" }
+                            if is_enabled { "Enabled" } else { "Disabled" }
                         }
                     }
                 }
-            })
+            }
+        }
     }
 }
                         
