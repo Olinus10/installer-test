@@ -736,7 +736,7 @@ fn Version(mut props: VersionProps) -> Element {
     let mut modify_count = use_signal(|| 0);
 
     // Fix: Initialize enabled_features properly
-    let mut enabled_features = use_signal(|| {
+    let enabled_features = use_signal(|| {
         let mut features = vec!["default".to_string()];
         
         if installer_profile.installed && installer_profile.local_manifest.is_some() {
@@ -938,80 +938,34 @@ fn Version(mut props: VersionProps) -> Element {
                     }
                     
                     // Features heading
-h2 { "Optional Features" }
-
-// Feature cards in a responsive grid
-div { class: "feature-cards-container",
-    {
-        installer_profile.manifest.features.iter()
-            .filter(|feat| !feat.hidden)
-            .map(|feat| {
-                let feat_id = feat.id.clone();
-                let feat_clone = feat.clone();
+                    h2 { "Optional Features" }
+                    
+                    // Feature cards in a responsive grid
+                    div { class: "feature-cards-container",
+    {installer_profile.manifest.features.iter().filter(|feat| !feat.hidden).map(|feat| {
+        let feat_id = feat.id.clone();
+        let feat_name = feat.name.clone();
+        let feat_description = feat.description.clone();
+        let is_enabled = installer_profile.enabled_features.contains(&feat_id) || feat.default;
+        
+        rsx! {
+            div { 
+                class: if is_enabled { "feature-card feature-enabled" } else { "feature-card feature-disabled" },
+                h3 { class: "feature-card-title", "{feat_name}" }
                 
-                // Determine if the feature is currently enabled
-                let is_enabled = enabled_features.read().contains(&feat_id);
-                
-                rsx! {
-                    div { 
-                        class: if is_enabled { "feature-card feature-enabled" } else { "feature-card feature-disabled" },
-                        h3 { class: "feature-card-title", "{feat.name}" }
-                        
-                        // Render description if available
-                        if let Some(description) = &feat.description {
-                            div { class: "feature-card-description", "{description}" }
-                        }
-                        
-                        // Toggle button with a properly wired checkbox
-                        label {
-                            class: if is_enabled { "feature-toggle-button enabled" } else { "feature-toggle-button disabled" },
-                            
-                            // This hidden checkbox tracks the state
-                            input {
-                                r#type: "checkbox",
-                                name: "{feat_id}",
-                                checked: if is_enabled { Some("true") } else { None },
-                                onchange: move |evt| {
-                                    // Clone necessary values to avoid ownership issues
-                                    let feat_id = feat_clone.id.clone();
-                                    
-                                    // Update enabled_features signal based on the new state
-                                    let is_now_enabled = evt.data.value() == "true";
-                                    enabled_features.with_mut(|features| {
-                                        if is_now_enabled && !features.contains(&feat_id) {
-                                            features.push(feat_id.clone());
-                                        } else if !is_now_enabled {
-                                            features.retain(|id| id != &feat_id);
-                                        }
-                                    });
-                                    
-                                    // Update modify signals
-                                    if let Some(local_feat) = local_features.read().as_ref() {
-                                        let modify_res = local_feat.contains(&feat_id) != is_now_enabled;
-                                        
-                                        if modify_res {
-                                            modify.set(true);
-                                            modify_count.with_mut(|x| *x += 1);
-                                        } else if *modify_count.read() > 0 {
-                                            modify_count.with_mut(|x| *x -= 1);
-                                            if *modify_count.read() <= 0 {
-                                                modify.set(false);
-                                            }
-                                        }
-                                    }
-                                    
-                                    debug!("Feature toggle changed: {}", feat_id);
-                                },
-                                style: "display: none;" // Hide the checkbox itself
-                            }
-                            
-                            // Display the button text based on current state
-                            if is_enabled { "Enabled" } else { "Disabled" }
-                        }
-                    }
+                // Render description if available
+                if let Some(description) = feat_description {
+                    div { class: "feature-card-description", "{description}" }
                 }
-            })
-    }
+                
+                // Toggle button 
+                div {
+                    class: if is_enabled { "feature-toggle-button enabled" } else { "feature-toggle-button disabled" },
+                    if is_enabled { "Enabled" } else { "Disabled" }
+                }
+            }
+        }
+    })}
 }
                     
                     // Install/Update/Modify button at the bottom
