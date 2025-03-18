@@ -1402,3 +1402,49 @@ a:hover {
 .home-pack-card.trending .home-pack-info {
   padding-top: 30px; /* Reduced from 40px for thinner card */
 }
+
+
+/* Improved crown positioning to sit perfectly on the card edge */
+.trending-card-wrapper .trending-crown {
+    position: absolute;
+    top: -18px; /* Adjusted from -25px to position closer to the card edge */
+    left: 50%;
+    transform: translateX(-50%);
+    width: 50px;
+    height: 35px;
+    background-image: linear-gradient(135deg, #ffd700, #ffa500);
+    /* Crown shape */
+    clip-path: polygon(
+        0% 75%, 
+        15% 75%, 
+        20% 40%, 
+        30% 75%, 
+        40% 35%, 
+        50% 75%, 
+        60% 35%, 
+        70% 75%, 
+        80% 40%, 
+        85% 75%, 
+        100% 75%, 
+        100% 100%, 
+        0% 100%
+    );
+    z-index: 30; /* Ensure it stays on top */
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.4);
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+/* Also adjust hover state to maintain consistent positioning */
+.trending-card-wrapper:hover .trending-crown {
+    transform: translateX(-50%) scale(1.2);
+    top: -18px; /* Maintain consistent top position on hover */
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5), 0 0 20px rgba(255, 215, 0, 0.8);
+}
+
+/* Ensure the trending card has appropriate top padding to accommodate crown */
+.trending-card-wrapper {
+    padding-top: 18px; /* Add padding to account for crown overlap */
+    margin-top: 12px; /* Reduce top margin since we've added padding */
+}
+
+
