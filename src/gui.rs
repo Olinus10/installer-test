@@ -1,5 +1,5 @@
 use std::{collections::BTreeMap, path::PathBuf};
-use base64::{engine::general_purpose::URL_SAFE_NO_PAD};
+use base64::{Engine, engine::general_purpose::URL_SAFE_NO_PAD};
 use dioxus::prelude::*;
 use log::{error, debug};
 use modal::ModalContext;
