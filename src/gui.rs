@@ -1671,4 +1671,4 @@ div { class: "feature-cards-container",
         rsx! { div { "No modpack information found for this tab." } }
     }
 }
-}}}}}}
+}}}}}}}
