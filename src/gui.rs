@@ -769,6 +769,43 @@ fn Version(mut props: VersionProps) -> Element {
         }
     });
     
+    // Add a function to handle feature toggle
+    let feature_toggle = move |evt: FormEvent, feat: super::Feature| {
+        let enabled = match &*evt.data.value() {
+            "true" => true,
+            "false" => false,
+            _ => false,
+        };
+        
+        debug!("Feature toggle: {} -> {}", feat.id, enabled);
+        
+        enabled_features.with_mut(|features| {
+            if enabled {
+                if !features.contains(&feat.id) {
+                    features.push(feat.id.clone());
+                }
+            } else {
+                features.retain(|id| *id != feat.id);
+            }
+        });
+        
+        // Handle modify status - check if we're changing from the original configuration
+        if let Some(local_feat) = local_features.read().as_ref() {
+            let was_enabled = local_feat.contains(&feat.id);
+            let is_enabled = enabled_features.read().contains(&feat.id);
+            
+            // Only consider as modified if the state is different from original
+            if was_enabled != is_enabled {
+                modify_count.with_mut(|x| *x += 1);
+            } else {
+                modify_count.with_mut(|x| *x -= 1);
+            }
+            
+            // Update modify flag if any features have been modified
+            modify.set(*modify_count.read() > 0);
+        }
+    };
+    
     let movable_profile = installer_profile.clone();
     let on_submit = move |_| {
         // Calculate total items to process for progress tracking
@@ -806,6 +843,36 @@ fn Version(mut props: VersionProps) -> Element {
                                         "{{
                                     \"projectId\": \"55db8403a4f24f3aa5afd33fd1962888\",
                                     \"dataSourceId\": \"{}\",
+                                    \"userAction\": \"install\",
+                                    \"additionalData\": {{}}
+                                }}",
+                                        installer_profile.manifest.uuid
+                                    ),
+                                );
+                                *installed.write() = true;
+                            }
+                            Err(e) => {
+                                props.error.set(Some(
+                                    format!("{:#?}", e) + " (Failed to install modpack!)",
+                                ));
+                                installing.set(false);
+                                return;
+                            }
+                        }
+                    } else if *update_available.read() {
+                        progress_status.set("Updating");
+                        match crate::update(&installer_profile, move || {
+                            *install_progress.write() += 1
+                        })
+                        .await
+                        {
+                            Ok(_) => {
+                                let _ = isahc::post(
+                                    "https://tracking.commander07.workers.dev/track",
+                                    format!(
+                                        "{{
+                                    \"projectId\": \"55db8403a4f24f3aa5afd33fd1962888\",
+                                    \"dataSourceId\": \"{}\",
                                     \"userAction\": \"update\",
                                     \"additionalData\": {{
                                         \"old_version\": \"{}\",
@@ -813,7 +880,7 @@ fn Version(mut props: VersionProps) -> Element {
                                     }}
                                 }}",
                                         installer_profile.manifest.uuid,
-                                        installer_profile.local_manifest.unwrap().modpack_version,
+                                        installer_profile.local_manifest.as_ref().unwrap().modpack_version,
                                         installer_profile.manifest.modpack_version
                                     ),
                                 );
@@ -829,7 +896,7 @@ fn Version(mut props: VersionProps) -> Element {
                         update_available.set(false);
                     } else if *modify.read() {
                         progress_status.set("Modifying");
-                        match super::update(&installer_profile, move || {
+                        match crate::update(&installer_profile, move || {
                             *install_progress.write() += 1
                         })
                         .await
@@ -859,9 +926,8 @@ fn Version(mut props: VersionProps) -> Element {
                                 return;
                             }
                         }
-                        modify.with_mut(|x| *x = false);
-                        modify_count.with_mut(|x| *x = 0);
-                        update_available.set(false);
+                        modify.set(false);
+                        modify_count.set(0);
                     }
                     installing.set(false);
                 });
@@ -908,7 +974,7 @@ fn Version(mut props: VersionProps) -> Element {
         } else if *credits.read() {
             Credits {
                 manifest: installer_profile.manifest,
-                enabled: installer_profile.enabled_features,
+                enabled: enabled_features.read().clone(),
                 credits
             }
         } else {
@@ -920,7 +986,7 @@ fn Version(mut props: VersionProps) -> Element {
                     }
                     
                     // Description section (using manifest data)
-                    div { class: "content-description",
+                    div { class: "content-description-clean",
                         // The 'dangerous_inner_html' directive renders HTML content safely
                         dangerous_inner_html: "{installer_profile.manifest.description}",
                         
@@ -940,45 +1006,66 @@ fn Version(mut props: VersionProps) -> Element {
                     // Features heading
                     h2 { "Optional Features" }
                     
-                    // Feature cards in a responsive grid
+                    // Feature cards in a responsive grid - FIXED VERSION
                     div { class: "feature-cards-container",
-    {installer_profile.manifest.features.iter().filter(|feat| !feat.hidden).map(|feat| {
-        let feat_id = feat.id.clone();
-        let feat_name = feat.name.clone();
-        let feat_description = feat.description.clone();
-        let is_enabled = installer_profile.enabled_features.contains(&feat_id) || feat.default;
-        
-        rsx! {
-            div { 
-                class: if is_enabled { "feature-card feature-enabled" } else { "feature-card feature-disabled" },
-                h3 { class: "feature-card-title", "{feat_name}" }
-                
-                // Render description if available
-                if let Some(description) = feat_description {
-                    div { class: "feature-card-description", "{description}" }
-                }
-                
-                // Toggle button 
-                div {
-                    class: if is_enabled { "feature-toggle-button enabled" } else { "feature-toggle-button disabled" },
-                    if is_enabled { "Enabled" } else { "Disabled" }
-                }
-            }
-        }
-    })}
-}
+                        // Filter out hidden features
+                        {installer_profile.manifest.features.iter().filter(|feat| !feat.hidden).map(|feat| {
+                            let feat_id = feat.id.clone();
+                            let feat_name = feat.name.clone();
+                            let feat_description = feat.description.clone();
+                            
+                            // Check if this feature is enabled
+                            let is_enabled = enabled_features.read().contains(&feat_id);
+                            
+                            // Clone feature for the event handler
+                            let feature_for_toggle = feat.clone();
+                            
+                            rsx! {
+                                div { 
+                                    class: if is_enabled { "feature-card feature-enabled" } else { "feature-card feature-disabled" },
+                                    h3 { class: "feature-card-title", "{feat_name}" }
+                                    
+                                    // Render description if available
+                                    if let Some(description) = feat_description {
+                                        div { class: "feature-card-description", "{description}" }
+                                    }
+                                    
+                                    // Toggle button with checkbox for proper state tracking
+                                    label {
+                                        class: if is_enabled { "feature-toggle-button enabled" } else { "feature-toggle-button disabled" },
+                                        
+                                        // Hidden checkbox to track state
+                                        input {
+                                            r#type: "checkbox",
+                                            name: "{feat_id}",
+                                            checked: if is_enabled { Some("true") } else { None },
+                                            onchange: move |evt| {
+                                                feature_toggle(evt, feature_for_toggle.clone());
+                                            },
+                                            style: "display: none;"
+                                        }
+                                        
+                                        if is_enabled { "Enabled" } else { "Disabled" }
+                                    }
+                                }
+                            }
+                        })}
+                    }
                     
                     // Install/Update/Modify button at the bottom
-                    div { class: "install-button-container",
-    button {
-        class: "main-install-button",
-        if !installer_profile.installed {
-            "Install"
-        } else if installer_profile.update_available {
-            "Update"
-        } else {
-            "Modify"
-        }
+                    div { class: "install-button-container-centered",
+                        button {
+                            class: "main-install-button",
+                            disabled: install_disable,
+                            if !*installed.read() {
+                                "Install"
+                            } else if *update_available.read() {
+                                "Update"
+                            } else if *modify.read() {
+                                "Apply Changes"
+                            } else {
+                                "No Changes"
+                            }
                         }
                     }
                 }
