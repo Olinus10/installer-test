@@ -549,11 +549,12 @@ struct FeatureCardProps {
 
 #[component]
 fn FeatureCard(props: FeatureCardProps) -> Element {
-    let feat_id = props.feature.id.clone();
+    let enabled = props.enabled;
+    let feature_id = props.feature.id.clone();
     
     rsx! {
         div { 
-            class: if props.enabled { "feature-card feature-enabled" } else { "feature-card feature-disabled" },
+            class: if enabled { "feature-card feature-enabled" } else { "feature-card feature-disabled" },
             h3 { class: "feature-card-title", "{props.feature.name}" }
             
             // Render description if available
@@ -561,21 +562,17 @@ fn FeatureCard(props: FeatureCardProps) -> Element {
                 div { class: "feature-card-description", "{description}" }
             }
             
-            // Toggle button with a properly wired checkbox
+            // Toggle button with hidden checkbox
             label {
-                class: if props.enabled { "feature-toggle-button enabled" } else { "feature-toggle-button disabled" },
-                
-                // This hidden checkbox tracks the state
+                class: if enabled { "feature-toggle-button enabled" } else { "feature-toggle-button disabled" },
                 input {
                     r#type: "checkbox",
-                    name: "{feat_id}",
-                    checked: if props.enabled { Some("true") } else { None },
+                    name: "{feature_id}",
+                    checked: if enabled { Some("true") } else { None },
                     onchange: move |evt| props.on_toggle.call(evt),
-                    style: "display: none;" // Hide the checkbox itself
+                    style: "display: none;"
                 }
-                
-                // Display the button text based on current state
-                if props.enabled { "Enabled" } else { "Disabled" }
+                if enabled { "Enabled" } else { "Disabled" }
             }
         }
     }
@@ -941,58 +938,58 @@ fn Version(mut props: VersionProps) -> Element {
                     }
                     
                     // Features heading
-                   h2 { "Optional Features" }
+h2 { "Optional Features" }
 
+// Feature cards in a responsive grid
 div { class: "feature-cards-container",
-    for feat in &installer_profile.manifest.features {
-        if !feat.hidden {
-            {
-                // Calculate if this feature is enabled within a code block
+    {
+        installer_profile.manifest.features.iter()
+            .filter(|feat| !feat.hidden)
+            .map(|feat| {
                 let feat_id = feat.id.clone();
+                let feat_clone = feat.clone();
+                
+                // Determine if the feature is currently enabled
                 let is_enabled = enabled_features.read().contains(&feat_id);
                 
-                // Create a Rust object with what we need
-                let feat_name = feat.name.clone();
-                let feat_desc = feat.description.clone();
-                
-                // Return RSX from this block
                 rsx! {
                     div { 
                         class: if is_enabled { "feature-card feature-enabled" } else { "feature-card feature-disabled" },
-                        h3 { class: "feature-card-title", "{feat_name}" }
+                        h3 { class: "feature-card-title", "{feat.name}" }
                         
-                        // Description if available
-                        if let Some(description) = &feat_desc {
+                        // Render description if available
+                        if let Some(description) = &feat.description {
                             div { class: "feature-card-description", "{description}" }
                         }
                         
-                        // Toggle button
+                        // Toggle button with a properly wired checkbox
                         label {
                             class: if is_enabled { "feature-toggle-button enabled" } else { "feature-toggle-button disabled" },
                             
-                            // Hidden checkbox
+                            // This hidden checkbox tracks the state
                             input {
                                 r#type: "checkbox",
                                 name: "{feat_id}",
                                 checked: if is_enabled { Some("true") } else { None },
                                 onchange: move |evt| {
-                                    let feat_id_clone = feat_id.clone();
-                                    let is_checked = evt.data.value() == "true";
+                                    // Clone necessary values to avoid ownership issues
+                                    let feat_id = feat_clone.id.clone();
                                     
-                                    // Update enabled features list
+                                    // Update enabled_features signal based on the new state
+                                    let is_now_enabled = evt.data.value() == "true";
                                     enabled_features.with_mut(|features| {
-                                        if is_checked && !features.contains(&feat_id_clone) {
-                                            features.push(feat_id_clone.clone());
-                                        } else if !is_checked {
-                                            features.retain(|f| f != &feat_id_clone);
+                                        if is_now_enabled && !features.contains(&feat_id) {
+                                            features.push(feat_id.clone());
+                                        } else if !is_now_enabled {
+                                            features.retain(|id| id != &feat_id);
                                         }
                                     });
                                     
-                                    // Update modify status
-                                    if let Some(local_feats) = local_features.read().as_ref() {
-                                        let needs_modify = local_feats.contains(&feat_id_clone) != is_checked;
+                                    // Update modify signals
+                                    if let Some(local_feat) = local_features.read().as_ref() {
+                                        let modify_res = local_feat.contains(&feat_id) != is_now_enabled;
                                         
-                                        if needs_modify {
+                                        if modify_res {
                                             modify.set(true);
                                             modify_count.with_mut(|x| *x += 1);
                                         } else if *modify_count.read() > 0 {
@@ -1003,18 +1000,17 @@ div { class: "feature-cards-container",
                                         }
                                     }
                                     
-                                    debug!("Feature toggle changed: {}", feat_id_clone);
+                                    debug!("Feature toggle changed: {}", feat_id);
                                 },
-                                style: "display: none;" 
+                                style: "display: none;" // Hide the checkbox itself
                             }
                             
-                            // Label text
-                            {if is_enabled { "Enabled" } else { "Disabled" }}
+                            // Display the button text based on current state
+                            if is_enabled { "Enabled" } else { "Disabled" }
                         }
                     }
                 }
-            }
-        }
+            })
     }
 }
                     
