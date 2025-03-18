@@ -739,7 +739,7 @@ fn Version(mut props: VersionProps) -> Element {
     let mut modify_count = use_signal(|| 0);
 
     // Fix: Initialize enabled_features properly
-    llet mut enabled_features = use_signal(|| {
+    let mut enabled_features = use_signal(|| {
     let mut features = vec!["default".to_string()];
     
     if installer_profile.installed && installer_profile.local_manifest.is_some() {
