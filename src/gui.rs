@@ -562,7 +562,7 @@ fn FeatureCard(props: FeatureCardProps) -> Element {
                 div { class: "feature-card-description", "{description}" }
             }
             
-            // Toggle button with hidden checkbox
+            // Toggle button with properly connected event handler
             label {
                 class: if enabled { "feature-toggle-button enabled" } else { "feature-toggle-button disabled" },
                 input {
@@ -593,6 +593,8 @@ fn feature_change(
         _ => panic!("Invalid bool from feature"),
     };
     
+    debug!("Feature toggle changed: {} -> {}", feat.id, enabled);
+    
     // Copy values we need for comparison
     let current_features = enabled_features.read().clone();
     let contains_feature = current_features.contains(&feat.id);
@@ -600,6 +602,7 @@ fn feature_change(
     
     // Only update if necessary
     if enabled != contains_feature {
+        debug!("Updating feature state for {}: {} -> {}", feat.id, contains_feature, enabled);
         enabled_features.with_mut(|x| {
             if enabled && !x.contains(&feat.id) {
                 x.push(feat.id.clone());
@@ -736,7 +739,7 @@ fn Version(mut props: VersionProps) -> Element {
     let mut modify_count = use_signal(|| 0);
 
     // Fix: Initialize enabled_features properly
-    let enabled_features = use_signal(|| {
+    let mut enabled_features = use_signal(|| {
         let mut features = vec!["default".to_string()];
         
         if installer_profile.installed && installer_profile.local_manifest.is_some() {
@@ -897,6 +900,58 @@ fn Version(mut props: VersionProps) -> Element {
         debug!("Feature: id={}, name={}, hidden={}", feat.id, feat.name, feat.hidden);
     }
     
+    // Define the feature_change function
+    fn feature_change(
+        local_features: Signal<Option<Vec<String>>>,
+        mut modify: Signal<bool>,
+        evt: FormEvent,
+        feat: &super::Feature,
+        mut modify_count: Signal<i32>,
+        mut enabled_features: Signal<Vec<String>>,
+    ) {
+        // Extract values first
+        let enabled = match &*evt.data.value() {
+            "true" => true,
+            "false" => false,
+            _ => panic!("Invalid bool from feature"),
+        };
+        
+        debug!("Feature toggle changed: {} -> {}", feat.id, enabled);
+        
+        // Copy values we need for comparison
+        let current_features = enabled_features.read().clone();
+        let contains_feature = current_features.contains(&feat.id);
+        let current_count = *modify_count.read();
+        
+        // Only update if necessary
+        if enabled != contains_feature {
+            debug!("Updating feature state for {}: {} -> {}", feat.id, contains_feature, enabled);
+            enabled_features.with_mut(|x| {
+                if enabled && !x.contains(&feat.id) {
+                    x.push(feat.id.clone());
+                } else if !enabled {
+                    x.retain(|item| item != &feat.id);
+                }
+            });
+        }
+        
+        // Handle modify signals in a separate step
+        if let Some(local_feat) = local_features.read().as_ref() {
+            let modify_res = local_feat.contains(&feat.id) != enabled;
+            
+            // Schedule these operations separately to avoid infinite loop warnings
+            if current_count <= 1 {
+                modify.set(modify_res);
+            }
+            
+            if modify_res {
+                modify_count.with_mut(|x| *x += 1);
+            } else {
+                modify_count.with_mut(|x| *x -= 1);
+            }
+        }
+    }
+    
     rsx! {
         if *installing.read() {
             ProgressView {
@@ -942,43 +997,65 @@ fn Version(mut props: VersionProps) -> Element {
                     
                     // Feature cards in a responsive grid
                     div { class: "feature-cards-container",
-    {installer_profile.manifest.features.iter().filter(|feat| !feat.hidden).map(|feat| {
-        let feat_id = feat.id.clone();
-        let feat_name = feat.name.clone();
-        let feat_description = feat.description.clone();
-        let is_enabled = installer_profile.enabled_features.contains(&feat_id) || feat.default;
-        
-        rsx! {
-            div { 
-                class: if is_enabled { "feature-card feature-enabled" } else { "feature-card feature-disabled" },
-                h3 { class: "feature-card-title", "{feat_name}" }
-                
-                // Render description if available
-                if let Some(description) = feat_description {
-                    div { class: "feature-card-description", "{description}" }
-                }
-                
-                // Toggle button 
-                div {
-                    class: if is_enabled { "feature-toggle-button enabled" } else { "feature-toggle-button disabled" },
-                    if is_enabled { "Enabled" } else { "Disabled" }
-                }
-            }
-        }
-    })}
-}
+                        for feat in &installer_profile.manifest.features {
+                            if !feat.hidden {
+                                {
+                                    let feat_id = feat.id.clone();
+                                    let feat_name = feat.name.clone();
+                                    let feat_description = feat.description.clone();
+                                    let is_enabled = enabled_features.read().contains(&feat.id);
+                                    let feat_clone = feat.clone();
+                                    
+                                    rsx! {
+                                        div { 
+                                            class: if is_enabled { "feature-card feature-enabled" } else { "feature-card feature-disabled" },
+                                            h3 { class: "feature-card-title", "{feat_name}" }
+                                            
+                                            // Render description if available
+                                            if let Some(description) = &feat_description {
+                                                div { class: "feature-card-description", "{description}" }
+                                            }
+                                            
+                                            // Toggle button with proper event handling
+                                            label {
+                                                class: if is_enabled { "feature-toggle-button enabled" } else { "feature-toggle-button disabled" },
+                                                input {
+                                                    r#type: "checkbox",
+                                                    name: "{feat_id}",
+                                                    checked: if is_enabled { Some("true") } else { None },
+                                                    onchange: move |evt| {
+                                                        feature_change(
+                                                            local_features,
+                                                            modify,
+                                                            evt,
+                                                            &feat_clone,
+                                                            modify_count,
+                                                            enabled_features
+                                                        );
+                                                    },
+                                                    style: "display: none;"
+                                                }
+                                                if is_enabled { "Enabled" } else { "Disabled" }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
                     
                     // Install/Update/Modify button at the bottom
                     div { class: "install-button-container",
-    button {
-        class: "main-install-button",
-        if !installer_profile.installed {
-            "Install"
-        } else if installer_profile.update_available {
-            "Update"
-        } else {
-            "Modify"
-        }
+                        button {
+                            class: "main-install-button",
+                            disabled: install_disable,
+                            if !installer_profile.installed {
+                                "Install"
+                            } else if installer_profile.update_available {
+                                "Update"
+                            } else {
+                                "Modify"
+                            }
                         }
                     }
                 }
