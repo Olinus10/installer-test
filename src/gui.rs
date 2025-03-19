@@ -606,12 +606,12 @@ fn FeatureCard(props: FeatureCardProps) -> Element {
 
 fn feature_change(
     local_features: Signal<Option<Vec<String>>>,
-    modify: Signal<bool>,
+    mut modify: Signal<bool>,
     evt: FormEvent,
     feat: &super::Feature,
-    modify_count: Signal<i32>,
-    enabled_features: Signal<Vec<String>>,
-    refresh_trigger: Signal<i32>,
+    mut modify_count: Signal<i32>,
+    mut enabled_features: Signal<Vec<String>>,
+    mut refresh_trigger: Signal<i32>,
 ) {
     // Get the new enabled state from the event
     let enabled = evt.data.value() == "true";
