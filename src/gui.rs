@@ -550,7 +550,7 @@ struct FeatureCardProps {
 #[component]
 fn FeatureCard(props: FeatureCardProps) -> Element {
     // Create a local signal to track state
-    let mut is_enabled = use_signal(|| props.enabled);
+    let is_enabled = use_signal(|| props.enabled);
     
     // Update local state when props change
     use_effect(move || {
@@ -584,7 +584,9 @@ fn FeatureCard(props: FeatureCardProps) -> Element {
                     checked: if *is_enabled.read() { Some("true") } else { None },
                     onchange: move |evt| {
                         // Toggle local state immediately for visual feedback
-                        is_enabled.set(!*is_enabled.read());
+                        // FIX: First get the current value, then set the opposite
+                        let current_value = *is_enabled.read();
+                        is_enabled.set(!current_value);
                         
                         // Forward the original event
                         props.on_toggle.call(evt);
@@ -1616,59 +1618,56 @@ pub(crate) fn app() -> Element {
                         // Feature cards
                         
 
-div { class: "feature-cards-container",
-    for feat in profile.manifest.features {
-        if !feat.hidden {
-            {
-                // Move this Rust code outside the RSX by wrapping it in its own block
-                let feat_id = feat.id.clone();
-                let feat_name = feat.name.clone();
-                let feat_description = feat.description.clone();
-                
-                // Check if feature is enabled
-                let is_enabled = profile.enabled_features.contains(&feat_id) || feat.default;
-                
-                // Extract feature toggle function parameters for this feature
-                let feature_clone = feat.clone();
-                
-                // Return the RSX from this block
-                rsx! {
-                    div { 
-                        class: if is_enabled { "feature-card feature-enabled" } else { "feature-card feature-disabled" },
-                        h3 { class: "feature-card-title", "{feat_name}" }
-                        
-                        // Description if available
-                        if let Some(description) = &feat_description {
-                            div { class: "feature-card-description", "{description}" }
-                        }
-                        
-                        // Toggle button with proper functionality
-                        label {
-                            class: if is_enabled { "feature-toggle-button enabled" } else { "feature-toggle-button disabled" },
-                            
-                            // Hidden checkbox to track state
-                            input {
-                                r#type: "checkbox",
-                                name: "{feat_id}",
-                                checked: if is_enabled { Some("true") } else { None },
-                                onchange: move |evt| {
-                                    // Here we'll call a proper feature_change function
-                                    debug!("Feature toggle changed: {}", feat_id);
-                                    
-                                    // You would call your feature_change function here
-                                    // feature_change(local_features, modify, evt, &feature_clone, modify_count, enabled_features);
-                                },
-                                style: "display: none;"
+ div { class: "feature-cards-container",
+                    for feat in profile.manifest.features {
+                        if !feat.hidden {
+                            {
+                                // Move this Rust code outside the RSX by wrapping it in its own block
+                                let feat_id = feat.id.clone();
+                                let feat_name = feat.name.clone();
+                                let feat_description = feat.description.clone();
+                                
+                                // Check if feature is enabled
+                                let is_enabled = profile.enabled_features.contains(&feat_id) || feat.default;
+                                
+                                // Return the RSX from this block - removed unused variable
+                                rsx! {
+                                    div { 
+                                        class: if is_enabled { "feature-card feature-enabled" } else { "feature-card feature-disabled" },
+                                        h3 { class: "feature-card-title", "{feat_name}" }
+                                        
+                                        // Description if available
+                                        if let Some(description) = &feat_description {
+                                            div { class: "feature-card-description", "{description}" }
+                                        }
+                                        
+                                        // Toggle button with proper functionality
+                                        label {
+                                            class: if is_enabled { "feature-toggle-button enabled" } else { "feature-toggle-button disabled" },
+                                            
+                                            // Hidden checkbox to track state
+                                            input {
+                                                r#type: "checkbox",
+                                                name: "{feat_id}",
+                                                checked: if is_enabled { Some("true") } else { None },
+                                                onchange: move |_evt| { // Added underscore to unused variable
+                                                    // Here we'll call a proper feature_change function
+                                                    debug!("Feature toggle changed: {}", feat_id);
+                                                    
+                                                    // You would call your feature_change function here
+                                                    // feature_change(local_features, modify, evt, &feat, modify_count, enabled_features);
+                                                },
+                                                style: "display: none;"
+                                            }
+                                            
+                                            if is_enabled { "Enabled" } else { "Disabled" }
+                                        }
+                                    }
+                                }
                             }
-                            
-                            if is_enabled { "Enabled" } else { "Disabled" }
                         }
                     }
                 }
-            }
-        }
-    }
-}
                         
                         // Install button
                         div { class: "install-button-container",
