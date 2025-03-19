@@ -968,8 +968,9 @@ fn Version(mut props: VersionProps) -> Element {
     let install_disable = *installed.read() && !*update_available.read() && !*modify.read();
     debug!("Button disabled: {}", install_disable);
     
-    // Log all feature states for debugging
-    for feat in features.read().iter() {
+    // Log all feature states for debugging - using proper signal access
+    let features_ref = features.read();
+    for feat in features_ref.iter() {
         let is_enabled = enabled_features.read().contains(&feat.id);
         debug!("Feature state: {}: enabled={}", feat.id, is_enabled);
     }
@@ -979,6 +980,9 @@ fn Version(mut props: VersionProps) -> Element {
     use_effect(move || {
         debug!("Re-rendering after debug counter update: {}", *debug_counter.read());
     });
+    
+    // Get a reference to the features collection for rendering
+    let features_for_rendering = features.read();
     
     rsx! {
         if *installing.read() {
@@ -1026,7 +1030,7 @@ fn Version(mut props: VersionProps) -> Element {
                     
                     // Feature cards in a responsive grid with explicit feature handling
                     div { class: "feature-cards-container",
-                        for feat in features.read().iter() {
+                        for feat in features_for_rendering.iter() {
                             if !feat.hidden {
                                 {
                                     let feat_name = feat.name.clone();
