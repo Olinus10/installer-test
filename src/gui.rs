@@ -729,56 +729,52 @@ struct VersionProps {
 fn Version(mut props: VersionProps) -> Element {
     let installer_profile = props.installer_profile.clone();
     
-    // Force reactivity with explicit signal declarations and consistent usage
+    // Force reactivity with explicit signal declarations
     let mut installing = use_signal(|| false);
     let mut progress_status = use_signal(|| "".to_string());
     let mut install_progress = use_signal(|| 0);
     let mut modify = use_signal(|| false);
-    let mut modify_count = use_signal(|| 0);
     let mut credits = use_signal(|| false);
     
-    // Use explicit signals for state that controls UI appearance
+    // CRITICAL: Create signals for each state that needs to trigger UI updates
     let mut installed = use_signal(|| installer_profile.installed);
     let mut update_available = use_signal(|| installer_profile.update_available);
     let mut install_item_amount = use_signal(|| 0);
     
-    // Force update counter for debugging
-    let mut refresh_counter = use_signal(|| 0);
+    // Debug counter to force re-renders when needed
+    let mut debug_counter = use_signal(|| 0);
     
-    // Use signal for enabled_features with cleaner initialization
+    // Store enabled features as a dedicated signal
     let mut enabled_features = use_signal(|| {
-        let mut feature_list = vec!["default".to_string()];
+        let mut features = vec!["default".to_string()];
         
         if installer_profile.installed && installer_profile.local_manifest.is_some() {
-            feature_list = installer_profile.local_manifest.as_ref().unwrap().enabled_features.clone();
+            features = installer_profile.local_manifest.as_ref().unwrap().enabled_features.clone();
         } else {
             // Add default features
             for feat in &installer_profile.manifest.features {
                 if feat.default {
-                    feature_list.push(feat.id.clone());
+                    features.push(feat.id.clone());
                 }
             }
         }
-
-        feature_list
+        
+        features
     });
     
-    // Store local features for comparison
-    let original_features = if let Some(ref local_manifest) = installer_profile.local_manifest {
-        local_manifest.enabled_features.clone()
+    // Store original features for comparison
+    let original_features = if installer_profile.local_manifest.is_some() {
+        installer_profile.local_manifest.as_ref().unwrap().enabled_features.clone()
     } else {
         vec![]
     };
     
     // Define a handler function for feature toggles
-    let mut handle_feature_toggle = move |feat: super::Feature| {
-        let feat_id = feat.id.clone();
-        let currently_enabled = enabled_features.read().contains(&feat_id);
-        
-        debug!("Toggle feature: {} from {} to {}", feat_id, currently_enabled, !currently_enabled);
+    let mut handle_feature_toggle = move |feat_id: String, current_state: bool| {
+        debug!("Toggle feature: {} from {} to {}", feat_id, current_state, !current_state);
         
         enabled_features.with_mut(|features| {
-            if currently_enabled {
+            if current_state {
                 // Currently enabled, so remove it
                 features.retain(|id| id != &feat_id);
             } else {
@@ -819,7 +815,7 @@ fn Version(mut props: VersionProps) -> Element {
         }
         
         // Force a refresh by updating the counter
-        refresh_counter.with_mut(|x| *x += 1);
+        debug_counter.with_mut(|x| *x += 1);
     };
     
     let movable_profile = installer_profile.clone();
@@ -835,8 +831,8 @@ fn Version(mut props: VersionProps) -> Element {
         
         // Create a wrapper async block
         async move {
-            // Define the installation process
-            let install_process = |canceled: bool| {
+            // Define the installation process with move to capture all variables
+            let mut install_process = move |canceled: bool| {
                 if canceled {
                     return;
                 }
@@ -858,7 +854,7 @@ fn Version(mut props: VersionProps) -> Element {
                         
                         match crate::install(&installer_profile_copy, move || {
                             install_progress.with_mut(|x| *x += 1);
-                            refresh_counter.with_mut(|x| *x += 1);
+                            debug_counter.with_mut(|x| *x += 1);
                         }).await {
                             Ok(_) => {
                                 installed.set(true);
@@ -894,7 +890,7 @@ fn Version(mut props: VersionProps) -> Element {
                         
                         match super::update(&installer_profile_copy, move || {
                             install_progress.with_mut(|x| *x += 1);
-                            refresh_counter.with_mut(|x| *x += 1);
+                            debug_counter.with_mut(|x| *x += 1);
                         }).await {
                             Ok(_) => {
                                 modify.set(false);
@@ -928,7 +924,7 @@ fn Version(mut props: VersionProps) -> Element {
                         
                         match super::update(&installer_profile_copy, move || {
                             install_progress.with_mut(|x| *x += 1);
-                            refresh_counter.with_mut(|x| *x += 1);
+                            debug_counter.with_mut(|x| *x += 1);
                         }).await {
                             Ok(_) => {
                                 update_available.set(false);
@@ -964,7 +960,7 @@ fn Version(mut props: VersionProps) -> Element {
                     installing.set(false);
                     
                     // Force refresh
-                    refresh_counter.with_mut(|x| *x += 1);
+                    debug_counter.with_mut(|x| *x += 1);
                 });
             };
             
@@ -1023,7 +1019,7 @@ fn Version(mut props: VersionProps) -> Element {
         rsx! {
             div { class: "version-container",
                 // Hidden comment with counter to force re-renders
-                "<!-- refresh: {refresh_counter} -->",
+                "<!-- refresh: {debug_counter} -->",
                 
                 form { onsubmit: on_submit,
                     // Header section with title and subtitle
@@ -1041,7 +1037,7 @@ fn Version(mut props: VersionProps) -> Element {
                                 class: "credits-link",
                                 onclick: move |evt| {
                                     credits.set(true);
-                                    refresh_counter.with_mut(|x| *x += 1);
+                                    debug_counter.with_mut(|x| *x += 1);
                                     evt.stop_propagation();
                                 },
                                 "View Credits"
@@ -1057,12 +1053,16 @@ fn Version(mut props: VersionProps) -> Element {
                         for feat in &installer_profile.manifest.features {
                             if !feat.hidden {
                                 {
-                                    let feat_clone = feat.clone();
+                                    let feat_id = feat.id.clone();
                                     let feat_name = feat.name.clone();
-                                    let feat_description = feat.description.clone();
+                                    let feat_desc = feat.description.clone();
                                     
                                     // Check if feature is enabled
-                                    let is_enabled = enabled_features.read().contains(&feat.id);
+                                    let is_enabled = enabled_features.read().contains(&feat_id);
+                                    
+                                    // Clone the toggle handler to avoid ownership issues
+                                    let toggle_handler = handle_feature_toggle.clone();
+                                    let feat_id_for_toggle = feat_id.clone();
                                     
                                     rsx! {
                                         div { 
@@ -1070,15 +1070,15 @@ fn Version(mut props: VersionProps) -> Element {
                                             h3 { class: "feature-card-title", "{feat_name}" }
                                             
                                             // Description if available
-                                            if let Some(description) = &feat_description {
-                                                div { class: "feature-card-description", "{description}" }
+                                            if let Some(desc) = &feat_desc {
+                                                div { class: "feature-card-description", "{desc}" }
                                             }
                                             
                                             // Toggle button with explicit state handling
                                             div {
                                                 class: if is_enabled { "feature-toggle-button enabled" } else { "feature-toggle-button disabled" },
                                                 onclick: move |_| {
-                                                    handle_feature_toggle(feat_clone.clone());
+                                                    toggle_handler(feat_id_for_toggle.clone(), is_enabled);
                                                 },
                                                 if is_enabled { "Enabled" } else { "Disabled" }
                                             }
