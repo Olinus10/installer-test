@@ -785,7 +785,7 @@ fn Version(mut props: VersionProps) -> Element {
     });
     
     // Define a handler function for feature toggles
-    let handle_feature_toggle = move |feat: super::Feature, new_state: bool| {
+    let mut handle_feature_toggle = move |feat: super::Feature, new_state: bool| {
         debug!("Feature toggle requested: {} -> {}", feat.id, new_state);
         
         // Update enabled_features first
