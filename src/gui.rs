@@ -1033,7 +1033,7 @@ fn Version(mut props: VersionProps) -> Element {
                                     
                                     // Check feature state with each render by reading from signal
                                     let is_enabled = enabled_features.read().contains(&feat.id);
-                                    let feat_clone = feat.clone();
+                                    // No need for feat_clone here
                                     
                                     rsx! {
                                         div { 
@@ -1049,11 +1049,11 @@ fn Version(mut props: VersionProps) -> Element {
                                             div {
                                                 class: if is_enabled { "feature-toggle-button enabled" } else { "feature-toggle-button disabled" },
                                                 onclick: move |_| {
-                                                    let feat_clone = feat_clone.clone();
+                                                    // Use the feat directly
                                                     let new_state = !is_enabled;
                                                     debug!("Toggle clicked for feature {}: {} -> {}", 
-                                                           feat_clone.id, is_enabled, new_state);
-                                                    handle_feature_toggle(feat_clone, new_state);
+                                                           feat.id, is_enabled, new_state);
+                                                    handle_feature_toggle(feat.clone(), new_state);
                                                 },
                                                 if is_enabled { "Enabled" } else { "Disabled" }
                                             }
@@ -1068,7 +1068,7 @@ fn Version(mut props: VersionProps) -> Element {
                     div { class: "install-button-container",
                         button {
                             class: "main-install-button",
-                            disabled: if install_disable { "true" } else { None },
+                            disabled: install_disable,
                             "{button_label}"
                         }
                     }
