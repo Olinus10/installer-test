@@ -549,21 +549,75 @@ struct FeatureCardProps {
 
 #[component]
 fn FeatureCard(props: FeatureCardProps) -> Element {
-    // Create a local signal to track state
+    // Create a local signal with a unique ID
+    let card_id = use_signal(|| format!("feature-card-{}", props.feature.id.clone()));
+    let button_id = use_signal(|| format!("feature-button-{}", props.feature.id.clone()));
+    
+    // Use a direct state for tracking enabled status
     let mut is_enabled = use_signal(|| props.enabled);
     
-    // Update local state when props change
-    use_effect(move || {
-        if *is_enabled.read() != props.enabled {
-            is_enabled.set(props.enabled);
+    // Manually force updates when state changes
+    let toggle_feature = move |evt: FormEvent| {
+        // Toggle the state
+        let current_value = *is_enabled.read();
+        let new_value = !current_value;
+        is_enabled.set(new_value);
+        
+        // Force direct DOM updates using JavaScript
+        let script = format!(
+            r#"
+            (function() {{
+                
+                var card = document.getElementById('{}');
+                if (card) {{
+                    if ({}) {{
+                        card.classList.add('feature-enabled');
+                        card.classList.remove('feature-disabled');
+                    }} else {{
+                        card.classList.add('feature-disabled');
+                        card.classList.remove('feature-enabled');
+                    }}
+                }}
+                
+                
+                var button = document.getElementById('{}');
+                if (button) {{
+                    if ({}) {{
+                        button.classList.add('enabled');
+                        button.classList.remove('disabled');
+                        button.innerText = 'Enabled';
+                    }} else {{
+                        button.classList.add('disabled');
+                        button.classList.remove('enabled');
+                        button.innerText = 'Disabled';
+                    }}
+                }}
+            }})();
+            "#,
+            *card_id.read(),
+            new_value,
+            *button_id.read(),
+            new_value
+        );
+        
+        // Evaluate the script to force visual updates
+        unsafe {
+            let window = web_sys::window().expect("no global `window` exists");
+            let _ = window.eval(&script);
         }
-    });
+        
+        // Pass the event to the parent handler
+        props.on_toggle.call(evt);
+    };
     
     let feature_id = props.feature.id.clone();
+    let card_id_value = card_id.read().clone();
+    let button_id_value = button_id.read().clone();
     
     rsx! {
         div { 
-            // Use the signal value for class determination
+            // Use both signal value and IDs for targeting
+            id: "{card_id_value}",
             class: if *is_enabled.read() { "feature-card feature-enabled" } else { "feature-card feature-disabled" },
             h3 { class: "feature-card-title", "{props.feature.name}" }
             
@@ -572,9 +626,9 @@ fn FeatureCard(props: FeatureCardProps) -> Element {
                 div { class: "feature-card-description", "{description}" }
             }
             
-            // Toggle button with properly bound events
+            // Toggle button with direct ID for targeting
             label {
-                // Use the signal value for class determination
+                id: "{button_id_value}",
                 class: if *is_enabled.read() { "feature-toggle-button enabled" } else { "feature-toggle-button disabled" },
                 
                 // Hidden checkbox that will generate the proper form event
@@ -582,19 +636,11 @@ fn FeatureCard(props: FeatureCardProps) -> Element {
                     r#type: "checkbox",
                     name: "{feature_id}",
                     checked: if *is_enabled.read() { Some("true") } else { None },
-                    onchange: move |evt| {
-                        // Toggle local state immediately for visual feedback
-                        // FIX: First get the current value, then set the opposite
-                        let current_value = *is_enabled.read();
-                        is_enabled.set(!current_value);
-                        
-                        // Forward the original event
-                        props.on_toggle.call(evt);
-                    },
+                    onchange: toggle_feature,
                     style: "display: none;"
                 }
                 
-                // Text shows current state based on signal
+                // Text shows current state
                 if *is_enabled.read() { "Enabled" } else { "Disabled" }
             }
         }
@@ -779,22 +825,19 @@ fn Version(mut props: VersionProps) -> Element {
     
     // Convert to signals to ensure updates trigger re-renders
     let mut installed = use_signal(|| installer_profile.installed);
-    let mut update_available = use_signal(|| installer_profile.update_available);
+    let update_available = use_signal(|| installer_profile.update_available);
+    
+    // Assign a unique ID to the install button for direct updates
+    let install_button_id = use_signal(|| "install-button-main");
     
     // Force refresh signal
-    let mut refresh_trigger = use_signal(|| 0);
+    let refresh_trigger = use_signal(|| 0);
     
     // Store features collection in a signal
-    let features = use_signal(|| installer_profile.manifest.features.clone());
+    let mut features = use_signal(|| installer_profile.manifest.features.clone());
     
-    // Log signal changes for debugging
-    use_effect(move || {
-        debug!("SIGNAL UPDATE: installed={}, update_available={}, modify={}, credits={}, refresh_trigger={}",
-               *installed.read(), *update_available.read(), *modify.read(), *credits.read(), *refresh_trigger.read());
-    });
-
     // Initialize enabled_features with proper defaults
-    let enabled_features = use_signal(|| {
+    let mut enabled_features = use_signal(|| {
         let mut feature_list = vec!["default".to_string()];
         
         if installer_profile.installed && installer_profile.local_manifest.is_some() {
@@ -832,6 +875,14 @@ fn Version(mut props: VersionProps) -> Element {
             modify_count,
             enabled_features,
             refresh_trigger
+        );
+        
+        // Force update of the install button through direct DOM manipulation
+        update_install_button(
+            *install_button_id.read(),
+            *installed.read(),
+            *update_available.read(),
+            *modify.read()
         );
     };
     
@@ -940,6 +991,14 @@ fn Version(mut props: VersionProps) -> Element {
                     // Force refresh
                     refresh_trigger.with_mut(|x| *x += 1);
                     debug!("Incremented refresh trigger after install/update: {}", *refresh_trigger.read());
+                    
+                    // Force update of the install button
+                    update_install_button(
+                        *install_button_id.read(),
+                        *installed.read(),
+                        *update_available.read(),
+                        *modify.read()
+                    );
                 });
             };
 
@@ -992,10 +1051,25 @@ fn Version(mut props: VersionProps) -> Element {
     };
     debug!("Button disabled: {}", install_disable);
     
-    // Re-render on refresh_trigger changes
+    // Effect to force update the install button when signals change
     use_effect(move || {
+        let button_id = *install_button_id.read();
+        let is_installed = *installed.read();
+        let is_update_available = *update_available.read();
+        let is_modify = *modify.read();
+        
+        // Force update of the install button through direct DOM manipulation
+        update_install_button(
+            button_id,
+            is_installed,
+            is_update_available,
+            is_modify
+        );
+        
         debug!("Re-rendering due to refresh_trigger update: {}", *refresh_trigger.read());
     });
+    
+    let button_id_value = install_button_id.read().clone();
     
     rsx! {
         if *installing.read() {
@@ -1075,6 +1149,7 @@ fn Version(mut props: VersionProps) -> Element {
                     // Install/Update/Modify button with dynamically updated label
                     div { class: "install-button-container",
                         button {
+                            id: "{button_id_value}",
                             class: "main-install-button",
                             disabled: install_disable,
                             "{get_button_label}"
@@ -1083,6 +1158,45 @@ fn Version(mut props: VersionProps) -> Element {
                 }
             }
         }
+    }
+}
+
+/// Helper function to directly update the install button via DOM manipulation
+fn update_install_button(button_id: String, is_installed: bool, is_update_available: bool, is_modify: bool) {
+    // Determine button label
+    let button_label = if !is_installed {
+        "Install"
+    } else if is_update_available {
+        "Update"
+    } else if is_modify {
+        "Modify"
+    } else {
+        "Modify"
+    };
+    
+    // Determine if button should be disabled
+    let should_disable = is_installed && !is_update_available && !is_modify;
+    
+    // Force update button through JavaScript
+    let script = format!(
+        r#"
+        (function() {{
+            var button = document.getElementById('{}');
+            if (button) {{
+                button.innerHTML = '{}';
+                button.disabled = {};
+            }}
+        }})();
+        "#,
+        button_id,
+        button_label,
+        should_disable
+    );
+    
+    // Evaluate the script to force visual updates
+    unsafe {
+        let window = web_sys::window().expect("no global `window` exists");
+        let _ = window.eval(&script);
     }
 }
 
