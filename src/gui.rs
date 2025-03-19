@@ -550,7 +550,7 @@ struct FeatureCardProps {
 #[component]
 fn FeatureCard(props: FeatureCardProps) -> Element {
     // Create a local signal to track state
-    let is_enabled = use_signal(|| props.enabled);
+    let mut is_enabled = use_signal(|| props.enabled);
     
     // Update local state when props change
     use_effect(move || {
@@ -601,12 +601,12 @@ fn FeatureCard(props: FeatureCardProps) -> Element {
 
 fn feature_change(
     local_features: Signal<Option<Vec<String>>>,
-    modify: Signal<bool>,
+    mut modify: Signal<bool>,
     evt: FormEvent,
     feat: &super::Feature,
-    modify_count: Signal<i32>,
-    enabled_features: Signal<Vec<String>>,
-    refresh_trigger: Signal<i32>,
+    mut modify_count: Signal<i32>,
+    mut enabled_features: Signal<Vec<String>>,
+    mut refresh_trigger: Signal<i32>,
 ) {
     // Get the new enabled state from the event
     let enabled = evt.data.value() == "true";
@@ -767,20 +767,20 @@ fn Version(mut props: VersionProps) -> Element {
            installer_profile.installed, installer_profile.update_available);
     
     // Use explicit signal declarations with consistent usage patterns
-    let installing = use_signal(|| false);
-    let progress_status = use_signal(|| "".to_string());
-    let install_progress = use_signal(|| 0);
-    let modify = use_signal(|| false);
-    let modify_count = use_signal(|| 0);
+    let mut installing = use_signal(|| false);
+    let mut progress_status = use_signal(|| "".to_string());
+    let mut install_progress = use_signal(|| 0);
+    let mut modify = use_signal(|| false);
+    let mut modify_count = use_signal(|| 0);
     let credits = use_signal(|| false);
-    let install_item_amount = use_signal(|| 0);
+    let mut install_item_amount = use_signal(|| 0);
     
     // Convert to signals to ensure updates trigger re-renders
-    let installed = use_signal(|| installer_profile.installed);
-    let update_available = use_signal(|| installer_profile.update_available);
+    let mut installed = use_signal(|| installer_profile.installed);
+    let mut update_available = use_signal(|| installer_profile.update_available);
     
     // Force refresh signal
-    let refresh_trigger = use_signal(|| 0);
+    let mut refresh_trigger = use_signal(|| 0);
     
     // Store features collection in a signal
     let features = use_signal(|| installer_profile.manifest.features.clone());
@@ -792,7 +792,7 @@ fn Version(mut props: VersionProps) -> Element {
     });
 
     // Initialize enabled_features with proper defaults
-    let enabled_features = use_signal(|| {
+    let mut enabled_features = use_signal(|| {
         let mut feature_list = vec!["default".to_string()];
         
         if installer_profile.installed && installer_profile.local_manifest.is_some() {
