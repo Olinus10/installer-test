@@ -5,6 +5,7 @@ use log::{error, debug};
 use modal::ModalContext;
 use modal::Modal;
 use dioxus::events::SerializedFormData;
+use std::collections::HashMap;
 
 use crate::{get_app_data, get_installed_packs, get_launcher, uninstall, InstallerProfile, Launcher, PackName};
 
@@ -754,8 +755,8 @@ fn Version(mut props: VersionProps) -> Element {
         feature_states.read().clone()
     });
     
-    // Simplified toggle handler that doesn't rely on event data
-    let mut handle_feature_toggle = move |feat: &super::Feature, _: FormEvent| {
+    // Simplified toggle handler that doesn't rely on event data at all
+    let mut handle_feature_toggle = move |feat: &super::Feature| {
         // Get feature ID
         let feature_id = feat.id.clone();
         
@@ -810,63 +811,256 @@ fn Version(mut props: VersionProps) -> Element {
         debug!("Incremented refresh counter to {}", *refresh_counter.read());
     };
     
-    // Your existing on_submit handler here...
-    
-    // Direct computation of button state
-    let button_label = if !*installed.read() {
-        "Install"
-    } else if *update_available.read() {
-        "Update"
-    } else if *modify.read() {
-        "Modify"
-    } else {
-        "Modify"
+    // Your existing on_submit handler
+    let movable_profile = installer_profile.clone();
+    let on_submit = move |_| {
+        // Calculate total items to process for progress tracking
+        install_item_amount.set(movable_profile.manifest.mods.len()
+            + movable_profile.manifest.resourcepacks.len()
+            + movable_profile.manifest.shaderpacks.len()
+            + movable_profile.manifest.include.len());
+        
+        let movable_profile = movable_profile.clone();
+        let movable_profile2 = movable_profile.clone();
+        
+        async move {
+            let install = move |canceled| {
+                let mut installer_profile = movable_profile.clone();
+                spawn(async move {
+                    if canceled {
+                        return;
+                    }
+                    installing.set(true);
+                    installer_profile.enabled_features = enabled_features.read().clone();
+                    installer_profile.manifest.enabled_features = enabled_features.read().clone();
+                    local_features.set(Some(enabled_features.read().clone()));
+
+                    if !*installed.read() {
+                        progress_status.set("Installing".to_string());
+                        match crate::install(&installer_profile, move || {
+                            install_progress.with_mut(|x| *x += 1);
+                        })
+                        .await
+                        {
+                            Ok(_) => {
+                                installed.set(true);
+                                debug!("SET INSTALLED: true");
+                                
+                                let _ = isahc::post(
+                                    "https://tracking.commander07.workers.dev/track",
+                                    format!(
+                                        "{{
+                                    \"projectId\": \"55db8403a4f24f3aa5afd33fd1962888\",
+                                    \"dataSourceId\": \"{}\",
+                                    \"userAction\": \"update\",
+                                    \"additionalData\": {{
+                                        \"old_version\": \"{}\",
+                                        \"new_version\": \"{}\"
+                                    }}
+                                }}",
+                                        installer_profile.manifest.uuid,
+                                        installer_profile.local_manifest.unwrap().modpack_version,
+                                        installer_profile.manifest.modpack_version
+                                    ),
+                                );
+                            }
+                            Err(e) => {
+                                props.error.set(Some(
+                                    format!("{:#?}", e) + " (Failed to update modpack!)",
+                                ));
+                                installing.set(false);
+                                return;
+                            }
+                        }
+                        update_available.set(false);
+                        debug!("SET UPDATE_AVAILABLE: false");
+                    } else if *modify.read() {
+                        progress_status.set("Modifying".to_string());
+                        match super::update(&installer_profile, move || {
+                            install_progress.with_mut(|x| *x += 1);
+                        })
+                        .await
+                        {
+                            Ok(_) => {
+                                let _ = isahc::post(
+                                    "https://tracking.commander07.workers.dev/track",
+                                    format!(
+                                        "{{
+                                    \"projectId\": \"55db8403a4f24f3aa5afd33fd1962888\",
+                                    \"dataSourceId\": \"{}\",
+                                    \"userAction\": \"modify\",
+                                    \"additionalData\": {{
+                                        \"features\": {:?}
+                                    }}
+                                }}",
+                                        installer_profile.manifest.uuid,
+                                        installer_profile.manifest.enabled_features
+                                    ),
+                                );
+                            }
+                            Err(e) => {
+                                props.error.set(Some(
+                                    format!("{:#?}", e) + " (Failed to modify modpack!)",
+                                ));
+                                installing.set(false);
+                                return;
+                            }
+                        }
+                        modify.set(false);
+                        debug!("RESET MODIFY: false");
+                        modify_count.set(0);
+                        update_available.set(false);
+                        debug!("SET UPDATE_AVAILABLE: false");
+                    }
+                    installing.set(false);
+                    
+                    // Force refresh
+                    refresh_counter.with_mut(|x| *x += 1);
+                    debug!("Incremented refresh counter after operation: {}", *refresh_counter.read());
+                });
+            };
+
+            if let Some(contents) = movable_profile2.manifest.popup_contents {
+                use_context::<ModalContext>().open(
+                    movable_profile2.manifest.popup_title.unwrap_or_default(),
+                    rsx!(div {
+                        dangerous_inner_html: "{contents}",
+                    }),
+                    true,
+                    Some(install),
+                )
+            } else {
+                install(false);
+            }
+        }
     };
     
-    let button_disabled = *installed.read() && !*update_available.read() && !*modify.read();
+    // Direct computation of button state - using refresh counter as dependency
+    let button_label = {
+        let is_installed = *installed.read();
+        let is_update_available = *update_available.read();
+        let is_modify = *modify.read();
+        let _ = *refresh_counter.read(); // Force re-evaluation
+        
+        if !is_installed {
+            "Install"
+        } else if is_update_available {
+            "Update"
+        } else if is_modify {
+            "Modify"
+        } else {
+            "Modify"
+        }
+    };
     
-    // Force re-evaluation by reading the counter
+    let button_disabled = {
+        let is_installed = *installed.read();
+        let is_update_available = *update_available.read();
+        let is_modify = *modify.read();
+        let _ = *refresh_counter.read(); // Force re-evaluation
+        
+        is_installed && !is_update_available && !is_modify
+    };
+    
+    // Force re-evaluation
     let _refresh = *refresh_counter.read();
     
     rsx! {
-        // Main RSX content...
-        
-        // Feature cards
-        div { class: "feature-cards-container",
-            // Iterate through features
-            for feat in features.read().iter() {
-                if !feat.hidden {
-                    {
-                        // Look up current state from our state map
-                        let is_enabled = feature_states.read().get(&feat.id).cloned().unwrap_or(false);
+        if *installing.read() {
+            ProgressView {
+                value: *install_progress.read(),
+                max: *install_item_amount.read() as i64,
+                title: installer_profile.manifest.subtitle.clone(),
+                status: progress_status.read().clone()
+            }
+        } else if *credits.read() {
+            Credits {
+                manifest: installer_profile.manifest.clone(),
+                enabled: enabled_features.read().clone(),
+                credits
+            }
+        } else {
+            div { class: "version-container",
+                // Force re-render with key
+                key: "version-container-{_refresh}",
+                
+                form { onsubmit: on_submit,
+                    // Header section with title and subtitle
+                    div { class: "content-header",
+                        h1 { "{installer_profile.manifest.subtitle}" }
+                    }
+                    
+                    // Description section
+                    div { class: "content-description",
+                        dangerous_inner_html: "{installer_profile.manifest.description}",
                         
-                        // Use a unique key based on feature ID, state, and refresh counter
-                        let feat_key = format!("feature-{}-{}-{}", feat.id, is_enabled, _refresh);
-                        
-                        // Clone feature for event handlers
-                        let feat_for_handler = feat.clone();
-                        
-                        rsx! {
-                            div { 
-                                key: "{feat_key}",
-                                class: if is_enabled { "feature-card feature-enabled" } else { "feature-card feature-disabled" },
-                                h3 { class: "feature-card-title", "{feat.name}" }
-                                
-                                // Render description if available
-                                if let Some(description) = &feat.description {
-                                    div { class: "feature-card-description", "{description}" }
-                                }
-                                
-                                // Toggle button
-                                div {
-                                    class: if is_enabled { "feature-toggle-button enabled" } else { "feature-toggle-button disabled" },
-                                    onclick: move |_| {
-                                        // Directly call handler with feature
-                                        handle_feature_toggle(&feat_for_handler, FormEvent::default());
-                                    },
-                                    if is_enabled { "Enabled" } else { "Disabled" }
+                        // Credits link
+                        div {
+                            a {
+                                class: "credits-link",
+                                onclick: move |evt| {
+                                    debug!("Credits clicked");
+                                    credits.set(true);
+                                    refresh_counter.with_mut(|x| *x += 1);
+                                    evt.stop_propagation();
+                                },
+                                "View Credits"
+                            }
+                        }
+                    }
+                    
+                    // Features heading
+                    h2 { "Optional Features" }
+                    
+                    // Feature cards - inline implementation
+                    div { class: "feature-cards-container",
+                        for feat in features.read().iter() {
+                            if !feat.hidden {
+                                {
+                                    // Get current state
+                                    let is_enabled = feature_states.read().get(&feat.id).cloned().unwrap_or(false);
+                                    
+                                    // Create a key that will change when state changes
+                                    let feat_key = format!("feature-{}-{}-{}", feat.id, is_enabled, _refresh);
+                                    
+                                    // Clone for handler
+                                    let feat_for_handler = feat.clone();
+                                    
+                                    rsx! {
+                                        div { 
+                                            key: "{feat_key}",
+                                            class: if is_enabled { "feature-card feature-enabled" } else { "feature-card feature-disabled" },
+                                            h3 { class: "feature-card-title", "{feat.name}" }
+                                            
+                                            // Description if available
+                                            if let Some(description) = &feat.description {
+                                                div { class: "feature-card-description", "{description}" }
+                                            }
+                                            
+                                            // Toggle button with direct handler
+                                            div {
+                                                class: if is_enabled { "feature-toggle-button enabled" } else { "feature-toggle-button disabled" },
+                                                onclick: move |_| {
+                                                    // Simply call the toggle handler directly
+                                                    handle_feature_toggle(&feat_for_handler);
+                                                },
+                                                if is_enabled { "Enabled" } else { "Disabled" }
+                                            }
+                                        }
+                                    }
                                 }
                             }
+                        }
+                    }
+                    
+                    // Install/Update/Modify button
+                    div { class: "install-button-container",
+                        button {
+                            // Include refresh in key
+                            key: "install-button-{_refresh}",
+                            class: "main-install-button",
+                            disabled: button_disabled,
+                            "{button_label}"
                         }
                     }
                 }
