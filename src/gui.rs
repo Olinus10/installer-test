@@ -729,172 +729,150 @@ struct VersionProps {
 fn Version(props: VersionProps) -> Element {
     let installer_profile = props.installer_profile.clone();
     
-    // Explicitly track UI state with signals
-    let mut ui_state = use_signal(|| {
-        // Initial state from installer_profile
-        let is_installed = installer_profile.installed;
-        let needs_update = installer_profile.update_available;
-        let enabled_features = if is_installed && installer_profile.local_manifest.is_some() {
-            installer_profile.local_manifest.as_ref().unwrap().enabled_features.clone()
+    // Force reactivity with explicit signal declarations
+    let mut installing = use_signal(|| false);
+    let mut progress_status = use_signal(|| "".to_string());
+    let mut install_progress = use_signal(|| 0);
+    let mut install_item_amount = use_signal(|| 0);
+    let mut credits_visible = use_signal(|| false);
+    
+    // CRITICAL: Create signals for each state that needs to trigger UI updates
+    let mut installed = use_signal(|| installer_profile.installed);
+    let mut update_available = use_signal(|| installer_profile.update_available);
+    let mut is_modified = use_signal(|| false);
+    
+    // Debug counter to force re-renders when needed
+    let mut debug_counter = use_signal(|| 0);
+    
+    // Store enabled features as a dedicated signal
+    let mut enabled_features = use_signal(|| {
+        let mut features = vec!["default".to_string()];
+        
+        if installer_profile.installed && installer_profile.local_manifest.is_some() {
+            features = installer_profile.local_manifest.as_ref().unwrap().enabled_features.clone();
         } else {
-            let mut features = vec!["default".to_string()];
+            // Add default features
             for feat in &installer_profile.manifest.features {
                 if feat.default {
                     features.push(feat.id.clone());
                 }
             }
-            features
-        };
+        }
         
-        // Return structured state object
-        serde_json::json!({
-            "installed": is_installed,
-            "update_available": needs_update,
-            "is_modified": false,
-            "is_installing": false,
-            "enabled_features": enabled_features,
-            "credits_open": false,
-            "install_progress": 0,
-            "install_total": 0,
-            "progress_status": "",
-            "debug_counter": 0  // For forcing updates
-        })
+        features
     });
     
-    // Force component to re-render on any state change
-    let debug_counter = serde_json::from_value::<i32>(ui_state.read()["debug_counter"].clone()).unwrap_or(0);
-    
-    // Get current visual state values
-    let is_installed = serde_json::from_value::<bool>(ui_state.read()["installed"].clone()).unwrap_or(false);
-    let needs_update = serde_json::from_value::<bool>(ui_state.read()["update_available"].clone()).unwrap_or(false);
-    let is_modified = serde_json::from_value::<bool>(ui_state.read()["is_modified"].clone()).unwrap_or(false);
-    let is_installing = serde_json::from_value::<bool>(ui_state.read()["is_installing"].clone()).unwrap_or(false);
-    let credits_open = serde_json::from_value::<bool>(ui_state.read()["credits_open"].clone()).unwrap_or(false);
-    let enabled_features = serde_json::from_value::<Vec<String>>(ui_state.read()["enabled_features"].clone()).unwrap_or_default();
-    
-    // Determine button label based on current state
-    let button_label = if !is_installed {
-        "Install"
-    } else if needs_update {
-        "Update"
-    } else if is_modified {
-        "Modify"
+    // Store original features for comparison
+    let original_features = if installer_profile.local_manifest.is_some() {
+        installer_profile.local_manifest.as_ref().unwrap().enabled_features.clone()
     } else {
-        "Modify"
+        vec![]
     };
     
-    // Button should be disabled when installed but no updates needed and not modified
-    let install_disable = is_installed && !needs_update && !is_modified;
+    // Add a method to update the debug counter
+    let trigger_refresh = move || {
+        debug_counter.with_mut(|x| *x += 1);
+        debug!("Debug counter updated: {}", *debug_counter.read());
+    };
     
-    // Local reference to initial features
-    let local_features = use_memo(|| {
-        if let Some(ref manifest) = installer_profile.local_manifest {
-            Some(manifest.enabled_features.clone())
-        } else {
-            None
-        }
-    });
-    
-    // Function to handle feature toggle clicks
-    let toggle_feature = move |feat_id: String, current_state: bool| {
-        debug!("Toggle feature: {} -> {}", feat_id, !current_state);
-        
-        ui_state.with_mut(|state| {
-            // Update enabled features list
-            let mut features = serde_json::from_value::<Vec<String>>(state["enabled_features"].clone()).unwrap_or_default();
+    // Create a function to check if features are modified
+    let check_modified = move || {
+        if installer_profile.installed {
+            // Compare current features with original
+            let current = enabled_features.read().clone();
             
-            if current_state {
-                // Feature is currently enabled, so remove it
+            // Check if any features differ
+            let mut is_different = false;
+            
+            // Check for features added
+            for feature in &current {
+                if !original_features.contains(feature) {
+                    is_different = true;
+                    break;
+                }
+            }
+            
+            // Check for features removed
+            if !is_different {
+                for feature in &original_features {
+                    if !current.contains(feature) {
+                        is_different = true;
+                        break;
+                    }
+                }
+            }
+            
+            // Update modified state
+            if is_different != *is_modified.read() {
+                is_modified.set(is_different);
+                debug!("Modified state updated: {}", is_different);
+            }
+        }
+    };
+    
+    // Define a handler function for feature toggles
+    let handle_feature_toggle = move |feat_id: String, current_enabled: bool| {
+        debug!("Toggle feature: {} from {} to {}", feat_id, current_enabled, !current_enabled);
+        
+        enabled_features.with_mut(|features| {
+            if current_enabled {
+                // Remove the feature
                 features.retain(|id| id != &feat_id);
             } else {
-                // Feature is currently disabled, so add it
+                // Add the feature
                 if !features.contains(&feat_id) {
                     features.push(feat_id.clone());
                 }
             }
-            
-            // Update features in the state
-            state["enabled_features"] = serde_json::to_value(features).unwrap();
-            
-            // Check if this is a modification from original state
-            if let Some(ref local) = *local_features {
-                let original_state = local.contains(&feat_id);
-                let new_state = !current_state;
-                let is_modified = original_state != new_state || state["is_modified"].as_bool().unwrap_or(false);
-                state["is_modified"] = serde_json::to_value(is_modified).unwrap();
-            }
-            
-            // Force UI to update
-            let counter = state["debug_counter"].as_i64().unwrap_or(0) + 1;
-            state["debug_counter"] = serde_json::to_value(counter).unwrap();
-            
-            debug!("State after toggle: installed={}, update={}, modified={}, count={}", 
-                   state["installed"], state["update_available"], state["is_modified"], state["debug_counter"]);
         });
+        
+        // Check if this modifies the state
+        check_modified();
+        
+        // Force refresh
+        trigger_refresh();
     };
     
-    // Handle install/update/modify button click
-    let on_submit = {
-        let ui_state = ui_state.clone();
-        let installer_profile = installer_profile.clone();
-        let error_signal = props.error.clone();
+    // Handle install/update/modify
+    let on_submit = move |_| {
+        let profile_clone = installer_profile.clone();
+        let profile_clone2 = profile_clone.clone();
         
-        move |_| {
-            let mut profile_clone = installer_profile.clone();
-            
-            ui_state.with_mut(|state| {
+        async move {
+            let install = move |canceled| {
+                if canceled {
+                    return;
+                }
+                
+                let mut installer_profile = profile_clone.clone();
+                
                 // Set installing state
-                state["is_installing"] = serde_json::to_value(true).unwrap();
+                installing.set(true);
                 
-                // Calculate install amount for progress
-                let total_items = profile_clone.manifest.mods.len()
-                    + profile_clone.manifest.resourcepacks.len()
-                    + profile_clone.manifest.shaderpacks.len()
-                    + profile_clone.manifest.include.len();
-                    
-                state["install_total"] = serde_json::to_value(total_items).unwrap();
-                state["install_progress"] = serde_json::to_value(0).unwrap();
+                // Use current enabled features
+                installer_profile.enabled_features = enabled_features.read().clone();
+                installer_profile.manifest.enabled_features = enabled_features.read().clone();
                 
-                // Update debug counter to ensure UI refresh
-                let counter = state["debug_counter"].as_i64().unwrap_or(0) + 1;
-                state["debug_counter"] = serde_json::to_value(counter).unwrap();
-            });
-            
-            // Get current state values
-            let enabled_features = serde_json::from_value::<Vec<String>>(
-                ui_state.read()["enabled_features"].clone()
-            ).unwrap_or_default();
-            
-            // Update profile's feature list
-            profile_clone.enabled_features = enabled_features.clone();
-            profile_clone.manifest.enabled_features = enabled_features.clone();
-            
-            let is_installed = serde_json::from_value::<bool>(ui_state.read()["installed"].clone()).unwrap_or(false);
-            let is_modified = serde_json::from_value::<bool>(ui_state.read()["is_modified"].clone()).unwrap_or(false);
-            
-            // Define installation process
-            let install_process = async move {
-                if !is_installed {
-                    // Installing for the first time
-                    ui_state.with_mut(|state| {
-                        state["progress_status"] = serde_json::to_value("Installing").unwrap();
-                    });
-                    
-                    match crate::install(&profile_clone, move || {
-                        ui_state.with_mut(|state| {
-                            let progress = state["install_progress"].as_i64().unwrap_or(0) + 1;
-                            state["install_progress"] = serde_json::to_value(progress).unwrap();
-                            let counter = state["debug_counter"].as_i64().unwrap_or(0) + 1;
-                            state["debug_counter"] = serde_json::to_value(counter).unwrap();
-                        });
+                // Calculate total items for progress
+                install_item_amount.set(
+                    installer_profile.manifest.mods.len() +
+                    installer_profile.manifest.resourcepacks.len() +
+                    installer_profile.manifest.shaderpacks.len() +
+                    installer_profile.manifest.include.len()
+                );
+                
+                // Perform the installation/update
+                if !*installed.read() {
+                    // Fresh install
+                    progress_status.set("Installing".to_string());
+                    match crate::install(&installer_profile, move || {
+                        install_progress.with_mut(|x| *x += 1);
+                        trigger_refresh();
                     }).await {
                         Ok(_) => {
-                            ui_state.with_mut(|state| {
-                                state["installed"] = serde_json::to_value(true).unwrap();
-                                state["update_available"] = serde_json::to_value(false).unwrap();
-                                state["is_modified"] = serde_json::to_value(false).unwrap();
-                                state["is_installing"] = serde_json::to_value(false).unwrap();
-                            });
+                            installed.set(true);
+                            update_available.set(false);
+                            is_modified.set(false);
                             
                             // Track installation
                             let _ = isahc::post(
@@ -908,38 +886,25 @@ fn Version(props: VersionProps) -> Element {
                                     \"version\": \"{}\"
                                 }}
                             }}",
-                                    profile_clone.manifest.uuid,
-                                    profile_clone.manifest.modpack_version
+                                    installer_profile.manifest.uuid,
+                                    installer_profile.manifest.modpack_version
                                 ),
                             );
                         }
                         Err(e) => {
-                            error_signal.set(Some(format!("{:#?}", e) + " (Failed to install modpack!)"));
-                            ui_state.with_mut(|state| {
-                                state["is_installing"] = serde_json::to_value(false).unwrap();
-                            });
+                            props.error.set(Some(format!("{:#?}", e) + " (Failed to install modpack!)"));
                         }
                     }
-                } else if is_modified {
-                    // Modifying existing installation
-                    ui_state.with_mut(|state| {
-                        state["progress_status"] = serde_json::to_value("Modifying").unwrap();
-                    });
-                    
-                    match super::update(&profile_clone, move || {
-                        ui_state.with_mut(|state| {
-                            let progress = state["install_progress"].as_i64().unwrap_or(0) + 1;
-                            state["install_progress"] = serde_json::to_value(progress).unwrap();
-                            let counter = state["debug_counter"].as_i64().unwrap_or(0) + 1;
-                            state["debug_counter"] = serde_json::to_value(counter).unwrap();
-                        });
+                } else if *is_modified.read() {
+                    // Modification
+                    progress_status.set("Modifying".to_string());
+                    match super::update(&installer_profile, move || {
+                        install_progress.with_mut(|x| *x += 1);
+                        trigger_refresh();
                     }).await {
                         Ok(_) => {
-                            ui_state.with_mut(|state| {
-                                state["is_modified"] = serde_json::to_value(false).unwrap();
-                                state["update_available"] = serde_json::to_value(false).unwrap();
-                                state["is_installing"] = serde_json::to_value(false).unwrap();
-                            });
+                            is_modified.set(false);
+                            update_available.set(false);
                             
                             // Track modification
                             let _ = isahc::post(
@@ -953,89 +918,115 @@ fn Version(props: VersionProps) -> Element {
                                     \"features\": {:?}
                                 }}
                             }}",
-                                    profile_clone.manifest.uuid,
-                                    profile_clone.manifest.enabled_features
+                                    installer_profile.manifest.uuid,
+                                    installer_profile.manifest.enabled_features
                                 ),
                             );
                         }
                         Err(e) => {
-                            error_signal.set(Some(format!("{:#?}", e) + " (Failed to modify modpack!)"));
-                            ui_state.with_mut(|state| {
-                                state["is_installing"] = serde_json::to_value(false).unwrap();
-                            });
+                            props.error.set(Some(format!("{:#?}", e) + " (Failed to modify modpack!)"));
+                        }
+                    }
+                } else if *update_available.read() {
+                    // Update
+                    progress_status.set("Updating".to_string());
+                    match crate::update(&installer_profile, move || {
+                        install_progress.with_mut(|x| *x += 1);
+                        trigger_refresh();
+                    }).await {
+                        Ok(_) => {
+                            update_available.set(false);
+                            
+                            // Track update
+                            let _ = isahc::post(
+                                "https://tracking.commander07.workers.dev/track",
+                                format!(
+                                    "{{
+                                \"projectId\": \"55db8403a4f24f3aa5afd33fd1962888\",
+                                \"dataSourceId\": \"{}\",
+                                \"userAction\": \"update\",
+                                \"additionalData\": {{
+                                    \"old_version\": \"{}\",
+                                    \"new_version\": \"{}\"
+                                }}
+                            }}",
+                                    installer_profile.manifest.uuid,
+                                    installer_profile.local_manifest.unwrap().modpack_version,
+                                    installer_profile.manifest.modpack_version
+                                ),
+                            );
+                        }
+                        Err(e) => {
+                            props.error.set(Some(format!("{:#?}", e) + " (Failed to update modpack!)"));
                         }
                     }
                 }
                 
-                // Always force a UI update at the end
-                ui_state.with_mut(|state| {
-                    let counter = state["debug_counter"].as_i64().unwrap_or(0) + 1;
-                    state["debug_counter"] = serde_json::to_value(counter).unwrap();
-                });
+                // Reset installing state
+                installing.set(false);
+                
+                // Force refresh
+                trigger_refresh();
             };
             
-            // Process popup if needed
-            if let Some(contents) = installer_profile.manifest.popup_contents.clone() {
+            // Handle popup if needed
+            if let Some(contents) = profile_clone2.manifest.popup_contents {
                 use_context::<ModalContext>().open(
-                    installer_profile.manifest.popup_title.clone().unwrap_or_default(),
+                    profile_clone2.manifest.popup_title.unwrap_or_default(),
                     rsx!(div {
                         dangerous_inner_html: "{contents}",
                     }),
                     true,
-                    Some(move |canceled| {
-                        if !canceled {
-                            spawn(install_process);
-                        } else {
-                            ui_state.with_mut(|state| {
-                                state["is_installing"] = serde_json::to_value(false).unwrap();
-                            });
-                        }
-                    }),
-                );
+                    Some(install),
+                )
             } else {
-                spawn(install_process);
+                install(false);
             }
         }
     };
     
-    // Generate JSX based on current state
-    if is_installing {
+    // Explicitly calculate button state for each render
+    let button_label = if !*installed.read() {
+        "Install"
+    } else if *update_available.read() {
+        "Update"
+    } else if *is_modified.read() {
+        "Modify"
+    } else {
+        "Modify"
+    };
+    
+    // Button disabled logic
+    let button_disabled = *installed.read() && !*update_available.read() && !*is_modified.read();
+    
+    // Clear debug output for render verification
+    debug!("Rendering Version with: installed={}, update={}, modified={}, button={}",
+           *installed.read(), *update_available.read(), *is_modified.read(), button_label);
+    
+    // Main render based on state
+    if *installing.read() {
         rsx! {
             ProgressView {
-                value: serde_json::from_value::<i64>(ui_state.read()["install_progress"].clone()).unwrap_or(0),
-                max: serde_json::from_value::<i64>(ui_state.read()["install_total"].clone()).unwrap_or(0),
+                value: *install_progress.read(),
+                max: *install_item_amount.read() as i64,
                 title: installer_profile.manifest.subtitle.clone(),
-                status: serde_json::from_value::<String>(ui_state.read()["progress_status"].clone()).unwrap_or_default()
+                status: progress_status.read().clone()
             }
         }
-    } else if credits_open {
+    } else if *credits_visible.read() {
+        let credits_signal = credits_visible.clone();
         rsx! {
             Credits {
                 manifest: installer_profile.manifest.clone(),
-                enabled: enabled_features.clone(),
-                credits: {
-                    // Create a signal bridge for the credits component
-                    let ui_state = ui_state.clone();
-                    Signal::derive(move || {
-                        // Get value from ui_state
-                        serde_json::from_value::<bool>(ui_state.read()["credits_open"].clone()).unwrap_or(false)
-                    }, 
-                    move |new_val| {
-                        // Update ui_state when value changes
-                        ui_state.with_mut(|state| {
-                            state["credits_open"] = serde_json::to_value(new_val).unwrap();
-                            let counter = state["debug_counter"].as_i64().unwrap_or(0) + 1;
-                            state["debug_counter"] = serde_json::to_value(counter).unwrap();
-                        });
-                    })
-                }
+                enabled: enabled_features.read().clone(),
+                credits: credits_signal
             }
         }
     } else {
         rsx! {
-            div { class: "version-container", 
-                // debug_counter output as hidden comment to ensure reactivity
-                "<!-- debug_counter: {debug_counter} -->"
+            div { class: "version-container",
+                // Include debug counter in output for forced refresh
+                "<!-- DEBUG: {debug_counter} -->",
                 
                 form { onsubmit: on_submit,
                     // Header section with title and subtitle
@@ -1052,11 +1043,8 @@ fn Version(props: VersionProps) -> Element {
                             a {
                                 class: "credits-link",
                                 onclick: move |evt| {
-                                    ui_state.with_mut(|state| {
-                                        state["credits_open"] = serde_json::to_value(true).unwrap();
-                                        let counter = state["debug_counter"].as_i64().unwrap_or(0) + 1;
-                                        state["debug_counter"] = serde_json::to_value(counter).unwrap();
-                                    });
+                                    credits_visible.set(true);
+                                    trigger_refresh();
                                     evt.stop_propagation();
                                 },
                                 "View Credits"
@@ -1064,38 +1052,41 @@ fn Version(props: VersionProps) -> Element {
                         }
                     }
                     
-                    // Features heading with debug counter
+                    // Features heading with debug counter for monitoring
                     h2 { "Optional Features ({debug_counter})" }
                     
-                    // Feature cards in a responsive grid
+                    // Feature cards with explicit checking of enabled state for each render
                     div { class: "feature-cards-container",
                         for feat in &installer_profile.manifest.features {
                             if !feat.hidden {
                                 {
                                     let feat_id = feat.id.clone();
                                     let feat_name = feat.name.clone();
-                                    let feat_description = feat.description.clone();
+                                    let feat_desc = feat.description.clone();
                                     
-                                    // Check if feature is enabled
-                                    let is_feat_enabled = enabled_features.contains(&feat_id);
+                                    // Explicitly check if this feature is enabled
+                                    let is_enabled = enabled_features.read().contains(&feat_id);
                                     
                                     rsx! {
                                         div { 
-                                            class: if is_feat_enabled { "feature-card feature-enabled" } else { "feature-card feature-disabled" },
+                                            class: if is_enabled { "feature-card feature-enabled" } else { "feature-card feature-disabled" },
+                                            
                                             h3 { class: "feature-card-title", "{feat_name}" }
                                             
-                                            // Render description if available
-                                            if let Some(description) = &feat_description {
-                                                div { class: "feature-card-description", "{description}" }
+                                            // Description if available
+                                            if let Some(desc) = &feat_desc {
+                                                div { class: "feature-card-description", "{desc}" }
                                             }
                                             
-                                            // Toggle button with direct click handler
+                                            // Toggle button with direct handler
                                             div {
-                                                class: if is_feat_enabled { "feature-toggle-button enabled" } else { "feature-toggle-button disabled" },
+                                                class: if is_enabled { "feature-toggle-button enabled" } else { "feature-toggle-button disabled" },
                                                 onclick: move |_| {
-                                                    toggle_feature(feat_id.clone(), is_feat_enabled);
+                                                    // Use the direct handler with current state
+                                                    handle_feature_toggle(feat_id.clone(), is_enabled);
                                                 },
-                                                if is_feat_enabled { "Enabled" } else { "Disabled" }
+                                                // Label based on current state
+                                                if is_enabled { "Enabled" } else { "Disabled" }
                                             }
                                         }
                                     }
@@ -1104,11 +1095,12 @@ fn Version(props: VersionProps) -> Element {
                         }
                     }
                     
-                    // Install/Update/Modify button at the bottom
+                    // Main action button with dynamic label
                     div { class: "install-button-container",
                         button {
                             class: "main-install-button",
-                            disabled: install_disable,
+                            disabled: button_disabled,
+                            r#type: "submit",
                             "{button_label}"
                         }
                     }
