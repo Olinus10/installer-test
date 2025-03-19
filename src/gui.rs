@@ -969,7 +969,7 @@ fn Version(mut props: VersionProps) -> Element {
     debug!("Button disabled: {}", install_disable);
     
     // Log all feature states for debugging
-    for feat in &features.read() {
+    for feat in features.read().iter() {
         let is_enabled = enabled_features.read().contains(&feat.id);
         debug!("Feature state: {}: enabled={}", feat.id, is_enabled);
     }
