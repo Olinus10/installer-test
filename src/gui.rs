@@ -729,281 +729,279 @@ struct VersionProps {
 fn Version(props: VersionProps) -> Element {
     let installer_profile = props.installer_profile.clone();
     
-    // Force reactivity with explicit signal declarations
+    // Force reactivity with explicit signal declarations and consistent usage
     let mut installing = use_signal(|| false);
     let mut progress_status = use_signal(|| "".to_string());
     let mut install_progress = use_signal(|| 0);
-    let mut install_item_amount = use_signal(|| 0);
-    let mut credits_visible = use_signal(|| false);
+    let mut modify = use_signal(|| false);
+    let mut modify_count = use_signal(|| 0);
+    let mut credits = use_signal(|| false);
     
-    // CRITICAL: Create signals for each state that needs to trigger UI updates
+    // Use explicit signals for state that controls UI appearance
     let mut installed = use_signal(|| installer_profile.installed);
     let mut update_available = use_signal(|| installer_profile.update_available);
-    let mut is_modified = use_signal(|| false);
+    let mut install_item_amount = use_signal(|| 0);
     
-    // Debug counter to force re-renders when needed
-    let mut debug_counter = use_signal(|| 0);
+    // Force update counter for debugging
+    let mut refresh_counter = use_signal(|| 0);
     
-    // Store enabled features as a dedicated signal
+    // Use signal for enabled_features with cleaner initialization
     let mut enabled_features = use_signal(|| {
-        let mut features = vec!["default".to_string()];
+        let mut feature_list = vec!["default".to_string()];
         
         if installer_profile.installed && installer_profile.local_manifest.is_some() {
-            features = installer_profile.local_manifest.as_ref().unwrap().enabled_features.clone();
+            feature_list = installer_profile.local_manifest.as_ref().unwrap().enabled_features.clone();
         } else {
             // Add default features
             for feat in &installer_profile.manifest.features {
                 if feat.default {
-                    features.push(feat.id.clone());
+                    feature_list.push(feat.id.clone());
                 }
             }
         }
-        
-        features
+
+        feature_list
     });
     
-    // Store original features for comparison
-    let original_features = if installer_profile.local_manifest.is_some() {
-        installer_profile.local_manifest.as_ref().unwrap().enabled_features.clone()
+    // Store local features for comparison
+    let original_features = if let Some(ref local_manifest) = installer_profile.local_manifest {
+        local_manifest.enabled_features.clone()
     } else {
         vec![]
     };
     
-    // Add a method to update the debug counter
-    let trigger_refresh = move || {
-        debug_counter.with_mut(|x| *x += 1);
-        debug!("Debug counter updated: {}", *debug_counter.read());
-    };
-    
-    // Create a function to check if features are modified
-    let check_modified = move || {
-        if installer_profile.installed {
-            // Compare current features with original
-            let current = enabled_features.read().clone();
-            
-            // Check if any features differ
-            let mut is_different = false;
-            
-            // Check for features added
-            for feature in &current {
-                if !original_features.contains(feature) {
-                    is_different = true;
-                    break;
-                }
-            }
-            
-            // Check for features removed
-            if !is_different {
-                for feature in &original_features {
-                    if !current.contains(feature) {
-                        is_different = true;
-                        break;
-                    }
-                }
-            }
-            
-            // Update modified state
-            if is_different != *is_modified.read() {
-                is_modified.set(is_different);
-                debug!("Modified state updated: {}", is_different);
-            }
-        }
-    };
-    
     // Define a handler function for feature toggles
-    let handle_feature_toggle = move |feat_id: String, current_enabled: bool| {
-        debug!("Toggle feature: {} from {} to {}", feat_id, current_enabled, !current_enabled);
+    let handle_feature_toggle = move |feat: super::Feature| {
+        let feat_id = feat.id.clone();
+        let currently_enabled = enabled_features.read().contains(&feat_id);
+        
+        debug!("Toggle feature: {} from {} to {}", feat_id, currently_enabled, !currently_enabled);
         
         enabled_features.with_mut(|features| {
-            if current_enabled {
-                // Remove the feature
+            if currently_enabled {
+                // Currently enabled, so remove it
                 features.retain(|id| id != &feat_id);
             } else {
-                // Add the feature
+                // Currently disabled, so add it
                 if !features.contains(&feat_id) {
                     features.push(feat_id.clone());
                 }
             }
         });
         
-        // Check if this modifies the state
-        check_modified();
+        // Check if modifications have been made
+        if installer_profile.installed {
+            let current_features = enabled_features.read().clone();
+            
+            // Compare with original features
+            let mut is_modified = false;
+            
+            // Check features added
+            for feature in &current_features {
+                if !original_features.contains(feature) {
+                    is_modified = true;
+                    break;
+                }
+            }
+            
+            // Check features removed
+            if !is_modified {
+                for feature in &original_features {
+                    if !current_features.contains(feature) {
+                        is_modified = true;
+                        break;
+                    }
+                }
+            }
+            
+            // Update modification state
+            modify.set(is_modified);
+        }
         
-        // Force refresh
-        trigger_refresh();
+        // Force a refresh by updating the counter
+        refresh_counter.with_mut(|x| *x += 1);
     };
     
-    // Handle install/update/modify
+    let movable_profile = installer_profile.clone();
     let on_submit = move |_| {
-        let profile_clone = installer_profile.clone();
-        let profile_clone2 = profile_clone.clone();
+        // Calculate total items to process for progress tracking
+        *install_item_amount.write() = movable_profile.manifest.mods.len()
+            + movable_profile.manifest.resourcepacks.len()
+            + movable_profile.manifest.shaderpacks.len()
+            + movable_profile.manifest.include.len();
         
+        let profile_clone = movable_profile.clone();
+        let profile_clone2 = movable_profile.clone();
+        
+        // Create a wrapper async block
         async move {
-            let install = move |canceled| {
+            // Define the installation process
+            let install_process = |canceled: bool| {
                 if canceled {
                     return;
                 }
                 
-                let mut installer_profile = profile_clone.clone();
+                let mut installer_profile_copy = profile_clone.clone();
                 
                 // Set installing state
                 installing.set(true);
                 
-                // Use current enabled features
-                installer_profile.enabled_features = enabled_features.read().clone();
-                installer_profile.manifest.enabled_features = enabled_features.read().clone();
+                // Update profile's enabled features
+                installer_profile_copy.enabled_features = enabled_features.read().clone();
+                installer_profile_copy.manifest.enabled_features = enabled_features.read().clone();
                 
-                // Calculate total items for progress
-                install_item_amount.set(
-                    installer_profile.manifest.mods.len() +
-                    installer_profile.manifest.resourcepacks.len() +
-                    installer_profile.manifest.shaderpacks.len() +
-                    installer_profile.manifest.include.len()
-                );
-                
-                // Perform the installation/update
-                if !*installed.read() {
-                    // Fresh install
-                    progress_status.set("Installing".to_string());
-                    match crate::install(&installer_profile, move || {
-                        install_progress.with_mut(|x| *x += 1);
-                        trigger_refresh();
-                    }).await {
-                        Ok(_) => {
-                            installed.set(true);
-                            update_available.set(false);
-                            is_modified.set(false);
-                            
-                            // Track installation
-                            let _ = isahc::post(
-                                "https://tracking.commander07.workers.dev/track",
-                                format!(
-                                    "{{
-                                \"projectId\": \"55db8403a4f24f3aa5afd33fd1962888\",
-                                \"dataSourceId\": \"{}\",
-                                \"userAction\": \"install\",
-                                \"additionalData\": {{
-                                    \"version\": \"{}\"
-                                }}
-                            }}",
-                                    installer_profile.manifest.uuid,
-                                    installer_profile.manifest.modpack_version
-                                ),
-                            );
+                // Start the installation in a separate async block
+                spawn(async move {
+                    if !*installed.read() {
+                        // Installing for the first time
+                        progress_status.set("Installing".to_string());
+                        
+                        match crate::install(&installer_profile_copy, move || {
+                            install_progress.with_mut(|x| *x += 1);
+                            refresh_counter.with_mut(|x| *x += 1);
+                        }).await {
+                            Ok(_) => {
+                                installed.set(true);
+                                update_available.set(false);
+                                modify.set(false);
+                                
+                                // Track installation
+                                let _ = isahc::post(
+                                    "https://tracking.commander07.workers.dev/track",
+                                    format!(
+                                        "{{
+                                    \"projectId\": \"55db8403a4f24f3aa5afd33fd1962888\",
+                                    \"dataSourceId\": \"{}\",
+                                    \"userAction\": \"install\",
+                                    \"additionalData\": {{
+                                        \"version\": \"{}\"
+                                    }}
+                                }}",
+                                        installer_profile_copy.manifest.uuid,
+                                        installer_profile_copy.manifest.modpack_version
+                                    ),
+                                );
+                            }
+                            Err(e) => {
+                                props.error.set(Some(
+                                    format!("{:#?}", e) + " (Failed to install modpack!)",
+                                ));
+                            }
                         }
-                        Err(e) => {
-                            props.error.set(Some(format!("{:#?}", e) + " (Failed to install modpack!)"));
+                    } else if *modify.read() {
+                        // Modifying existing installation
+                        progress_status.set("Modifying".to_string());
+                        
+                        match super::update(&installer_profile_copy, move || {
+                            install_progress.with_mut(|x| *x += 1);
+                            refresh_counter.with_mut(|x| *x += 1);
+                        }).await {
+                            Ok(_) => {
+                                modify.set(false);
+                                
+                                // Track modification
+                                let _ = isahc::post(
+                                    "https://tracking.commander07.workers.dev/track",
+                                    format!(
+                                        "{{
+                                    \"projectId\": \"55db8403a4f24f3aa5afd33fd1962888\",
+                                    \"dataSourceId\": \"{}\",
+                                    \"userAction\": \"modify\",
+                                    \"additionalData\": {{
+                                        \"features\": {:?}
+                                    }}
+                                }}",
+                                        installer_profile_copy.manifest.uuid,
+                                        installer_profile_copy.manifest.enabled_features
+                                    ),
+                                );
+                            }
+                            Err(e) => {
+                                props.error.set(Some(
+                                    format!("{:#?}", e) + " (Failed to modify modpack!)",
+                                ));
+                            }
+                        }
+                    } else if *update_available.read() {
+                        // Updating existing installation
+                        progress_status.set("Updating".to_string());
+                        
+                        match super::update(&installer_profile_copy, move || {
+                            install_progress.with_mut(|x| *x += 1);
+                            refresh_counter.with_mut(|x| *x += 1);
+                        }).await {
+                            Ok(_) => {
+                                update_available.set(false);
+                                
+                                // Track update
+                                let _ = isahc::post(
+                                    "https://tracking.commander07.workers.dev/track",
+                                    format!(
+                                        "{{
+                                    \"projectId\": \"55db8403a4f24f3aa5afd33fd1962888\",
+                                    \"dataSourceId\": \"{}\",
+                                    \"userAction\": \"update\",
+                                    \"additionalData\": {{
+                                        \"old_version\": \"{}\",
+                                        \"new_version\": \"{}\"
+                                    }}
+                                }}",
+                                        installer_profile_copy.manifest.uuid,
+                                        installer_profile_copy.local_manifest.as_ref().unwrap().modpack_version,
+                                        installer_profile_copy.manifest.modpack_version
+                                    ),
+                                );
+                            }
+                            Err(e) => {
+                                props.error.set(Some(
+                                    format!("{:#?}", e) + " (Failed to update modpack!)",
+                                ));
+                            }
                         }
                     }
-                } else if *is_modified.read() {
-                    // Modification
-                    progress_status.set("Modifying".to_string());
-                    match super::update(&installer_profile, move || {
-                        install_progress.with_mut(|x| *x += 1);
-                        trigger_refresh();
-                    }).await {
-                        Ok(_) => {
-                            is_modified.set(false);
-                            update_available.set(false);
-                            
-                            // Track modification
-                            let _ = isahc::post(
-                                "https://tracking.commander07.workers.dev/track",
-                                format!(
-                                    "{{
-                                \"projectId\": \"55db8403a4f24f3aa5afd33fd1962888\",
-                                \"dataSourceId\": \"{}\",
-                                \"userAction\": \"modify\",
-                                \"additionalData\": {{
-                                    \"features\": {:?}
-                                }}
-                            }}",
-                                    installer_profile.manifest.uuid,
-                                    installer_profile.manifest.enabled_features
-                                ),
-                            );
-                        }
-                        Err(e) => {
-                            props.error.set(Some(format!("{:#?}", e) + " (Failed to modify modpack!)"));
-                        }
-                    }
-                } else if *update_available.read() {
-                    // Update
-                    progress_status.set("Updating".to_string());
-                    match crate::update(&installer_profile, move || {
-                        install_progress.with_mut(|x| *x += 1);
-                        trigger_refresh();
-                    }).await {
-                        Ok(_) => {
-                            update_available.set(false);
-                            
-                            // Track update
-                            let _ = isahc::post(
-                                "https://tracking.commander07.workers.dev/track",
-                                format!(
-                                    "{{
-                                \"projectId\": \"55db8403a4f24f3aa5afd33fd1962888\",
-                                \"dataSourceId\": \"{}\",
-                                \"userAction\": \"update\",
-                                \"additionalData\": {{
-                                    \"old_version\": \"{}\",
-                                    \"new_version\": \"{}\"
-                                }}
-                            }}",
-                                    installer_profile.manifest.uuid,
-                                    installer_profile.local_manifest.unwrap().modpack_version,
-                                    installer_profile.manifest.modpack_version
-                                ),
-                            );
-                        }
-                        Err(e) => {
-                            props.error.set(Some(format!("{:#?}", e) + " (Failed to update modpack!)"));
-                        }
-                    }
-                }
-                
-                // Reset installing state
-                installing.set(false);
-                
-                // Force refresh
-                trigger_refresh();
+                    
+                    // Reset installing state
+                    installing.set(false);
+                    
+                    // Force refresh
+                    refresh_counter.with_mut(|x| *x += 1);
+                });
             };
             
-            // Handle popup if needed
-            if let Some(contents) = profile_clone2.manifest.popup_contents {
+            // Handle popup if present
+            if let Some(contents) = profile_clone2.manifest.popup_contents.clone() {
                 use_context::<ModalContext>().open(
-                    profile_clone2.manifest.popup_title.unwrap_or_default(),
+                    profile_clone2.manifest.popup_title.clone().unwrap_or_default(),
                     rsx!(div {
                         dangerous_inner_html: "{contents}",
                     }),
                     true,
-                    Some(install),
+                    Some(install_process),
                 )
             } else {
-                install(false);
+                install_process(false);
             }
         }
     };
-    
-    // Explicitly calculate button state for each render
+
+    // Calculate button state directly from signals
     let button_label = if !*installed.read() {
         "Install"
     } else if *update_available.read() {
         "Update"
-    } else if *is_modified.read() {
+    } else if *modify.read() {
         "Modify"
     } else {
-        "Modify"
+        "Modify" 
     };
     
-    // Button disabled logic
-    let button_disabled = *installed.read() && !*update_available.read() && !*is_modified.read();
+    let button_disabled = *installed.read() && !*update_available.read() && !*modify.read();
     
-    // Clear debug output for render verification
-    debug!("Rendering Version with: installed={}, update={}, modified={}, button={}",
-           *installed.read(), *update_available.read(), *is_modified.read(), button_label);
+    // Debug output
+    debug!("Rendering with: installed={}, update={}, modified={}, button={}",
+           *installed.read(), *update_available.read(), *modify.read(), button_label);
     
-    // Main render based on state
+    // Main render
     if *installing.read() {
         rsx! {
             ProgressView {
@@ -1013,20 +1011,19 @@ fn Version(props: VersionProps) -> Element {
                 status: progress_status.read().clone()
             }
         }
-    } else if *credits_visible.read() {
-        let credits_signal = credits_visible.clone();
+    } else if *credits.read() {
         rsx! {
             Credits {
                 manifest: installer_profile.manifest.clone(),
                 enabled: enabled_features.read().clone(),
-                credits: credits_signal
+                credits
             }
         }
     } else {
         rsx! {
             div { class: "version-container",
-                // Include debug counter in output for forced refresh
-                "<!-- DEBUG: {debug_counter} -->",
+                // Hidden comment with counter to force re-renders
+                "<!-- refresh: {refresh_counter} -->",
                 
                 form { onsubmit: on_submit,
                     // Header section with title and subtitle
@@ -1043,8 +1040,8 @@ fn Version(props: VersionProps) -> Element {
                             a {
                                 class: "credits-link",
                                 onclick: move |evt| {
-                                    credits_visible.set(true);
-                                    trigger_refresh();
+                                    credits.set(true);
+                                    refresh_counter.with_mut(|x| *x += 1);
                                     evt.stop_propagation();
                                 },
                                 "View Credits"
@@ -1052,40 +1049,37 @@ fn Version(props: VersionProps) -> Element {
                         }
                     }
                     
-                    // Features heading with debug counter for monitoring
-                    h2 { "Optional Features ({debug_counter})" }
+                    // Features heading
+                    h2 { "Optional Features" }
                     
-                    // Feature cards with explicit checking of enabled state for each render
+                    // Feature cards in a responsive grid
                     div { class: "feature-cards-container",
                         for feat in &installer_profile.manifest.features {
                             if !feat.hidden {
                                 {
-                                    let feat_id = feat.id.clone();
+                                    let feat_clone = feat.clone();
                                     let feat_name = feat.name.clone();
-                                    let feat_desc = feat.description.clone();
+                                    let feat_description = feat.description.clone();
                                     
-                                    // Explicitly check if this feature is enabled
-                                    let is_enabled = enabled_features.read().contains(&feat_id);
+                                    // Check if feature is enabled
+                                    let is_enabled = enabled_features.read().contains(&feat.id);
                                     
                                     rsx! {
                                         div { 
                                             class: if is_enabled { "feature-card feature-enabled" } else { "feature-card feature-disabled" },
-                                            
                                             h3 { class: "feature-card-title", "{feat_name}" }
                                             
                                             // Description if available
-                                            if let Some(desc) = &feat_desc {
-                                                div { class: "feature-card-description", "{desc}" }
+                                            if let Some(description) = &feat_description {
+                                                div { class: "feature-card-description", "{description}" }
                                             }
                                             
-                                            // Toggle button with direct handler
+                                            // Toggle button with explicit state handling
                                             div {
                                                 class: if is_enabled { "feature-toggle-button enabled" } else { "feature-toggle-button disabled" },
                                                 onclick: move |_| {
-                                                    // Use the direct handler with current state
-                                                    handle_feature_toggle(feat_id.clone(), is_enabled);
+                                                    handle_feature_toggle(feat_clone.clone());
                                                 },
-                                                // Label based on current state
                                                 if is_enabled { "Enabled" } else { "Disabled" }
                                             }
                                         }
@@ -1095,12 +1089,11 @@ fn Version(props: VersionProps) -> Element {
                         }
                     }
                     
-                    // Main action button with dynamic label
+                    // Installation button with dynamic label
                     div { class: "install-button-container",
                         button {
                             class: "main-install-button",
                             disabled: button_disabled,
-                            r#type: "submit",
                             "{button_label}"
                         }
                     }
