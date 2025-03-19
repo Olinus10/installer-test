@@ -3,7 +3,8 @@ use base64::{Engine, engine::general_purpose::URL_SAFE_NO_PAD};
 use dioxus::prelude::*;
 use log::{error, debug};
 use modal::ModalContext;
-use modal::Modal; 
+use modal::Modal;
+use dioxus::events::SerializedFormData;
 
 use crate::{get_app_data, get_installed_packs, get_launcher, uninstall, InstallerProfile, Launcher, PackName};
 
@@ -549,56 +550,55 @@ struct FeatureCardProps {
 
 #[component]
 fn FeatureCard(props: FeatureCardProps) -> Element {
-    // Create a simple flag for tracking enabled state
-    let mut is_enabled = use_signal(|| props.enabled);
-    
-    // Ensure state matches props when they change
-    use_effect(move || {
-        if *is_enabled.read() != props.enabled {
-            is_enabled.set(props.enabled);
-        }
-    });
-    
+    // Explicitly clone these for local use
     let feature_id = props.feature.id.clone();
-    let enabled_state = *is_enabled.read();
+    let feature_name = props.feature.name.clone();
+    let feature_description = props.feature.description.clone();
     
-    // Create a simple toggle handler that forwards the original event
-    let on_toggle = move |evt: FormEvent| {
-        // Get the new state directly from the checkbox
-        let new_state = evt.data.value() == "true";
+    // Instead of tracking state internally, we'll just use props directly
+    // This makes the component "controlled" by its parent
+    let is_enabled = props.enabled;
+    
+    // Create a key that will force this component to be recreated when props change
+    let key = format!("feature-{}-{}", feature_id, is_enabled);
+    
+    // Create a local toggle handler that just forwards the event
+    let toggle = move |_| {
+        // Create a form event to pass to the parent
+        let value = if is_enabled { "false" } else { "true" };
         
-        // Update local state immediately for fast visual feedback
-        is_enabled.set(new_state);
+        // Log for debugging
+        debug!("Toggle button clicked: {} from {} to {}", 
+               feature_id, is_enabled, !is_enabled);
         
-        // Forward the event to parent
+        // Manually construct a FormData-like struct with a name and value
+        let mut event_data = SerializedFormData::default();
+        event_data.insert(feature_id.clone(), value.to_string());
+        
+        // Create a FormEvent from it
+        let evt = FormEvent::new(event_data);
+        
+        // Send to parent
         props.on_toggle.call(evt);
     };
     
+    // This component will be completely recreated when key changes
     rsx! {
         div { 
-            // Use class based on current state
-            class: if enabled_state { "feature-card feature-enabled" } else { "feature-card feature-disabled" },
-            h3 { class: "feature-card-title", "{props.feature.name}" }
+            key: "{key}",
+            class: if is_enabled { "feature-card feature-enabled" } else { "feature-card feature-disabled" },
+            h3 { class: "feature-card-title", "{feature_name}" }
             
             // Render description if available
-            if let Some(description) = &props.feature.description {
+            if let Some(description) = &feature_description {
                 div { class: "feature-card-description", "{description}" }
             }
             
-            // Use a label with a real checkbox that will create proper form events
-            label {
-                class: if enabled_state { "feature-toggle-button enabled" } else { "feature-toggle-button disabled" },
-                
-                input {
-                    r#type: "checkbox",
-                    name: "{feature_id}",
-                    checked: if enabled_state { Some("true") } else { None },
-                    // Use the real onchange event to get proper FormEvent
-                    onchange: on_toggle,
-                    style: "display: none;"
-                }
-                
-                if enabled_state { "Enabled" } else { "Disabled" }
+            // Simple div that calls our toggle handler directly
+            div {
+                class: if is_enabled { "feature-toggle-button enabled" } else { "feature-toggle-button disabled" },
+                onclick: toggle,
+                if is_enabled { "Enabled" } else { "Disabled" }
             }
         }
     }
@@ -766,10 +766,10 @@ fn Version(mut props: VersionProps) -> Element {
     let mut installed = use_signal(|| installer_profile.installed);
     let mut update_available = use_signal(|| installer_profile.update_available);
     
-    // Force refresh counter with mutability
-    let mut refresh_trigger = use_signal(|| 0);
+    // Force refresh counter with mutability - used to manually trigger rerenders
+    let mut refresh_counter = use_signal(|| 0);
     
-    // Store features collection
+    // Store features collection 
     let features = use_signal(|| installer_profile.manifest.features.clone());
     
     // Initialize enabled_features with proper defaults and mutability
@@ -791,7 +791,7 @@ fn Version(mut props: VersionProps) -> Element {
         feature_list
     });
     
-    // Track local features for modification detection
+    // Track local features for modification detection with mutability
     let mut local_features = use_signal(|| {
         if let Some(ref manifest) = installer_profile.local_manifest {
             Some(manifest.enabled_features.clone())
@@ -800,29 +800,35 @@ fn Version(mut props: VersionProps) -> Element {
         }
     });
     
-    // Handle feature toggle events - use mut to fix mutation error
-    let mut handle_feature_toggle = move |evt: FormEvent, feat: &super::Feature| {
-        // Get the new enabled state from the event
+    // Simplified feature toggle handler
+    let mut handle_feature_toggle = move |evt: FormEvent| {
+        debug!("Feature toggle called - event value: {}", evt.data.value());
+        
+        // Extract feature id and value
+        let feature_id = evt.data.name();
         let enabled = evt.data.value() == "true";
         
-        debug!("Feature toggle changed: {} -> {}", feat.id, enabled);
+        debug!("Feature toggle parsed: {} -> {}", feature_id, enabled);
         
         // Update enabled_features collection
-        enabled_features.with_mut(|features| {
-            if enabled {
-                if !features.contains(&feat.id) {
-                    features.push(feat.id.clone());
-                    debug!("Added feature to enabled list: {}", feat.id);
-                }
-            } else {
-                features.retain(|id| id != &feat.id);
-                debug!("Removed feature from enabled list: {}", feat.id);
+        let mut feature_list = enabled_features.read().clone();
+        
+        if enabled {
+            if !feature_list.contains(&feature_id) {
+                feature_list.push(feature_id.clone());
+                debug!("Added feature to list: {}", feature_id);
             }
-        });
+        } else {
+            feature_list.retain(|id| id != &feature_id);
+            debug!("Removed feature from list: {}", feature_id);
+        }
+        
+        // Set the updated list
+        enabled_features.set(feature_list);
         
         // Check if this is a modification from the original state
         if let Some(local_feat) = local_features.read().as_ref() {
-            let was_originally_enabled = local_feat.contains(&feat.id);
+            let was_originally_enabled = local_feat.contains(&feature_id);
             let is_modified = was_originally_enabled != enabled;
             
             if is_modified {
@@ -843,7 +849,8 @@ fn Version(mut props: VersionProps) -> Element {
         }
         
         // Force a UI refresh
-        refresh_trigger.with_mut(|x| *x += 1);
+        refresh_counter.with_mut(|x| *x += 1);
+        debug!("Incremented refresh counter to {}", *refresh_counter.read());
     };
     
     let movable_profile = installer_profile.clone();
@@ -949,7 +956,8 @@ fn Version(mut props: VersionProps) -> Element {
                     installing.set(false);
                     
                     // Force refresh
-                    refresh_trigger.with_mut(|x| *x += 1);
+                    refresh_counter.with_mut(|x| *x += 1);
+                    debug!("Incremented refresh counter after operation: {}", *refresh_counter.read());
                 });
             };
 
@@ -968,22 +976,36 @@ fn Version(mut props: VersionProps) -> Element {
         }
     };
     
-    // Compute button label and state directly
-    let button_label = if !*installed.read() {
-        "Install"
-    } else if *update_available.read() {
-        "Update"
-    } else if *modify.read() {
-        "Modify"
-    } else {
-        "Modify"
+    // Compute button label and state directly - including refresh counter in dependencies
+    let button_label = {
+        let is_installed = *installed.read();
+        let is_update_available = *update_available.read();
+        let is_modify = *modify.read();
+        let _ = *refresh_counter.read(); // Force re-evaluation when counter changes
+        
+        if !is_installed {
+            "Install"
+        } else if is_update_available {
+            "Update"
+        } else if is_modify {
+            "Modify"
+        } else {
+            "Modify"
+        }
     };
     
     // Compute button disabled state directly
-    let button_disabled = *installed.read() && !*update_available.read() && !*modify.read();
+    let button_disabled = {
+        let is_installed = *installed.read();
+        let is_update_available = *update_available.read();
+        let is_modify = *modify.read();
+        let _ = *refresh_counter.read(); // Force re-evaluation when counter changes
+        
+        is_installed && !is_update_available && !is_modify
+    };
     
-    // Force re-evaluation
-    let _trigger = *refresh_trigger.read();
+    // Create a key for the whole container to force re-rendering
+    let container_key = format!("version-container-{}", *refresh_counter.read());
     
     rsx! {
         if *installing.read() {
@@ -1000,7 +1022,9 @@ fn Version(mut props: VersionProps) -> Element {
                 credits
             }
         } else {
-            div { class: "version-container",
+            div { 
+                key: "{container_key}",
+                class: "version-container",
                 form { onsubmit: on_submit,
                     // Header section with title and subtitle
                     div { class: "content-header",
@@ -1018,7 +1042,7 @@ fn Version(mut props: VersionProps) -> Element {
                                 onclick: move |evt| {
                                     debug!("Credits clicked");
                                     credits.set(true);
-                                    refresh_trigger.with_mut(|x| *x += 1);
+                                    refresh_counter.with_mut(|x| *x += 1);
                                     evt.stop_propagation();
                                 },
                                 "View Credits"
@@ -1029,24 +1053,29 @@ fn Version(mut props: VersionProps) -> Element {
                     // Features heading
                     h2 { "Optional Features" }
                     
-                    // Feature cards with simple rendering
+                    // Feature cards - force re-render by including refresh_counter in the loop
                     div { class: "feature-cards-container",
-                        for feat in features.read().iter() {
-                            if !feat.hidden {
-                                {
-                                    // Get the current enabled state for this feature
-                                    let is_enabled = enabled_features.read().contains(&feat.id);
-                                    
-                                    // Create a new clone for each iteration to avoid the move issue
-                                    let feat_for_display = feat.clone();
-                                    let feat_for_handler = feat.clone();
-                                    
-                                    // Use our improved FeatureCard component
-                                    rsx! {
-                                        FeatureCard {
-                                            feature: feat_for_display,
-                                            enabled: is_enabled,
-                                            on_toggle: move |evt| handle_feature_toggle(evt, &feat_for_handler),
+                        {
+                            // Force this block to be re-evaluated when refresh_counter changes
+                            let _ = *refresh_counter.read();
+                            
+                            rsx! {
+                                for feat in features.read().iter() {
+                                    if !feat.hidden {
+                                        {
+                                            let feature_id = feat.id.clone();
+                                            
+                                            // Get the current enabled state by checking the enabled_features list
+                                            // Force re-evaluation by reading enabled_features again
+                                            let is_enabled = enabled_features.read().contains(&feature_id);
+                                            
+                                            rsx! {
+                                                FeatureCard {
+                                                    feature: feat.clone(),
+                                                    enabled: is_enabled,
+                                                    on_toggle: move |evt| handle_feature_toggle(evt),
+                                                }
+                                            }
                                         }
                                     }
                                 }
@@ -1054,9 +1083,10 @@ fn Version(mut props: VersionProps) -> Element {
                         }
                     }
                     
-                    // Install/Update/Modify button with current state
+                    // Install/Update/Modify button with dynamic key
                     div { class: "install-button-container",
                         button {
+                            key: "install-button-{refresh_counter}",
                             class: "main-install-button",
                             disabled: button_disabled,
                             "{button_label}"
