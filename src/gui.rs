@@ -744,18 +744,9 @@ fn Version(mut props: VersionProps) -> Element {
     let mut update_available = use_signal(|| installer_profile.update_available);
     let mut install_item_amount = use_signal(|| 0);
 
-    // Create a debug signal to force refreshes when needed
-    let mut debug_counter = use_signal(|| 0);
-    
     // IMPORTANT: Store the features collection in a signal to solve lifetime issues
     let features = use_signal(|| installer_profile.manifest.features.clone());
     
-    // Add debugging to watch for signal changes
-    use_effect(move || {
-        debug!("SIGNAL UPDATE: installed={}, update_available={}, modify={}, credits={}, debug_counter={}",
-               *installed.read(), *update_available.read(), *modify.read(), *credits.read(), *debug_counter.read());
-    });
-
     // Use signal for enabled_features with cleaner initialization
     let mut enabled_features = use_signal(|| {
         let mut feature_list = vec!["default".to_string()];
@@ -784,8 +775,17 @@ fn Version(mut props: VersionProps) -> Element {
         }
     });
     
-    // Define a handler function for feature toggles
-    let mut handle_feature_toggle = move |feat: super::Feature, new_state: bool| {
+    // Create a debug signal to force refreshes when needed
+    let mut debug_counter = use_signal(|| 0);
+    
+    // Add debugging to watch for signal changes
+    use_effect(move || {
+        debug!("SIGNAL UPDATE: installed={}, update_available={}, modify={}, credits={}, debug_counter={}",
+               *installed.read(), *update_available.read(), *modify.read(), *credits.read(), *debug_counter.read());
+    });
+    
+    // Define a clean handler function for feature toggles
+    let handle_feature_toggle = move |feat: super::Feature, new_state: bool| {
         debug!("Feature toggle requested: {} -> {}", feat.id, new_state);
         
         // Update enabled_features first
@@ -968,21 +968,14 @@ fn Version(mut props: VersionProps) -> Element {
     let install_disable = *installed.read() && !*update_available.read() && !*modify.read();
     debug!("Button disabled: {}", install_disable);
     
-    // Log all feature states for debugging - using proper signal access
-    let features_ref = features.read();
-    for feat in features_ref.iter() {
-        let is_enabled = enabled_features.read().contains(&feat.id);
-        debug!("Feature state: {}: enabled={}", feat.id, is_enabled);
-    }
+    // Get a reference to the features collection for rendering
+    let features_for_rendering = features.read();
     
     // Using the debug_counter in our effect dependency array ensures
     // that the component will update whenever we increment it
     use_effect(move || {
         debug!("Re-rendering after debug counter update: {}", *debug_counter.read());
     });
-    
-    // Get a reference to the features collection for rendering
-    let features_for_rendering = features.read();
     
     rsx! {
         if *installing.read() {
@@ -1081,7 +1074,6 @@ fn Version(mut props: VersionProps) -> Element {
         }
     }
 }
-
 /// New header component with tabs - updated to display tab groups 1-3 in main row
 #[component]
 fn AppHeader(
