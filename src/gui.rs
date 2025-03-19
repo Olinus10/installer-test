@@ -726,7 +726,7 @@ struct VersionProps {
 }
 
 #[component]
-fn Version(props: VersionProps) -> Element {
+fn Version(mut props: VersionProps) -> Element {
     let installer_profile = props.installer_profile.clone();
     
     // Force reactivity with explicit signal declarations and consistent usage
@@ -771,7 +771,7 @@ fn Version(props: VersionProps) -> Element {
     };
     
     // Define a handler function for feature toggles
-    let handle_feature_toggle = move |feat: super::Feature| {
+    let mut handle_feature_toggle = move |feat: super::Feature| {
         let feat_id = feat.id.clone();
         let currently_enabled = enabled_features.read().contains(&feat_id);
         
