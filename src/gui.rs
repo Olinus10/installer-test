@@ -550,7 +550,7 @@ struct FeatureCardProps {
 #[component]
 fn FeatureCard(props: FeatureCardProps) -> Element {
     // Create a local signal to track state
-    let is_enabled = use_signal(|| props.enabled);
+    let mut is_enabled = use_signal(|| props.enabled);
     
     // Update local state when props change
     use_effect(move || {
