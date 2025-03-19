@@ -770,7 +770,7 @@ fn Version(mut props: VersionProps) -> Element {
     };
     
     // Define a handler function for feature toggles
-    let mut handle_feature_toggle = move |feat_id: String, current_state: bool| {
+    let handle_feature_toggle = move |feat_id: String, current_state: bool| {
         debug!("Toggle feature: {} from {} to {}", feat_id, current_state, !current_state);
         
         enabled_features.with_mut(|features| {
@@ -1618,7 +1618,7 @@ pub(crate) fn app() -> Element {
                                             current_page,
                                             tab_group: current_page,
                                             force_update: Some(force_update.clone()),
-                                            key: format!("version-{}-{}", current_page, index),
+                                            key: format!("version", current_page, index),
                                         }
                                     }
                                 }
