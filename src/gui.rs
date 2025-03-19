@@ -750,7 +750,7 @@ struct VersionProps {
 }
 
 #[component]
-fn Version(props: VersionProps) -> Element {
+fn Version(mut props: VersionProps) -> Element {
     let installer_profile = props.installer_profile.clone();
     
     // Basic state management with proper mutability
@@ -792,7 +792,7 @@ fn Version(props: VersionProps) -> Element {
     });
     
     // Track local features for modification detection
-    let local_features = use_signal(|| {
+    let mut local_features = use_signal(|| {
         if let Some(ref manifest) = installer_profile.local_manifest {
             Some(manifest.enabled_features.clone())
         } else {
@@ -800,8 +800,8 @@ fn Version(props: VersionProps) -> Element {
         }
     });
     
-    // Handle feature toggle events
-    let handle_feature_toggle = move |evt: FormEvent, feat: &super::Feature| {
+    // Handle feature toggle events - use mut to fix mutation error
+    let mut handle_feature_toggle = move |evt: FormEvent, feat: &super::Feature| {
         // Get the new enabled state from the event
         let enabled = evt.data.value() == "true";
         
@@ -1037,14 +1037,16 @@ fn Version(props: VersionProps) -> Element {
                                     // Get the current enabled state for this feature
                                     let is_enabled = enabled_features.read().contains(&feat.id);
                                     
-                                    let feat_clone = feat.clone();
+                                    // Create a new clone for each iteration to avoid the move issue
+                                    let feat_for_display = feat.clone();
+                                    let feat_for_handler = feat.clone();
                                     
                                     // Use our improved FeatureCard component
                                     rsx! {
                                         FeatureCard {
-                                            feature: feat_clone,
+                                            feature: feat_for_display,
                                             enabled: is_enabled,
-                                            on_toggle: move |evt| handle_feature_toggle(evt, &feat_clone),
+                                            on_toggle: move |evt| handle_feature_toggle(evt, &feat_for_handler),
                                         }
                                     }
                                 }
@@ -1064,79 +1066,6 @@ fn Version(props: VersionProps) -> Element {
             }
         }
     }
-}
-
-/// Helper function to directly update the install button via DOM manipulation
-fn update_install_button(button_id: String, is_installed: bool, is_update_available: bool, is_modify: bool) {
-    // Determine button label
-    let button_label = if !is_installed {
-        "Install"
-    } else if is_update_available {
-        "Update"
-    } else if is_modify {
-        "Modify"
-    } else {
-        "Modify"
-    };
-    
-    // Determine if button should be disabled
-    let should_disable = is_installed && !is_update_available && !is_modify;
-    
-    // Force update button through JavaScript
-    let script = format!(
-        r#"
-        (function() {{
-            var button = document.getElementById('{}');
-            if (button) {{
-                button.innerHTML = '{}';
-                button.disabled = {};
-            }}
-        }})();
-        "#,
-        button_id,
-        button_label,
-        should_disable
-    );
-    
-    // Evaluate the script to force visual updates
-    unsafe {
-        let window = web_sys::window().expect("no global `window` exists");
-        let _ = window.eval(&script);
-    }
-}
-
-// Utility to force re-renders by generating unique keys
-pub fn get_unique_key(base: &str, triggers: &[impl std::fmt::Display]) -> String {
-    let mut key = base.to_string();
-    for trigger in triggers {
-        key.push_str(&format!("-{}", trigger));
-    }
-    key
-}
-
-// Feature toggle utility that ensures visual updates
-pub fn toggle_feature(
-    feature_id: &str,
-    is_enabled: Signal<bool>,
-    on_toggle: EventHandler<FormEvent>,
-) {
-    // Get current value before changing
-    let current_value = *is_enabled.read();
-    let new_value = !current_value;
-    
-    // Log the change
-    debug!("Feature toggle: {} changing from {} to {}", feature_id, current_value, new_value);
-    
-    // Update local state first
-    is_enabled.set(new_value);
-    
-    // Create a form event with the new state
-    let mut data = FormData::new(feature_id.to_string(), "checkbox".into());
-    data.set_value(if new_value { "true" } else { "false" });
-    let event = Event::new(data);
-    
-    // Call the parent handler
-    on_toggle.call(event);
 }
 
 // Compute button label based on state
