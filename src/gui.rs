@@ -550,7 +550,7 @@ struct FeatureCardProps {
 #[component]
 fn FeatureCard(props: FeatureCardProps) -> Element {
     // Create a local signal to track state
-    let mut is_enabled = use_signal(|| props.enabled);
+    let is_enabled = use_signal(|| props.enabled);
     
     // Update local state when props change
     use_effect(move || {
@@ -772,7 +772,7 @@ fn Version(mut props: VersionProps) -> Element {
     let mut install_progress = use_signal(|| 0);
     let mut modify = use_signal(|| false);
     let mut modify_count = use_signal(|| 0);
-    let credits = use_signal(|| false);
+    let mut credits = use_signal(|| false);
     let mut install_item_amount = use_signal(|| 0);
     
     // Convert to signals to ensure updates trigger re-renders
@@ -792,7 +792,7 @@ fn Version(mut props: VersionProps) -> Element {
     });
 
     // Initialize enabled_features with proper defaults
-    let mut enabled_features = use_signal(|| {
+    let enabled_features = use_signal(|| {
         let mut feature_list = vec!["default".to_string()];
         
         if installer_profile.installed && installer_profile.local_manifest.is_some() {
@@ -811,7 +811,7 @@ fn Version(mut props: VersionProps) -> Element {
     });
     
     // Track local features for modification detection
-    let local_features = use_signal(|| {
+    let mut local_features = use_signal(|| {
         if let Some(ref manifest) = installer_profile.local_manifest {
             Some(manifest.enabled_features.clone())
         } else {
