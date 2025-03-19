@@ -732,7 +732,6 @@ fn Version(mut props: VersionProps) -> Element {
            installer_profile.installed, installer_profile.update_available);
     
     // Force reactivity with explicit signal declarations and consistent usage
-    // Use explicit getters consistently rather than sometimes using read() and sometimes not
     let mut installing = use_signal(|| false);
     let mut progress_status = use_signal(|| "".to_string());
     let mut install_progress = use_signal(|| 0);
@@ -748,6 +747,9 @@ fn Version(mut props: VersionProps) -> Element {
     // Create a debug signal to force refreshes when needed
     let mut debug_counter = use_signal(|| 0);
     
+    // IMPORTANT: Store the features collection in a signal to solve lifetime issues
+    let features = use_signal(|| installer_profile.manifest.features.clone());
+    
     // Add debugging to watch for signal changes
     use_effect(move || {
         debug!("SIGNAL UPDATE: installed={}, update_available={}, modify={}, credits={}, debug_counter={}",
@@ -756,21 +758,21 @@ fn Version(mut props: VersionProps) -> Element {
 
     // Use signal for enabled_features with cleaner initialization
     let mut enabled_features = use_signal(|| {
-        let mut features = vec!["default".to_string()];
+        let mut feature_list = vec!["default".to_string()];
         
         if installer_profile.installed && installer_profile.local_manifest.is_some() {
-            features = installer_profile.local_manifest.as_ref().unwrap().enabled_features.clone();
+            feature_list = installer_profile.local_manifest.as_ref().unwrap().enabled_features.clone();
         } else {
             // Add default features
             for feat in &installer_profile.manifest.features {
                 if feat.default {
-                    features.push(feat.id.clone());
+                    feature_list.push(feat.id.clone());
                 }
             }
         }
 
-        debug!("Initialized enabled_features: {:?}", features);
-        features
+        debug!("Initialized enabled_features: {:?}", feature_list);
+        feature_list
     });
     
     // Clone local_manifest to prevent ownership issues
@@ -787,14 +789,14 @@ fn Version(mut props: VersionProps) -> Element {
         debug!("Feature toggle requested: {} -> {}", feat.id, new_state);
         
         // Update enabled_features first
-        enabled_features.with_mut(|features| {
+        enabled_features.with_mut(|feature_list| {
             if new_state {
-                if !features.contains(&feat.id) {
-                    features.push(feat.id.clone());
+                if !feature_list.contains(&feat.id) {
+                    feature_list.push(feat.id.clone());
                     debug!("Added feature: {}", feat.id);
                 }
             } else {
-                features.retain(|id| id != &feat.id);
+                feature_list.retain(|id| id != &feat.id);
                 debug!("Removed feature: {}", feat.id);
             }
         });
@@ -966,14 +968,17 @@ fn Version(mut props: VersionProps) -> Element {
     let install_disable = *installed.read() && !*update_available.read() && !*modify.read();
     debug!("Button disabled: {}", install_disable);
     
-    // Clone features to avoid lifetime issues
-    let features = installer_profile.manifest.features.clone();
-    
     // Log all feature states for debugging
-    for feat in &features {
+    for feat in &features.read() {
         let is_enabled = enabled_features.read().contains(&feat.id);
         debug!("Feature state: {}: enabled={}", feat.id, is_enabled);
     }
+    
+    // Using the debug_counter in our effect dependency array ensures
+    // that the component will update whenever we increment it
+    use_effect(move || {
+        debug!("Re-rendering after debug counter update: {}", *debug_counter.read());
+    });
     
     rsx! {
         if *installing.read() {
@@ -1016,21 +1021,20 @@ fn Version(mut props: VersionProps) -> Element {
                         }
                     }
                     
-                    // Features heading
+                    // Features heading with debug counter to confirm refreshes
                     h2 { "Optional Features ({debug_counter})" }
                     
                     // Feature cards in a responsive grid with explicit feature handling
                     div { class: "feature-cards-container",
-                        for feat in &features {
+                        for feat in features.read().iter() {
                             if !feat.hidden {
                                 {
-                                    // Just use the variables we need
                                     let feat_name = feat.name.clone();
                                     let feat_description = feat.description.clone();
                                     
                                     // Check feature state with each render by reading from signal
                                     let is_enabled = enabled_features.read().contains(&feat.id);
-                                    // No need for feat_clone here
+                                    let feat_for_toggle = feat.clone();
                                     
                                     rsx! {
                                         div { 
@@ -1046,11 +1050,10 @@ fn Version(mut props: VersionProps) -> Element {
                                             div {
                                                 class: if is_enabled { "feature-toggle-button enabled" } else { "feature-toggle-button disabled" },
                                                 onclick: move |_| {
-                                                    // Use the feat directly
                                                     let new_state = !is_enabled;
                                                     debug!("Toggle clicked for feature {}: {} -> {}", 
-                                                           feat.id, is_enabled, new_state);
-                                                    handle_feature_toggle(feat.clone(), new_state);
+                                                           feat_for_toggle.id, is_enabled, new_state);
+                                                    handle_feature_toggle(feat_for_toggle.clone(), new_state);
                                                 },
                                                 if is_enabled { "Enabled" } else { "Disabled" }
                                             }
@@ -1074,6 +1077,7 @@ fn Version(mut props: VersionProps) -> Element {
         }
     }
 }
+
 /// New header component with tabs - updated to display tab groups 1-3 in main row
 #[component]
 fn AppHeader(
