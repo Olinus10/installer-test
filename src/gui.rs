@@ -783,7 +783,7 @@ fn Version(mut props: VersionProps) -> Element {
     });
     
     // Define a handler function for feature toggles
-    let handle_feature_toggle = move |feat: super::Feature, new_state: bool| {
+    let mut handle_feature_toggle = move |feat: super::Feature, new_state: bool| {
         debug!("Feature toggle requested: {} -> {}", feat.id, new_state);
         
         // Update enabled_features first
@@ -966,17 +966,14 @@ fn Version(mut props: VersionProps) -> Element {
     let install_disable = *installed.read() && !*update_available.read() && !*modify.read();
     debug!("Button disabled: {}", install_disable);
     
+    // Clone features to avoid lifetime issues
+    let features = installer_profile.manifest.features.clone();
+    
     // Log all feature states for debugging
-    for feat in &installer_profile.manifest.features {
+    for feat in &features {
         let is_enabled = enabled_features.read().contains(&feat.id);
         debug!("Feature state: {}: enabled={}", feat.id, is_enabled);
     }
-    
-    // Using the debug_counter in our effect dependency array ensures
-    // that the component will update whenever we increment it
-    use_effect(move || {
-        debug!("Re-rendering after debug counter update: {}", *debug_counter.read());
-    });
     
     rsx! {
         if *installing.read() {
@@ -1024,10 +1021,10 @@ fn Version(mut props: VersionProps) -> Element {
                     
                     // Feature cards in a responsive grid with explicit feature handling
                     div { class: "feature-cards-container",
-                        for feat in &installer_profile.manifest.features {
+                        for feat in &features {
                             if !feat.hidden {
                                 {
-                                    let feat_id = feat.id.clone();
+                                    // Just use the variables we need
                                     let feat_name = feat.name.clone();
                                     let feat_description = feat.description.clone();
                                     
