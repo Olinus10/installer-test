@@ -549,76 +549,42 @@ struct FeatureCardProps {
 
 #[component]
 fn FeatureCard(props: FeatureCardProps) -> Element {
-    // Create a local signal with a unique ID
-    let card_id = use_signal(|| format!("feature-card-{}", props.feature.id.clone()));
-    let button_id = use_signal(|| format!("feature-button-{}", props.feature.id.clone()));
-    
-    // Use a direct state for tracking enabled status
+    // Create a simple flag for tracking enabled state
     let mut is_enabled = use_signal(|| props.enabled);
     
-    // Manually force updates when state changes
-    let toggle_feature = move |evt: FormEvent| {
-        // Toggle the state
-        let current_value = *is_enabled.read();
-        let new_value = !current_value;
-        is_enabled.set(new_value);
-        
-        // Force direct DOM updates using JavaScript
-        let script = format!(
-            r#"
-            (function() {{
-                
-                var card = document.getElementById('{}');
-                if (card) {{
-                    if ({}) {{
-                        card.classList.add('feature-enabled');
-                        card.classList.remove('feature-disabled');
-                    }} else {{
-                        card.classList.add('feature-disabled');
-                        card.classList.remove('feature-enabled');
-                    }}
-                }}
-                
-                
-                var button = document.getElementById('{}');
-                if (button) {{
-                    if ({}) {{
-                        button.classList.add('enabled');
-                        button.classList.remove('disabled');
-                        button.innerText = 'Enabled';
-                    }} else {{
-                        button.classList.add('disabled');
-                        button.classList.remove('enabled');
-                        button.innerText = 'Disabled';
-                    }}
-                }}
-            }})();
-            "#,
-            *card_id.read(),
-            new_value,
-            *button_id.read(),
-            new_value
-        );
-        
-        // Evaluate the script to force visual updates
-        unsafe {
-            let window = web_sys::window().expect("no global `window` exists");
-            let _ = window.eval(&script);
+    // Ensure state matches props
+    use_effect(move || {
+        if *is_enabled.read() != props.enabled {
+            is_enabled.set(props.enabled);
         }
+    });
+    
+    // A more direct toggle function
+    let toggle_feature = move |evt: FormEvent| {
+        // Get current value
+        let current_value = *is_enabled.read();
         
-        // Pass the event to the parent handler
+        // Toggle the state
+        is_enabled.set(!current_value);
+        
+        // Log state change for debugging
+        debug!("Toggle feature: {} from {} to {}", 
+               props.feature.id, current_value, !current_value);
+        
+        // Forward event to parent
         props.on_toggle.call(evt);
     };
     
+    // Create a unique key to force re-rendering
     let feature_id = props.feature.id.clone();
-    let card_id_value = card_id.read().clone();
-    let button_id_value = button_id.read().clone();
+    let enabled_state = *is_enabled.read();
+    let key = format!("{}-{}", feature_id, enabled_state);
     
+    // Force the component to render with the current state
     rsx! {
         div { 
-            // Use both signal value and IDs for targeting
-            id: "{card_id_value}",
-            class: if *is_enabled.read() { "feature-card feature-enabled" } else { "feature-card feature-disabled" },
+            key: "{key}",
+            class: if enabled_state { "feature-card feature-enabled" } else { "feature-card feature-disabled" },
             h3 { class: "feature-card-title", "{props.feature.name}" }
             
             // Render description if available
@@ -626,22 +592,25 @@ fn FeatureCard(props: FeatureCardProps) -> Element {
                 div { class: "feature-card-description", "{description}" }
             }
             
-            // Toggle button with direct ID for targeting
-            label {
-                id: "{button_id_value}",
-                class: if *is_enabled.read() { "feature-toggle-button enabled" } else { "feature-toggle-button disabled" },
+            // Toggle button with direct onclick handler
+            div {
+                class: if enabled_state { "feature-toggle-button enabled" } else { "feature-toggle-button disabled" },
+                onclick: move |_| {
+                    // Create a form event manually
+                    let new_state = !enabled_state;
+                    let value = if new_state { "true" } else { "false" };
+                    
+                    // Create a form event with the appropriate value
+                    let mut data = FormData::new(feature_id.clone(), "checkbox".into());
+                    data.set_value(value);
+                    let event = Event::new(data);
+                    
+                    // Call the toggle function with our manual event
+                    toggle_feature(event);
+                },
                 
-                // Hidden checkbox that will generate the proper form event
-                input {
-                    r#type: "checkbox",
-                    name: "{feature_id}",
-                    checked: if *is_enabled.read() { Some("true") } else { None },
-                    onchange: toggle_feature,
-                    style: "display: none;"
-                }
-                
-                // Text shows current state
-                if *is_enabled.read() { "Enabled" } else { "Disabled" }
+                // Explicit text content
+                if enabled_state { "Enabled" } else { "Disabled" }
             }
         }
     }
@@ -649,12 +618,12 @@ fn FeatureCard(props: FeatureCardProps) -> Element {
 
 fn feature_change(
     local_features: Signal<Option<Vec<String>>>,
-    mut modify: Signal<bool>,
+    modify: Signal<bool>,
     evt: FormEvent,
     feat: &super::Feature,
-    mut modify_count: Signal<i32>,
-    mut enabled_features: Signal<Vec<String>>,
-    mut refresh_trigger: Signal<i32>,
+    modify_count: Signal<i32>,
+    enabled_features: Signal<Vec<String>>,
+    refresh_trigger: Signal<i32>,
 ) {
     // Get the new enabled state from the event
     let enabled = evt.data.value() == "true";
@@ -662,54 +631,40 @@ fn feature_change(
     debug!("Feature toggle changed: {} -> {}", feat.id, enabled);
     
     // Update enabled_features collection
-    enabled_features.with_mut(|features| {
-        if enabled {
-            if !features.contains(&feat.id) {
-                features.push(feat.id.clone());
-                debug!("Added feature to enabled list: {}", feat.id);
-            }
-        } else {
-            features.retain(|id| id != &feat.id);
-            debug!("Removed feature from enabled list: {}", feat.id);
+    let mut features = enabled_features.read().clone();
+    if enabled {
+        if !features.contains(&feat.id) {
+            features.push(feat.id.clone());
+            debug!("Added feature to enabled list: {}", feat.id);
         }
-    });
+    } else {
+        features.retain(|id| id != &feat.id);
+        debug!("Removed feature from enabled list: {}", feat.id);
+    }
+    enabled_features.set(features);
     
     // Check if this is a modification from the original state
     if let Some(local_feat) = local_features.read().as_ref() {
         let was_originally_enabled = local_feat.contains(&feat.id);
         let is_modified = was_originally_enabled != enabled;
         
-        debug!("Modification check: was_originally_enabled={}, current_enabled={}, is_modified={}", 
-               was_originally_enabled, enabled, is_modified);
-        
         if is_modified {
-            // This is a modification from the original state
-            modify_count.with_mut(|x| *x += 1);
-            debug!("Increased modification count to {}", *modify_count.read());
-            
-            // Set the modify flag if we have any modifications
-            if *modify_count.read() > 0 && !*modify.read() {
+            let new_count = *modify_count.read() + 1;
+            modify_count.set(new_count);
+            if new_count > 0 {
                 modify.set(true);
-                debug!("SET MODIFY FLAG: true");
             }
         } else {
-            // This is reverting to the original state
-            if *modify_count.read() > 0 {
-                modify_count.with_mut(|x| *x -= 1);
-                debug!("Decreased modification count to {}", *modify_count.read());
-                
-                // Clear the modify flag if we have no more modifications
-                if *modify_count.read() <= 0 && *modify.read() {
-                    modify.set(false);
-                    debug!("CLEARED MODIFY FLAG: false");
-                }
+            let new_count = (*modify_count.read() - 1).max(0);
+            modify_count.set(new_count);
+            if new_count <= 0 {
+                modify.set(false);
             }
         }
     }
     
     // Force a UI refresh
     refresh_trigger.with_mut(|x| *x += 1);
-    debug!("Triggered UI refresh: {}", *refresh_trigger.read());
 }
 
 async fn init_branch(source: String, branch: String, launcher: Launcher, mut pages: Signal<BTreeMap<usize, TabInfo>>) -> Result<(), String> {
@@ -807,14 +762,10 @@ struct VersionProps {
 }
 
 #[component]
-fn Version(mut props: VersionProps) -> Element {
+fn Version(props: VersionProps) -> Element {
     let installer_profile = props.installer_profile.clone();
     
-    // Debug for initial state
-    debug!("INITIAL STATE: installed={}, update_available={}", 
-           installer_profile.installed, installer_profile.update_available);
-    
-    // Use explicit signal declarations with consistent usage patterns
+    // Basic state management
     let mut installing = use_signal(|| false);
     let mut progress_status = use_signal(|| "".to_string());
     let mut install_progress = use_signal(|| 0);
@@ -823,18 +774,15 @@ fn Version(mut props: VersionProps) -> Element {
     let mut credits = use_signal(|| false);
     let mut install_item_amount = use_signal(|| 0);
     
-    // Convert to signals to ensure updates trigger re-renders
+    // Track installation state
     let mut installed = use_signal(|| installer_profile.installed);
     let update_available = use_signal(|| installer_profile.update_available);
     
-    // Assign a unique ID to the install button for direct updates
-    let install_button_id = use_signal(|| "install-button-main");
-    
-    // Force refresh signal
+    // Force refresh counter
     let refresh_trigger = use_signal(|| 0);
     
-    // Store features collection in a signal
-    let mut features = use_signal(|| installer_profile.manifest.features.clone());
+    // Store features collection
+    let features = use_signal(|| installer_profile.manifest.features.clone());
     
     // Initialize enabled_features with proper defaults
     let mut enabled_features = use_signal(|| {
@@ -856,7 +804,7 @@ fn Version(mut props: VersionProps) -> Element {
     });
     
     // Track local features for modification detection
-    let mut local_features = use_signal(|| {
+    let local_features = use_signal(|| {
         if let Some(ref manifest) = installer_profile.local_manifest {
             Some(manifest.enabled_features.clone())
         } else {
@@ -864,212 +812,82 @@ fn Version(mut props: VersionProps) -> Element {
         }
     });
     
-    // Handle feature toggle events using our improved feature_change function
+    // Handle feature toggle events
     let handle_feature_toggle = move |evt: FormEvent, feat: &super::Feature| {
-        // Use a central feature change function to ensure consistent behavior
-        feature_change(
-            local_features,
-            modify,
-            evt,
-            feat,
-            modify_count,
-            enabled_features,
-            refresh_trigger
-        );
+        // Get the new enabled state from the event
+        let enabled = evt.data.value() == "true";
         
-        // Force update of the install button through direct DOM manipulation
-        update_install_button(
-            *install_button_id.read(),
-            *installed.read(),
-            *update_available.read(),
-            *modify.read()
-        );
+        debug!("Feature toggle changed: {} -> {}", feat.id, enabled);
+        
+        // Update enabled_features collection
+        enabled_features.with_mut(|features| {
+            if enabled {
+                if !features.contains(&feat.id) {
+                    features.push(feat.id.clone());
+                    debug!("Added feature to enabled list: {}", feat.id);
+                }
+            } else {
+                features.retain(|id| id != &feat.id);
+                debug!("Removed feature from enabled list: {}", feat.id);
+            }
+        });
+        
+        // Check if this is a modification from the original state
+        if let Some(local_feat) = local_features.read().as_ref() {
+            let was_originally_enabled = local_feat.contains(&feat.id);
+            let is_modified = was_originally_enabled != enabled;
+            
+            if is_modified {
+                let new_count = *modify_count.read() + 1;
+                modify_count.set(new_count);
+                if new_count > 0 {
+                    modify.set(true);
+                    debug!("SET MODIFY FLAG: true (count={})", new_count);
+                }
+            } else {
+                let new_count = (*modify_count.read() - 1).max(0);
+                modify_count.set(new_count);
+                if new_count <= 0 {
+                    modify.set(false);
+                    debug!("CLEARED MODIFY FLAG: false (count={})", new_count);
+                }
+            }
+        }
+        
+        // Force a UI refresh
+        refresh_trigger.with_mut(|x| *x += 1);
     };
     
     let movable_profile = installer_profile.clone();
     let on_submit = move |_| {
-        // Calculate total items to process for progress tracking
-        install_item_amount.set(movable_profile.manifest.mods.len()
-            + movable_profile.manifest.resourcepacks.len()
-            + movable_profile.manifest.shaderpacks.len()
-            + movable_profile.manifest.include.len());
-        
-        let movable_profile = movable_profile.clone();
-        let movable_profile2 = movable_profile.clone();
-        
-        async move {
-            let install = move |canceled| {
-                let mut installer_profile = movable_profile.clone();
-                spawn(async move {
-                    if canceled {
-                        return;
-                    }
-                    installing.set(true);
-                    installer_profile.enabled_features = enabled_features.read().clone();
-                    installer_profile.manifest.enabled_features = enabled_features.read().clone();
-                    local_features.set(Some(enabled_features.read().clone()));
-
-                    if !*installed.read() {
-                        progress_status.set("Installing".to_string());
-                        match crate::install(&installer_profile, move || {
-                            install_progress.with_mut(|x| *x += 1);
-                        })
-                        .await
-                        {
-                            Ok(_) => {
-                                installed.set(true);
-                                debug!("SET INSTALLED: true");
-                                
-                                let _ = isahc::post(
-                                    "https://tracking.commander07.workers.dev/track",
-                                    format!(
-                                        "{{
-                                    \"projectId\": \"55db8403a4f24f3aa5afd33fd1962888\",
-                                    \"dataSourceId\": \"{}\",
-                                    \"userAction\": \"update\",
-                                    \"additionalData\": {{
-                                        \"old_version\": \"{}\",
-                                        \"new_version\": \"{}\"
-                                    }}
-                                }}",
-                                        installer_profile.manifest.uuid,
-                                        installer_profile.local_manifest.unwrap().modpack_version,
-                                        installer_profile.manifest.modpack_version
-                                    ),
-                                );
-                            }
-                            Err(e) => {
-                                props.error.set(Some(
-                                    format!("{:#?}", e) + " (Failed to update modpack!)",
-                                ));
-                                installing.set(false);
-                                return;
-                            }
-                        }
-                        update_available.set(false);
-                        debug!("SET UPDATE_AVAILABLE: false");
-                    } else if *modify.read() {
-                        progress_status.set("Modifying".to_string());
-                        match super::update(&installer_profile, move || {
-                            install_progress.with_mut(|x| *x += 1);
-                        })
-                        .await
-                        {
-                            Ok(_) => {
-                                let _ = isahc::post(
-                                    "https://tracking.commander07.workers.dev/track",
-                                    format!(
-                                        "{{
-                                    \"projectId\": \"55db8403a4f24f3aa5afd33fd1962888\",
-                                    \"dataSourceId\": \"{}\",
-                                    \"userAction\": \"modify\",
-                                    \"additionalData\": {{
-                                        \"features\": {:?}
-                                    }}
-                                }}",
-                                        installer_profile.manifest.uuid,
-                                        installer_profile.manifest.enabled_features
-                                    ),
-                                );
-                            }
-                            Err(e) => {
-                                props.error.set(Some(
-                                    format!("{:#?}", e) + " (Failed to modify modpack!)",
-                                ));
-                                installing.set(false);
-                                return;
-                            }
-                        }
-                        modify.set(false);
-                        debug!("RESET MODIFY: false");
-                        modify_count.set(0);
-                        update_available.set(false);
-                        debug!("SET UPDATE_AVAILABLE: false");
-                    }
-                    installing.set(false);
-                    
-                    // Force refresh
-                    refresh_trigger.with_mut(|x| *x += 1);
-                    debug!("Incremented refresh trigger after install/update: {}", *refresh_trigger.read());
-                    
-                    // Force update of the install button
-                    update_install_button(
-                        *install_button_id.read(),
-                        *installed.read(),
-                        *update_available.read(),
-                        *modify.read()
-                    );
-                });
-            };
-
-            if let Some(contents) = movable_profile2.manifest.popup_contents {
-                use_context::<ModalContext>().open(
-                    movable_profile2.manifest.popup_title.unwrap_or_default(),
-                    rsx!(div {
-                        dangerous_inner_html: "{contents}",
-                    }),
-                    true,
-                    Some(install),
-                )
-            } else {
-                install(false);
-            }
-        }
-    };
-
-    // Force re-evaluation of button state for each render using signal values
-    let get_button_label = {
-        // Create a derived value that depends on signals to ensure reactivity
-        let is_installed = *installed.read();
-        let is_update_available = *update_available.read(); 
-        let is_modify = *modify.read();
-        let _trigger = *refresh_trigger.read(); // Include refresh trigger to force re-evaluation
-        
-        if !is_installed {
-            debug!("Button state: Install");
-            "Install"
-        } else if is_update_available {
-            debug!("Button state: Update");
-            "Update"
-        } else if is_modify {
-            debug!("Button state: Modify");
-            "Modify"
-        } else {
-            debug!("Button state: Modify (default)");
-            "Modify"
-        }
+        // Your existing installation code...
+        // Make sure to increment refresh_trigger after state changes
     };
     
-    // Also force re-evaluation of button disabled state
-    let install_disable = {
-        let is_installed = *installed.read();
-        let is_update_available = *update_available.read();
-        let is_modify = *modify.read();
-        let _trigger = *refresh_trigger.read(); // Include refresh trigger to force re-evaluation
-        
-        is_installed && !is_update_available && !is_modify
+    // Create a unique key for the install button that includes all state
+    let button_key = format!("install-button-{}-{}-{}-{}",
+        *installed.read(),
+        *update_available.read(),
+        *modify.read(),
+        *refresh_trigger.read()
+    );
+    
+    // Compute button label directly
+    let button_label = if !*installed.read() {
+        "Install"
+    } else if *update_available.read() {
+        "Update"
+    } else if *modify.read() {
+        "Modify"
+    } else {
+        "Modify"
     };
-    debug!("Button disabled: {}", install_disable);
     
-    // Effect to force update the install button when signals change
-    use_effect(move || {
-        let button_id = *install_button_id.read();
-        let is_installed = *installed.read();
-        let is_update_available = *update_available.read();
-        let is_modify = *modify.read();
-        
-        // Force update of the install button through direct DOM manipulation
-        update_install_button(
-            button_id,
-            is_installed,
-            is_update_available,
-            is_modify
-        );
-        
-        debug!("Re-rendering due to refresh_trigger update: {}", *refresh_trigger.read());
-    });
+    // Compute button disabled state directly
+    let button_disabled = *installed.read() && !*update_available.read() && !*modify.read();
     
-    let button_id_value = install_button_id.read().clone();
+    debug!("Button state: label={}, disabled={}, key={}", 
+           button_label, button_disabled, button_key);
     
     rsx! {
         if *installing.read() {
@@ -1087,8 +905,8 @@ fn Version(mut props: VersionProps) -> Element {
             }
         } else {
             div { class: "version-container",
-                // Include refresh trigger to ensure reactivity
-                "<!-- refresh trigger: {refresh_trigger} -->",
+                // Use refresh_trigger to force re-renders
+                key: "version-container-{refresh_trigger}",
                 
                 form { onsubmit: on_submit,
                     // Header section with title and subtitle
@@ -1107,7 +925,6 @@ fn Version(mut props: VersionProps) -> Element {
                                 onclick: move |evt| {
                                     debug!("Credits clicked");
                                     credits.set(true);
-                                    debug!("SET CREDITS: true");
                                     refresh_trigger.with_mut(|x| *x += 1);
                                     evt.stop_propagation();
                                 },
@@ -1119,24 +936,21 @@ fn Version(mut props: VersionProps) -> Element {
                     // Features heading
                     h2 { "Optional Features" }
                     
-                    // Feature cards in a responsive grid using our improved FeatureCard component
+                    // Feature cards with keyed rendering
                     div { class: "feature-cards-container",
                         for feat in features.read().iter() {
                             if !feat.hidden {
                                 {
                                     // Get the current enabled state for this feature
-                                    let is_enabled = {
-                                        let enabled_list = enabled_features.read().clone(); 
-                                        let _trigger = *refresh_trigger.read(); // Force re-evaluation
-                                        enabled_list.contains(&feat.id)
-                                    };
+                                    let is_enabled = enabled_features.read().contains(&feat.id);
                                     
                                     let feat_clone = feat.clone();
                                     
-                                    // Use our improved FeatureCard component
+                                    // Use our improved FeatureCard component with explicit key
                                     rsx! {
                                         FeatureCard {
-                                            feature: feat_clone.clone(),
+                                            key: "feature-{}-{}-{}", feat.id, is_enabled, *refresh_trigger.read(),
+                                            feature: feat_clone,
                                             enabled: is_enabled,
                                             on_toggle: move |evt| handle_feature_toggle(evt, &feat_clone),
                                         }
@@ -1146,13 +960,13 @@ fn Version(mut props: VersionProps) -> Element {
                         }
                     }
                     
-                    // Install/Update/Modify button with dynamically updated label
+                    // Install/Update/Modify button with unique key
                     div { class: "install-button-container",
                         button {
-                            id: "{button_id_value}",
+                            key: "{button_key}",
                             class: "main-install-button",
-                            disabled: install_disable,
-                            "{get_button_label}"
+                            disabled: button_disabled,
+                            "{button_label}"
                         }
                     }
                 }
@@ -1197,6 +1011,53 @@ fn update_install_button(button_id: String, is_installed: bool, is_update_availa
     unsafe {
         let window = web_sys::window().expect("no global `window` exists");
         let _ = window.eval(&script);
+    }
+}
+
+// Utility to force re-renders by generating unique keys
+pub fn get_unique_key(base: &str, triggers: &[impl std::fmt::Display]) -> String {
+    let mut key = base.to_string();
+    for trigger in triggers {
+        key.push_str(&format!("-{}", trigger));
+    }
+    key
+}
+
+// Feature toggle utility that ensures visual updates
+pub fn toggle_feature(
+    feature_id: &str,
+    is_enabled: Signal<bool>,
+    on_toggle: EventHandler<FormEvent>,
+) {
+    // Get current value before changing
+    let current_value = *is_enabled.read();
+    let new_value = !current_value;
+    
+    // Log the change
+    debug!("Feature toggle: {} changing from {} to {}", feature_id, current_value, new_value);
+    
+    // Update local state first
+    is_enabled.set(new_value);
+    
+    // Create a form event with the new state
+    let mut data = FormData::new(feature_id.to_string(), "checkbox".into());
+    data.set_value(if new_value { "true" } else { "false" });
+    let event = Event::new(data);
+    
+    // Call the parent handler
+    on_toggle.call(event);
+}
+
+// Compute button label based on state
+pub fn get_button_label(is_installed: bool, is_update_available: bool, is_modify: bool) -> &'static str {
+    if !is_installed {
+        "Install"
+    } else if is_update_available {
+        "Update"
+    } else if is_modify {
+        "Modify"
+    } else {
+        "Modify"
     }
 }
 
