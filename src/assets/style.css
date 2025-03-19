@@ -1019,7 +1019,7 @@ a:hover {
   transform: none;
   z-index: 10;
   width: 100%;
-  height: 160px; /* Reduced from 180px to make thinner */
+  height: 170px; /* Reduced from 180px to make thinner */
   transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
   display: flex;
   flex-direction: column;
