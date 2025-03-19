@@ -552,38 +552,31 @@ fn FeatureCard(props: FeatureCardProps) -> Element {
     // Create a simple flag for tracking enabled state
     let mut is_enabled = use_signal(|| props.enabled);
     
-    // Ensure state matches props
+    // Ensure state matches props when they change
     use_effect(move || {
         if *is_enabled.read() != props.enabled {
             is_enabled.set(props.enabled);
         }
     });
     
-    // A more direct toggle function
-    let toggle_feature = move |evt: FormEvent| {
-        // Get current value
-        let current_value = *is_enabled.read();
+    let feature_id = props.feature.id.clone();
+    let enabled_state = *is_enabled.read();
+    
+    // Create a simple toggle handler that forwards the original event
+    let on_toggle = move |evt: FormEvent| {
+        // Get the new state directly from the checkbox
+        let new_state = evt.data.value() == "true";
         
-        // Toggle the state
-        is_enabled.set(!current_value);
+        // Update local state immediately for fast visual feedback
+        is_enabled.set(new_state);
         
-        // Log state change for debugging
-        debug!("Toggle feature: {} from {} to {}", 
-               props.feature.id, current_value, !current_value);
-        
-        // Forward event to parent
+        // Forward the event to parent
         props.on_toggle.call(evt);
     };
     
-    // Create a unique key to force re-rendering
-    let feature_id = props.feature.id.clone();
-    let enabled_state = *is_enabled.read();
-    let key = format!("{}-{}", feature_id, enabled_state);
-    
-    // Force the component to render with the current state
     rsx! {
         div { 
-            key: "{key}",
+            // Use class based on current state
             class: if enabled_state { "feature-card feature-enabled" } else { "feature-card feature-disabled" },
             h3 { class: "feature-card-title", "{props.feature.name}" }
             
@@ -592,24 +585,19 @@ fn FeatureCard(props: FeatureCardProps) -> Element {
                 div { class: "feature-card-description", "{description}" }
             }
             
-            // Toggle button with direct onclick handler
-            div {
+            // Use a label with a real checkbox that will create proper form events
+            label {
                 class: if enabled_state { "feature-toggle-button enabled" } else { "feature-toggle-button disabled" },
-                onclick: move |_| {
-                    // Create a form event manually
-                    let new_state = !enabled_state;
-                    let value = if new_state { "true" } else { "false" };
-                    
-                    // Create a form event with the appropriate value
-                    let mut data = FormData::new(feature_id.clone(), "checkbox".into());
-                    data.set_value(value);
-                    let event = Event::new(data);
-                    
-                    // Call the toggle function with our manual event
-                    toggle_feature(event);
-                },
                 
-                // Explicit text content
+                input {
+                    r#type: "checkbox",
+                    name: "{feature_id}",
+                    checked: if enabled_state { Some("true") } else { None },
+                    // Use the real onchange event to get proper FormEvent
+                    onchange: on_toggle,
+                    style: "display: none;"
+                }
+                
                 if enabled_state { "Enabled" } else { "Disabled" }
             }
         }
@@ -765,7 +753,7 @@ struct VersionProps {
 fn Version(props: VersionProps) -> Element {
     let installer_profile = props.installer_profile.clone();
     
-    // Basic state management
+    // Basic state management with proper mutability
     let mut installing = use_signal(|| false);
     let mut progress_status = use_signal(|| "".to_string());
     let mut install_progress = use_signal(|| 0);
@@ -774,17 +762,17 @@ fn Version(props: VersionProps) -> Element {
     let mut credits = use_signal(|| false);
     let mut install_item_amount = use_signal(|| 0);
     
-    // Track installation state
+    // Track installation state with mutability
     let mut installed = use_signal(|| installer_profile.installed);
-    let update_available = use_signal(|| installer_profile.update_available);
+    let mut update_available = use_signal(|| installer_profile.update_available);
     
-    // Force refresh counter
-    let refresh_trigger = use_signal(|| 0);
+    // Force refresh counter with mutability
+    let mut refresh_trigger = use_signal(|| 0);
     
     // Store features collection
     let features = use_signal(|| installer_profile.manifest.features.clone());
     
-    // Initialize enabled_features with proper defaults
+    // Initialize enabled_features with proper defaults and mutability
     let mut enabled_features = use_signal(|| {
         let mut feature_list = vec!["default".to_string()];
         
@@ -860,19 +848,127 @@ fn Version(props: VersionProps) -> Element {
     
     let movable_profile = installer_profile.clone();
     let on_submit = move |_| {
-        // Your existing installation code...
-        // Make sure to increment refresh_trigger after state changes
+        // Calculate total items to process for progress tracking
+        install_item_amount.set(movable_profile.manifest.mods.len()
+            + movable_profile.manifest.resourcepacks.len()
+            + movable_profile.manifest.shaderpacks.len()
+            + movable_profile.manifest.include.len());
+        
+        let movable_profile = movable_profile.clone();
+        let movable_profile2 = movable_profile.clone();
+        
+        async move {
+            let install = move |canceled| {
+                let mut installer_profile = movable_profile.clone();
+                spawn(async move {
+                    if canceled {
+                        return;
+                    }
+                    installing.set(true);
+                    installer_profile.enabled_features = enabled_features.read().clone();
+                    installer_profile.manifest.enabled_features = enabled_features.read().clone();
+                    local_features.set(Some(enabled_features.read().clone()));
+
+                    if !*installed.read() {
+                        progress_status.set("Installing".to_string());
+                        match crate::install(&installer_profile, move || {
+                            install_progress.with_mut(|x| *x += 1);
+                        })
+                        .await
+                        {
+                            Ok(_) => {
+                                installed.set(true);
+                                debug!("SET INSTALLED: true");
+                                
+                                let _ = isahc::post(
+                                    "https://tracking.commander07.workers.dev/track",
+                                    format!(
+                                        "{{
+                                    \"projectId\": \"55db8403a4f24f3aa5afd33fd1962888\",
+                                    \"dataSourceId\": \"{}\",
+                                    \"userAction\": \"update\",
+                                    \"additionalData\": {{
+                                        \"old_version\": \"{}\",
+                                        \"new_version\": \"{}\"
+                                    }}
+                                }}",
+                                        installer_profile.manifest.uuid,
+                                        installer_profile.local_manifest.unwrap().modpack_version,
+                                        installer_profile.manifest.modpack_version
+                                    ),
+                                );
+                            }
+                            Err(e) => {
+                                props.error.set(Some(
+                                    format!("{:#?}", e) + " (Failed to update modpack!)",
+                                ));
+                                installing.set(false);
+                                return;
+                            }
+                        }
+                        update_available.set(false);
+                        debug!("SET UPDATE_AVAILABLE: false");
+                    } else if *modify.read() {
+                        progress_status.set("Modifying".to_string());
+                        match super::update(&installer_profile, move || {
+                            install_progress.with_mut(|x| *x += 1);
+                        })
+                        .await
+                        {
+                            Ok(_) => {
+                                let _ = isahc::post(
+                                    "https://tracking.commander07.workers.dev/track",
+                                    format!(
+                                        "{{
+                                    \"projectId\": \"55db8403a4f24f3aa5afd33fd1962888\",
+                                    \"dataSourceId\": \"{}\",
+                                    \"userAction\": \"modify\",
+                                    \"additionalData\": {{
+                                        \"features\": {:?}
+                                    }}
+                                }}",
+                                        installer_profile.manifest.uuid,
+                                        installer_profile.manifest.enabled_features
+                                    ),
+                                );
+                            }
+                            Err(e) => {
+                                props.error.set(Some(
+                                    format!("{:#?}", e) + " (Failed to modify modpack!)",
+                                ));
+                                installing.set(false);
+                                return;
+                            }
+                        }
+                        modify.set(false);
+                        debug!("RESET MODIFY: false");
+                        modify_count.set(0);
+                        update_available.set(false);
+                        debug!("SET UPDATE_AVAILABLE: false");
+                    }
+                    installing.set(false);
+                    
+                    // Force refresh
+                    refresh_trigger.with_mut(|x| *x += 1);
+                });
+            };
+
+            if let Some(contents) = movable_profile2.manifest.popup_contents {
+                use_context::<ModalContext>().open(
+                    movable_profile2.manifest.popup_title.unwrap_or_default(),
+                    rsx!(div {
+                        dangerous_inner_html: "{contents}",
+                    }),
+                    true,
+                    Some(install),
+                )
+            } else {
+                install(false);
+            }
+        }
     };
     
-    // Create a unique key for the install button that includes all state
-    let button_key = format!("install-button-{}-{}-{}-{}",
-        *installed.read(),
-        *update_available.read(),
-        *modify.read(),
-        *refresh_trigger.read()
-    );
-    
-    // Compute button label directly
+    // Compute button label and state directly
     let button_label = if !*installed.read() {
         "Install"
     } else if *update_available.read() {
@@ -886,8 +982,8 @@ fn Version(props: VersionProps) -> Element {
     // Compute button disabled state directly
     let button_disabled = *installed.read() && !*update_available.read() && !*modify.read();
     
-    debug!("Button state: label={}, disabled={}, key={}", 
-           button_label, button_disabled, button_key);
+    // Force re-evaluation
+    let _trigger = *refresh_trigger.read();
     
     rsx! {
         if *installing.read() {
@@ -905,9 +1001,6 @@ fn Version(props: VersionProps) -> Element {
             }
         } else {
             div { class: "version-container",
-                // Use refresh_trigger to force re-renders
-                key: "version-container-{refresh_trigger}",
-                
                 form { onsubmit: on_submit,
                     // Header section with title and subtitle
                     div { class: "content-header",
@@ -936,7 +1029,7 @@ fn Version(props: VersionProps) -> Element {
                     // Features heading
                     h2 { "Optional Features" }
                     
-                    // Feature cards with keyed rendering
+                    // Feature cards with simple rendering
                     div { class: "feature-cards-container",
                         for feat in features.read().iter() {
                             if !feat.hidden {
@@ -946,10 +1039,9 @@ fn Version(props: VersionProps) -> Element {
                                     
                                     let feat_clone = feat.clone();
                                     
-                                    // Use our improved FeatureCard component with explicit key
+                                    // Use our improved FeatureCard component
                                     rsx! {
                                         FeatureCard {
-                                            key: "feature-{}-{}-{}", feat.id, is_enabled, *refresh_trigger.read(),
                                             feature: feat_clone,
                                             enabled: is_enabled,
                                             on_toggle: move |evt| handle_feature_toggle(evt, &feat_clone),
@@ -960,10 +1052,9 @@ fn Version(props: VersionProps) -> Element {
                         }
                     }
                     
-                    // Install/Update/Modify button with unique key
+                    // Install/Update/Modify button with current state
                     div { class: "install-button-container",
                         button {
-                            key: "{button_key}",
                             class: "main-install-button",
                             disabled: button_disabled,
                             "{button_label}"
