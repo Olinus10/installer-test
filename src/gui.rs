@@ -573,18 +573,25 @@ fn FeatureCard(props: FeatureCardProps) -> Element {
             }
             
             // Toggle button with properly bound events
-            div {
+            label {
                 // Use the signal value for class determination
                 class: if *is_enabled.read() { "feature-toggle-button enabled" } else { "feature-toggle-button disabled" },
-                onclick: move |evt| {
-                    // Toggle local state immediately for visual feedback
-                    is_enabled.set(!*is_enabled.read());
-                    
-                    // Forward to parent handler
-                    let mut form_evt = FormEvent::default();
-                    form_evt.data.set_value(if *is_enabled.read() { "true" } else { "false" });
-                    props.on_toggle.call(form_evt);
-                },
+                
+                // Hidden checkbox that will generate the proper form event
+                input {
+                    r#type: "checkbox",
+                    name: "{feature_id}",
+                    checked: if *is_enabled.read() { Some("true") } else { None },
+                    onchange: move |evt| {
+                        // Toggle local state immediately for visual feedback
+                        is_enabled.set(!*is_enabled.read());
+                        
+                        // Forward the original event
+                        props.on_toggle.call(evt);
+                    },
+                    style: "display: none;"
+                }
+                
                 // Text shows current state based on signal
                 if *is_enabled.read() { "Enabled" } else { "Disabled" }
             }
@@ -594,71 +601,67 @@ fn FeatureCard(props: FeatureCardProps) -> Element {
 
 fn feature_change(
     local_features: Signal<Option<Vec<String>>>,
-    mut modify: Signal<bool>,
+    modify: Signal<bool>,
     evt: FormEvent,
     feat: &super::Feature,
-    mut modify_count: Signal<i32>,
-    mut enabled_features: Signal<Vec<String>>,
-    mut refresh_trigger: Signal<i32>,
+    modify_count: Signal<i32>,
+    enabled_features: Signal<Vec<String>>,
+    refresh_trigger: Signal<i32>,
 ) {
-    // Extract values first
-    let enabled = match &*evt.data.value() {
-        "true" => true,
-        "false" => false,
-        _ => panic!("Invalid bool from feature"),
-    };
+    // Get the new enabled state from the event
+    let enabled = evt.data.value() == "true";
     
     debug!("Feature toggle changed: {} -> {}", feat.id, enabled);
     
-    // Copy values we need for comparison
-    let current_features = enabled_features.read().clone();
-    let contains_feature = current_features.contains(&feat.id);
-    
-    // Only update if necessary
-    if enabled != contains_feature {
-        debug!("Updating feature state for {}: {} -> {}", feat.id, contains_feature, enabled);
-        enabled_features.with_mut(|x| {
-            if enabled && !x.contains(&feat.id) {
-                x.push(feat.id.clone());
-            } else if !enabled {
-                x.retain(|item| item != &feat.id);
-            }
-        });
-    }
-    
-    // Handle modify signals in a separate step
-    if let Some(local_feat) = local_features.read().as_ref() {
-        let local_enabled = local_feat.contains(&feat.id);
-        let modify_res = local_enabled != enabled;
-        
-        debug!("Modify check: local_enabled={}, new_enabled={}, should_modify={}", 
-               local_enabled, enabled, modify_res);
-        
-        if modify_res {
-            modify_count.with_mut(|x| *x += 1);
-            
-            // Only set modify flag if count > 0
-            if *modify_count.read() > 0 {
-                modify.set(true);
-                debug!("SET MODIFY FLAG: true (count={})", *modify_count.read());
+    // Update enabled_features collection
+    enabled_features.with_mut(|features| {
+        if enabled {
+            if !features.contains(&feat.id) {
+                features.push(feat.id.clone());
+                debug!("Added feature to enabled list: {}", feat.id);
             }
         } else {
-            // Prevent going below 0
+            features.retain(|id| id != &feat.id);
+            debug!("Removed feature from enabled list: {}", feat.id);
+        }
+    });
+    
+    // Check if this is a modification from the original state
+    if let Some(local_feat) = local_features.read().as_ref() {
+        let was_originally_enabled = local_feat.contains(&feat.id);
+        let is_modified = was_originally_enabled != enabled;
+        
+        debug!("Modification check: was_originally_enabled={}, current_enabled={}, is_modified={}", 
+               was_originally_enabled, enabled, is_modified);
+        
+        if is_modified {
+            // This is a modification from the original state
+            modify_count.with_mut(|x| *x += 1);
+            debug!("Increased modification count to {}", *modify_count.read());
+            
+            // Set the modify flag if we have any modifications
+            if *modify_count.read() > 0 && !*modify.read() {
+                modify.set(true);
+                debug!("SET MODIFY FLAG: true");
+            }
+        } else {
+            // This is reverting to the original state
             if *modify_count.read() > 0 {
                 modify_count.with_mut(|x| *x -= 1);
+                debug!("Decreased modification count to {}", *modify_count.read());
                 
-                // Only clear modify flag if count reaches 0
-                if *modify_count.read() <= 0 {
+                // Clear the modify flag if we have no more modifications
+                if *modify_count.read() <= 0 && *modify.read() {
                     modify.set(false);
-                    debug!("RESET MODIFY FLAG: false (count={})", *modify_count.read());
+                    debug!("CLEARED MODIFY FLAG: false");
                 }
             }
         }
     }
     
-    // Force refresh after state changes
+    // Force a UI refresh
     refresh_trigger.with_mut(|x| *x += 1);
-    debug!("Incremented refresh trigger to {}", *refresh_trigger.read());
+    debug!("Triggered UI refresh: {}", *refresh_trigger.read());
 }
 
 async fn init_branch(source: String, branch: String, launcher: Launcher, mut pages: Signal<BTreeMap<usize, TabInfo>>) -> Result<(), String> {
@@ -764,20 +767,20 @@ fn Version(mut props: VersionProps) -> Element {
            installer_profile.installed, installer_profile.update_available);
     
     // Use explicit signal declarations with consistent usage patterns
-    let mut installing = use_signal(|| false);
-    let mut progress_status = use_signal(|| "".to_string());
-    let mut install_progress = use_signal(|| 0);
-    let mut modify = use_signal(|| false);
-    let mut modify_count = use_signal(|| 0);
-    let mut credits = use_signal(|| false);
-    let mut install_item_amount = use_signal(|| 0);
+    let installing = use_signal(|| false);
+    let progress_status = use_signal(|| "".to_string());
+    let install_progress = use_signal(|| 0);
+    let modify = use_signal(|| false);
+    let modify_count = use_signal(|| 0);
+    let credits = use_signal(|| false);
+    let install_item_amount = use_signal(|| 0);
     
     // Convert to signals to ensure updates trigger re-renders
-    let mut installed = use_signal(|| installer_profile.installed);
-    let mut update_available = use_signal(|| installer_profile.update_available);
+    let installed = use_signal(|| installer_profile.installed);
+    let update_available = use_signal(|| installer_profile.update_available);
     
     // Force refresh signal
-    let mut refresh_trigger = use_signal(|| 0);
+    let refresh_trigger = use_signal(|| 0);
     
     // Store features collection in a signal
     let features = use_signal(|| installer_profile.manifest.features.clone());
@@ -789,7 +792,7 @@ fn Version(mut props: VersionProps) -> Element {
     });
 
     // Initialize enabled_features with proper defaults
-    let mut enabled_features = use_signal(|| {
+    let enabled_features = use_signal(|| {
         let mut feature_list = vec!["default".to_string()];
         
         if installer_profile.installed && installer_profile.local_manifest.is_some() {
@@ -808,7 +811,7 @@ fn Version(mut props: VersionProps) -> Element {
     });
     
     // Track local features for modification detection
-    let mut local_features = use_signal(|| {
+    let local_features = use_signal(|| {
         if let Some(ref manifest) = installer_profile.local_manifest {
             Some(manifest.enabled_features.clone())
         } else {
@@ -816,53 +819,18 @@ fn Version(mut props: VersionProps) -> Element {
         }
     });
     
-    // Explicit toggle handler function that ensures UI updates
-    let mut handle_feature_toggle = move |feat: &super::Feature| {
-        let feat_id = feat.id.clone();
-        let is_currently_enabled = enabled_features.read().contains(&feat_id);
-        let new_state = !is_currently_enabled;
-        
-        debug!("Feature toggle clicked: {} currently={} -> new={}", feat_id, is_currently_enabled, new_state);
-        
-        // Update enabled_features first
-        enabled_features.with_mut(|features| {
-            if new_state {
-                if !features.contains(&feat_id) {
-                    features.push(feat_id.clone());
-                    debug!("Added feature: {}", feat_id);
-                }
-            } else {
-                features.retain(|id| id != &feat_id);
-                debug!("Removed feature: {}", feat_id);
-            }
-        });
-        
-        // Update modify flag based on comparison with original state
-        if let Some(local_feat) = local_features.read().as_ref() {
-            let was_enabled = local_feat.contains(&feat_id);
-            let is_modified = was_enabled != new_state;
-            
-            debug!("Feature modified check: was_enabled={}, new_state={}, is_modified={}", 
-                   was_enabled, new_state, is_modified);
-            
-            if is_modified {
-                modify_count.with_mut(|x| *x += 1);
-                if *modify_count.read() > 0 {
-                    modify.set(true);
-                    debug!("SET MODIFY FLAG: true");
-                }
-            } else {
-                modify_count.with_mut(|x| *x -= 1);
-                if *modify_count.read() <= 0 {
-                    modify.set(false);
-                    debug!("SET MODIFY FLAG: false");
-                }
-            }
-        }
-        
-        // Force a refresh by incrementing refresh_trigger
-        refresh_trigger.with_mut(|v| *v += 1);
-        debug!("Incremented refresh trigger to {}", *refresh_trigger.read());
+    // Handle feature toggle events using our improved feature_change function
+    let handle_feature_toggle = move |evt: FormEvent, feat: &super::Feature| {
+        // Use a central feature change function to ensure consistent behavior
+        feature_change(
+            local_features,
+            modify,
+            evt,
+            feat,
+            modify_count,
+            enabled_features,
+            refresh_trigger
+        );
     };
     
     let movable_profile = installer_profile.clone();
@@ -1075,44 +1043,26 @@ fn Version(mut props: VersionProps) -> Element {
                     // Features heading
                     h2 { "Optional Features" }
                     
-                    // Feature cards in a responsive grid with explicit feature handling
+                    // Feature cards in a responsive grid using our improved FeatureCard component
                     div { class: "feature-cards-container",
                         for feat in features.read().iter() {
                             if !feat.hidden {
                                 {
-                                    // We need to capture some values outside the JSX for processing
-                                    let feat_name = feat.name.clone();
-                                    let feat_id = feat.id.clone();
-                                    let feat_description = feat.description.clone();
-                                    let feat_clone = feat.clone();
-                                    
-                                    // Check if this feature is enabled - FORCE re-evaluation on each render
+                                    // Get the current enabled state for this feature
                                     let is_enabled = {
-                                        let enabled_list = enabled_features.read().clone();
+                                        let enabled_list = enabled_features.read().clone(); 
                                         let _trigger = *refresh_trigger.read(); // Force re-evaluation
-                                        enabled_list.contains(&feat_id)
+                                        enabled_list.contains(&feat.id)
                                     };
                                     
+                                    let feat_clone = feat.clone();
+                                    
+                                    // Use our improved FeatureCard component
                                     rsx! {
-                                        div { 
-                                            // Dynamically apply classes based on enabled state
-                                            class: if is_enabled { "feature-card feature-enabled" } else { "feature-card feature-disabled" },
-                                            h3 { class: "feature-card-title", "{feat_name}" }
-                                            
-                                            // Render description if available
-                                            if let Some(description) = &feat_description {
-                                                div { class: "feature-card-description", "{description}" }
-                                            }
-                                            
-                                            // Toggle button that directly calls our handler
-                                            div {
-                                                class: if is_enabled { "feature-toggle-button enabled" } else { "feature-toggle-button disabled" },
-                                                onclick: move |_| {
-                                                    handle_feature_toggle(&feat_clone);
-                                                },
-                                                // Text shows current state
-                                                if is_enabled { "Enabled" } else { "Disabled" }
-                                            }
+                                        FeatureCard {
+                                            feature: feat_clone.clone(),
+                                            enabled: is_enabled,
+                                            on_toggle: move |evt| handle_feature_toggle(evt, &feat_clone),
                                         }
                                     }
                                 }
