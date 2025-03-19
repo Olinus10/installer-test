@@ -1618,7 +1618,7 @@ pub(crate) fn app() -> Element {
                                             current_page,
                                             tab_group: current_page,
                                             force_update: Some(force_update.clone()),
-                                            key: format!("version", current_page, index),
+                                            key: "version",
                                         }
                                     }
                                 }
