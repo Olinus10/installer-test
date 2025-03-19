@@ -1061,7 +1061,7 @@ fn Version(mut props: VersionProps) -> Element {
                                     let is_enabled = enabled_features.read().contains(&feat_id);
                                     
                                     // Clone the toggle handler to avoid ownership issues
-                                    let toggle_handler = handle_feature_toggle.clone();
+                                    let mut toggle_handler = handle_feature_toggle.clone();
                                     let feat_id_for_toggle = feat_id.clone();
                                     
                                     rsx! {
