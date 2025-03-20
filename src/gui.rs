@@ -1400,26 +1400,29 @@ pub(crate) fn app() -> Element {
                 } else {
                     // Content for specific page
                     if let Some(tab_info) = pages_value.get(&current_page) {
-                        // Extract modpacks outside the RSX block
-                        let tab_modpacks = tab_info.modpacks.clone();
-                        
-                        div { 
-                            class: "version-page-container",
-                            
-                            for profile in tab_modpacks {
-                                Version {
-                                    installer_profile: profile,
-                                    error: err,
-                                    current_page,
-                                    tab_group: current_page
-                                }
-                            }
-                        }
-                    } else {
-                        div { "No modpack information found for this tab." }
+    // We need to extract this code outside the RSX block completely
+    let tab_modpacks = tab_info.modpacks.clone();
+    
+    rsx! {
+        div { 
+            class: "version-page-container",
+            
+            for profile in tab_modpacks {
+                Version {
+                    installer_profile: profile,
+                    error: err,
+                    current_page,
+                    tab_group: current_page
+                }
+            }
+        }
+    }
+} else {
+    rsx! {
+        div { "No modpack information found for this tab." }
                     }
                 }
             }
         }
     }
-}
+}}
