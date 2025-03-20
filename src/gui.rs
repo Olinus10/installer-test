@@ -14,8 +14,6 @@ use wasm_bindgen::JsCast;
 
 mod modal;
 
-static GLOBAL_REFRESH_COUNTER: AtomicUsize = AtomicUsize::new(0);
-
 #[derive(Debug, Clone)]
 struct TabInfo {
     color: String,
