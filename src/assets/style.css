@@ -418,29 +418,40 @@ a:hover {
     animation: pack-shine 1s forwards;
 }
 
-/* Improved info section */
+/* Fix for the info section shadow being too dark/harsh */
 .home-pack-info {
     position: absolute;
     bottom: 0;
     left: 0;
     right: 0;
     padding: 20px 15px;
-    background: linear-gradient(transparent, rgba(0, 0, 0, 0.8) 30%, rgba(0, 0, 0, 0.9));
+    background: linear-gradient(
+        to bottom, 
+        rgba(0, 0, 0, 0) 0%,
+        rgba(0, 0, 0, 0.6) 30%, 
+        rgba(0, 0, 0, 0.8) 100%
+    );
     text-align: center;
     transition: all 0.3s ease;
     transform: translateY(5px);
 }
 
 .home-pack-card:hover .home-pack-info {
-    background: linear-gradient(transparent, rgba(0, 0, 0, 0.9) 30%, rgba(0, 0, 0, 0.95));
+    background: linear-gradient(
+        to bottom, 
+        rgba(0, 0, 0, 0) 0%,
+        rgba(0, 0, 0, 0.7) 30%, 
+        rgba(0, 0, 0, 0.9) 100%
+    );
     transform: translateY(0);
 }
 
+/* Improve title readability */
 .home-pack-title {
     font-family: "SECONDARY_FONT";
     margin: 0 0 12px 0;
     font-size: 1.3rem;
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+    text-shadow: 0 2px 6px rgba(0, 0, 0, 0.8);
     overflow: hidden;
     text-overflow: ellipsis;
     display: -webkit-box;
@@ -471,6 +482,29 @@ a:hover {
 }
 
 /* Enhanced Trending Card */
+
+
+/* Fix for trending card button to ensure it's properly golden */
+.home-pack-card.trending .home-pack-button {
+    background-image: linear-gradient(135deg, #ffd700, #ffa500);
+    color: #000;
+    padding: 10px 24px;
+    font-size: 1.1rem;
+    transition: all 0.3s ease;
+    margin-bottom: 10px;
+    font-weight: bold;
+    border: 1px solid rgba(255, 255, 255, 0.7);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
+    text-shadow: none;
+}
+
+.home-pack-card.trending:hover .home-pack-button {
+    background-image: linear-gradient(135deg, #ffd700, #ff8c00);
+    transform: scale(1.1);
+    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.5), 0 0 15px rgba(255, 215, 0, 0.5);
+}
+
+
 .home-pack-card.trending {
     box-shadow: 0 15px 30px rgba(0, 0, 0, 0.7), 0 0 0 2px rgba(255, 215, 0, 0.6), 0 0 30px rgba(255, 215, 0, 0.4);
     animation: trending-pulse 3s infinite alternate;
@@ -1820,4 +1854,40 @@ a:hover {
     margin-top: 12px; /* Reduce top margin since we've added padding */
 }
 
+/* Fix for trending card info section */
+.home-pack-card.trending .home-pack-info {
+    background: linear-gradient(
+        to bottom, 
+        rgba(0, 0, 0, 0) 0%,
+        rgba(0, 0, 0, 0.5) 40%, 
+        rgba(0, 0, 0, 0.8) 100%
+    );
+    padding-top: 40px;
+    padding-bottom: 15px;
+    height: auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-end;
+    border-radius: 0 0 8px 8px;
+    position: relative;
+    z-index: 5;
+}
 
+.home-pack-card.trending:hover .home-pack-info {
+    background: linear-gradient(
+        to bottom, 
+        rgba(0, 0, 0, 0) 0%,
+        rgba(0, 0, 0, 0.6) 40%, 
+        rgba(0, 0, 0, 0.9) 100%
+    );
+}
+
+/* Ensure trending card title is readable */
+.home-pack-card.trending .home-pack-title {
+    font-size: 1.4rem;
+    margin-bottom: 12px;
+    text-shadow: 0 2px 6px rgba(0, 0, 0, 0.8);
+    color: #fff;
+    padding: 0 15px;
+}
