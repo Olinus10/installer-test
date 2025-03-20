@@ -591,178 +591,110 @@ a:hover {
 
 /* Enhanced install button styles*/
 
-/* Enhanced install button with pulsing glow, floating animation and size pulse */
+/* Install button container - uses flex for reliable centering */
+.install-button-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    margin: 40px 0 60px 0;
+    padding: 0;
+    position: relative;
+}
+
+/* Enhanced install button with pulsing glow effect and size pulse */
 .main-install-button {
     background-color: #073c17;
-    border: none;
+    border: 2px solid rgba(255, 255, 255, 0.2);
     border-radius: 8px;
     padding: 18px 70px;
     font-family: "SECONDARY_FONT";
     font-size: 2rem;
-    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4), 0 0 20px rgba(7, 60, 23, 0.3);
     color: #fce8f6;
-    position: relative;
-    overflow: hidden;
     cursor: pointer;
     min-width: 320px;
     text-transform: uppercase;
     letter-spacing: 2px;
-    margin: 0 auto 60px auto;
+    position: relative;
+    overflow: hidden;
+    z-index: 1;
     
-    /* Combined animations that don't use transform properties */
-    animation: button-pulse 2s infinite alternate, 
-               button-shadow-pulse 3s infinite alternate;
+    /* Clean gradient background */
+    background-image: linear-gradient(135deg, #0a4d1e, #073c17);
     
-    /* Use transform in a single animation to avoid conflicts */
-    transform-origin: center center;
-    animation-name: button-pulse, button-shadow-pulse, button-transform-combo;
-    animation-duration: 2s, 3s, 4s;
-    animation-timing-function: ease-in-out, ease-in-out, ease-in-out;
-    animation-iteration-count: infinite, infinite, infinite;
-    animation-direction: alternate, alternate, alternate;
+    /* Glow and pulse animations */
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4), 0 0 20px rgba(7, 60, 23, 0.3);
+    text-shadow: 0 0 5px rgba(255, 255, 255, 0.3);
+    animation: button-glow 3s infinite alternate;
     
     /* Smoother transitions */
-    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    
-    /* Text gradient effect */
-    background-image: linear-gradient(135deg, #0a4d1e, #073c17);
-    border: 2px solid rgba(255, 255, 255, 0.2);
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
-/* Hover effect that enhances existing animations */
-.main-install-button:hover:not([disabled]) {
-    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.5), 0 0 35px rgba(7, 60, 23, 0.9);
-    background-image: linear-gradient(135deg, #0f6229, #0a4d1e);
-    text-shadow: 0 0 15px rgba(255, 255, 255, 0.7);
-    border-color: rgba(255, 255, 255, 0.4);
-    letter-spacing: 3px;
-    
-    /* Direct transform on hover overrides animations */
-    transform: translateY(-8px) scale(1.07);
-    
-    /* Intensify glow on hover and override other animations */
-    animation: button-pulse-hover 1s infinite alternate,
-               button-shadow-pulse-hover 2s infinite alternate;
-}
-
-/* Active (clicking) effect */
-.main-install-button:active:not([disabled]) {
-    /* Direct transform on active state */
-    transform: translateY(-4px) scale(1.04);
-    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.5), 0 0 25px rgba(7, 60, 23, 0.8);
-    transition: all 0.1s ease;
-    /* Pause animations during click */
-    animation-play-state: paused;
-}
-
-/* Improved shine effect with automatic animation */
+/* Button shine effect */
 .main-install-button::before {
     content: '';
     position: absolute;
     top: 0;
-    left: -150%;
-    width: 150%;
+    left: -100%;
+    width: 100%;
     height: 100%;
     background: linear-gradient(
         90deg, 
         transparent, 
-        rgba(255, 255, 255, 0.05), 
+        rgba(255, 255, 255, 0.1), 
         rgba(255, 255, 255, 0.2), 
-        rgba(255, 255, 255, 0.4), 
-        rgba(255, 255, 255, 0.2),
-        rgba(255, 255, 255, 0.05),
+        rgba(255, 255, 255, 0.1),
         transparent
     );
     transform: skewX(-25deg);
-    transition: none;
-    z-index: 2;
+    z-index: 0;
     animation: button-shine 6s infinite;
 }
 
-/* Glow border effect */
-.main-install-button::after {
-    content: '';
-    position: absolute;
-    top: -3px;
-    left: -3px;
-    right: -3px;
-    bottom: -3px;
-    border-radius: 10px;
-    background: linear-gradient(45deg, 
-        rgba(7, 60, 23, 0) 0%, 
-        rgba(7, 60, 23, 0.3) 50%, 
-        rgba(7, 60, 23, 0.7) 75%,
-        rgba(7, 60, 23, 0.3) 85%,
-        rgba(7, 60, 23, 0) 100%
-    );
-    z-index: -1;
-    animation: rotate-border 6s linear infinite;
-    opacity: 0.7;
-}
-
-/* Add small animated dots/particles inside the button for extra visual flair */
-.install-button-container {
-    position: relative;
-}
-
-/* Remove the container after element that's causing the white line */
-/* Instead, add subtle particle effects directly to the button */
-.main-install-button::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: -150%;
-    width: 150%;
-    height: 100%;
-    background: linear-gradient(
-        90deg, 
-        transparent, 
-        rgba(255, 255, 255, 0.05), 
-        rgba(255, 255, 255, 0.2), 
-        rgba(255, 255, 255, 0.4), 
-        rgba(255, 255, 255, 0.2),
-        rgba(255, 255, 255, 0.05),
-        transparent
-    );
-    transform: skewX(-25deg);
-    transition: none;
-    z-index: 2;
-    
-    /* Automatic shine effect that plays continuously */
-    left: -150%;
-    animation: button-shine 6s infinite;
-}
-
-/* Subtle text animation */
-.main-install-button span {
+/* Separate container for the scale animation to preserve centering */
+.button-scale-wrapper {
     display: inline-block;
-    animation: text-wave 2s ease-in-out infinite;
-    animation-delay: calc(0.1s * var(--i));
+    animation: button-scale-pulse 3s infinite alternate;
 }
 
-/* Disabled state with reduced but still visible effects */
+/* Hover effect */
+.main-install-button:hover:not([disabled]) {
+    transform: translateY(-5px);
+    background-image: linear-gradient(135deg, #0f6229, #0a4d1e);
+    text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+    border-color: rgba(255, 255, 255, 0.4);
+    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.5), 0 0 35px rgba(7, 60, 23, 0.9);
+}
+
+/* Active state */
+.main-install-button:active:not([disabled]) {
+    transform: translateY(-2px);
+    transition: all 0.1s ease;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.5), 0 0 25px rgba(7, 60, 23, 0.8);
+}
+
+/* Disabled state */
 .main-install-button:disabled {
     background-image: linear-gradient(135deg, #0a4d1e80, #073c1780);
     cursor: not-allowed;
     opacity: 0.7;
-    /* Simplified animation for disabled state */
-    animation: button-pulse-disabled 3s infinite alternate;
-    transform: translateY(0) scale(1);
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3), 0 0 15px rgba(7, 60, 23, 0.2);
 }
 
-/* Keyframes for all animations */
-
-@keyframes button-pulse {
+/* Simple animations that won't affect centering */
+@keyframes button-glow {
     0% {
-        box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4), 0 0 20px rgba(7, 60, 23, 0.3);
+        box-shadow: 0 6px 15px rgba(0, 0, 0, 0.4), 0 0 20px rgba(7, 60, 23, 0.3);
+        text-shadow: 0 0 5px rgba(255, 255, 255, 0.3);
     }
     100% {
-        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4), 0 0 40px rgba(7, 60, 23, 0.7);
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.5), 0 0 30px rgba(7, 60, 23, 0.6);
+        text-shadow: 0 0 10px rgba(255, 255, 255, 0.5), 0 0 20px rgba(255, 255, 255, 0.2);
     }
 }
 
-@keyframes button-size-pulse {
+@keyframes button-scale-pulse {
     0% {
         transform: scale(1);
     }
@@ -771,77 +703,12 @@ a:hover {
     }
 }
 
-@keyframes button-pulse-hover {
-    0% {
-        box-shadow: 0 12px 24px rgba(0, 0, 0, 0.5), 0 0 30px rgba(7, 60, 23, 0.7);
-    }
-    100% {
-        box-shadow: 0 15px 30px rgba(0, 0, 0, 0.5), 0 0 50px rgba(7, 60, 23, 1);
-    }
-}
-
-@keyframes button-pulse-disabled {
-    0% {
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3), 0 0 10px rgba(7, 60, 23, 0.1);
-    }
-    100% {
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3), 0 0 20px rgba(7, 60, 23, 0.3);
-    }
-}
-
-@keyframes button-float {
-    0%, 100% {
-        transform: translateY(0);
-    }
-    50% {
-        transform: translateY(-5px);
-    }
-}
-
-@keyframes button-shadow-pulse {
-    0% {
-        text-shadow: 0 0 5px rgba(255, 255, 255, 0.3);
-    }
-    100% {
-        text-shadow: 0 0 10px rgba(255, 255, 255, 0.5), 0 0 20px rgba(255, 255, 255, 0.2);
-    }
-}
-
-@keyframes button-shadow-pulse-hover {
-    0% {
-        text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
-    }
-    100% {
-        text-shadow: 0 0 15px rgba(255, 255, 255, 0.7), 0 0 30px rgba(255, 255, 255, 0.3);
-    }
-}
-
 @keyframes button-shine {
     0% {
-        left: -150%;
+        left: -100%;
     }
     20%, 100% {
-        left: 150%;
-    }
-}
-
-@keyframes rotate-border {
-    0% {
-        transform: rotate(0deg);
-    }
-    100% {
-        transform: rotate(360deg);
-    }
-}
-
-/* Removed particles-move animation as it's no longer needed */
-
-@keyframes text-wave {
-    0%, 100% {
-        transform: translateY(0);
-    }
-    50% {
-        transform: translateY(-2px);
+        left: 100%;
     }
 }
 
