@@ -1,16 +1,10 @@
-use std::{collections::BTreeMap, path::PathBuf};
+use std::collections::BTreeMap;
+use std::path::PathBuf;
 use base64::{Engine, engine::general_purpose::URL_SAFE_NO_PAD};
 use dioxus::prelude::*;
 use log::{error, debug};
 use modal::ModalContext;
-use modal::Modal;
-use dioxus::events::SerializedFormData;
-use std::collections::HashMap;
 use crate::{get_app_data, get_installed_packs, get_launcher, uninstall, InstallerProfile, Launcher, PackName};
-
-use std::sync::atomic::{AtomicUsize, Ordering};
-use web_sys::js_sys;
-use wasm_bindgen::JsCast;
 
 mod modal;
 
@@ -711,7 +705,7 @@ fn Version(mut props: VersionProps) -> Element {
     let mut installed = use_signal(|| installer_profile.installed);
     let mut update_available = use_signal(|| installer_profile.update_available);
     
-    // Create a stable feature list signal
+    // Create a stable feature list signal - clone it early
     let mut feature_list = use_signal(|| {
         let mut features = vec!["default".to_string()];
         
@@ -730,17 +724,17 @@ fn Version(mut props: VersionProps) -> Element {
         features
     });
     
-    // Keep track of original feature state to detect modifications
-    let original_features = use_memo(move || {
-        if let Some(ref manifest) = installer_profile.local_manifest {
-            manifest.enabled_features.clone()
-        } else {
-            feature_list.read().clone()
-        }
-    });
+    // Store original features separately to avoid partial move
+    let original_features_vec = if installer_profile.installed && installer_profile.local_manifest.is_some() {
+        installer_profile.local_manifest.as_ref().unwrap().enabled_features.clone()
+    } else {
+        feature_list.read().clone()
+    };
+    
+    let original_features = use_signal(|| original_features_vec);
     
     // Function to toggle a feature and update modification state
-    let mut toggle_feature = move |feat_id: String| {
+    let toggle_feature = move |feat_id: String| {
         let mut features = feature_list.read().clone();
         let is_enabled = features.contains(&feat_id);
         
@@ -757,7 +751,7 @@ fn Version(mut props: VersionProps) -> Element {
         
         // Check if this is a modification from original state
         let original_state = original_features.read();
-        let was_originally_enabled = original_state.contains(&feat_id);
+        let _was_originally_enabled = original_state.contains(&feat_id); // Prefix with _ to avoid unused var warning
         let is_modified = features.iter().any(|id| !original_state.contains(id)) || 
                            original_state.iter().any(|id| !features.contains(id));
         
@@ -1406,26 +1400,23 @@ pub(crate) fn app() -> Element {
                 } else {
                     // Content for specific page
                     if let Some(tab_info) = pages_value.get(&current_page) {
-                        let modpacks = tab_info.modpacks.clone();
+                        // Extract modpacks outside the RSX block
+                        let tab_modpacks = tab_info.modpacks.clone();
                         
-                        rsx! {
-                            div { 
-                                class: "version-page-container",
-                                
-                                for profile in modpacks {
-                                    Version {
-                                        installer_profile: profile,
-                                        error: err,
-                                        current_page,
-                                        tab_group: current_page
-                                    }
+                        div { 
+                            class: "version-page-container",
+                            
+                            for profile in tab_modpacks {
+                                Version {
+                                    installer_profile: profile,
+                                    error: err,
+                                    current_page,
+                                    tab_group: current_page
                                 }
                             }
                         }
                     } else {
-                        rsx! {
-                            div { "No modpack information found for this tab." }
-                        }
+                        div { "No modpack information found for this tab." }
                     }
                 }
             }
