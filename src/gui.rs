@@ -6,10 +6,11 @@ use modal::ModalContext;
 use modal::Modal;
 use dioxus::events::SerializedFormData;
 use std::collections::HashMap;
+use crate::{get_app_data, get_installed_packs, get_launcher, uninstall, InstallerProfile, Launcher, PackName};
+
 use std::sync::atomic::{AtomicUsize, Ordering};
 use web_sys::js_sys;
 use wasm_bindgen::JsCast;
-use crate::{get_app_data, get_installed_packs, get_launcher, uninstall, InstallerProfile, Launcher, PackName};
 
 mod modal;
 
@@ -1342,9 +1343,10 @@ pub(crate) fn app() -> Element {
         // You could add any global UI refresh code here if needed
     }) as Box<dyn Fn()>);
     
+    // Use unchecked_ref() instead of unchecked_into()
     document.add_event_listener_with_callback(
         "forceRefresh",
-        callback.as_ref().unchecked_into()
+        callback.as_ref().unchecked_ref()
     ).unwrap();
     
     // Make sure the closure doesn't get dropped
@@ -1353,9 +1355,27 @@ pub(crate) fn app() -> Element {
 
 use_effect(move || {
     setup_global_refresh_listener();
-    // Empty function for cleanup - only run once
-    (|| {})()
+    debug!("Global refresh listener set up");
+    // Only run once
+    || {}
 });
+
+fn force_global_refresh() {
+    // Increment the global counter
+    let new_value = GLOBAL_REFRESH_COUNTER.fetch_add(1, Ordering::SeqCst) + 1;
+    debug!("Incremented global counter to {}", new_value);
+    
+    // Force a timeout-based refresh
+    let window = web_sys::window().expect("no global window exists");
+    let function = js_sys::Function::new_no_args(
+        "document.dispatchEvent(new CustomEvent('forceRefresh'))"
+    );
+    
+    let _ = window.set_timeout_with_callback_and_timeout_and_arguments_0(
+        &function,
+        50 // 50ms timeout
+    );
+}
     // Effect to build pages map when branches are processed
     use_effect(move || {
         if let Some(processed_branches) = packs.read().as_ref() {
