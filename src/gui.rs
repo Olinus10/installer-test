@@ -6,10 +6,13 @@ use modal::ModalContext;
 use modal::Modal;
 use dioxus::events::SerializedFormData;
 use std::collections::HashMap;
-
+use std::sync::atomic::{AtomicUsize, Ordering};
+use web_sys::js_sys;
 use crate::{get_app_data, get_installed_packs, get_launcher, uninstall, InstallerProfile, Launcher, PackName};
 
 mod modal;
+
+static GLOBAL_REFRESH_COUNTER: AtomicUsize = AtomicUsize::new(0);
 
 #[derive(Debug, Clone)]
 struct TabInfo {
@@ -693,10 +696,12 @@ struct VersionProps {
     current_page: usize,
     tab_group: usize,
 }
-
 #[component]
 fn Version(mut props: VersionProps) -> Element {
     let installer_profile = props.installer_profile.clone();
+    
+    // Get the global counter value at render time
+    let global_counter = GLOBAL_REFRESH_COUNTER.load(Ordering::SeqCst);
     
     // All the existing state signals with mut
     let mut installing = use_signal(|| false);
@@ -709,8 +714,8 @@ fn Version(mut props: VersionProps) -> Element {
     let mut installed = use_signal(|| installer_profile.installed);
     let mut update_available = use_signal(|| installer_profile.update_available);
     
-    // Force refresh counter
-    let mut refresh_counter = use_signal(|| 0);
+    // Local refresh counter that follows the global one
+    let mut refresh_counter = use_signal(|| global_counter);
     
     // Feature collections
     let features = use_signal(|| installer_profile.manifest.features.clone());
@@ -755,7 +760,31 @@ fn Version(mut props: VersionProps) -> Element {
         feature_states.read().clone()
     });
     
-    // Simplified toggle handler that doesn't rely on event data at all
+    // Force a global update when the component mounts (to sync with current state)
+    use_effect(move || {
+        // Update local counter with global value
+        refresh_counter.set(global_counter);
+        debug!("Component mounted/updated with global counter: {}", global_counter);
+    });
+    
+    // Function to force a global refresh
+    let force_global_refresh = move || {
+        // Increment the global counter
+        let new_value = GLOBAL_REFRESH_COUNTER.fetch_add(1, Ordering::SeqCst) + 1;
+        debug!("Incremented global counter to {}", new_value);
+        
+        // Update local counter
+        refresh_counter.set(new_value);
+        
+        // Force a timeout-based refresh
+        let window = web_sys::window().expect("no global window exists");
+        let _ = window.set_timeout_with_callback_and_timeout_and_arguments_0(
+            &js_sys::Function::new_no_args("document.dispatchEvent(new CustomEvent('forceRefresh'))"),
+            50 // 50ms timeout
+        );
+    };
+    
+    // Simplified toggle handler that forces global refresh
     let mut handle_feature_toggle = move |feat: &super::Feature| {
         // Get feature ID
         let feature_id = feat.id.clone();
@@ -806,12 +835,11 @@ fn Version(mut props: VersionProps) -> Element {
             }
         }
         
-        // Force a UI refresh
-        refresh_counter.with_mut(|x| *x += 1);
-        debug!("Incremented refresh counter to {}", *refresh_counter.read());
+        // Force a UI refresh using the global refresh mechanism
+        force_global_refresh();
     };
     
-    // Your existing on_submit handler
+    // Your existing on_submit handler with global refresh addition
     let movable_profile = installer_profile.clone();
     let on_submit = move |_| {
         // Calculate total items to process for progress tracking
@@ -914,9 +942,8 @@ fn Version(mut props: VersionProps) -> Element {
                     }
                     installing.set(false);
                     
-                    // Force refresh
-                    refresh_counter.with_mut(|x| *x += 1);
-                    debug!("Incremented refresh counter after operation: {}", *refresh_counter.read());
+                    // Force refresh with global mechanism
+                    force_global_refresh();
                 });
             };
 
@@ -935,12 +962,12 @@ fn Version(mut props: VersionProps) -> Element {
         }
     };
     
-    // Direct computation of button state - using refresh counter as dependency
+    // Direct computation of button state - using global counter as dependency
     let button_label = {
         let is_installed = *installed.read();
         let is_update_available = *update_available.read();
         let is_modify = *modify.read();
-        let _ = *refresh_counter.read(); // Force re-evaluation
+        let _ = *refresh_counter.read(); // Force re-evaluation with global counter
         
         if !is_installed {
             "Install"
@@ -957,13 +984,13 @@ fn Version(mut props: VersionProps) -> Element {
         let is_installed = *installed.read();
         let is_update_available = *update_available.read();
         let is_modify = *modify.read();
-        let _ = *refresh_counter.read(); // Force re-evaluation
+        let _ = *refresh_counter.read(); // Force re-evaluation with global counter
         
         is_installed && !is_update_available && !is_modify
     };
     
-    // Force re-evaluation
-    let _refresh = *refresh_counter.read();
+    // Create a unique component key using the global counter
+    let component_key = format!("version-{}-{}", installer_profile.manifest.uuid, *refresh_counter.read());
     
     rsx! {
         if *installing.read() {
@@ -980,9 +1007,10 @@ fn Version(mut props: VersionProps) -> Element {
                 credits
             }
         } else {
-            div { class: "version-container",
-                // Force re-render with key
-                key: "version-container-{_refresh}",
+            div { 
+                // Use the global component key to force complete re-renders
+                key: "{component_key}",
+                class: "version-container",
                 
                 form { onsubmit: on_submit,
                     // Header section with title and subtitle
@@ -1001,7 +1029,7 @@ fn Version(mut props: VersionProps) -> Element {
                                 onclick: move |evt| {
                                     debug!("Credits clicked");
                                     credits.set(true);
-                                    refresh_counter.with_mut(|x| *x += 1);
+                                    force_global_refresh();
                                     evt.stop_propagation();
                                 },
                                 "View Credits"
@@ -1012,7 +1040,7 @@ fn Version(mut props: VersionProps) -> Element {
                     // Features heading
                     h2 { "Optional Features" }
                     
-                    // Feature cards - inline implementation
+                    // Feature cards - inline implementation with global keys
                     div { class: "feature-cards-container",
                         for feat in features.read().iter() {
                             if !feat.hidden {
@@ -1020,8 +1048,8 @@ fn Version(mut props: VersionProps) -> Element {
                                     // Get current state
                                     let is_enabled = feature_states.read().get(&feat.id).cloned().unwrap_or(false);
                                     
-                                    // Create a key that will change when state changes
-                                    let feat_key = format!("feature-{}-{}-{}", feat.id, is_enabled, _refresh);
+                                    // Create a key with global counter
+                                    let feat_key = format!("feature-{}-{}-{}", feat.id, is_enabled, *refresh_counter.read());
                                     
                                     // Clone for handler
                                     let feat_for_handler = feat.clone();
@@ -1053,11 +1081,10 @@ fn Version(mut props: VersionProps) -> Element {
                         }
                     }
                     
-                    // Install/Update/Modify button
+                    // Install/Update/Modify button with global key
                     div { class: "install-button-container",
                         button {
-                            // Include refresh in key
-                            key: "install-button-{_refresh}",
+                            key: "install-button-{refresh_counter}",
                             class: "main-install-button",
                             disabled: button_disabled,
                             "{button_label}"
@@ -1303,6 +1330,31 @@ pub(crate) fn app() -> Element {
         })
     };
 
+    fn setup_global_refresh_listener() {
+    let window = web_sys::window().expect("no global window exists");
+    let document = window.document().expect("no document exists");
+    
+    // Add a listener to force UI refresh
+    let callback = wasm_bindgen::closure::Closure::wrap(Box::new(move || {
+        // This will get called when our custom forceRefresh event is dispatched
+        debug!("Force refresh event triggered");
+        // You could add any global UI refresh code here if needed
+    }) as Box<dyn Fn()>);
+    
+    document.add_event_listener_with_callback(
+        "forceRefresh",
+        callback.as_ref().unchecked_ref()
+    ).unwrap();
+    
+    // Make sure the closure doesn't get dropped
+    callback.forget();
+}
+
+use_effect(move || {
+    setup_global_refresh_listener();
+    // Empty function for cleanup - only run once
+    || {}
+});
     // Effect to build pages map when branches are processed
     use_effect(move || {
         if let Some(processed_branches) = packs.read().as_ref() {
