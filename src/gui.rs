@@ -698,6 +698,7 @@ struct VersionProps {
     current_page: usize,
     tab_group: usize,
 }
+
 #[component]
 fn Version(mut props: VersionProps) -> Element {
     let installer_profile = props.installer_profile.clone();
@@ -777,11 +778,16 @@ fn Version(mut props: VersionProps) -> Element {
         
         let movable_profile = movable_profile.clone();
         let movable_profile2 = movable_profile.clone();
-        let feature_list_clone = feature_list.read().clone();
+        let features_for_install = feature_list.read().clone();
         
         async move {
+            // Make sure the capture of features_for_install is separate from the actual installation closure
+            let install_features = features_for_install.clone();
+            
             let install = move |canceled| {
                 let mut installer_profile = movable_profile.clone();
+                let features_clone = install_features.clone();
+                
                 spawn(async move {
                     if canceled {
                         return;
@@ -789,8 +795,8 @@ fn Version(mut props: VersionProps) -> Element {
                     installing.set(true);
                     
                     // Use our feature list for installation
-                    installer_profile.enabled_features = feature_list_clone.clone();
-                    installer_profile.manifest.enabled_features = feature_list_clone.clone();
+                    installer_profile.enabled_features = features_clone;
+                    installer_profile.manifest.enabled_features = installer_profile.enabled_features.clone();
 
                     if !*installed.read() {
                         progress_status.set("Installing".to_string());
@@ -999,18 +1005,21 @@ fn AppHeader(
     logo_url: Option<String>
 ) -> Element {
     // Organize tabs into main tabs and dropdown tabs
-    let main_tabs = pages.read().iter()
-        .filter(|(idx, _)| **idx >= 1 && **idx <= 3)
-        .map(|(idx, info)| (*idx, info.title.clone()))
-        .collect::<Vec<_>>();
-        
-    let dropdown_tabs = pages.read().iter()
-        .filter(|(idx, _)| **idx == 0 || **idx > 3)
-        .map(|(idx, info)| (*idx, info.title.clone()))
-        .collect::<Vec<_>>();
+    let pages_value = pages.read();
+    
+    let mut main_tabs = Vec::new();
+    let mut dropdown_tabs = Vec::new();
+    
+    for (idx, info) in pages_value.iter() {
+        if *idx >= 1 && *idx <= 3 {
+            main_tabs.push((*idx, info.title.clone()));
+        } else {
+            dropdown_tabs.push((*idx, info.title.clone()));
+        }
+    }
     
     let has_dropdown = !dropdown_tabs.is_empty();
-    let current_page = page.read().clone();
+    let current_page = *page.read();
     let any_dropdown_active = dropdown_tabs.iter().any(|(idx, _)| current_page == *idx);
   
     rsx!(
@@ -1084,7 +1093,7 @@ fn AppHeader(
                             }
                         }
                     }
-                } else if pages.read().is_empty() {
+                } else if pages_value.is_empty() {
                     // If no tabs, show a message
                     span { style: "color: #888; font-style: italic;", "Loading tabs..." }
                 }
@@ -1209,9 +1218,9 @@ pub(crate) fn app() -> Element {
 
     // Generate CSS content
     let css_content = {
-        let current_page = page.read().clone();
+        let current_page = *page.read();
         let all_pages = pages.read().clone();
-        let is_settings = settings.read().clone();
+        let is_settings = *settings.read();
         
         let default_color = "#320625".to_string();
         let default_bg = "https://raw.githubusercontent.com/Wynncraft-Overhaul/installer/master/src/assets/background_installer.png".to_string();
@@ -1337,6 +1346,7 @@ pub(crate) fn app() -> Element {
     };
 
     let modal_context = use_context_provider(ModalContext::default);
+    
     if let Some(e) = err.read().clone() {
         modal_context.open("Error", rsx! {
             p {
@@ -1350,7 +1360,9 @@ pub(crate) fn app() -> Element {
     let logo_url = Some("https://raw.githubusercontent.com/Wynncraft-Overhaul/installer/master/src/assets/icon.png".to_string());
     
     // Main app rendering
-    let current_page = page.read().clone();
+    let current_page = *page.read();
+    let is_settings = *settings.read();
+    let pages_value = pages.read().clone();
     
     rsx! {
         div {
@@ -1358,7 +1370,7 @@ pub(crate) fn app() -> Element {
             Modal {}
             
             // Only show header if not in settings and launcher is valid
-            if !config.read().first_launch.unwrap_or(true) && launcher.is_some() && !settings.read().clone() {
+            if !config.read().first_launch.unwrap_or(true) && launcher.is_some() && !is_settings {
                 AppHeader {
                     page,
                     pages,
@@ -1368,7 +1380,7 @@ pub(crate) fn app() -> Element {
             }
 
             div { class: "main-container",
-                if settings.read().clone() {
+                if is_settings {
                     Settings {
                         config,
                         settings,
@@ -1395,25 +1407,27 @@ pub(crate) fn app() -> Element {
                     }
                 } else {
                     // Content for specific page
-                    let pages_map = pages.read().clone();
-                    
-                    if let Some(tab_info) = pages_map.get(&current_page) {
+                    if let Some(tab_info) = pages_value.get(&current_page) {
                         let modpacks = tab_info.modpacks.clone();
                         
-                        div { 
-                            class: "version-page-container",
-                            
-                            for profile in modpacks {
-                                Version {
-                                    installer_profile: profile,
-                                    error: err,
-                                    current_page,
-                                    tab_group: current_page
+                        rsx! {
+                            div { 
+                                class: "version-page-container",
+                                
+                                for profile in modpacks {
+                                    Version {
+                                        installer_profile: profile,
+                                        error: err,
+                                        current_page,
+                                        tab_group: current_page
+                                    }
                                 }
                             }
                         }
                     } else {
-                        div { "No modpack information found for this tab." }
+                        rsx! {
+                            div { "No modpack information found for this tab." }
+                        }
                     }
                 }
             }
