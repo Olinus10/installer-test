@@ -702,149 +702,74 @@ struct VersionProps {
 fn Version(mut props: VersionProps) -> Element {
     let installer_profile = props.installer_profile.clone();
     
-    // Get the global counter value at render time
-    let global_counter = GLOBAL_REFRESH_COUNTER.load(Ordering::SeqCst);
-    
-    // All the existing state signals with mut
+    // State signals with proper initialization
     let mut installing = use_signal(|| false);
     let mut progress_status = use_signal(|| "".to_string());
     let mut install_progress = use_signal(|| 0);
     let mut modify = use_signal(|| false);
-    let mut modify_count = use_signal(|| 0);
     let mut credits = use_signal(|| false);
     let mut install_item_amount = use_signal(|| 0);
     let mut installed = use_signal(|| installer_profile.installed);
     let mut update_available = use_signal(|| installer_profile.update_available);
     
-    // Local refresh counter that follows the global one
-    let mut refresh_counter = use_signal(|| global_counter);
-    
-    // Feature collections
-    let features = use_signal(|| installer_profile.manifest.features.clone());
-    let mut enabled_features = use_signal(|| {
-        let mut feature_list = vec!["default".to_string()];
+    // Create a stable feature list signal
+    let mut feature_list = use_signal(|| {
+        let mut features = vec!["default".to_string()];
         
         if installer_profile.installed && installer_profile.local_manifest.is_some() {
-            feature_list = installer_profile.local_manifest.as_ref().unwrap().enabled_features.clone();
+            features = installer_profile.local_manifest.as_ref().unwrap().enabled_features.clone();
         } else {
             // Add default features
             for feat in &installer_profile.manifest.features {
                 if feat.default {
-                    feature_list.push(feat.id.clone());
+                    features.push(feat.id.clone());
                 }
             }
         }
         
-        debug!("Initialized enabled_features: {:?}", feature_list);
-        feature_list
+        debug!("Initialized features: {:?}", features);
+        features
     });
     
-    let mut local_features = use_signal(|| {
+    // Keep track of original feature state to detect modifications
+    let original_features = use_memo(move || {
         if let Some(ref manifest) = installer_profile.local_manifest {
-            Some(manifest.enabled_features.clone())
+            manifest.enabled_features.clone()
         } else {
-            None
+            feature_list.read().clone()
         }
     });
     
-    // Map of feature states
-    let mut feature_states = use_signal(|| {
-        let mut states = std::collections::HashMap::new();
-        for feat in features.read().iter() {
-            let is_enabled = enabled_features.read().contains(&feat.id);
-            states.insert(feat.id.clone(), is_enabled);
+    // Function to toggle a feature and update modification state
+    let toggle_feature = move |feat_id: String| {
+        let mut features = feature_list.read().clone();
+        let is_enabled = features.contains(&feat_id);
+        
+        if is_enabled {
+            features.retain(|id| id != &feat_id);
+            debug!("Removed feature: {}", feat_id);
+        } else {
+            features.push(feat_id.clone());
+            debug!("Added feature: {}", feat_id);
         }
-        states
-    });
-    
-    // Creates a copy of feature states that can be compared with the original
-    let feature_states_snapshot = use_memo(move || {
-        feature_states.read().clone()
-    });
-    
-    // Force a global update when the component mounts (to sync with current state)
-    use_effect(move || {
-        // Update local counter with global value
-        refresh_counter.set(global_counter);
-        debug!("Component mounted/updated with global counter: {}", global_counter);
-    });
-    
-    // Function to force a global refresh
-    let mut force_global_refresh = move || {
-        // Increment the global counter
-        let new_value = GLOBAL_REFRESH_COUNTER.fetch_add(1, Ordering::SeqCst) + 1;
-        debug!("Incremented global counter to {}", new_value);
         
-        // Update local counter
-        refresh_counter.set(new_value);
+        // Update the feature list
+        feature_list.set(features.clone());
         
-        // Force a timeout-based refresh
-        let window = web_sys::window().expect("no global window exists");
-        let _ = window.set_timeout_with_callback_and_timeout_and_arguments_0(
-            &js_sys::Function::new_no_args("document.dispatchEvent(new CustomEvent('forceRefresh'))"),
-            50 // 50ms timeout
-        );
+        // Check if this is a modification from original state
+        let original_state = original_features.read();
+        let was_originally_enabled = original_state.contains(&feat_id);
+        let is_modified = features.iter().any(|id| !original_state.contains(id)) || 
+                           original_state.iter().any(|id| !features.contains(id));
+        
+        modify.set(is_modified);
+        debug!("Modification state: {}", is_modified);
     };
     
-    // Simplified toggle handler that forces global refresh
-    let mut handle_feature_toggle = move |feat: &super::Feature| {
-        // Get feature ID
-        let feature_id = feat.id.clone();
-        
-        // Get current state from our map and invert it
-        let current_state = *feature_states.read().get(&feature_id).unwrap_or(&false);
-        let new_state = !current_state;
-        
-        debug!("Feature toggle for {}: {} -> {}", feature_id, current_state, new_state);
-        
-        // Update state map
-        feature_states.with_mut(|states| {
-            states.insert(feature_id.clone(), new_state);
-        });
-        
-        // Update enabled_features list
-        enabled_features.with_mut(|features| {
-            if new_state {
-                if !features.contains(&feature_id) {
-                    features.push(feature_id.clone());
-                    debug!("Added feature to list: {}", feature_id);
-                }
-            } else {
-                features.retain(|id| id != &feature_id);
-                debug!("Removed feature from list: {}", feature_id);
-            }
-        });
-        
-        // Check if this is a modification from the original state
-        if let Some(local_feat) = local_features.read().as_ref() {
-            let was_originally_enabled = local_feat.contains(&feature_id);
-            let is_modified = was_originally_enabled != new_state;
-            
-            if is_modified {
-                let new_count = *modify_count.read() + 1;
-                modify_count.set(new_count);
-                if new_count > 0 {
-                    modify.set(true);
-                    debug!("SET MODIFY FLAG: true (count={})", new_count);
-                }
-            } else {
-                let new_count = (*modify_count.read() - 1).max(0);
-                modify_count.set(new_count);
-                if new_count <= 0 {
-                    modify.set(false);
-                    debug!("CLEARED MODIFY FLAG: false (count={})", new_count);
-                }
-            }
-        }
-        
-        // Force a UI refresh using the global refresh mechanism
-        force_global_refresh();
-    };
-    
-    // Your existing on_submit handler with global refresh addition
+    // Your existing on_submit handler
     let movable_profile = installer_profile.clone();
     let on_submit = move |_| {
-        // Calculate total items to process for progress tracking
+        // Calculate total items for progress tracking
         install_item_amount.set(movable_profile.manifest.mods.len()
             + movable_profile.manifest.resourcepacks.len()
             + movable_profile.manifest.shaderpacks.len()
@@ -852,6 +777,7 @@ fn Version(mut props: VersionProps) -> Element {
         
         let movable_profile = movable_profile.clone();
         let movable_profile2 = movable_profile.clone();
+        let feature_list_clone = feature_list.read().clone();
         
         async move {
             let install = move |canceled| {
@@ -861,9 +787,10 @@ fn Version(mut props: VersionProps) -> Element {
                         return;
                     }
                     installing.set(true);
-                    installer_profile.enabled_features = enabled_features.read().clone();
-                    installer_profile.manifest.enabled_features = enabled_features.read().clone();
-                    local_features.set(Some(enabled_features.read().clone()));
+                    
+                    // Use our feature list for installation
+                    installer_profile.enabled_features = feature_list_clone.clone();
+                    installer_profile.manifest.enabled_features = feature_list_clone.clone();
 
                     if !*installed.read() {
                         progress_status.set("Installing".to_string());
@@ -874,7 +801,7 @@ fn Version(mut props: VersionProps) -> Element {
                         {
                             Ok(_) => {
                                 installed.set(true);
-                                debug!("SET INSTALLED: true");
+                                debug!("Installation completed successfully");
                                 
                                 let _ = isahc::post(
                                     "https://tracking.commander07.workers.dev/track",
@@ -903,7 +830,6 @@ fn Version(mut props: VersionProps) -> Element {
                             }
                         }
                         update_available.set(false);
-                        debug!("SET UPDATE_AVAILABLE: false");
                     } else if *modify.read() {
                         progress_status.set("Modifying".to_string());
                         match super::update(&installer_profile, move || {
@@ -937,15 +863,9 @@ fn Version(mut props: VersionProps) -> Element {
                             }
                         }
                         modify.set(false);
-                        debug!("RESET MODIFY: false");
-                        modify_count.set(0);
                         update_available.set(false);
-                        debug!("SET UPDATE_AVAILABLE: false");
                     }
                     installing.set(false);
-                    
-                    // Force refresh with global mechanism
-                    force_global_refresh();
                 });
             };
 
@@ -964,35 +884,18 @@ fn Version(mut props: VersionProps) -> Element {
         }
     };
     
-    // Direct computation of button state - using global counter as dependency
-    let button_label = {
-        let is_installed = *installed.read();
-        let is_update_available = *update_available.read();
-        let is_modify = *modify.read();
-        let _ = *refresh_counter.read(); // Force re-evaluation with global counter
-        
-        if !is_installed {
-            "Install"
-        } else if is_update_available {
-            "Update"
-        } else if is_modify {
-            "Modify"
-        } else {
-            "Modify"
-        }
+    // Compute button label and state based on signals
+    let button_label = if !*installed.read() {
+        "Install"
+    } else if *update_available.read() {
+        "Update"
+    } else if *modify.read() {
+        "Modify"
+    } else {
+        "Installed"
     };
     
-    let button_disabled = {
-        let is_installed = *installed.read();
-        let is_update_available = *update_available.read();
-        let is_modify = *modify.read();
-        let _ = *refresh_counter.read(); // Force re-evaluation with global counter
-        
-        is_installed && !is_update_available && !is_modify
-    };
-    
-    // Create a unique component key using the global counter
-    let component_key = format!("version-{}-{}", installer_profile.manifest.uuid, *refresh_counter.read());
+    let button_disabled = *installed.read() && !*update_available.read() && !*modify.read();
     
     rsx! {
         if *installing.read() {
@@ -1005,13 +908,11 @@ fn Version(mut props: VersionProps) -> Element {
         } else if *credits.read() {
             Credits {
                 manifest: installer_profile.manifest.clone(),
-                enabled: enabled_features.read().clone(),
+                enabled: feature_list.read().clone(),
                 credits
             }
         } else {
             div { 
-                // Use the global component key to force complete re-renders
-                key: "{component_key}",
                 class: "version-container",
                 
                 form { onsubmit: on_submit,
@@ -1029,9 +930,7 @@ fn Version(mut props: VersionProps) -> Element {
                             a {
                                 class: "credits-link",
                                 onclick: move |evt| {
-                                    debug!("Credits clicked");
                                     credits.set(true);
-                                    force_global_refresh();
                                     evt.stop_propagation();
                                 },
                                 "View Credits"
@@ -1042,23 +941,17 @@ fn Version(mut props: VersionProps) -> Element {
                     // Features heading
                     h2 { "Optional Features" }
                     
-                    // Feature cards - inline implementation with global keys
+                    // Feature cards - simplified implementation
                     div { class: "feature-cards-container",
-                        for feat in features.read().iter() {
+                        for feat in installer_profile.manifest.features.iter() {
                             if !feat.hidden {
                                 {
-                                    // Get current state
-                                    let is_enabled = feature_states.read().get(&feat.id).cloned().unwrap_or(false);
-                                    
-                                    // Create a key with global counter
-                                    let feat_key = format!("feature-{}-{}-{}", feat.id, is_enabled, *refresh_counter.read());
-                                    
-                                    // Clone for handler
-                                    let feat_for_handler = feat.clone();
+                                    // Get current state by checking our feature list
+                                    let feat_id = feat.id.clone();
+                                    let is_enabled = feature_list.read().contains(&feat_id);
                                     
                                     rsx! {
                                         div { 
-                                            key: "{feat_key}",
                                             class: if is_enabled { "feature-card feature-enabled" } else { "feature-card feature-disabled" },
                                             h3 { class: "feature-card-title", "{feat.name}" }
                                             
@@ -1071,8 +964,8 @@ fn Version(mut props: VersionProps) -> Element {
                                             div {
                                                 class: if is_enabled { "feature-toggle-button enabled" } else { "feature-toggle-button disabled" },
                                                 onclick: move |_| {
-                                                    // Simply call the toggle handler directly
-                                                    handle_feature_toggle(&feat_for_handler);
+                                                    let feat_id = feat_id.clone();
+                                                    toggle_feature(feat_id);
                                                 },
                                                 if is_enabled { "Enabled" } else { "Disabled" }
                                             }
@@ -1083,10 +976,9 @@ fn Version(mut props: VersionProps) -> Element {
                         }
                     }
                     
-                    // Install/Update/Modify button with global key
+                    // Install/Update/Modify button with simplified state
                     div { class: "install-button-container",
                         button {
-                            key: "install-button-{refresh_counter}",
                             class: "main-install-button",
                             disabled: button_disabled,
                             "{button_label}"
@@ -1106,32 +998,20 @@ fn AppHeader(
     settings: Signal<bool>,
     logo_url: Option<String>
 ) -> Element {
-    // Debug what tabs we have available
-    debug!("AppHeader: rendering with {} tabs", pages().len());
-    for (index, info) in pages().iter() {
-        debug!("  Tab {}: title={}", index, info.title);
-    }
+    // Organize tabs into main tabs and dropdown tabs
+    let main_tabs = pages.read().iter()
+        .filter(|(idx, _)| **idx >= 1 && **idx <= 3)
+        .map(|(idx, info)| (*idx, info.title.clone()))
+        .collect::<Vec<_>>();
+        
+    let dropdown_tabs = pages.read().iter()
+        .filter(|(idx, _)| **idx == 0 || **idx > 3)
+        .map(|(idx, info)| (*idx, info.title.clone()))
+        .collect::<Vec<_>>();
     
-    // We need to collect the info we need from pages() into local structures
-    // to avoid lifetime issues
-    let mut main_tab_indices = vec![];
-    let mut main_tab_titles = vec![];
-    let mut dropdown_tab_indices = vec![];
-    let mut dropdown_tab_titles = vec![];
-    
-    // Separate tab groups into main tabs (1, 2, 3) and dropdown tabs (0, 4+)
-    for (index, info) in pages().iter() {
-        if *index >= 1 && *index <= 3 {
-            main_tab_indices.push(*index);
-            main_tab_titles.push(info.title.clone());
-        } else {
-            dropdown_tab_indices.push(*index);
-            dropdown_tab_titles.push(info.title.clone());
-        }
-    }
-    
-    let has_dropdown = !dropdown_tab_indices.is_empty();
-    let any_dropdown_active = dropdown_tab_indices.iter().any(|idx| page() == *idx);
+    let has_dropdown = !dropdown_tabs.is_empty();
+    let current_page = page.read().clone();
+    let any_dropdown_active = dropdown_tabs.iter().any(|(idx, _)| current_page == *idx);
   
     rsx!(
         header { class: "app-header",
@@ -1143,7 +1023,6 @@ fn AppHeader(
                     alt: "Logo",
                     onclick: move |_| {
                         page.set(HOME_PAGE);
-                        debug!("Navigating to home page via logo");
                     },
                     style: "cursor: pointer;"
                 }
@@ -1153,7 +1032,6 @@ fn AppHeader(
                 class: "app-title", 
                 onclick: move |_| {
                     page.set(HOME_PAGE);
-                    debug!("Navigating to home page via title");
                 },
                 style: "cursor: pointer;",
                 "Overhaul Installer" 
@@ -1163,34 +1041,25 @@ fn AppHeader(
             div { class: "header-tabs",
                 // Home tab
                 button {
-                    class: if page() == HOME_PAGE { "header-tab-button active" } else { "header-tab-button" },
+                    class: if current_page == HOME_PAGE { "header-tab-button active" } else { "header-tab-button" },
                     onclick: move |_| {
                         page.set(HOME_PAGE);
-                        debug!("Navigating to home page via tab");
                     },
                     "Home"
                 }
 
                 // Main tabs (1, 2, 3)
-                {
-                    main_tab_indices.iter().enumerate().map(|(i, &index)| {
-                        let title = main_tab_titles[i].clone();
-                        rsx!(
-                            button {
-                                class: if page() == index { "header-tab-button active" } else { "header-tab-button" },
-                                onclick: move |_| {
-                                    debug!("TAB CLICK: Changing page from {} to {}", page(), index);
-                                    // CRITICAL FIX: Use write() for more direct access
-                                    page.write().clone_from(&index);
-                                    debug!("TAB CLICK RESULT: Page is now {}", page());
-                                },
-                                "{title}"
-                            }
-                        )
-                    })
+                for (idx, title) in main_tabs {
+                    button {
+                        class: if current_page == idx { "header-tab-button active" } else { "header-tab-button" },
+                        onclick: move |_| {
+                            page.set(idx);
+                        },
+                        "{title}"
+                    }
                 }
                 
-                // Dropdown for remaining tabs - placed outside the flow to avoid affecting scrolling
+                // Dropdown for remaining tabs
                 if has_dropdown {
                     div { 
                         class: "dropdown",
@@ -1204,25 +1073,19 @@ fn AppHeader(
                         }
                         div { 
                             class: "dropdown-content",
-                            {
-                                dropdown_tab_indices.iter().enumerate().map(|(i, &index)| {
-                                    let title = dropdown_tab_titles[i].clone();
-                                    rsx!(
-                                        button {
-                                            class: if page() == index { "dropdown-item active" } else { "dropdown-item" },
-                                            onclick: move |_| {
-                                                page.set(index);
-                                                debug!("Switching to dropdown tab {}: {}", index, title);
-                                            },
-                                            "{title}"
-                                        }
-                                    )
-                                })
+                            for (idx, title) in dropdown_tabs {
+                                button {
+                                    class: if current_page == idx { "dropdown-item active" } else { "dropdown-item" },
+                                    onclick: move |_| {
+                                        page.set(idx);
+                                    },
+                                    "{title}"
+                                }
                             }
                         }
                     }
-                } else if pages().is_empty() {
-                    // If no tabs, show a message for debugging purposes
+                } else if pages.read().is_empty() {
+                    // If no tabs, show a message
                     span { style: "color: #888; font-style: italic;", "Loading tabs..." }
                 }
             }
@@ -1232,7 +1095,6 @@ fn AppHeader(
                 class: "settings-button",
                 onclick: move |_| {
                     settings.set(true);
-                    debug!("Opening settings");
                 },
                 "Settings"
             }
@@ -1256,61 +1118,30 @@ pub(crate) fn app() -> Element {
     let branches = props.branches.clone();
     let config = use_signal(|| props.config);
     let settings = use_signal(|| false);
-    let mut err: Signal<Option<String>> = use_signal(|| None);
-    let page = use_signal(|| HOME_PAGE);  // Initially set to HOME_PAGE
-    let mut pages = use_signal(BTreeMap::<usize, TabInfo>::new);
-
-    // DIAGNOSTIC: Print branches available
-    debug!("DIAGNOSTIC: Available branches: {}", branches.len());
-    for branch in &branches {
-        debug!("  - Branch: {}", branch.name);
-    }
-
-    // DIAGNOSTIC: Add direct modification of the page signal to verify reactivity
-    use_effect(move || {
-        debug!("DIAGNOSTIC: Current page value: {}", page());
-        debug!("DIAGNOSTIC: HOME_PAGE value: {}", HOME_PAGE);
-
-        // Debug the pages map
-        debug!("DIAGNOSTIC: Pages map contains {} entries", pages().len());
-        for (key, info) in pages().iter() {
-            debug!("  - Tab group {}: {} with {} modpacks", 
-                   key, info.title, info.modpacks.len());
-            
-            // List modpacks in each tab group
-            for (i, profile) in info.modpacks.iter().enumerate() {
-                debug!("    * Modpack {}: {}", i, profile.manifest.subtitle);
-            }
-        }
-    });
+    let err: Signal<Option<String>> = use_signal(|| None);
+    let page = use_signal(|| HOME_PAGE);
+    let pages = use_signal(BTreeMap::<usize, TabInfo>::new);
 
     let cfg = config.with(|cfg| cfg.clone());
     let launcher = match super::get_launcher(&cfg.launcher) {
-        Ok(val) => {
-            debug!("Successfully loaded launcher: {}", cfg.launcher);
-            Some(val)
-        },
+        Ok(val) => Some(val),
         Err(e) => {
-            error!("Failed to load launcher: {} - {}", cfg.launcher, e);
+            err.set(Some(format!("Failed to load launcher: {}", e)));
             None
         },
     };
 
-    // Debug logging for branches
-    debug!("Total branches: {}", branches.len());
-    for branch in &branches {
-        debug!("Branch: {}", branch.name);
-    }
-
-    // Modified resource to process branches
+    // Process branches more efficiently
     let packs: Resource<Vec<(usize, InstallerProfile)>> = {
         let source = props.modpack_source.clone();
         let branches = branches.clone();
         let launcher = launcher.clone();
+        
         use_resource(move || {
             let source = source.clone();
             let branches = branches.clone();
             let launcher = launcher.clone();
+            
             async move {
                 let mut results = Vec::new();
                 if let Some(launcher) = launcher {
@@ -1319,7 +1150,6 @@ pub(crate) fn app() -> Element {
                             Ok(profile) => {
                                 let tab_group = profile.manifest.tab_group.unwrap_or(0);
                                 results.push((tab_group, profile));
-                                debug!("Processed branch: {} in tab group {}", branch.name, tab_group);
                             }
                             Err(e) => {
                                 error!("Failed to initialize branch {}: {}", branch.name, e);
@@ -1332,120 +1162,84 @@ pub(crate) fn app() -> Element {
         })
     };
 
-    fn setup_global_refresh_listener() {
-    let window = web_sys::window().expect("no global window exists");
-    let document = window.document().expect("no document exists");
-    
-    // Add a listener to force UI refresh
-    let callback = wasm_bindgen::closure::Closure::wrap(Box::new(move || {
-        // This will get called when our custom forceRefresh event is dispatched
-        debug!("Force refresh event triggered");
-        // You could add any global UI refresh code here if needed
-    }) as Box<dyn Fn()>);
-    
-    // Use unchecked_ref() instead of unchecked_into()
-    document.add_event_listener_with_callback(
-        "forceRefresh",
-        callback.as_ref().unchecked_ref()
-    ).unwrap();
-    
-    // Make sure the closure doesn't get dropped
-    callback.forget();
-}
-
-use_effect(move || {
-    setup_global_refresh_listener();
-    debug!("Global refresh listener set up");
-    // Only run once
-    (|| {})()
-});
-
-fn force_global_refresh() {
-    // Increment the global counter
-    let new_value = GLOBAL_REFRESH_COUNTER.fetch_add(1, Ordering::SeqCst) + 1;
-    debug!("Incremented global counter to {}", new_value);
-    
-    // Force a timeout-based refresh
-    let window = web_sys::window().expect("no global window exists");
-    let function = js_sys::Function::new_no_args(
-        "document.dispatchEvent(new CustomEvent('forceRefresh'))"
-    );
-    
-    let _ = window.set_timeout_with_callback_and_timeout_and_arguments_0(
-        &function,
-        50 // 50ms timeout
-    );
-}
     // Effect to build pages map when branches are processed
     use_effect(move || {
         if let Some(processed_branches) = packs.read().as_ref() {
-            debug!("Building pages map from {} processed branches", processed_branches.len());
-            
             let mut new_pages = BTreeMap::<usize, TabInfo>::new();
+            
             for (tab_group, profile) in processed_branches {
-                let tab_title = profile.manifest.tab_title.clone().unwrap_or_else(|| profile.manifest.subtitle.clone());
-                let tab_color = profile.manifest.tab_color.clone().unwrap_or_else(|| String::from("#320625"));
-                let tab_background = profile.manifest.tab_background.clone().unwrap_or_else(|| {
-                    String::from("https://raw.githubusercontent.com/Wynncraft-Overhaul/installer/master/src/assets/background_installer.png")
-                });
-                let settings_background = profile.manifest.settings_background.clone().unwrap_or_else(|| tab_background.clone());
-                let primary_font = profile.manifest.tab_primary_font.clone().unwrap_or_else(|| {
-                    String::from("https://raw.githubusercontent.com/Wynncraft-Overhaul/installer/master/src/assets/Wynncraft_Game_Font.woff2")
-                });
-                let secondary_font = profile.manifest.tab_secondary_font.clone().unwrap_or_else(|| primary_font.clone());
+                let tab_title = profile.manifest.tab_title.clone()
+                    .unwrap_or_else(|| profile.manifest.subtitle.clone());
+                    
+                let tab_color = profile.manifest.tab_color.clone()
+                    .unwrap_or_else(|| String::from("#320625"));
+                    
+                let tab_background = profile.manifest.tab_background.clone()
+                    .unwrap_or_else(|| String::from("https://raw.githubusercontent.com/Wynncraft-Overhaul/installer/master/src/assets/background_installer.png"));
+                    
+                let settings_background = profile.manifest.settings_background.clone()
+                    .unwrap_or_else(|| tab_background.clone());
+                    
+                let primary_font = profile.manifest.tab_primary_font.clone()
+                    .unwrap_or_else(|| String::from("https://raw.githubusercontent.com/Wynncraft-Overhaul/installer/master/src/assets/Wynncraft_Game_Font.woff2"));
+                    
+                let secondary_font = profile.manifest.tab_secondary_font.clone()
+                    .unwrap_or_else(|| primary_font.clone());
 
-                new_pages.entry(*tab_group).or_insert(TabInfo {
-                    color: tab_color,
-                    title: tab_title,
-                    background: tab_background,
-                    settings_background,
-                    primary_font,
-                    secondary_font,
-                    modpacks: vec![profile.clone()],
-                });
+                if let Some(tab_info) = new_pages.get_mut(tab_group) {
+                    // Add to existing tab group
+                    tab_info.modpacks.push(profile.clone());
+                } else {
+                    // Create new tab group
+                    new_pages.insert(*tab_group, TabInfo {
+                        color: tab_color,
+                        title: tab_title,
+                        background: tab_background,
+                        settings_background,
+                        primary_font,
+                        secondary_font,
+                        modpacks: vec![profile.clone()],
+                    });
+                }
             }
             
             pages.set(new_pages);
-            debug!("Updated pages map with {} tabs", pages().len());
         }
     });
 
-    // Update the CSS generation section
+    // Generate CSS content
     let css_content = {
+        let current_page = page.read().clone();
+        let all_pages = pages.read().clone();
+        let is_settings = settings.read().clone();
+        
         let default_color = "#320625".to_string();
         let default_bg = "https://raw.githubusercontent.com/Wynncraft-Overhaul/installer/master/src/assets/background_installer.png".to_string();
         let default_font = "https://raw.githubusercontent.com/Wynncraft-Overhaul/installer/master/src/assets/Wynncraft_Game_Font.woff2".to_string();
         
-        let bg_color = match pages().get(&page()) {
-            Some(x) => x.color.clone(),
-            None => default_color,
+        let bg_color = all_pages.get(&current_page)
+            .map(|x| x.color.clone())
+            .unwrap_or(default_color);
+        
+        let bg_image = if is_settings {
+            all_pages.get(&current_page)
+                .map(|x| x.settings_background.clone())
+                .unwrap_or(default_bg)
+        } else {
+            all_pages.get(&current_page)
+                .map(|x| x.background.clone())
+                .unwrap_or(default_bg)
         };
         
-        let bg_image = match pages().get(&page()) {
-            Some(x) => {
-                if settings() {
-                    x.settings_background.clone()
-                } else {
-                    x.background.clone()
-                }
-            },
-            None => default_bg,
-        };
+        let secondary_font = all_pages.get(&current_page)
+            .map(|x| x.secondary_font.clone())
+            .unwrap_or(default_font.clone());
         
-        let secondary_font = match pages().get(&page()) {
-            Some(x) => x.secondary_font.clone(),
-            None => default_font.clone(),
-        };
-        
-        let primary_font = match pages().get(&page()) {
-            Some(x) => x.primary_font.clone(),
-            None => default_font,
-        };
-        
-        debug!("Updating CSS with: color={}, bg_image={}, secondary_font={}, primary_font={}", 
-               bg_color, bg_image, secondary_font, primary_font);
+        let primary_font = all_pages.get(&current_page)
+            .map(|x| x.primary_font.clone())
+            .unwrap_or(default_font);
             
-        // Improved dropdown menu CSS with better hover behavior and font consistency
+        // Dropdown CSS styles
         let dropdown_css = "
         /* Dropdown styles */
         .dropdown { 
@@ -1453,7 +1247,6 @@ fn force_global_refresh() {
             display: inline-block; 
         }
 
-        /* Position the dropdown content */
         .dropdown-content {
             display: none;
             position: absolute;
@@ -1471,13 +1264,11 @@ fn force_global_refresh() {
             border: 1px solid rgba(255, 255, 255, 0.1);
         }
 
-        /* Show dropdown on hover with increased target area */
         .dropdown:hover .dropdown-content,
         .dropdown-content:hover {
             display: block;
         }
 
-        /* Add a pseudo-element to create an invisible connection between the button and dropdown */
         .dropdown::after {
             content: '';
             position: absolute;
@@ -1499,7 +1290,6 @@ fn force_global_refresh() {
             text-align: left;
             background-color: transparent;
             border: none;
-            /* Explicitly use the same font as header-tab-button */
             font-family: \\\"PRIMARY_FONT\\\";
             font-size: 0.9rem;
             color: #fce8f6;
@@ -1525,7 +1315,6 @@ fn force_global_refresh() {
             color: #fff;
         }
 
-        /* Fix for header-tabs to prevent dropdown from affecting it */
         .header-tabs {
             display: flex;
             gap: 5px;
@@ -1547,195 +1336,87 @@ fn force_global_refresh() {
             + dropdown_css
     };
 
-    let mut modal_context = use_context_provider(ModalContext::default);
-    if let Some(e) = err() {
+    let modal_context = use_context_provider(ModalContext::default);
+    if let Some(e) = err.read().clone() {
         modal_context.open("Error", rsx! {
             p {
-                "The installer encountered an error if the problem does not resolve itself please open a thread in #📂modpack-issues on the discord."
+                "The installer encountered an error. If the problem does not resolve itself please open a thread in #📂modpack-issues on the discord."
             }
             textarea { class: "error-area", readonly: true, "{e}" }
         }, false, Some(move |_| err.set(None)));
     }
 
-    // Determine which logo to use
+    // Use a consistent logo
     let logo_url = Some("https://raw.githubusercontent.com/Wynncraft-Overhaul/installer/master/src/assets/icon.png".to_string());
     
-    // Fix: Return the JSX from the app function
-    let current_page = page();
-    debug!("RENDER DECISION: current_page={}, HOME_PAGE={}, is_home={}",
-           current_page, HOME_PAGE, current_page == HOME_PAGE);
+    // Main app rendering
+    let current_page = page.read().clone();
     
     rsx! {
         div {
             style { {css_content} }
             Modal {}
             
-            {if !config.read().first_launch.unwrap_or(true) && launcher.is_some() && !settings() {
-                rsx! {
-                    AppHeader {
-                        page,
-                        pages,
-                        settings,
-                        logo_url
-                    }
+            // Only show header if not in settings and launcher is valid
+            if !config.read().first_launch.unwrap_or(true) && launcher.is_some() && !settings.read().clone() {
+                AppHeader {
+                    page,
+                    pages,
+                    settings,
+                    logo_url
                 }
-            } else {
-                None
-            }}
+            }
 
             div { class: "main-container",
-                {if settings() {
-                    rsx! {
-                        Settings {
-                            config,
-                            settings,
-                            config_path: props.config_path.clone(),
-                            error: err,
-                            b64_id: URL_SAFE_NO_PAD.encode(props.modpack_source)
-                        }
+                if settings.read().clone() {
+                    Settings {
+                        config,
+                        settings,
+                        config_path: props.config_path.clone(),
+                        error: err,
+                        b64_id: URL_SAFE_NO_PAD.encode(props.modpack_source.clone())
                     }
                 } else if config.read().first_launch.unwrap_or(true) || launcher.is_none() {
-                    rsx! {
-                        Launcher {
-                            config,
-                            config_path: props.config_path.clone(),
-                            error: err,
-                            b64_id: URL_SAFE_NO_PAD.encode(props.modpack_source)
-                        }
+                    Launcher {
+                        config,
+                        config_path: props.config_path.clone(),
+                        error: err,
+                        b64_id: URL_SAFE_NO_PAD.encode(props.modpack_source.clone())
                     }
                 } else if packs.read().is_none() {
-                    rsx! {
-                        div { class: "loading-container",
-                            div { class: "loading-spinner" }
-                            div { class: "loading-text", "Loading modpack information..." }
-                        }
+                    div { class: "loading-container",
+                        div { class: "loading-spinner" }
+                        div { class: "loading-text", "Loading modpack information..." }
+                    }
+                } else if current_page == HOME_PAGE {
+                    HomePage {
+                        pages,
+                        page
                     }
                 } else {
-                    // DIAGNOSTIC CONTENT RENDERING SECTION
-                    if current_page == HOME_PAGE {
-    debug!("RENDERING: HomePage");
-    rsx! {
-        HomePage {
-            pages,
-            page
-        }
-    }
-} else {
-    debug!("RENDERING: Content for page {}", current_page);
-    
-    // Get tab info without temporary references
-    let pages_map = pages();
-    
-    if let Some(tab_info) = pages_map.get(&current_page) {
-        debug!("FOUND tab group {} with {} modpacks", 
-               current_page, tab_info.modpacks.len());
-        
-        // CRITICAL FIX: Get all modpacks before rendering
-        let modpacks = tab_info.modpacks.clone();
-        debug!("Cloned {} modpacks for rendering", modpacks.len());
-        
-        // Log each modpack outside the RSX
-        for profile in &modpacks {
-            debug!("Preparing to render modpack: {}", profile.manifest.subtitle);
-        }
-        
-        // Directly return the RSX without unnecessary nesting
-        rsx! {
-            div { 
-                class: "version-page-container",
-                style: "display: block; width: 100%;",
-                
-                for profile in modpacks {
-                    // Debug statements MUST NOT be inside RSX blocks
-                    div { 
-                        class: "version-container",
+                    // Content for specific page
+                    let pages_map = pages.read().clone();
+                    
+                    if let Some(tab_info) = pages_map.get(&current_page) {
+                        let modpacks = tab_info.modpacks.clone();
                         
-                        // Header section
-                        div { class: "content-header",
-                            h1 { "{profile.manifest.subtitle}" }
-                        }
-                        
-                        // Description section
-                        div { class: "content-description",
-                            dangerous_inner_html: "{profile.manifest.description}",
+                        div { 
+                            class: "version-page-container",
                             
-                            // Credits link
-                            div {
-                                a { 
-                                    class: "credits-link",
-                                    "View Credits"
+                            for profile in modpacks {
+                                Version {
+                                    installer_profile: profile,
+                                    error: err,
+                                    current_page,
+                                    tab_group: current_page
                                 }
                             }
                         }
-                        
-                        // Features heading
-                        h2 { "Optional Features" }
-                        
-                        // Feature cards
-                        
-
- div { class: "feature-cards-container",
-                    for feat in profile.manifest.features {
-                        if !feat.hidden {
-                            {
-                                // Move this Rust code outside the RSX by wrapping it in its own block
-                                let feat_id = feat.id.clone();
-                                let feat_name = feat.name.clone();
-                                let feat_description = feat.description.clone();
-                                
-                                // Check if feature is enabled
-                                let is_enabled = profile.enabled_features.contains(&feat_id) || feat.default;
-                                
-                                // Return the RSX from this block - removed unused variable
-                                rsx! {
-                                    div { 
-                                        class: if is_enabled { "feature-card feature-enabled" } else { "feature-card feature-disabled" },
-                                        h3 { class: "feature-card-title", "{feat_name}" }
-                                        
-                                        // Description if available
-                                        if let Some(description) = &feat_description {
-                                            div { class: "feature-card-description", "{description}" }
-                                        }
-                                        
-                                        // Toggle button with proper functionality
-                                        label {
-                                            class: if is_enabled { "feature-toggle-button enabled" } else { "feature-toggle-button disabled" },
-                                            
-                                            // Hidden checkbox to track state
-                                            input {
-                                                r#type: "checkbox",
-                                                name: "{feat_id}",
-                                                checked: if is_enabled { Some("true") } else { None },
-                                                onchange: move |_evt| { // Added underscore to unused variable
-                                                    // Here we'll call a proper feature_change function
-                                                    debug!("Feature toggle changed: {}", feat_id);
-                                                    
-                                                    // You would call your feature_change function here
-                                                    // feature_change(local_features, modify, evt, &feat, modify_count, enabled_features);
-                                                },
-                                                style: "display: none;"
-                                            }
-                                            
-                                            if is_enabled { "Enabled" } else { "Disabled" }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-                        
-                        // Install button
-                        div { class: "install-button-container",
-                            button { class: "main-install-button", "Install" }
-                        }
+                    } else {
+                        div { "No modpack information found for this tab." }
                     }
                 }
             }
         }
-    } else {
-        debug!("NO TAB INFO found for page {}", current_page);
-        rsx! { div { "No modpack information found for this tab." } }
     }
 }
-}}}}}}
