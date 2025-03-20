@@ -625,10 +625,21 @@ a:hover {
     /* Glow and pulse animations */
     box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4), 0 0 20px rgba(7, 60, 23, 0.3);
     text-shadow: 0 0 5px rgba(255, 255, 255, 0.3);
-    animation: button-glow 3s infinite alternate;
+    animation: button-glow 3s infinite alternate,
+               button-float 4s infinite ease-in-out;
     
     /* Smoother transitions */
     transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+/* Button floating animation */
+@keyframes button-float {
+    0%, 100% {
+        transform: translateY(0);
+    }
+    50% {
+        transform: translateY(-4px);
+    }
 }
 
 /* Button shine effect */
@@ -655,7 +666,17 @@ a:hover {
 /* Separate container for the scale animation to preserve centering */
 .button-scale-wrapper {
     display: inline-block;
-    animation: button-scale-pulse 3s infinite alternate;
+    animation: button-scale-pulse 3s infinite alternate,
+               button-breathe 4s infinite ease-in-out;
+}
+
+@keyframes button-breathe {
+    0%, 100% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.03);
+    }
 }
 
 /* Hover effect */
@@ -665,6 +686,18 @@ a:hover {
     text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
     border-color: rgba(255, 255, 255, 0.4);
     box-shadow: 0 15px 30px rgba(0, 0, 0, 0.5), 0 0 35px rgba(7, 60, 23, 0.9);
+    /* Stop floating animation on hover for stability */
+    animation: button-glow 1.5s infinite alternate;
+}
+
+/* Hover effect on wrapper */
+.button-scale-wrapper:hover .main-install-button:not([disabled]) {
+    animation: button-glow 1.5s infinite alternate;
+}
+
+.button-scale-wrapper:hover {
+    animation-play-state: paused;
+    transform: scale(1.05);
 }
 
 /* Active state */
