@@ -1357,7 +1357,7 @@ use_effect(move || {
     setup_global_refresh_listener();
     debug!("Global refresh listener set up");
     // Only run once
-    || {}
+    (|| {})()
 });
 
 fn force_global_refresh() {
