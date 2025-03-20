@@ -8,6 +8,7 @@ use dioxus::events::SerializedFormData;
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use web_sys::js_sys;
+use wasm_bindgen::JsCast;
 use crate::{get_app_data, get_installed_packs, get_launcher, uninstall, InstallerProfile, Launcher, PackName};
 
 mod modal;
@@ -768,7 +769,7 @@ fn Version(mut props: VersionProps) -> Element {
     });
     
     // Function to force a global refresh
-    let force_global_refresh = move || {
+    let mut force_global_refresh = move || {
         // Increment the global counter
         let new_value = GLOBAL_REFRESH_COUNTER.fetch_add(1, Ordering::SeqCst) + 1;
         debug!("Incremented global counter to {}", new_value);
@@ -1343,7 +1344,7 @@ pub(crate) fn app() -> Element {
     
     document.add_event_listener_with_callback(
         "forceRefresh",
-        callback.as_ref().unchecked_ref()
+        callback.as_ref().unchecked_into()
     ).unwrap();
     
     // Make sure the closure doesn't get dropped
@@ -1353,7 +1354,7 @@ pub(crate) fn app() -> Element {
 use_effect(move || {
     setup_global_refresh_listener();
     // Empty function for cleanup - only run once
-    || {}
+    (|| {})()
 });
     // Effect to build pages map when branches are processed
     use_effect(move || {
