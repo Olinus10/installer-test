@@ -1156,7 +1156,7 @@ fn AppHeader(
                     debug!("Navigating to home page via title");
                 },
                 style: "cursor: pointer;",
-                "Modpack Installer" 
+                "Overhaul Installer" 
             }
             
             // Tabs from pages - show only if we have pages
