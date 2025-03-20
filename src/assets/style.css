@@ -607,13 +607,19 @@ a:hover {
     min-width: 320px;
     text-transform: uppercase;
     letter-spacing: 2px;
-    margin-bottom: 60px;
+    margin: 0 auto 60px auto;
     
-    /* Add permanent glow effect with subtle size pulse */
+    /* Combined animations that don't use transform properties */
     animation: button-pulse 2s infinite alternate, 
-               button-float 3s ease-in-out infinite, 
-               button-shadow-pulse 3s infinite alternate,
-               button-size-pulse 4s infinite alternate;
+               button-shadow-pulse 3s infinite alternate;
+    
+    /* Use transform in a single animation to avoid conflicts */
+    transform-origin: center center;
+    animation-name: button-pulse, button-shadow-pulse, button-transform-combo;
+    animation-duration: 2s, 3s, 4s;
+    animation-timing-function: ease-in-out, ease-in-out, ease-in-out;
+    animation-iteration-count: infinite, infinite, infinite;
+    animation-direction: alternate, alternate, alternate;
     
     /* Smoother transitions */
     transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
@@ -625,25 +631,27 @@ a:hover {
 
 /* Hover effect that enhances existing animations */
 .main-install-button:hover:not([disabled]) {
-    transform: translateY(-8px) scale(1.07);
     box-shadow: 0 15px 30px rgba(0, 0, 0, 0.5), 0 0 35px rgba(7, 60, 23, 0.9);
     background-image: linear-gradient(135deg, #0f6229, #0a4d1e);
     text-shadow: 0 0 15px rgba(255, 255, 255, 0.7);
     border-color: rgba(255, 255, 255, 0.4);
     letter-spacing: 3px;
     
-    /* Intensify glow on hover and override the sizing animation */
+    /* Direct transform on hover overrides animations */
+    transform: translateY(-8px) scale(1.07);
+    
+    /* Intensify glow on hover and override other animations */
     animation: button-pulse-hover 1s infinite alternate,
                button-shadow-pulse-hover 2s infinite alternate;
-    /* Remove float and size pulse on hover for a more stable hover state */
 }
 
 /* Active (clicking) effect */
 .main-install-button:active:not([disabled]) {
+    /* Direct transform on active state */
     transform: translateY(-4px) scale(1.04);
     box-shadow: 0 8px 16px rgba(0, 0, 0, 0.5), 0 0 25px rgba(7, 60, 23, 0.8);
     transition: all 0.1s ease;
-    /* Pause animations during click for a more responsive feel */
+    /* Pause animations during click */
     animation-play-state: paused;
 }
 
