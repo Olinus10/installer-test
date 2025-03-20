@@ -1072,12 +1072,19 @@ fn Version(mut props: VersionProps) -> Element {
                     
                     // Install/Update/Modify button at the bottom with explicit label
                     div { class: "install-button-container",
-                        button {
-                            class: "main-install-button",
-                            disabled: install_disable,
-                            "{button_label}"
-                        }
-                    }
+    button {
+        class: "main-install-button",
+        disabled: install_disable,
+        
+        // Wrap each character in a span with a unique animation delay
+        for (i, c) in button_label.chars().enumerate() {
+            span {
+                style: "--i: {i}",
+                "{c}"
+            }
+        }
+    }
+}
                 }
             }
         }
