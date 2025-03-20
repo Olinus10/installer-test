@@ -1,3 +1,4 @@
+/* Font Definitions */
 @font-face {
     font-family: "PRIMARY_FONT";
     src: url(<PRIMARY_FONT>);
@@ -12,23 +13,19 @@
     font-style: normal;
 }
 
-html,
-body {
+/* Base Styles */
+html, body {
     margin: 0;
     padding: 0;
     font-size: 16px;
+    overflow: hidden;
+    box-sizing: border-box;
     user-select: none;
-    -webkit-user-select: none; /* Linux */
+    -webkit-user-select: none;
     cursor: default;
     overflow-wrap: break-word;
     --bg-color: <BG_COLOR>;
     --bg-image: url(<BG_IMAGE>);
-}
-
-/* Ensure full visibility of content */
-html, body {
-  overflow: hidden; /* Prevent body scrolling */
-  box-sizing: border-box;
 }
 
 body {
@@ -39,16 +36,113 @@ body {
     background-attachment: fixed;
     color: #fce8f6;
     height: 100vh;
-    overflow: hidden;
 }
 
-/* Dropdown menu styles - with improved hover behavior and font consistency */
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+
+::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: rgba(50, 6, 37, 0.8);
+    border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(80, 10, 60, 0.9);
+}
+
+/* Common Elements */
+button, input {
+    color: #fce8f6;
+    cursor: pointer;
+}
+
+button:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+a {
+    color: #fce8f6;
+    text-decoration: none;
+}
+
+a:hover {
+    text-decoration: underline;
+}
+
+/* Header */
+.app-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 20px;
+    background-color: rgba(0, 0, 0, 0.8);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+    min-height: 70px;
+    flex-wrap: wrap;
+    box-sizing: border-box;
+}
+
+.app-header-left {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+}
+
+.app-logo {
+    height: 45px;
+    margin-right: 15px;
+    transition: transform 0.2s ease;
+}
+
+.app-logo:hover {
+    transform: scale(1.1);
+}
+
+.app-title {
+    font-size: 1.7rem;
+    margin: 0;
+    font-family: "PRIMARY_FONT";
+    transition: text-shadow 0.2s ease;
+    white-space: nowrap;
+}
+
+.app-title:hover {
+    text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+}
+
+/* Header Tabs */
+.header-tabs {
+    display: flex;
+    gap: 7px;
+    margin: 0 12px;
+    flex-grow: 1;
+    justify-content: center;
+    flex-wrap: wrap;
+    overflow-x: visible;
+    scrollbar-width: thin;
+    max-width: 70%;
+    position: relative;
+}
+
+.compact-tabs {
+    gap: 3px;
+}
+
+/* Dropdown Menu */
 .dropdown {
     position: relative;
     display: inline-block;
 }
 
-/* Position the dropdown content */
 .dropdown-content {
     display: none;
     position: absolute;
@@ -66,18 +160,11 @@ body {
     border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-.header-tab-button:hover::before,
-.settings-button:hover::before {
-    animation: button-shine 1s forwards;
-}
-
-/* Show dropdown on hover with increased target area */
 .dropdown:hover .dropdown-content,
 .dropdown-content:hover {
     display: block;
 }
 
-/* Add a pseudo-element to create an invisible connection between the button and dropdown */
 .dropdown::after {
     content: '';
     position: absolute;
@@ -92,7 +179,6 @@ body {
     display: block;
 }
 
-/* Dropdown items enhancement */
 .dropdown-item {
     display: block;
     width: 100%;
@@ -109,7 +195,6 @@ body {
     position: relative;
     overflow: hidden;
 }
-
 
 .dropdown-item:last-child {
     border-bottom: none;
@@ -130,146 +215,8 @@ body {
     color: #fff;
 }
 
-/* Subtle glow animation for active tabs */
-@keyframes tab-active-glow {
-    0% {
-        box-shadow: 0 0 10px rgba(255, 255, 255, 0.15), 0 3px 10px rgba(0, 0, 0, 0.4);
-    }
-    100% {
-        box-shadow: 0 0 15px rgba(255, 255, 255, 0.3), 0 3px 10px rgba(0, 0, 0, 0.4);
-    }
-}
-
-
-
-/* Add these styles to your style.css file to fix the version page visibility issues */
-
-.version-page-container {
-    width: 100%;
-    height: 100%;
-    position: relative;
-    z-index: 1;
-}
-
-.version-container {
-    width: 100%;
-    height: 100%;
-    position: relative;
-    z-index: 1;
-}
-
-/* Enhanced home container */
-.home-container {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 10px;
-  text-align: center;
-  box-sizing: border-box;
-}
-
-
-/* Custom Scrollbar Styling */
-::-webkit-scrollbar {
-    width: 10px;
-    height: 10px;
-}
-
-::-webkit-scrollbar-track {
-    background: rgba(0, 0, 0, 0.3);
-    border-radius: 5px;
-}
-
-::-webkit-scrollbar-thumb {
-    background: rgba(50, 6, 37, 0.8);
-    border-radius: 5px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-    background: rgba(80, 10, 60, 0.9);
-}
-
-button,
-input {
-    color: #fce8f6;
-    cursor: pointer;
-}
-
-button:disabled {
-    cursor: not-allowed;
-    opacity: 0.6;
-}
-
-a {
-    color: #fce8f6;
-    text-decoration: none;
-}
-
-a:hover {
-    text-decoration: underline;
-}
-
-/* Better header scaling */
-.app-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 12px 20px; /* Slightly bigger padding */
-  background-color: rgba(0, 0, 0, 0.8);
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
-  min-height: 70px; /* Increased from 60px */
-  flex-wrap: wrap;
-  box-sizing: border-box;
-}
-
-.app-header-left {
-    display: flex;
-    align-items: center;
-    cursor: pointer;
-}
-
-.app-logo {
-  height: 45px; /* Increased from 40px */
-  margin-right: 15px;
-  transition: transform 0.2s ease;
-}
-
-.app-logo:hover {
-    transform: scale(1.1);
-}
-
-.app-title {
-  font-size: 1.7rem; /* Increased from 1.5rem */
-  margin: 0;
-  font-family: "PRIMARY_FONT";
-  transition: text-shadow 0.2s ease;
-  white-space: nowrap;
-}
-
-.app-title:hover {
-    text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
-}
-
-/* Fix for header-tabs to prevent dropdown from affecting it */
-.header-tabs {
-  display: flex;
-  gap: 7px; /* Increased from 5px */
-  margin: 0 12px; /* Increased from 10px */
-  flex-grow: 1;
-  justify-content: center;
-  flex-wrap: wrap;
-  overflow-x: visible;
-  scrollbar-width: thin;
-  max-width: 70%;
-  position: relative;
-}
-
-.compact-tabs {
-    gap: 3px;
-}
-
-/* Ensure buttons and tabs are properly sized */
-/* Enhanced Header Tab Buttons */
-.header-tab-button {
+/* Buttons */
+.header-tab-button, .settings-button {
     background-color: rgba(0, 0, 0, 0.5);
     border: 1px solid rgba(255, 255, 255, 0.2);
     border-radius: 6px;
@@ -277,14 +224,13 @@ a:hover {
     font-family: "PRIMARY_FONT";
     font-size: 1rem;
     color: #fce8f6;
-    white-space: nowrap;
     position: relative;
     overflow: hidden;
     transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
 }
 
-.header-tab-button:hover {
+.header-tab-button:hover, .settings-button:hover {
     background-color: rgba(50, 6, 37, 0.8);
     border-color: rgba(255, 255, 255, 0.4);
     transform: translateY(-3px);
@@ -299,31 +245,7 @@ a:hover {
     animation: tab-active-glow 3s infinite alternate;
 }
 
-/* Settings button enhancement */
-.settings-button {
-    background-color: rgba(0, 0, 0, 0.5);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: 6px;
-    padding: 8px 16px;
-    font-family: "PRIMARY_FONT";
-    font-size: 1rem;
-    color: #fce8f6;
-    position: relative;
-    overflow: hidden;
-    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
-}
-
-.settings-button:hover {
-    background-color: rgba(50, 6, 37, 0.8);
-    border-color: rgba(255, 255, 255, 0.4);
-    transform: translateY(-3px);
-    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.4), 0 0 10px rgba(50, 6, 37, 0.3);
-}
-
-/* Shine effect for all header buttons */
-.header-tab-button::before,
-.settings-button::before {
+.header-tab-button::before, .settings-button::before {
     content: '';
     position: absolute;
     top: 0;
@@ -342,36 +264,40 @@ a:hover {
     z-index: 2;
 }
 
-/* Improved container and scrolling */
-.main-container {
-  height: calc(100vh - 80px); /* Slightly adjusted to prevent overflow */
-  overflow-y: auto;
-  padding: 20px;
-  margin: 0;
-  width: calc(100% - 40px); /* Account for padding */
-  box-sizing: border-box;
+.header-tab-button:hover::before, .settings-button:hover::before {
+    animation: button-shine 1s forwards;
 }
 
-/* Home Container enhancements */
+/* Main Container */
+.main-container {
+    height: calc(100vh - 80px);
+    overflow-y: auto;
+    padding: 20px;
+    margin: 0;
+    width: calc(100% - 40px);
+    box-sizing: border-box;
+}
+
+/* Home Container */
 .home-container {
     max-width: 1200px;
     margin: 0 auto;
-    padding: 10px; /* Reduced padding */
+    padding: 10px;
     text-align: center;
+    box-sizing: border-box;
 }
 
-/* Ensure proper spacing between trending card and regular cards */
 .home-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 20px;
-  justify-items: center;
-  width: 100%;
-  box-sizing: border-box;
-  padding-top: 5px; /* Add a little padding at the top */
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 20px;
+    justify-items: center;
+    width: 100%;
+    box-sizing: border-box;
+    padding-top: 5px;
 }
 
-/* Fix for the card shadow issue causing pixel outline */
+/* Pack Cards */
 .home-pack-card {
     height: 220px;
     width: 300px;
@@ -380,18 +306,15 @@ a:hover {
     background-position: center;
     position: relative;
     overflow: hidden;
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.6);
-    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     cursor: pointer;
     transform: perspective(1000px) rotateX(0deg);
-    border: none; /* Remove border to fix shadow edge issue */
-    /* Add a pseudo-border using box-shadow */
+    border: none;
     box-shadow: 
         inset 0 0 0 1px rgba(255, 255, 255, 0.1),
         0 8px 20px rgba(0, 0, 0, 0.6);
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
-/* Enhanced hover effect with fixed shadow */
 .home-pack-card:hover {
     transform: perspective(1000px) rotateX(5deg) translateY(-15px) scale(1.05);
     box-shadow: 
@@ -400,7 +323,6 @@ a:hover {
         0 0 20px rgba(255, 255, 255, 0.2);
 }
 
-/* Improved shine effect */
 .home-pack-card::before {
     content: '';
     position: absolute;
@@ -424,7 +346,6 @@ a:hover {
     animation: pack-shine 1s forwards;
 }
 
-/* Fix for the info section shadow being too dark/harsh */
 .home-pack-info {
     position: absolute;
     bottom: 0;
@@ -440,11 +361,6 @@ a:hover {
     text-align: center;
     transition: all 0.3s ease;
     transform: translateY(5px);
-}
-
-/* Ensure card content is above the inset shadow */
-.home-pack-info {
-    position: relative;
     z-index: 2;
 }
 
@@ -458,7 +374,6 @@ a:hover {
     transform: translateY(0);
 }
 
-/* Improve title readability */
 .home-pack-title {
     font-family: "SECONDARY_FONT";
     margin: 0 0 12px 0;
@@ -471,7 +386,6 @@ a:hover {
     -webkit-box-orient: vertical;
 }
 
-/* Enhanced button */
 .home-pack-button {
     display: inline-block;
     background-image: linear-gradient(135deg, rgba(7, 60, 23, 0.9), rgba(7, 60, 23, 1));
@@ -493,50 +407,41 @@ a:hover {
     border-color: rgba(255, 255, 255, 0.2);
 }
 
-/* Enhanced Trending Card */
-
-
-/* Fix for trending card button to ensure it's properly golden */
-.home-pack-card.trending .home-pack-button {
-    background-image: linear-gradient(135deg, #ffd700, #ffa500);
-    color: #000;
-    padding: 10px 24px;
-    font-size: 1.1rem;
-    transition: all 0.3s ease;
-    margin-bottom: 10px;
-    font-weight: bold;
-    border: 1px solid rgba(255, 255, 255, 0.7);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
-    text-shadow: none;
+/* Trending Card Styles */
+.trending-card-wrapper {
+    position: relative;
+    width: 100%;
+    max-width: 1100px;
+    height: auto;
+    margin: 30px auto 25px auto;
+    grid-column: 1 / -1;
+    justify-self: center;
+    z-index: 15;
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    box-sizing: border-box;
+    padding-top: 18px;
+    margin-top: 12px;
 }
 
-.home-pack-card.trending:hover .home-pack-button {
-    background-image: linear-gradient(135deg, #ffd700, #ff8c00);
-    transform: scale(1.1);
-    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.5), 0 0 15px rgba(255, 215, 0, 0.5);
+.trending-card-wrapper:hover {
+    transform: translateY(-10px) scale(1.07);
 }
-
 
 .home-pack-card.trending {
-    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.7), 0 0 0 2px rgba(255, 215, 0, 0.6), 0 0 30px rgba(255, 215, 0, 0.4);
-    animation: trending-pulse 3s infinite alternate;
-    border: none;
-    height: 180px;
-}
-
-.home-pack-card.trending:hover {
-    transform: perspective(1000px) rotateX(5deg) translateY(-15px) scale(1.08);
-    box-shadow: 0 25px 40px rgba(0, 0, 0, 0.8), 0 0 0 3px rgba(255, 215, 0, 0.8), 0 0 40px rgba(255, 215, 0, 0.6);
-}
-
-/* Fix for trending cards */
-.home-pack-card.trending {
-    border: none;
+    height: 160px !important;
     box-shadow: 
         inset 0 0 0 1px rgba(255, 215, 0, 0.3),
         0 8px 16px rgba(0, 0, 0, 0.7), 
         0 0 0 4px rgba(255, 215, 0, 0.8), 
         0 0 30px rgba(255, 215, 0, 0.4);
+    animation: trending-pulse 3s infinite alternate;
+    position: relative;
+    transform: none;
+    z-index: 10;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
 }
 
 .home-pack-card.trending:hover {
@@ -545,18 +450,66 @@ a:hover {
         0 15px 35px rgba(0, 0, 0, 0.7), 
         0 0 0 5px rgba(255, 215, 0, 0.9), 
         0 0 40px rgba(255, 215, 0, 0.7);
+    transform: none;
+    animation: none;
 }
 
-/* Enhanced trending badge */
+.trending-card-wrapper:hover .home-pack-card.trending {
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.7), 0 0 0 5px rgba(255, 215, 0, 0.9), 0 0 40px rgba(255, 215, 0, 0.7);
+    transform: none;
+    animation: none;
+}
+
+.home-pack-card.trending::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-image: 
+        radial-gradient(circle at 30% 20%, rgba(255, 255, 255, 0.2) 0%, rgba(255, 255, 255, 0) 10%),
+        radial-gradient(circle at 70% 60%, rgba(255, 255, 255, 0.2) 0%, rgba(255, 255, 255, 0) 10%),
+        radial-gradient(circle at 20% 80%, rgba(255, 255, 255, 0.2) 0%, rgba(255, 255, 255, 0) 10%),
+        radial-gradient(circle at 80% 30%, rgba(255, 255, 255, 0.2) 0%, rgba(255, 255, 255, 0) 10%);
+    pointer-events: none;
+    z-index: 1;
+    border-radius: 8px;
+    animation: sparkle 8s infinite linear;
+    opacity: 0.7;
+}
+
+.home-pack-card.trending::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -150%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(45deg, 
+        rgba(255, 215, 0, 0) 0%, 
+        rgba(255, 215, 0, 0.1) 30%, 
+        rgba(255, 215, 0, 0.3) 47%, 
+        rgba(255, 215, 0, 0.3) 53%,
+        rgba(255, 215, 0, 0.1) 70%,
+        rgba(255, 215, 0, 0) 100%);
+    opacity: 0.7;
+    border-radius: 8px;
+    pointer-events: none;
+    animation: gentle-shine 5s infinite ease-in-out;
+    z-index: 0;
+    transform: skewX(-20deg);
+}
+
 .trending-badge {
     position: absolute;
-    top: 15px;
+    top: 12px;
     right: 15px;
     background: linear-gradient(135deg, #ffd700, #ffa500);
     color: #000;
-    padding: 8px 20px;
+    padding: 6px 18px;
     border-radius: 20px;
-    font-size: 1rem;
+    font-size: 0.95rem;
     font-weight: bold;
     font-family: "SECONDARY_FONT";
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5), 0 0 15px rgba(255, 215, 0, 0.5);
@@ -565,10 +518,8 @@ a:hover {
     letter-spacing: 1px;
     border: 1px solid rgba(255, 255, 255, 0.7);
     animation: badge-pulse 2s infinite alternate;
-    transform: translateZ(50px);
 }
 
-/* Enhanced crown */
 .trending-crown {
     position: absolute;
     top: -18px;
@@ -600,73 +551,83 @@ a:hover {
 
 .trending-card-wrapper:hover .trending-crown {
     transform: translateX(-50%) scale(1.2);
+    top: -18px;
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5), 0 0 30px rgba(255, 215, 0, 0.8);
     animation: crown-glow-hover 1.5s infinite alternate;
 }
 
-/* Animations */
-@keyframes pack-shine {
-    0% {
-        left: -150%;
-    }
-    100% {
-        left: 150%;
-    }
+.home-pack-card.trending .home-pack-info {
+    background: linear-gradient(
+        to bottom, 
+        rgba(0, 0, 0, 0) 0%,
+        rgba(0, 0, 0, 0.5) 40%, 
+        rgba(0, 0, 0, 0.8) 100%
+    );
+    padding-top: 40px;
+    padding-bottom: 15px;
+    height: auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-end;
+    border-radius: 0 0 8px 8px;
+    position: relative;
+    z-index: 5;
 }
 
-@keyframes trending-pulse {
-    0% {
-        box-shadow: 0 15px 30px rgba(0, 0, 0, 0.7), 0 0 0 2px rgba(255, 215, 0, 0.6), 0 0 20px rgba(255, 215, 0, 0.3);
-    }
-    100% {
-        box-shadow: 0 15px 30px rgba(0, 0, 0, 0.7), 0 0 0 3px rgba(255, 215, 0, 0.8), 0 0 30px rgba(255, 215, 0, 0.5);
-    }
+.home-pack-card.trending:hover .home-pack-info {
+    background: linear-gradient(
+        to bottom, 
+        rgba(0, 0, 0, 0) 0%,
+        rgba(0, 0, 0, 0.6) 40%, 
+        rgba(0, 0, 0, 0.9) 100%
+    );
 }
 
-@keyframes badge-pulse {
-    0% {
-        transform: translateZ(50px) scale(1);
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5), 0 0 15px rgba(255, 215, 0, 0.5);
-    }
-    100% {
-        transform: translateZ(50px) scale(1.05);
-        box-shadow: 0 6px 18px rgba(0, 0, 0, 0.5), 0 0 25px rgba(255, 215, 0, 0.7);
-    }
+.home-pack-card.trending .home-pack-title {
+    font-size: 1.4rem;
+    margin-bottom: 12px;
+    text-shadow: 0 2px 6px rgba(0, 0, 0, 0.8);
+    color: #fff;
+    padding: 0 15px;
 }
 
-@keyframes crown-glow {
-    0% {
-        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.4), 0 0 15px rgba(255, 215, 0, 0.4);
-    }
-    100% {
-        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.4), 0 0 25px rgba(255, 215, 0, 0.6);
-    }
+.home-pack-card.trending .home-pack-button {
+    background-image: linear-gradient(135deg, #ffd700, #ffa500);
+    color: #000;
+    padding: 10px 24px;
+    font-size: 1.1rem;
+    transition: all 0.3s ease;
+    margin-bottom: 10px;
+    font-weight: bold;
+    border: 1px solid rgba(255, 255, 255, 0.7);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
+    text-shadow: none;
 }
 
-@keyframes crown-glow-hover {
-    0% {
-        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5), 0 0 30px rgba(255, 215, 0, 0.7);
-    }
-    100% {
-        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5), 0 0 40px rgba(255, 215, 0, 1);
-    }
+.home-pack-card.trending:hover .home-pack-button {
+    background-image: linear-gradient(135deg, #ffd700, #ff8c00);
+    transform: scale(1.1);
+    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.5), 0 0 15px rgba(255, 215, 0, 0.5);
 }
-/* Version/Details Screen */
+
+/* Version Container */
 .version-container {
     max-width: 1000px;
     margin: 0 auto;
     padding: 20px;
-}
-
-/* Ensure button is always visible and doesn't get cut off */
-.version-container {
-    padding-bottom: 70px; /* Add extra padding at bottom */
+    padding-bottom: 70px;
     position: relative;
-    overflow: visible; /* Allow button to extend beyond container */
+    overflow: visible;
 }
 
+.version-page-container {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    z-index: 1;
+}
 
-/* Section headings */
 .version-container h2 {
     text-align: center;
     margin: 30px 0 20px 0;
@@ -684,11 +645,11 @@ a:hover {
     top: 50%;
     width: 35%;
     height: 1px;
-    background: linear-gradient(to right, transparent, rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0.2));
 }
 
 .version-container h2::before {
     left: -5%;
+    background: linear-gradient(to right, transparent, rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0.2));
 }
 
 .version-container h2::after {
@@ -696,10 +657,7 @@ a:hover {
     background: linear-gradient(to left, transparent, rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0.2));
 }
 
-
-/* Improved title and description layout */
-
-/* Content header improvements */
+/* Content Header */
 .content-header {
     text-align: center;
     padding: 30px 0 15px 0;
@@ -720,7 +678,6 @@ a:hover {
     display: inline-block;
 }
 
-/* Clean description without the box */
 .content-description-clean {
     max-width: 85%;
     margin: 0 auto 30px auto;
@@ -753,18 +710,17 @@ a:hover {
     opacity: 1;
 }
 
-/* Feature cards container - ensure visibility */
+/* Feature Cards and Toggle Buttons */
 .feature-cards-container {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); /* Increased from 220px */
-  gap: 18px; /* Increased from 15px */
-  margin-bottom: 50px; /* More space at bottom */
-  padding: 10px;
-  overflow-y: visible;
-  box-sizing: border-box;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 18px;
+    margin-bottom: 50px;
+    padding: 10px;
+    overflow-y: visible;
+    box-sizing: border-box;
 }
 
-/* Enhanced Feature Cards */
 .feature-card {
     background-color: rgba(0, 0, 0, 0.7);
     border-radius: 10px;
@@ -780,34 +736,45 @@ a:hover {
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
 
-/* Enabled feature styling */
 .feature-card.feature-enabled {
     border-left: 4px solid #073c17;
     background-image: linear-gradient(135deg, rgba(0, 0, 0, 0.7), rgba(7, 60, 23, 0.2));
     animation: feature-enabled-glow 4s infinite alternate;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3), 0 0 10px rgba(7, 60, 23, 0.3);
 }
 
-/* Disabled feature styling */
+.feature-card.feature-enabled:hover {
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4), 0 0 20px rgba(7, 60, 23, 0.4);
+    border-left: 4px solid #0a5d23;
+}
+
 .feature-card.feature-disabled {
     border-left: 4px solid #d95248;
     background-image: linear-gradient(135deg, rgba(0, 0, 0, 0.7), rgba(217, 82, 72, 0.1));
 }
 
-/* Hover effect */
 .feature-card:hover {
     transform: translateY(-5px);
     box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
-}
-
-.feature-card.feature-enabled:hover {
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4), 0 0 15px rgba(7, 60, 23, 0.3);
 }
 
 .feature-card.feature-disabled:hover {
     box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4), 0 0 15px rgba(217, 82, 72, 0.3);
 }
 
-/* Card title styling */
+.feature-card.feature-enabled::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    border-radius: 0 10px 10px 0;
+    box-shadow: inset 0 0 15px rgba(7, 60, 23, 0.3);
+    pointer-events: none;
+    z-index: 1;
+}
+
 .feature-card-title {
     font-family: "SECONDARY_FONT";
     margin: 0 0 12px 0;
@@ -818,7 +785,6 @@ a:hover {
     padding-bottom: 6px;
 }
 
-/* Add small underline to title */
 .feature-card-title::after {
     content: '';
     position: absolute;
@@ -835,7 +801,6 @@ a:hover {
     width: 100%;
 }
 
-/* Card description styling */
 .feature-card-description {
     flex-grow: 1;
     margin-bottom: 15px;
@@ -846,18 +811,7 @@ a:hover {
     overflow-y: auto;
 }
 
-/* Subtle glow animation for enabled features */
-@keyframes feature-enabled-glow {
-    0% {
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-    }
-    100% {
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3), 0 0 20px rgba(7, 60, 23, 0.25);
-    }
-}
-
-/* Feature toggle button improvements */
-/* Enhanced Feature Toggle Buttons */
+/* Feature Toggle Button */
 .feature-toggle-button {
     align-self: flex-end;
     padding: 8px 16px;
@@ -876,42 +830,40 @@ a:hover {
     overflow: hidden;
 }
 
-/* Enabled state */
 .feature-toggle-button.enabled {
     background-image: linear-gradient(135deg, #0a4d1e, #073c17);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3), 0 0 10px rgba(7, 60, 23, 0.2);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3), 0 0 10px rgba(7, 60, 23, 0.3);
     text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
     animation: toggle-glow-enabled 3s infinite alternate;
+    border-color: rgba(255, 255, 255, 0.2);
 }
 
-/* Disabled state */
+.feature-toggle-button.enabled:hover {
+    background-image: linear-gradient(135deg, #0c5b24, #0a4d1e);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4), 0 0 20px rgba(7, 60, 23, 0.5);
+    border-color: rgba(255, 255, 255, 0.4);
+}
+
 .feature-toggle-button.disabled {
     background-image: linear-gradient(135deg, #852e27, #d95248);
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3), 0 0 10px rgba(217, 82, 72, 0.2);
     text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
 }
 
-/* Hover effects */
 .feature-toggle-button:hover {
     transform: translateY(-2px) scale(1.05);
     border-color: rgba(255, 255, 255, 0.3);
-}
-
-.feature-toggle-button.enabled:hover {
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4), 0 0 15px rgba(7, 60, 23, 0.4);
 }
 
 .feature-toggle-button.disabled:hover {
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4), 0 0 15px rgba(217, 82, 72, 0.4);
 }
 
-/* Active (clicking) effect */
 .feature-toggle-button:active {
     transform: translateY(-1px) scale(1.02);
     transition: all 0.1s ease;
 }
 
-/* Shine effect */
 .feature-toggle-button::before {
     content: '';
     position: absolute;
@@ -935,19 +887,7 @@ a:hover {
     animation: button-shine 1s forwards;
 }
 
-/* Subtle glow animation for enabled buttons */
-@keyframes toggle-glow-enabled {
-    0% {
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3), 0 0 8px rgba(7, 60, 23, 0.2);
-    }
-    100% {
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3), 0 0 15px rgba(7, 60, 23, 0.4);
-    }
-}
-
-/* Enhanced install button styles*/
-
-/* Install button container - uses flex for reliable centering */
+/* Install Button */
 .install-button-container {
     display: flex;
     justify-content: center;
@@ -958,7 +898,17 @@ a:hover {
     position: relative;
 }
 
-/* Enhanced install button with pulsing glow effect and size pulse */
+.button-scale-wrapper {
+    display: inline-block;
+    animation: button-scale-pulse 3s infinite alternate,
+               button-breathe 4s infinite ease-in-out;
+}
+
+.button-scale-wrapper:hover {
+    animation-play-state: paused;
+    transform: scale(1.05);
+}
+
 .main-install-button {
     background-color: #073c17;
     border: 2px solid rgba(255, 255, 255, 0.2);
@@ -974,31 +924,14 @@ a:hover {
     position: relative;
     overflow: hidden;
     z-index: 1;
-    
-    /* Clean gradient background */
     background-image: linear-gradient(135deg, #0a4d1e, #073c17);
-    
-    /* Glow and pulse animations */
     box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4), 0 0 20px rgba(7, 60, 23, 0.3);
     text-shadow: 0 0 5px rgba(255, 255, 255, 0.3);
     animation: button-glow 3s infinite alternate,
                button-float 4s infinite ease-in-out;
-    
-    /* Smoother transitions */
     transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
-/* Button floating animation */
-@keyframes button-float {
-    0%, 100% {
-        transform: translateY(0);
-    }
-    50% {
-        transform: translateY(-4px);
-    }
-}
-
-/* Button shine effect */
 .main-install-button::before {
     content: '';
     position: absolute;
@@ -1019,89 +952,31 @@ a:hover {
     animation: button-shine 6s infinite;
 }
 
-/* Separate container for the scale animation to preserve centering */
-.button-scale-wrapper {
-    display: inline-block;
-    animation: button-scale-pulse 3s infinite alternate,
-               button-breathe 4s infinite ease-in-out;
-}
-
-@keyframes button-breathe {
-    0%, 100% {
-        transform: scale(1);
-    }
-    50% {
-        transform: scale(1.03);
-    }
-}
-
-/* Hover effect */
 .main-install-button:hover:not([disabled]) {
     transform: translateY(-5px);
     background-image: linear-gradient(135deg, #0f6229, #0a4d1e);
     text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
     border-color: rgba(255, 255, 255, 0.4);
     box-shadow: 0 15px 30px rgba(0, 0, 0, 0.5), 0 0 35px rgba(7, 60, 23, 0.9);
-    /* Stop floating animation on hover for stability */
     animation: button-glow 1.5s infinite alternate;
 }
 
-/* Hover effect on wrapper */
 .button-scale-wrapper:hover .main-install-button:not([disabled]) {
     animation: button-glow 1.5s infinite alternate;
 }
 
-.button-scale-wrapper:hover {
-    animation-play-state: paused;
-    transform: scale(1.05);
-}
-
-/* Active state */
 .main-install-button:active:not([disabled]) {
     transform: translateY(-2px);
     transition: all 0.1s ease;
     box-shadow: 0 8px 16px rgba(0, 0, 0, 0.5), 0 0 25px rgba(7, 60, 23, 0.8);
 }
 
-/* Disabled state */
 .main-install-button:disabled {
     background-image: linear-gradient(135deg, #0a4d1e80, #073c1780);
     cursor: not-allowed;
     opacity: 0.7;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3), 0 0 15px rgba(7, 60, 23, 0.2);
 }
-
-/* Simple animations that won't affect centering */
-@keyframes button-glow {
-    0% {
-        box-shadow: 0 6px 15px rgba(0, 0, 0, 0.4), 0 0 20px rgba(7, 60, 23, 0.3);
-        text-shadow: 0 0 5px rgba(255, 255, 255, 0.3);
-    }
-    100% {
-        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.5), 0 0 30px rgba(7, 60, 23, 0.6);
-        text-shadow: 0 0 10px rgba(255, 255, 255, 0.5), 0 0 20px rgba(255, 255, 255, 0.2);
-    }
-}
-
-@keyframes button-scale-pulse {
-    0% {
-        transform: scale(1);
-    }
-    100% {
-        transform: scale(1.03);
-    }
-}
-
-@keyframes button-shine {
-    0% {
-        left: -100%;
-    }
-    20%, 100% {
-        left: 100%;
-    }
-}
-
-/* end of install */
 
 /* Credits Screen */
 .credits-container {
@@ -1180,7 +1055,6 @@ a:hover {
     transition: all 0.2s ease;
 }
 
-
 .credit-author:hover {
     color: #fff;
     text-shadow: 0 0 5px rgba(255, 255, 255, 0.5);
@@ -1201,7 +1075,6 @@ a:hover {
     text-align: center;
     margin-bottom: 20px;
     text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
-
 }
 
 .settings-form {
@@ -1227,7 +1100,6 @@ a:hover {
     padding: 10px;
     color: #fce8f6;
     width: 100%;
-
     transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
@@ -1241,7 +1113,6 @@ a:hover {
     display: flex;
     gap: 15px;
     margin-top: 20px;
-
 }
 
 .primary-button, 
@@ -1303,9 +1174,7 @@ a:hover {
     font-family: "SECONDARY_FONT";
     text-align: center;
     margin-bottom: 20px;
-
     text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
-
 }
 
 .launcher-form {
@@ -1323,14 +1192,12 @@ a:hover {
 .uninstall-list-container {
     max-height: 400px;
     overflow-y: auto;
-
 }
 
 .uninstall-list {
     list-style: none;
     padding: 0;
 }
-
 
 .uninstall-list-item {
     background-color: #d95248;
@@ -1340,17 +1207,13 @@ a:hover {
     width: 100%;
     text-align: left;
     margin-bottom: 8px;
-
     transition: all 0.2s ease;
-
 }
 
 .uninstall-list-item:hover {
     background-color: #c73c32;
-
     transform: translateY(-2px);
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
-
 }
 
 /* Progress Screen */
@@ -1361,9 +1224,7 @@ a:hover {
     border-radius: 8px;
     padding: 20px;
     text-align: center;
-
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
-
 }
 
 .progress-header {
@@ -1373,9 +1234,7 @@ a:hover {
 .progress-header h1 {
     font-family: "SECONDARY_FONT";
     margin: 0;
-
     text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
-
 }
 
 .progress-content {
@@ -1391,9 +1250,7 @@ a:hover {
     background-color: #333;
     margin-bottom: 20px;
     overflow: hidden;
-
     box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.5);
-
 }
 
 .progress-bar::-webkit-progress-bar {
@@ -1404,9 +1261,7 @@ a:hover {
 .progress-bar::-webkit-progress-value {
     background-color: #073c17;
     border-radius: 10px;
-
     box-shadow: 0 0 5px rgba(7, 60, 23, 0.5);
-
 }
 
 .progress-bar::-moz-progress-bar {
@@ -1417,18 +1272,15 @@ a:hover {
 .progress-status {
     font-size: 1.2rem;
     margin: 0;
-
     text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
 }
 
-/* Loading Containers */
-
+/* Loading Container */
 .loading-container {
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-
     height: 300px;
     padding: 40px;
     gap: 20px;
@@ -1448,222 +1300,125 @@ a:hover {
     animation: spin 1s ease-in-out infinite;
 }
 
-
-/* Trending card styling - reduced height */
-.home-pack-card.trending {
-  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.7), 0 0 0 4px rgba(255, 215, 0, 0.8), 0 0 30px rgba(255, 215, 0, 0.4);
-  position: relative;
-  transform: none;
-  z-index: 10;
-  width: 100%;
-  height: 170px; /* Reduced from 180px to make thinner */
-  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
-  animation: trending-pulse 3s infinite alternate;
-  box-sizing: border-box;
-}
-
-/* Sparkling particle overlay - subtle sparkles that move slowly */
-.home-pack-card.trending::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-image: 
-        radial-gradient(circle at 30% 20%, rgba(255, 255, 255, 0.2) 0%, rgba(255, 255, 255, 0) 10%),
-        radial-gradient(circle at 70% 60%, rgba(255, 255, 255, 0.2) 0%, rgba(255, 255, 255, 0) 10%),
-        radial-gradient(circle at 20% 80%, rgba(255, 255, 255, 0.2) 0%, rgba(255, 255, 255, 0) 10%),
-        radial-gradient(circle at 80% 30%, rgba(255, 255, 255, 0.2) 0%, rgba(255, 255, 255, 0) 10%);
-    pointer-events: none;
-    z-index: 1;
-    border-radius: 8px;
-    animation: sparkle 8s infinite linear;
-    opacity: 0.7;
-}
-
-/* More subtle diagonal shimmer */
-.home-pack-card.trending::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: -150%;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(45deg, 
-        rgba(255, 215, 0, 0) 0%, 
-        rgba(255, 215, 0, 0.1) 30%, 
-        rgba(255, 215, 0, 0.3) 47%, 
-        rgba(255, 215, 0, 0.3) 53%,
-        rgba(255, 215, 0, 0.1) 70%,
-        rgba(255, 215, 0, 0) 100%);
-    opacity: 0.7;
-    border-radius: 8px;
-    pointer-events: none;
-    animation: gentle-shine 5s infinite ease-in-out;
-    z-index: 0;
-    transform: skewX(-20deg);
-}
-
-.trending-badge {
-    position: absolute;
-    top: 15px;
-    right: 15px;
-    background: linear-gradient(135deg, #ffd700, #ffa500);
-    color: #000;
-    padding: 8px 20px;
-    border-radius: 20px;
-    font-size: 1rem;
-    font-weight: bold;
+.loading-text {
+    font-size: 20px;
+    color: white;
     font-family: "SECONDARY_FONT";
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5), 0 0 15px rgba(255, 215, 0, 0.5);
-    text-transform: uppercase;
-    z-index: 10;
-    letter-spacing: 1px;
-    border: 1px solid rgba(255, 255, 255, 0.7);
-    animation: badge-pulse 2s infinite alternate;
+    text-align: center;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
 }
 
-/* Make sure badge is still properly positioned */
-.trending-badge {
-  top: 12px;
-  right: 15px;
-  padding: 6px 18px;
-  font-size: 0.95rem;
+/* Navigation Buttons */
+.navigation-buttons {
+    margin-bottom: 20px;
+    padding: 0 20px;
 }
 
-.home-pack-card.trending .home-pack-info {
-    /* Use a more gradual gradient that starts higher and has more transparency */
-    background: linear-gradient(to top, 
-        rgba(0, 0, 0, 0.85) 0%, 
-        rgba(0, 0, 0, 0.6) 40%, 
-        rgba(0, 0, 0, 0.2) 80%,
-        rgba(0, 0, 0, 0) 100%);
-    padding-top: 40px; /* Extend padding to create a more gradual appearance */
-    padding-bottom: 15px;
-    height: auto;
+.home-button {
+    background-color: rgba(0, 0, 0, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+    padding: 8px 16px;
+    font-family: "SECONDARY_FONT";
+    color: #fce8f6;
     display: flex;
-    flex-direction: column;
     align-items: center;
-    justify-content: flex-end;
-    border-radius: 0 0 8px 8px;
-    position: relative;
-    z-index: 5;
+    gap: 8px;
+    transition: all 0.2s ease;
 }
 
-.home-pack-card.trending .home-pack-title {
-    font-size: 1.5rem;
-    margin-bottom: 12px;
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.7); /* Less harsh text shadow */
-    color: #fff;
+.home-button:hover {
+    background-color: rgba(50, 6, 37, 0.8);
+    transform: translateY(-2px);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
 }
 
-.home-pack-card.trending .home-pack-button {
-    background-color: rgba(255, 215, 0, 0.8);
-    color: #000;
-    padding: 10px 24px;
-    font-size: 1.1rem;
-    transition: all 0.3s ease;
-    margin-bottom: 10px;
-}
-
-.home-pack-card.trending:hover {
-    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.7), 0 0 0 5px rgba(255, 215, 0, 0.9), 0 0 40px rgba(255, 215, 0, 0.7);
-    transform: translateY(-10px) scale(1.07);
-    animation: none;
-}
-
-.home-pack-card.trending:hover .home-pack-button {
-    background-color: rgba(255, 215, 0, 1);
-    transform: scale(1.1);
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.4);
-}
-
-/* Trending card wrapper styling - increased width, improved positioning */
-.trending-card-wrapper {
-  position: relative;
-  width: 100%;
-  max-width: 1100px; /* Increased from 950px for wider appearance */
-  height: auto;
-  margin: 30px auto 25px auto; /* Slightly more space below */
-  grid-column: 1 / -1; /* Make trending cards span the entire row */
-  justify-self: center;
-  z-index: 15;
-  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-  box-sizing: border-box;
-}
-
-/* Add hover effect to the wrapper to include the star */
-.trending-card-wrapper:hover {
-    transform: translateY(-10px) scale(1.07);
-}
-
-/* When wrapper is hovered, adjust the card too */
-.trending-card-wrapper:hover .home-pack-card.trending {
-    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.7), 0 0 0 5px rgba(255, 215, 0, 0.9), 0 0 40px rgba(255, 215, 0, 0.7);
-    transform: none; /* Remove the card's transform since the wrapper handles it */
-    animation: none;
-}
-
-/* Trending/Popular pack indicator for homepage */
-.home-pack-card.trending {
-    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.7), 0 0 0 4px rgba(255, 215, 0, 0.8), 0 0 30px rgba(255, 215, 0, 0.4);
-    position: relative;
-    transform: none; /* Remove individual transform */
-    z-index: 10;
+/* Error Handling */
+.error-area {
     width: 100%;
-    height: 200px;
-    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    display: flex;
-    flex-direction: column;
-    justify-content: flex-end;
-    animation: trending-pulse 3s infinite alternate;
+    height: 150px;
+    background-color: rgba(0, 0, 0, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+    padding: 10px;
+    color: #fce8f6;
+    font-family: monospace;
+    margin-top: 10px;
+    resize: none;
 }
 
-/* Star positioned outside and above the card - using a proper star shape */
-.trending-card-wrapper .trending-crown {
-    position: absolute;
-    top: -25px; /* Position above the card */
-    left: 50%;
-    transform: translateX(-50%);
-    width: 50px;
-    height: 35px;
-    background-image: linear-gradient(135deg, #ffd700, #ffa500);
-    /* Crown shape */
-    clip-path: polygon(
-        0% 75%, 
-        15% 75%, 
-        20% 40%, 
-        30% 75%, 
-        40% 35%, 
-        50% 75%, 
-        60% 35%, 
-        70% 75%, 
-        80% 40%, 
-        85% 75%, 
-        100% 75%, 
-        100% 100%, 
-        0% 100%
-    );
-    z-index: 30; /* Ensure it stays on top */
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.4);
-    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+/* Responsive Design */
+@media (max-width: 768px) {
+    .app-header {
+        flex-direction: column;
+        height: auto;
+        padding: 10px;
+    }
+    
+    .header-tabs {
+        margin: 15px 0;
+        flex-wrap: wrap;
+        max-width: 100%;
+    }
+    
+    .home-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .feature-cards-container {
+        grid-template-columns: 1fr;
+    }
+    
+    .main-install-button {
+        padding: 15px 40px;
+        font-size: 1.5rem;
+        min-width: 250px;
+    }
 }
 
-/* Adjust the star on hover */
-.trending-card-wrapper:hover .trending-crown {
-    transform: translateX(-50%) scale(1.2);
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5), 0 0 20px rgba(255, 215, 0, 0.8);
+@media (min-width: 1280px) {
+    .home-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+    
+    .feature-cards-container {
+        grid-template-columns: repeat(3, 1fr);
+    }
 }
 
-/* Fix inconsistent height declaration */
-.home-pack-card.trending {
-  height: 160px !important; /* Ensure this height takes precedence */
+@media (min-width: 1600px) {
+    .home-grid {
+        grid-template-columns: repeat(4, 1fr);
+    }
 }
 
+/* Animations */
+@keyframes button-shine {
+    0% {
+        left: -100%;
+    }
+    100% {
+        left: 100%;
+    }
+}
+
+@keyframes pack-shine {
+    0% {
+        left: -150%;
+    }
+    100% {
+        left: 150%;
+    }
+}
+
+@keyframes tab-active-glow {
+    0% {
+        box-shadow: 0 0 10px rgba(255, 255, 255, 0.15), 0 3px 10px rgba(0, 0, 0, 0.4);
+    }
+    100% {
+        box-shadow: 0 0 15px rgba(255, 255, 255, 0.3), 0 3px 10px rgba(0, 0, 0, 0.4);
+    }
+}
 
 @keyframes trending-pulse {
     0% {
@@ -1711,233 +1466,6 @@ a:hover {
     }
 }
 
-//end of trend
-
-@keyframes spin {
-    to { transform: rotate(360deg); }
-}
-
-@keyframes glow {
-    from {
-        text-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
-    }
-    to {
-        text-shadow: 0 0 20px rgba(255, 255, 255, 0.4);
-    }
-}
-
-
-.loading-text {
-    font-size: 20px;
-    color: white;
-    font-family: "SECONDARY_FONT";
-    text-align: center;
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
-}
-
-/* Navigation buttons */
-.navigation-buttons {
-    margin-bottom: 20px;
-    padding: 0 20px;
-}
-
-.home-button {
-    background-color: rgba(0, 0, 0, 0.6);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: 4px;
-    padding: 8px 16px;
-    font-family: "SECONDARY_FONT";
-    color: #fce8f6;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    transition: all 0.2s ease;
-}
-
-.home-button:hover {
-    background-color: rgba(50, 6, 37, 0.8);
-    transform: translateY(-2px);
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
-}
-
-/* Error handling */
-.error-area {
-    width: 100%;
-    height: 150px;
-    background-color: rgba(0, 0, 0, 0.5);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: 4px;
-    padding: 10px;
-    color: #fce8f6;
-    font-family: monospace;
-    margin-top: 10px;
-    resize: none;
-}
-
-/* Responsive fixes */
-
-@media (max-width: 768px) {
-    .app-header {
-        flex-direction: column;
-        height: auto;
-        padding: 10px;
-
-    }
-    
-    .header-tabs {
-        margin: 15px 0;
-        flex-wrap: wrap;
-    }
-    
-    .home-grid {
-        grid-template-columns: 1fr;
-    }
-    
-
-    .feature-cards-container {
-        grid-template-columns: 1fr;
-    }
-}
-
-/* Media queries for responsive design */
-@media (min-width: 1280px) {
-  /* For the new default window size */
-  .home-grid {
-    grid-template-columns: repeat(3, 1fr); /* Explicitly 3 per row */
-  }
-  
-  .feature-cards-container {
-    grid-template-columns: repeat(3, 1fr); /* 3 cards per row for features */
-  }
-}
-
-@media (min-width: 1600px) {
-  /* For very large screens */
-  .home-grid {
-    grid-template-columns: repeat(4, 1fr); /* 4 per row on very large screens */
-  }
-}
-
-@media (max-width: 768px) {
-  .home-grid {
-    grid-template-columns: 1fr; /* Single column on mobile */
-  }
-  
-  .feature-cards-container {
-    grid-template-columns: 1fr;
-  }
-}
-
-/* Adjust title for better fit in thinner card */
-.home-pack-card.trending .home-pack-title {
-  font-size: 1.4rem;
-  margin-bottom: 10px;
-  padding: 0 15px;
-}
-
-/* Ensure trending card info section is properly sized */
-.home-pack-card.trending .home-pack-info {
-  padding-top: 30px; /* Reduced from 40px for thinner card */
-}
-
-
-/* Improved crown positioning to sit perfectly on the card edge */
-.trending-card-wrapper .trending-crown {
-    position: absolute;
-    top: -18px; /* Adjusted from -25px to position closer to the card edge */
-    left: 50%;
-    transform: translateX(-50%);
-    width: 50px;
-    height: 35px;
-    background-image: linear-gradient(135deg, #ffd700, #ffa500);
-    /* Crown shape */
-    clip-path: polygon(
-        0% 75%, 
-        15% 75%, 
-        20% 40%, 
-        30% 75%, 
-        40% 35%, 
-        50% 75%, 
-        60% 35%, 
-        70% 75%, 
-        80% 40%, 
-        85% 75%, 
-        100% 75%, 
-        100% 100%, 
-        0% 100%
-    );
-    z-index: 30; /* Ensure it stays on top */
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.4);
-    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-}
-
-/* Also adjust hover state to maintain consistent positioning */
-.trending-card-wrapper:hover .trending-crown {
-    transform: translateX(-50%) scale(1.2);
-    top: -18px; /* Maintain consistent top position on hover */
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5), 0 0 20px rgba(255, 215, 0, 0.8);
-}
-
-/* Ensure the trending card has appropriate top padding to accommodate crown */
-.trending-card-wrapper {
-    padding-top: 18px; /* Add padding to account for crown overlap */
-    margin-top: 12px; /* Reduce top margin since we've added padding */
-}
-
-/* Fix for trending card info section */
-.home-pack-card.trending .home-pack-info {
-    background: linear-gradient(
-        to bottom, 
-        rgba(0, 0, 0, 0) 0%,
-        rgba(0, 0, 0, 0.5) 40%, 
-        rgba(0, 0, 0, 0.8) 100%
-    );
-    padding-top: 40px;
-    padding-bottom: 15px;
-    height: auto;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: flex-end;
-    border-radius: 0 0 8px 8px;
-    position: relative;
-    z-index: 5;
-}
-
-.home-pack-card.trending:hover .home-pack-info {
-    background: linear-gradient(
-        to bottom, 
-        rgba(0, 0, 0, 0) 0%,
-        rgba(0, 0, 0, 0.6) 40%, 
-        rgba(0, 0, 0, 0.9) 100%
-    );
-}
-
-/* Ensure trending card title is readable */
-.home-pack-card.trending .home-pack-title {
-    font-size: 1.4rem;
-    margin-bottom: 12px;
-    text-shadow: 0 2px 6px rgba(0, 0, 0, 0.8);
-    color: #fff;
-    padding: 0 15px;
-}
-
-
-
-/* Enhanced styling for enabled feature cards */
-.feature-card.feature-enabled {
-    border-left: 4px solid #073c17;
-    background-image: linear-gradient(135deg, rgba(0, 0, 0, 0.7), rgba(7, 60, 23, 0.2));
-    animation: feature-enabled-glow 4s infinite alternate;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3), 0 0 10px rgba(7, 60, 23, 0.3);
-}
-
-.feature-card.feature-enabled:hover {
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4), 0 0 20px rgba(7, 60, 23, 0.4);
-    border-left: 4px solid #0a5d23;
-}
-
-/* Improved glow animation for enabled features */
 @keyframes feature-enabled-glow {
     0% {
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3), 0 0 10px rgba(7, 60, 23, 0.2);
@@ -1947,41 +1475,82 @@ a:hover {
     }
 }
 
-/* Internal glowing border for enabled features */
-.feature-card.feature-enabled::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    right: 0;
-    bottom: 0;
-    left: 0;
-    border-radius: 0 10px 10px 0; /* Match the card radius except left side */
-    box-shadow: inset 0 0 15px rgba(7, 60, 23, 0.3);
-    pointer-events: none;
-    z-index: 1;
-}
-
-/* Enhanced enabled toggle button with effects matching the card */
-.feature-toggle-button.enabled {
-    background-image: linear-gradient(135deg, #0a4d1e, #073c17);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3), 0 0 10px rgba(7, 60, 23, 0.3);
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
-    animation: toggle-glow-enabled 3s infinite alternate;
-    border-color: rgba(255, 255, 255, 0.2);
-}
-
-.feature-toggle-button.enabled:hover {
-    background-image: linear-gradient(135deg, #0c5b24, #0a4d1e);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4), 0 0 20px rgba(7, 60, 23, 0.5);
-    border-color: rgba(255, 255, 255, 0.4);
-}
-
-/* Stronger glow animation for enabled toggle buttons */
 @keyframes toggle-glow-enabled {
     0% {
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3), 0 0 8px rgba(7, 60, 23, 0.3);
     }
     100% {
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3), 0 0 20px rgba(7, 60, 23, 0.5);
+    }
+}
+
+@keyframes crown-glow {
+    0% {
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.4), 0 0 15px rgba(255, 215, 0, 0.4);
+    }
+    100% {
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.4), 0 0 25px rgba(255, 215, 0, 0.6);
+    }
+}
+
+@keyframes crown-glow-hover {
+    0% {
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5), 0 0 30px rgba(255, 215, 0, 0.7);
+    }
+    100% {
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5), 0 0 40px rgba(255, 215, 0, 1);
+    }
+}
+
+@keyframes button-glow {
+    0% {
+        box-shadow: 0 6px 15px rgba(0, 0, 0, 0.4), 0 0 20px rgba(7, 60, 23, 0.3);
+        text-shadow: 0 0 5px rgba(255, 255, 255, 0.3);
+    }
+    100% {
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.5), 0 0 30px rgba(7, 60, 23, 0.6);
+        text-shadow: 0 0 10px rgba(255, 255, 255, 0.5), 0 0 20px rgba(255, 255, 255, 0.2);
+    }
+}
+
+@keyframes button-scale-pulse {
+    0% {
+        transform: scale(1);
+    }
+    100% {
+        transform: scale(1.03);
+    }
+}
+
+@keyframes button-float {
+    0%, 100% {
+        transform: translateY(0);
+    }
+    50% {
+        transform: translateY(-4px);
+    }
+}
+
+@keyframes button-breathe {
+    0%, 100% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.03);
+    }
+}
+
+@keyframes spin {
+    to { 
+        transform: rotate(360deg); 
+    }
+}
+
+@keyframes glow {
+    from {
+        text-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
+    }
+    to {
+        text-shadow: 0 0 20px rgba(255, 255, 255, 0.4);
     }
 }
