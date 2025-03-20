@@ -562,31 +562,92 @@ a:hover {
 }
 
 /* Feature toggle button improvements */
+/* Enhanced Feature Toggle Buttons */
 .feature-toggle-button {
     align-self: flex-end;
-    padding: 6px 14px;
-    border-radius: 4px;
+    padding: 8px 16px;
+    border-radius: 6px;
     font-family: "SECONDARY_FONT";
     text-align: center;
     cursor: pointer;
-    transition: all 0.2s ease;
     user-select: none;
     display: inline-block;
-    font-size: 0.9rem;
+    font-size: 0.95rem;
+    font-weight: 500;
+    letter-spacing: 0.5px;
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    position: relative;
+    overflow: hidden;
 }
 
+/* Enabled state */
 .feature-toggle-button.enabled {
-    background-color: #073c17;
+    background-image: linear-gradient(135deg, #0a4d1e, #073c17);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3), 0 0 10px rgba(7, 60, 23, 0.2);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+    animation: toggle-glow-enabled 3s infinite alternate;
 }
 
+/* Disabled state */
 .feature-toggle-button.disabled {
-    background-color: #d95248;
+    background-image: linear-gradient(135deg, #852e27, #d95248);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3), 0 0 10px rgba(217, 82, 72, 0.2);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
 }
 
+/* Hover effects */
 .feature-toggle-button:hover {
-    opacity: 0.9;
-    transform: scale(1.05);
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.4);
+    transform: translateY(-2px) scale(1.05);
+    border-color: rgba(255, 255, 255, 0.3);
+}
+
+.feature-toggle-button.enabled:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4), 0 0 15px rgba(7, 60, 23, 0.4);
+}
+
+.feature-toggle-button.disabled:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4), 0 0 15px rgba(217, 82, 72, 0.4);
+}
+
+/* Active (clicking) effect */
+.feature-toggle-button:active {
+    transform: translateY(-1px) scale(1.02);
+    transition: all 0.1s ease;
+}
+
+/* Shine effect */
+.feature-toggle-button::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+        90deg, 
+        transparent, 
+        rgba(255, 255, 255, 0.1), 
+        rgba(255, 255, 255, 0.2), 
+        rgba(255, 255, 255, 0.1),
+        transparent
+    );
+    transform: skewX(-25deg);
+    z-index: 2;
+}
+
+.feature-toggle-button:hover::before {
+    animation: button-shine 1s forwards;
+}
+
+/* Subtle glow animation for enabled buttons */
+@keyframes toggle-glow-enabled {
+    0% {
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3), 0 0 8px rgba(7, 60, 23, 0.2);
+    }
+    100% {
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3), 0 0 15px rgba(7, 60, 23, 0.4);
+    }
 }
 
 /* Enhanced install button styles*/
