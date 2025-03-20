@@ -1356,6 +1356,70 @@ pub(crate) fn app() -> Element {
     let is_settings = *settings.read();
     let pages_value = pages.read().clone();
     
+    // Pre-compute the content based on conditions
+    let main_content = if is_settings {
+        rsx! {
+            Settings {
+                config,
+                settings,
+                config_path: props.config_path.clone(),
+                error: err,
+                b64_id: URL_SAFE_NO_PAD.encode(props.modpack_source.clone())
+            }
+        }
+    } else if config.read().first_launch.unwrap_or(true) || launcher.is_none() {
+        rsx! {
+            Launcher {
+                config,
+                config_path: props.config_path.clone(),
+                error: err,
+                b64_id: URL_SAFE_NO_PAD.encode(props.modpack_source.clone())
+            }
+        }
+    } else if packs.read().is_none() {
+        rsx! {
+            div { class: "loading-container",
+                div { class: "loading-spinner" }
+                div { class: "loading-text", "Loading modpack information..." }
+            }
+        }
+    } else if current_page == HOME_PAGE {
+        rsx! {
+            HomePage {
+                pages,
+                page
+            }
+        }
+    } else {
+        // Content for specific page
+        match pages_value.get(&current_page) {
+            Some(tab_info) => {
+                let tab_modpacks = tab_info.modpacks.clone();
+                
+                rsx! {
+                    div { 
+                        class: "version-page-container",
+                        
+                        for profile in tab_modpacks {
+                            Version {
+                                installer_profile: profile,
+                                error: err,
+                                current_page,
+                                tab_group: current_page
+                            }
+                        }
+                    }
+                }
+            },
+            None => {
+                rsx! {
+                    div { "No modpack information found for this tab." }
+                }
+            }
+        }
+    };
+    
+    // Final rendering
     rsx! {
         div {
             style { {css_content} }
@@ -1372,57 +1436,8 @@ pub(crate) fn app() -> Element {
             }
 
             div { class: "main-container",
-                if is_settings {
-                    Settings {
-                        config,
-                        settings,
-                        config_path: props.config_path.clone(),
-                        error: err,
-                        b64_id: URL_SAFE_NO_PAD.encode(props.modpack_source.clone())
-                    }
-                } else if config.read().first_launch.unwrap_or(true) || launcher.is_none() {
-                    Launcher {
-                        config,
-                        config_path: props.config_path.clone(),
-                        error: err,
-                        b64_id: URL_SAFE_NO_PAD.encode(props.modpack_source.clone())
-                    }
-                } else if packs.read().is_none() {
-                    div { class: "loading-container",
-                        div { class: "loading-spinner" }
-                        div { class: "loading-text", "Loading modpack information..." }
-                    }
-                } else if current_page == HOME_PAGE {
-                    HomePage {
-                        pages,
-                        page
-                    }
-                } else {
-                    // Content for specific page
-                    if let Some(tab_info) = pages_value.get(&current_page) {
-    // We need to extract this code outside the RSX block completely
-    let tab_modpacks = tab_info.modpacks.clone();
-    
-    rsx! {
-        div { 
-            class: "version-page-container",
-            
-            for profile in tab_modpacks {
-                Version {
-                    installer_profile: profile,
-                    error: err,
-                    current_page,
-                    tab_group: current_page
-                }
+                {main_content}
             }
         }
     }
-} else {
-    rsx! {
-        div { "No modpack information found for this tab." }
-                    }
-                }
-            }
-        }
-    }
-}}
+}
