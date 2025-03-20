@@ -1120,9 +1120,9 @@ pub(crate) fn app() -> Element {
     let branches = props.branches.clone();
     let config = use_signal(|| props.config);
     let settings = use_signal(|| false);
-    let err: Signal<Option<String>> = use_signal(|| None);
+    let mut err: Signal<Option<String>> = use_signal(|| None);
     let page = use_signal(|| HOME_PAGE);
-    let pages = use_signal(BTreeMap::<usize, TabInfo>::new);
+    let mut pages = use_signal(BTreeMap::<usize, TabInfo>::new);
 
     let cfg = config.with(|cfg| cfg.clone());
     let launcher = match super::get_launcher(&cfg.launcher) {
@@ -1338,7 +1338,7 @@ pub(crate) fn app() -> Element {
             + dropdown_css
     };
 
-    let modal_context = use_context_provider(ModalContext::default);
+    let mut modal_context = use_context_provider(ModalContext::default);
     
     if let Some(e) = err.read().clone() {
         modal_context.open("Error", rsx! {
