@@ -734,7 +734,7 @@ fn Version(mut props: VersionProps) -> Element {
     let original_features = use_signal(|| original_features_vec);
     
     // Function to toggle a feature and update modification state
-    let toggle_feature = move |feat_id: String| {
+    let mut toggle_feature = move |feat_id: String| {
         let mut features = feature_list.read().clone();
         let is_enabled = features.contains(&feat_id);
         
