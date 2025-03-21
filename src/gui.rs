@@ -555,28 +555,33 @@ fn FeatureCard(props: FeatureCardProps) -> Element {
     rsx! {
         div { 
             class: if enabled { "feature-card feature-enabled" } else { "feature-card feature-disabled" },
-            h3 { class: "feature-card-title", "{props.feature.name}" }
-            
-            // Render description if available
-            if let Some(description) = &props.feature.description {
-                div { class: "feature-card-description", "{description}" }
+            div { class: "feature-card-header",
+                h3 { class: "feature-card-title", "{props.feature.name}" }
+                
+                // Toggle button with properly connected event handler - moved to header
+                label {
+                    class: if enabled { "feature-toggle-button enabled" } else { "feature-toggle-button disabled" },
+                    input {
+                        r#type: "checkbox",
+                        name: "{feature_id}",
+                        checked: if enabled { Some("true") } else { None },
+                        onchange: move |evt| props.on_toggle.call(evt),
+                        style: "display: none;"
+                    }
+                    if enabled { "ON" } else { "OFF" }
+                }
             }
             
-            // Toggle button with properly connected event handler
-            label {
-                class: if enabled { "feature-toggle-button enabled" } else { "feature-toggle-button disabled" },
-                input {
-                    r#type: "checkbox",
-                    name: "{feature_id}",
-                    checked: if enabled { Some("true") } else { None },
-                    onchange: move |evt| props.on_toggle.call(evt),
-                    style: "display: none;"
+            // Render description if available, but only if it exists
+            if let Some(description) = &props.feature.description {
+                if !description.is_empty() {
+                    div { class: "feature-card-description", "{description}" }
                 }
-                if enabled { "Enabled" } else { "Disabled" }
             }
         }
     }
 }
+
 
 fn feature_change(
     local_features: Signal<Option<Vec<String>>>,
