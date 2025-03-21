@@ -21,6 +21,41 @@ struct TabInfo {
     modpacks: Vec<InstallerProfile>,
 }
 
+#[component]
+fn BackgroundParticles() -> Element {
+    rsx! {
+        div { class: "particles-container",
+            // Generate particles with different sizes, colors and animations
+            for i in 0..20 {
+                {
+                    let size = 4 + (i % 6);
+                    let delay = i as f32 * 0.5;
+                    let duration = 10.0 + (i % 10) as f32;
+                    let left = 5 + (i * 5) % 95;
+                    
+                    let particle_class = match i % 3 {
+                        0 => "particle",
+                        1 => "particle purple",
+                        _ => "particle green",
+                    };
+                    
+                    let animation = if i % 2 == 0 { "float" } else { "float-horizontal" };
+                    
+                    rsx! {
+                        div {
+                            class: "{particle_class}",
+                            style: "width: {size}px; height: {size}px; left: {left}%; 
+                                bottom: -50px; opacity: 0.6; 
+                                animation: {animation} {duration}s ease-in infinite {delay}s;"
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+// Home Page component to display all available modpacks as a grid
 // Home Page component to display all available modpacks as a grid
 #[component]
 fn HomePage(
@@ -33,6 +68,14 @@ fn HomePage(
         div { class: "home-container",
             h1 { class: "home-title", "Available Modpacks" }
             
+            // Add Statistics Display
+            StatisticsDisplay {}
+            
+            // Add a section divider with title
+            div { class: "section-divider with-title", 
+                span { class: "divider-title", "Featured Modpacks" }
+            }
+            
             div { class: "home-grid",
                 for (index, info) in pages() {
                     for modpack in &info.modpacks {
@@ -41,8 +84,14 @@ fn HomePage(
                             let tab_title = info.title.clone(); 
                             let tab_index = index; 
                             
-                            // Check if this modpack is trending
+                            // Get metadata for enhanced card presentation
+                            let category = modpack.manifest.category.clone().unwrap_or_else(|| "Gameplay".to_string());
+                            let version = modpack.manifest.modpack_version.clone();
                             let is_trending = modpack.manifest.trend.unwrap_or(false);
+                            let is_updated = modpack.update_available;
+                            let is_new = modpack.manifest.is_new.unwrap_or(false);
+                            let mods_count = modpack.manifest.mods.len();
+                            let description = modpack.manifest.short_description.clone();
                             
                             rsx! {
                                 // Create a wrapper div for trending modpacks
@@ -60,18 +109,38 @@ fn HomePage(
                                             debug!("HOME CLICK RESULT: Page is now {}", new_page);
                                         },
                                         
-                                        // Add the star outside the card but in the wrapper
+                                        // Add the crown outside the card but in the wrapper
                                         div { class: "trending-crown" }
                                         
                                         div { 
                                             class: "home-pack-card trending",
                                             style: "background-image: url('{info.background}'); background-color: {info.color};",
+                                            "data-category": "{category}",
+                                            "data-version": "{version}",
+                                            "data-new": "{is_new}",
+                                            "data-updated": "{is_updated}",
+                                            "data-mods-count": "{mods_count}",
+                                            
+                                            // Category badge
+                                            div { class: "category-badge {category.to_lowercase()}", "{category}" }
+                                            
+                                            // Version badge
+                                            div { class: "version-badge", "v{version}" }
                                             
                                             // Add trending badge
                                             div { class: "trending-badge", "Popular" }
                                             
+                                            // Mods count indicator
+                                            div { class: "mods-count", "{mods_count} mods" }
+                                            
                                             div { class: "home-pack-info",
                                                 h2 { class: "home-pack-title", "{modpack_subtitle}" }
+                                                
+                                                // Description (hidden until hover)
+                                                if let Some(desc) = &description {
+                                                    div { class: "home-pack-description", "{desc}" }
+                                                }
+                                                
                                                 div { class: "home-pack-button", "View Modpack" }
                                             }
                                         }
@@ -81,6 +150,11 @@ fn HomePage(
                                     div { 
                                         class: "home-pack-card",
                                         style: "background-image: url('{info.background}'); background-color: {info.color};",
+                                        "data-category": "{category}",
+                                        "data-version": "{version}",
+                                        "data-new": "{is_new}",
+                                        "data-updated": "{is_updated}",
+                                        "data-mods-count": "{mods_count}",
                                         onclick: move |_| {
                                             let old_page = page();
                                             debug!("HOME CLICK: Changing page from {} to {} ({}) - HOME_PAGE={}", 
@@ -92,8 +166,30 @@ fn HomePage(
                                             debug!("HOME CLICK RESULT: Page is now {}", new_page);
                                         },
                                         
+                                        // Category badge
+                                        div { class: "category-badge {category.to_lowercase()}", "{category}" }
+                                        
+                                        // Version badge
+                                        div { class: "version-badge", "v{version}" }
+                                        
+                                        // NEW/UPDATED ribbon if applicable
+                                        if is_new {
+                                            div { class: "new-ribbon", "NEW" }
+                                        } else if is_updated {
+                                            div { class: "updated-ribbon", "UPDATED" }
+                                        }
+                                        
+                                        // Mods count indicator
+                                        div { class: "mods-count", "{mods_count} mods" }
+                                        
                                         div { class: "home-pack-info",
                                             h2 { class: "home-pack-title", "{modpack_subtitle}" }
+                                            
+                                            // Description (hidden until hover)
+                                            if let Some(desc) = &description {
+                                                div { class: "home-pack-description", "{desc}" }
+                                            }
+                                            
                                             div { class: "home-pack-button", "View Modpack" }
                                         }
                                     }
@@ -103,6 +199,9 @@ fn HomePage(
                     }
                 }
             }
+            
+            // Add another section divider
+            div { class: "section-divider animated" }
         }
     }
 }
@@ -159,6 +258,9 @@ fn ProgressView(
         "finish"
     };
     
+    // Mark steps as active or completed based on the current progress
+    let active_step_index = steps.iter().position(|(id, _)| id == &current_step).unwrap_or(0);
+    
     rsx! {
         div { 
             class: "progress-container",
@@ -174,13 +276,25 @@ fn ProgressView(
             div { class: "progress-content",
                 // Step indicators
                 div { class: "progress-steps",
-                    for (step_id, step_label) in steps {
-                        div { 
-                            class: "progress-step",
-                            "data-step-id": "{step_id}",
+                    for (index, (step_id, step_label)) in steps.iter().enumerate() {
+                        {
+                            let step_class = if index < active_step_index {
+                                "progress-step completed"
+                            } else if index == active_step_index {
+                                "progress-step active"
+                            } else {
+                                "progress-step"
+                            };
                             
-                            div { class: "step-dot" }
-                            div { class: "step-label", "{step_label}" }
+                            rsx! {
+                                div { 
+                                    class: "{step_class}",
+                                    "data-step-id": "{step_id}",
+                                    
+                                    div { class: "step-dot" }
+                                    div { class: "step-label", "{step_label}" }
+                                }
+                            }
                         }
                     }
                 }
