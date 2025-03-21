@@ -1480,7 +1480,7 @@ pub(crate) fn app() -> Element {
         .replace("<SECONDARY_FONT>", HEADER_FONT)
         .replace("<PRIMARY_FONT>", REGULAR_FONT) 
         + dropdown_css
-}
+};
 
     let mut modal_context = use_context_provider(ModalContext::default);
     if let Some(e) = err() {
