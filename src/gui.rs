@@ -130,18 +130,78 @@ fn StatisticsDisplay() -> Element {
 }
 
 #[component]
-fn ProgressView(value: i64, max: i64, status: String, title: String) -> Element {
-    rsx!(
-        div { class: "progress-container",
+fn ProgressView(
+    value: i64,
+    max: i64,
+    status: String,
+    title: String
+) -> Element {
+    let percentage = if max > 0 { (value * 100) / max } else { 0 };
+    
+    let steps = vec![
+        ("prepare", "Prepare"),
+        ("download", "Download"),
+        ("extract", "Extract"),
+        ("configure", "Configure"),
+        ("finish", "Finish")
+    ];
+    
+    // Get current step based on progress
+    let current_step = if percentage == 0 {
+        "prepare"
+    } else if percentage < 30 {
+        "download"
+    } else if percentage < 60 {
+        "extract"
+    } else if percentage < 90 {
+        "configure"
+    } else {
+        "finish"
+    };
+    
+    rsx! {
+        div { 
+            class: "progress-container",
+            "data-value": "{value}",
+            "data-max": "{max}",
+            "data-step": "{current_step}",
+            
             div { class: "progress-header",
                 h1 { "{title}" }
+                div { class: "progress-subtitle", "Installation in progress..." }
             }
+            
             div { class: "progress-content",
-                progress { class: "progress-bar", max, value: "{value}" }
+                // Step indicators
+                div { class: "progress-steps",
+                    for (step_id, step_label) in steps {
+                        div { 
+                            class: "progress-step",
+                            "data-step-id": "{step_id}",
+                            
+                            div { class: "step-dot" }
+                            div { class: "step-label", "{step_label}" }
+                        }
+                    }
+                }
+                
+                // Progress bar
+                div { class: "progress-track",
+                    div { 
+                        class: "progress-bar", 
+                        style: "width: {percentage}%;"
+                    }
+                }
+                
+                // Progress details
+                div { class: "progress-details",
+                    div { class: "progress-percentage", "{percentage}%" }
+                }
+                
                 p { class: "progress-status", "{status}" }
             }
         }
-    )
+    }
 }
 
 #[derive(PartialEq, Props, Clone)]
@@ -405,6 +465,32 @@ struct LauncherProps {
     config_path: PathBuf,
     error: Signal<Option<String>>,
     b64_id: String,
+}
+
+#[component]
+fn InstallButton(
+    label: String,
+    disabled: bool,
+    onclick: EventHandler<MouseEvent>,
+    state: Option<String>  // "ready", "processing", "success", "updating", "modified"
+) -> Element {
+    let button_state = state.unwrap_or_else(|| "ready".to_string());
+    
+    rsx! {
+        div { class: "install-button-container",
+            div { class: "button-scale-wrapper",
+                button {
+                    class: "main-install-button",
+                    disabled: disabled,
+                    "data-state": "{button_state}",
+                    onclick: move |evt| onclick.call(evt),
+                    
+                    span { class: "button-text", "{label}" }
+                    div { class: "button-progress" }
+                }
+            }
+        }
+    }
 }
 
 #[component]
