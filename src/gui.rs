@@ -9,7 +9,7 @@ use crate::{get_app_data, get_installed_packs, get_launcher, uninstall, Installe
 
 mod modal;
 
-const HEADER_FONT: &str = "https://raw.githubusercontent.com/Wynncraft-Overhaul/installer/master/src/assets/04B_19__.TTF";
+const HEADER_FONT: &str = "https://raw.githubusercontent.com/Wynncraft-Overhaul/installer/master/src/assets/FFFFORWA.TTF";
 const REGULAR_FONT: &str = "https://raw.githubusercontent.com/Wynncraft-Overhaul/installer/master/src/assets/Minecraft.ttf";
 
 #[derive(Debug, Clone)]
@@ -1149,7 +1149,7 @@ fn AppHeader(
                     debug!("Navigating to home page via title");
                 },
                 style: "cursor: pointer;",
-                "Modpack Installer" 
+                "OVERHAUL INSTALLER" 
             }
             
             // Tabs from pages - show only if we have pages
