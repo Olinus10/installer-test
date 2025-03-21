@@ -1,14 +1,14 @@
 /* Font Definitions */
 @font-face {
-    font-family: "PRIMARY_FONT";
-    src: url(<PRIMARY_FONT>);
+    font-family: "REGULAR_FONT";
+    src: url(https://raw.githubusercontent.com/Wynncraft-Overhaul/installer/master/src/assets/Minecraft.ttf);
     font-weight: normal;
     font-style: normal;
 }
 
 @font-face {
-    font-family: "SECONDARY_FONT";
-    src: url(<SECONDARY_FONT>);
+    font-family: "HEADER_FONT";
+    src: url(https://raw.githubusercontent.com/Wynncraft-Overhaul/installer/master/src/assets/04B_19__.TTF);
     font-weight: normal;
     font-style: normal;
 }
@@ -29,7 +29,7 @@ html, body {
 }
 
 body {
-    font-family: "PRIMARY_FONT";
+    font-family: "REGULAR_FONT";
     background-image: var(--bg-image);
     background-size: cover;
     background-position: center;
@@ -110,7 +110,7 @@ a:hover {
 .app-title {
     font-size: 1.7rem;
     margin: 0;
-    font-family: "PRIMARY_FONT";
+    font-family: "HEADER_FONT";
     transition: text-shadow 0.2s ease;
     white-space: nowrap;
 }
@@ -186,7 +186,7 @@ a:hover {
     text-align: left;
     background-color: transparent;
     border: none;
-    font-family: "PRIMARY_FONT";
+    font-family: "REGULAR_FONT";
     font-size: 0.9rem;
     color: #fce8f6;
     cursor: pointer;
@@ -221,7 +221,7 @@ a:hover {
     border: 1px solid rgba(255, 255, 255, 0.2);
     border-radius: 6px;
     padding: 8px 16px;
-    font-family: "PRIMARY_FONT";
+    font-family: "REGULAR_FONT";
     font-size: 1rem;
     color: #fce8f6;
     position: relative;
@@ -375,7 +375,7 @@ a:hover {
 }
 
 .home-pack-title {
-    font-family: "SECONDARY_FONT";
+    font-family: "HEADER_FONT";
     margin: 0 0 12px 0;
     font-size: 1.3rem;
     text-shadow: 0 2px 6px rgba(0, 0, 0, 0.8);
@@ -391,7 +391,7 @@ a:hover {
     background-image: linear-gradient(135deg, rgba(7, 60, 23, 0.9), rgba(7, 60, 23, 1));
     padding: 10px 20px;
     border-radius: 6px;
-    font-family: "SECONDARY_FONT";
+    font-family: "REGULAR_FONT";
     transition: all 0.3s ease;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
     transform: translateY(5px);
@@ -511,7 +511,7 @@ a:hover {
     border-radius: 20px;
     font-size: 0.95rem;
     font-weight: bold;
-    font-family: "SECONDARY_FONT";
+    font-family: "HEADER_FONT";
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5), 0 0 15px rgba(255, 215, 0, 0.5);
     text-transform: uppercase;
     z-index: 10;
@@ -631,7 +631,7 @@ a:hover {
 .version-container h2 {
     text-align: center;
     margin: 30px 0 20px 0;
-    font-family: "SECONDARY_FONT";
+    font-family: "HEADER_FONT";
     font-size: 2rem;
     position: relative;
     overflow: hidden;
@@ -665,7 +665,7 @@ a:hover {
 }
 
 .content-header h1 {
-    font-family: "SECONDARY_FONT";
+    font-family: "HEADER_FONT";
     font-size: 3.5rem;
     margin: 0;
     text-shadow: 0 4px 12px rgba(0, 0, 0, 0.8);
@@ -773,7 +773,7 @@ a:hover {
 }
 
 .feature-card-title {
-    font-family: "SECONDARY_FONT";
+    font-family: "HEADER_FONT";
     margin: 0 0 8px 0;
     font-size: 1.1rem;
     position: relative;
@@ -813,7 +813,7 @@ a:hover {
     align-self: flex-end;
     padding: 6px 12px;
     border-radius: 4px;
-    font-family: "SECONDARY_FONT";
+    font-family: "HEADER_FONT";
     text-align: center;
     cursor: pointer;
     user-select: none;
@@ -954,7 +954,7 @@ a:hover {
     border: 2px solid rgba(255, 255, 255, 0.2);
     border-radius: 8px;
     padding: 18px 70px;
-    font-family: "SECONDARY_FONT";
+    font-family: "HEADER_FONT";
     font-size: 2rem;
     color: #fce8f6;
     cursor: pointer;
@@ -1038,7 +1038,7 @@ a:hover {
 }
 
 .credits-header h1 {
-    font-family: "SECONDARY_FONT";
+    font-family: "HEADER_FONT";
     margin: 0;
     text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
 }
@@ -1048,7 +1048,7 @@ a:hover {
     border: none;
     border-radius: 4px;
     padding: 8px 16px;
-    font-family: "SECONDARY_FONT";
+    font-family: "REGULAR_FONT";
     transition: all 0.2s ease;
 }
 
@@ -1111,7 +1111,7 @@ a:hover {
 }
 
 .settings-title {
-    font-family: "PRIMARY_FONT";
+    font-family: "HEADER_FONT";
     text-align: center;
     margin-bottom: 20px;
     text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
@@ -1160,7 +1160,7 @@ a:hover {
     border: none;
     border-radius: 4px;
     padding: 10px 20px;
-    font-family: "PRIMARY_FONT";
+    font-family: "REGULAR_FONT";
     font-size: 1rem;
     flex: 1;
     transition: all 0.2s ease;
@@ -1211,7 +1211,7 @@ a:hover {
 
 .launcher-title, 
 .no-launcher-title {
-    font-family: "SECONDARY_FONT";
+    font-family: "HEADER_FONT";
     text-align: center;
     margin-bottom: 20px;
     text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
@@ -1272,7 +1272,7 @@ a:hover {
 }
 
 .progress-header h1 {
-    font-family: "SECONDARY_FONT";
+    font-family: "HEADER_FONT";
     margin: 0;
     text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
 }
@@ -1343,7 +1343,7 @@ a:hover {
 .loading-text {
     font-size: 20px;
     color: white;
-    font-family: "SECONDARY_FONT";
+    font-family: "HEADER_FONT";
     text-align: center;
     text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
 }
@@ -1359,7 +1359,7 @@ a:hover {
     border: 1px solid rgba(255, 255, 255, 0.2);
     border-radius: 4px;
     padding: 8px 16px;
-    font-family: "SECONDARY_FONT";
+    font-family: "REGULAR_FONT";
     color: #fce8f6;
     display: flex;
     align-items: center;
