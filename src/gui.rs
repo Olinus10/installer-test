@@ -109,6 +109,25 @@ fn HomePage(
 // Special value for home page
 const HOME_PAGE: usize = usize::MAX;
 
+#[component]
+fn StatisticsDisplay() -> Element {
+    rsx! {
+        div { class: "stats-container",
+            div { class: "stat-item",
+                span { class: "stat-value", "3+" }
+                span { class: "stat-label", "MODPACKS" }
+            }
+            div { class: "stat-item",
+                span { class: "stat-value", "100+" }
+                span { class: "stat-label", "MODS" }
+            }
+            div { class: "stat-item",
+                span { class: "stat-value", "20K+" }
+                span { class: "stat-label", "DOWNLOADS" }
+            }
+        }
+    }
+}
 
 #[component]
 fn ProgressView(value: i64, max: i64, status: String, title: String) -> Element {
