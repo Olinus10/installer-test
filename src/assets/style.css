@@ -823,7 +823,7 @@ a:hover {
 .feature-card-title {
     font-family: "HEADER_FONT";
     margin: 0 0 8px 0;
-    font-size: 1.1rem;
+    font-size: 1rem;
     position: relative;
     display: inline-block;
     text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
