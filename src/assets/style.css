@@ -713,31 +713,28 @@ a:hover {
 /* Feature Cards and Toggle Buttons */
 .feature-cards-container {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-    gap: 18px;
-    margin-bottom: 50px;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 15px;
+    margin-bottom: 40px;
     padding: 10px;
-    overflow-y: visible;
     box-sizing: border-box;
 }
 
 .feature-card {
     background-color: rgba(0, 0, 0, 0.7);
-    border-radius: 10px;
-    padding: 16px;
+    border-radius: 8px;
+    padding: 12px;
     transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     display: flex;
     flex-direction: column;
-    height: auto;
-    min-height: 120px;
-    max-height: 220px;
-    overflow-y: auto;
+    min-height: auto;
+    max-height: none;
     position: relative;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
 
 .feature-card.feature-enabled {
-    border-left: 4px solid #073c17;
+    border-left: 3px solid #073c17;
     background-image: linear-gradient(135deg, rgba(0, 0, 0, 0.7), rgba(7, 60, 23, 0.2));
     animation: feature-enabled-glow 4s infinite alternate;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3), 0 0 10px rgba(7, 60, 23, 0.3);
@@ -749,13 +746,13 @@ a:hover {
 }
 
 .feature-card.feature-disabled {
-    border-left: 4px solid #d95248;
+    border-left: 3px solid #d95248;
     background-image: linear-gradient(135deg, rgba(0, 0, 0, 0.7), rgba(217, 82, 72, 0.1));
 }
 
 .feature-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+    transform: translateY(-3px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
 }
 
 .feature-card.feature-disabled:hover {
@@ -777,12 +774,12 @@ a:hover {
 
 .feature-card-title {
     font-family: "SECONDARY_FONT";
-    margin: 0 0 12px 0;
-    font-size: 1.25rem;
+    margin: 0 0 8px 0;
+    font-size: 1.1rem;
     position: relative;
     display: inline-block;
     text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
-    padding-bottom: 6px;
+    padding-bottom: 4px;
 }
 
 .feature-card-title::after {
@@ -790,49 +787,50 @@ a:hover {
     position: absolute;
     bottom: 0;
     left: 0;
-    width: 40px;
+    width: 30px;
     height: 2px;
     background-color: #fce8f6;
     opacity: 0.6;
     transition: width 0.3s ease;
 }
 
+
 .feature-card:hover .feature-card-title::after {
     width: 100%;
 }
 
 .feature-card-description {
-    flex-grow: 1;
-    margin-bottom: 15px;
-    font-size: 0.9rem;
-    line-height: 1.5;
+    margin-bottom: 10px;
+    font-size: 0.85rem;
+    line-height: 1.4;
     color: #ddd;
-    max-height: 80px;
-    overflow-y: auto;
+    max-height: none;
+    overflow-y: visible;
 }
 
 /* Feature Toggle Button */
 .feature-toggle-button {
     align-self: flex-end;
-    padding: 8px 16px;
-    border-radius: 6px;
+    padding: 6px 12px;
+    border-radius: 4px;
     font-family: "SECONDARY_FONT";
     text-align: center;
     cursor: pointer;
     user-select: none;
     display: inline-block;
-    font-size: 0.95rem;
+    font-size: 0.85rem;
     font-weight: 500;
     letter-spacing: 0.5px;
     transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     border: 1px solid rgba(255, 255, 255, 0.15);
     position: relative;
     overflow: hidden;
+    margin-top: auto;
 }
 
 .feature-toggle-button.enabled {
     background-image: linear-gradient(135deg, #0a4d1e, #073c17);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3), 0 0 10px rgba(7, 60, 23, 0.3);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3), 0 0 8px rgba(7, 60, 23, 0.3);
     text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
     animation: toggle-glow-enabled 3s infinite alternate;
     border-color: rgba(255, 255, 255, 0.2);
@@ -846,7 +844,7 @@ a:hover {
 
 .feature-toggle-button.disabled {
     background-image: linear-gradient(135deg, #852e27, #d95248);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3), 0 0 10px rgba(217, 82, 72, 0.2);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3), 0 0 8px rgba(217, 82, 72, 0.2);
     text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
 }
 
@@ -885,6 +883,48 @@ a:hover {
 
 .feature-toggle-button:hover::before {
     animation: button-shine 1s forwards;
+}
+
+
+/* Feature card header - new layout */
+.feature-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.feature-card-header .feature-card-title {
+    margin: 0;
+    padding: 0;
+    flex-grow: 1;
+}
+
+.feature-card-header .feature-toggle-button {
+    margin: 0 0 0 10px;
+    font-size: 0.75rem;
+    padding: 3px 8px;
+    min-width: 40px;
+    text-align: center;
+}
+
+.feature-card-header .feature-card-title::after {
+    display: none;
+}
+
+/* Apply a more compact layout for medium screens */
+@media (max-width: 992px) {
+    .feature-cards-container {
+        grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    }
+    
+    .feature-card {
+        padding: 10px;
+    }
+    
+    .feature-card-title {
+        font-size: 1rem;
+    }
 }
 
 /* Install Button */
