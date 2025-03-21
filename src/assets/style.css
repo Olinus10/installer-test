@@ -189,6 +189,7 @@ a:hover {
 .dropdown {
     position: relative;
     display: inline-block;
+    font-family: inherit;
 }
 
 .dropdown-content {
@@ -206,6 +207,7 @@ a:hover {
     max-height: 400px;
     overflow-y: auto;
     border: 1px solid rgba(255, 255, 255, 0.1);
+    font-family: "PRIMARY_FONT", monospace;
 }
 
 .dropdown:hover .dropdown-content,
@@ -263,6 +265,13 @@ a:hover {
     color: #fff;
 }
 
+.dropdown-content .dropdown-item {
+    font-family: "PRIMARY_FONT", monospace !important; /* Use !important to override any conflicting styles */
+    letter-spacing: 0.06em;
+    font-size: 0.9rem;
+    color: #fce8f6;
+}
+
 /* Buttons */
 .header-tab-button, .settings-button {
     background-color: rgba(0, 0, 0, 0.5);
@@ -276,6 +285,15 @@ a:hover {
     overflow: hidden;
     transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+.header-tab-button {
+    font-family: "PRIMARY_FONT", monospace !important;
+    letter-spacing: 0.06em;
+}
+
+.header-tabs .dropdown .dropdown-content .dropdown-item {
+    font-family: "PRIMARY_FONT", monospace !important;
 }
 
 .header-tab-button:hover, .settings-button:hover {
