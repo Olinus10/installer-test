@@ -450,6 +450,12 @@ struct Manifest {
     max_mem: Option<i32>,
     min_mem: Option<i32>,
     java_args: Option<String>,
+    
+    // Add the new fields
+    category: Option<String>,
+    is_new: Option<bool>,
+    short_description: Option<String>,
+    is_updated: Option<bool>,
 }
 
 #[allow(non_snake_case)]
