@@ -8,7 +8,7 @@
 
 @font-face {
     font-family: "HEADER_FONT";
-    src: url(https://raw.githubusercontent.com/Wynncraft-Overhaul/installer/master/src/assets/04B_19__.TTF);
+    src: url(https://raw.githubusercontent.com/Wynncraft-Overhaul/installer/master/src/assets/FFFFORWA.TTF);
     font-weight: normal;
     font-style: normal;
 }
@@ -30,12 +30,60 @@ html, body {
 
 body {
     font-family: "REGULAR_FONT";
+    letter-spacing: 0.05em; /* Add slight letter spacing to all text by default */
+    line-height: 1.4; /* Increase line height for better readability */
     background-image: var(--bg-image);
     background-size: cover;
     background-position: center;
     background-attachment: fixed;
     color: #fce8f6;
     height: 100vh;
+}
+
+/* Apply slightly different spacing to headers */
+h1, h2, h3, h4, h5, h6, .app-title, .home-pack-title,
+.trending-badge, .content-header h1, .feature-card-title,
+.main-install-button, .credits-header h1, .settings-title,
+.launcher-title, .no-launcher-title, .progress-header h1,
+.loading-text, .credit-name {
+    letter-spacing: 0.08em; /* Slightly more spacing for headers */
+}
+
+/* More spacing for smaller text */
+.feature-card-description, .credit-authors, 
+.feature-toggle-button, .content-description-clean p,
+.no-launcher-message, .credits-content {
+    letter-spacing: 0.07em;
+}
+
+/* Adjust specific components that might need particular spacing */
+.dropdown-item {
+    letter-spacing: 0.06em;
+}
+
+.header-tab-button, .settings-button {
+    letter-spacing: 0.06em;
+}
+
+/* For smaller text elements */
+.feature-toggle-button {
+    letter-spacing: 0.05em;
+}
+
+/* Main install button needs good readability */
+.main-install-button {
+    letter-spacing: 0.1em;
+}
+
+/* Ensure proper spacing for buttons */
+.primary-button, .secondary-button, .custom-multimc-button {
+    letter-spacing: 0.07em;
+}
+
+/* Adjust word spacing as well for better readability */
+p, .feature-card-description, .content-description-clean, 
+.no-launcher-message, .credits-content {
+    word-spacing: 0.1em;
 }
 
 /* Custom Scrollbar */
