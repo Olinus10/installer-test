@@ -10,7 +10,7 @@ use crate::{get_app_data, get_installed_packs, get_launcher, uninstall, Installe
 mod modal;
 
 const HEADER_FONT: &str = "https://raw.githubusercontent.com/Wynncraft-Overhaul/installer/master/src/assets/FFFFORWA.TTF";
-const REGULAR_FONT: &str = "https://raw.githubusercontent.com/Wynncraft-Overhaul/installer/master/src/assets/Minecraft.ttf";
+const REGULAR_FONT: &str = "https://raw.githubusercontent.com/Wynncraft-Overhaul/installer/master/src/assets/Wynncraft_Game_Font.woff2";
 
 #[derive(Debug, Clone)]
 struct TabInfo {
