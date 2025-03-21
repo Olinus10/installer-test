@@ -455,7 +455,6 @@ struct Manifest {
     category: Option<String>,
     is_new: Option<bool>,
     short_description: Option<String>,
-    is_updated: Option<bool>,
 }
 
 #[allow(non_snake_case)]
