@@ -9,14 +9,15 @@ use crate::{get_app_data, get_installed_packs, get_launcher, uninstall, Installe
 
 mod modal;
 
+const HEADER_FONT: &str = "https://raw.githubusercontent.com/Wynncraft-Overhaul/installer/master/src/assets/04B_19__.TTF";
+const REGULAR_FONT: &str = "https://raw.githubusercontent.com/Wynncraft-Overhaul/installer/master/src/assets/Minecraft.ttf";
+
 #[derive(Debug, Clone)]
 struct TabInfo {
     color: String,
     title: String, 
     background: String,
     settings_background: String,
-    primary_font: String,
-    secondary_font: String,
     modpacks: Vec<InstallerProfile>,
 }
 
@@ -634,6 +635,7 @@ fn feature_change(
     }
 }
 
+// Update the init_branch function
 async fn init_branch(source: String, branch: String, launcher: Launcher, mut pages: Signal<BTreeMap<usize, TabInfo>>) -> Result<(), String> {
     debug!("Initializing modpack from source: {}, branch: {}", source, branch);
     let profile = crate::init(source.to_owned(), branch.to_owned(), launcher).await?;
@@ -662,9 +664,6 @@ async fn init_branch(source: String, branch: String, launcher: Launcher, mut pag
     }
 
     let tab_created = pages.read().contains_key(&tab_group);
-    
-    // Use a consistent font for all tabs/components - use the Wynncraft Game Font
-    let consistent_font = "https://raw.githubusercontent.com/Wynncraft-Overhaul/installer/master/src/assets/Wynncraft_Game_Font.woff2".to_string();
     
     // Create the tab if it doesn't exist
     if !tab_created {
@@ -696,14 +695,15 @@ async fn init_branch(source: String, branch: String, launcher: Launcher, mut pag
         // Use a consistent background for settings - home background
         let settings_background = "https://raw.githubusercontent.com/Wynncraft-Overhaul/installer/master/src/assets/background_installer.png".to_string();
 
-        // Use a consistent font for all purposes
+        // No longer storing font variables in TabInfo
         let tab_info = TabInfo {
             color: tab_color,
             title: tab_title,
             background: tab_background,
             settings_background,
-            primary_font: consistent_font.clone(),
-            secondary_font: consistent_font.clone(),
+            // Remove these fields as we're now using constants
+            // primary_font: consistent_font.clone(),
+            // secondary_font: consistent_font.clone(),
             modpacks: vec![profile.clone()], // Add the profile immediately
         };
         
@@ -1327,174 +1327,160 @@ pub(crate) fn app() -> Element {
 
     // Effect to build pages map when branches are processed
     use_effect(move || {
-        if let Some(processed_branches) = packs.read().as_ref() {
-            debug!("Building pages map from {} processed branches", processed_branches.len());
+    if let Some(processed_branches) = packs.read().as_ref() {
+        debug!("Building pages map from {} processed branches", processed_branches.len());
+        
+        let mut new_pages = BTreeMap::<usize, TabInfo>::new();
+        for (tab_group, profile) in processed_branches {
+            let tab_title = profile.manifest.tab_title.clone().unwrap_or_else(|| profile.manifest.subtitle.clone());
+            let tab_color = profile.manifest.tab_color.clone().unwrap_or_else(|| String::from("#320625"));
+            let tab_background = profile.manifest.tab_background.clone().unwrap_or_else(|| {
+                String::from("https://raw.githubusercontent.com/Wynncraft-Overhaul/installer/master/src/assets/background_installer.png")
+            });
+            let settings_background = profile.manifest.settings_background.clone().unwrap_or_else(|| tab_background.clone());
             
-            let mut new_pages = BTreeMap::<usize, TabInfo>::new();
-            for (tab_group, profile) in processed_branches {
-                let tab_title = profile.manifest.tab_title.clone().unwrap_or_else(|| profile.manifest.subtitle.clone());
-                let tab_color = profile.manifest.tab_color.clone().unwrap_or_else(|| String::from("#320625"));
-                let tab_background = profile.manifest.tab_background.clone().unwrap_or_else(|| {
-                    String::from("https://raw.githubusercontent.com/Wynncraft-Overhaul/installer/master/src/assets/background_installer.png")
-                });
-                let settings_background = profile.manifest.settings_background.clone().unwrap_or_else(|| tab_background.clone());
-                let primary_font = profile.manifest.tab_primary_font.clone().unwrap_or_else(|| {
-                    String::from("https://raw.githubusercontent.com/Wynncraft-Overhaul/installer/master/src/assets/Wynncraft_Game_Font.woff2")
-                });
-                let secondary_font = profile.manifest.tab_secondary_font.clone().unwrap_or_else(|| primary_font.clone());
-
-                new_pages.entry(*tab_group).or_insert(TabInfo {
-                    color: tab_color,
-                    title: tab_title,
-                    background: tab_background,
-                    settings_background,
-                    primary_font,
-                    secondary_font,
-                    modpacks: vec![profile.clone()],
-                });
-            }
-            
-            pages.set(new_pages);
-            debug!("Updated pages map with {} tabs", pages().len());
+            // No longer including font fields
+            new_pages.entry(*tab_group).or_insert(TabInfo {
+                color: tab_color,
+                title: tab_title,
+                background: tab_background,
+                settings_background,
+                // Remove these fields
+                // primary_font,
+                // secondary_font,
+                modpacks: vec![profile.clone()],
+            });
         }
-    });
+        
+        pages.set(new_pages);
+        debug!("Updated pages map with {} tabs", pages().len());
+    }
+});
 
-    // Update the CSS generation section
     let css_content = {
-        let default_color = "#320625".to_string();
-        let default_bg = "https://raw.githubusercontent.com/Wynncraft-Overhaul/installer/master/src/assets/background_installer.png".to_string();
-        let default_font = "https://raw.githubusercontent.com/Wynncraft-Overhaul/installer/master/src/assets/Wynncraft_Game_Font.woff2".to_string();
-        
-        let bg_color = match pages().get(&page()) {
-            Some(x) => x.color.clone(),
-            None => default_color,
-        };
-        
-        let bg_image = match pages().get(&page()) {
-            Some(x) => {
-                if settings() {
-                    x.settings_background.clone()
-                } else {
-                    x.background.clone()
-                }
-            },
-            None => default_bg,
-        };
-        
-        let secondary_font = match pages().get(&page()) {
-            Some(x) => x.secondary_font.clone(),
-            None => default_font.clone(),
-        };
-        
-        let primary_font = match pages().get(&page()) {
-            Some(x) => x.primary_font.clone(),
-            None => default_font,
-        };
-        
-        debug!("Updating CSS with: color={}, bg_image={}, secondary_font={}, primary_font={}", 
-               bg_color, bg_image, secondary_font, primary_font);
-            
-        // Improved dropdown menu CSS with better hover behavior and font consistency
-        let dropdown_css = "
-        /* Dropdown styles */
-        .dropdown { 
-            position: relative; 
-            display: inline-block; 
-        }
-
-        /* Position the dropdown content */
-        .dropdown-content {
-            display: none;
-            position: absolute;
-            top: 100%;
-            left: 0;
-            background-color: rgba(0, 0, 0, 0.9);
-            min-width: 200px;
-            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.6);
-            z-index: 1000;
-            border-radius: 4px;
-            overflow: hidden;
-            margin-top: 5px;
-            max-height: 400px;
-            overflow-y: auto;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        /* Show dropdown on hover with increased target area */
-        .dropdown:hover .dropdown-content,
-        .dropdown-content:hover {
-            display: block;
-        }
-
-        /* Add a pseudo-element to create an invisible connection between the button and dropdown */
-        .dropdown::after {
-            content: '';
-            position: absolute;
-            height: 10px;
-            width: 100%;
-            left: 0;
-            top: 100%;
-            display: none;
-        }
-
-        .dropdown:hover::after {
-            display: block;
-        }
-
-        .dropdown-item {
-            display: block;
-            width: 100%;
-            padding: 10px 15px;
-            text-align: left;
-            background-color: transparent;
-            border: none;
-            /* Explicitly use the same font as header-tab-button */
-            font-family: \\\"PRIMARY_FONT\\\";
-            font-size: 0.9rem;
-            color: #fce8f6;
-            cursor: pointer;
-            transition: background-color 0.2s ease;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-        }
-
-        .dropdown-item:last-child {
-            border-bottom: none;
-        }
-
-        .dropdown-item:hover {
-            background-color: rgba(50, 6, 37, 0.8);
-            border-color: rgba(255, 255, 255, 0.4);
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
-        }
-
-        .dropdown-item.active {
-            background-color: var(--bg-color);
-            border-color: #fce8f6;
-            box-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
-            color: #fff;
-        }
-
-        /* Fix for header-tabs to prevent dropdown from affecting it */
-        .header-tabs {
-            display: flex;
-            gap: 5px;
-            margin: 0 10px;
-            flex-grow: 1;
-            justify-content: center;
-            flex-wrap: wrap;
-            overflow-x: visible;
-            scrollbar-width: thin;
-            max-width: 70%;
-            position: relative;
-        }";
-            
-        css
-            .replace("<BG_COLOR>", &bg_color)
-            .replace("<BG_IMAGE>", &bg_image)
-            .replace("<SECONDARY_FONT>", &secondary_font)
-            .replace("<PRIMARY_FONT>", &primary_font) 
-            + dropdown_css
+    let default_color = "#320625".to_string();
+    let default_bg = "https://raw.githubusercontent.com/Wynncraft-Overhaul/installer/master/src/assets/background_installer.png".to_string();
+    
+    let bg_color = match pages().get(&page()) {
+        Some(x) => x.color.clone(),
+        None => default_color,
     };
+    
+    let bg_image = match pages().get(&page()) {
+        Some(x) => {
+            if settings() {
+                x.settings_background.clone()
+            } else {
+                x.background.clone()
+            }
+        },
+        None => default_bg,
+    };
+    
+    // Use constants instead of TabInfo properties
+    debug!("Updating CSS with: color={}, bg_image={}", bg_color, bg_image);
+        
+    // Improved dropdown menu CSS with better hover behavior and font consistency
+    let dropdown_css = "
+    /* Dropdown styles */
+    .dropdown { 
+        position: relative; 
+        display: inline-block; 
+    }
+
+    /* Position the dropdown content */
+    .dropdown-content {
+        display: none;
+        position: absolute;
+        top: 100%;
+        left: 0;
+        background-color: rgba(0, 0, 0, 0.9);
+        min-width: 200px;
+        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.6);
+        z-index: 1000;
+        border-radius: 4px;
+        overflow: hidden;
+        margin-top: 5px;
+        max-height: 400px;
+        overflow-y: auto;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    /* Show dropdown on hover with increased target area */
+    .dropdown:hover .dropdown-content,
+    .dropdown-content:hover {
+        display: block;
+    }
+
+    /* Add a pseudo-element to create an invisible connection between the button and dropdown */
+    .dropdown::after {
+        content: '';
+        position: absolute;
+        height: 10px;
+        width: 100%;
+        left: 0;
+        top: 100%;
+        display: none;
+    }
+
+    .dropdown:hover::after {
+        display: block;
+    }
+
+    .dropdown-item {
+        display: block;
+        width: 100%;
+        padding: 10px 15px;
+        text-align: left;
+        background-color: transparent;
+        border: none;
+        /* Explicitly use the PRIMARY_FONT */
+        font-family: \\\"PRIMARY_FONT\\\";
+        font-size: 0.9rem;
+        color: #fce8f6;
+        cursor: pointer;
+        transition: background-color 0.2s ease;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .dropdown-item:last-child {
+        border-bottom: none;
+    }
+
+    .dropdown-item:hover {
+        background-color: rgba(50, 6, 37, 0.8);
+        border-color: rgba(255, 255, 255, 0.4);
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+    }
+
+    .dropdown-item.active {
+        background-color: var(--bg-color);
+        border-color: #fce8f6;
+        box-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
+        color: #fff;
+    }
+
+    /* Fix for header-tabs to prevent dropdown from affecting it */
+    .header-tabs {
+        display: flex;
+        gap: 5px;
+        margin: 0 10px;
+        flex-grow: 1;
+        justify-content: center;
+        flex-wrap: wrap;
+        overflow-x: visible;
+        scrollbar-width: thin;
+        max-width: 70%;
+        position: relative;
+    }";
+        
+    css
+        .replace("<BG_COLOR>", &bg_color)
+        .replace("<BG_IMAGE>", &bg_image)
+        .replace("<SECONDARY_FONT>", HEADER_FONT)
+        .replace("<PRIMARY_FONT>", REGULAR_FONT) 
+        + dropdown_css
+}
 
     let mut modal_context = use_context_provider(ModalContext::default);
     if let Some(e) = err() {
