@@ -42,7 +42,7 @@ body {
 
 /* Apply slightly different spacing to headers */
 h1, h2, h3, h4, h5, h6, .app-title, .home-pack-title,
-.trending-badge, .content-header h1, .feature-card-title,
+ .content-header h1, .feature-card-title,
 .main-install-button, .credits-header h1, .settings-title,
 .launcher-title, .no-launcher-title, .progress-header h1,
 .loading-text, .credit-name {
@@ -50,7 +50,7 @@ h1, h2, h3, h4, h5, h6, .app-title, .home-pack-title,
 }
 
 /* More spacing for smaller text */
-.feature-card-description, .credit-authors, 
+.feature-card-description, .credit-authors, .trending-badge,
 .feature-toggle-button, .content-description-clean p,
 .no-launcher-message, .credits-content {
     letter-spacing: 0.07em;
@@ -579,7 +579,7 @@ a:hover {
     border-radius: 20px;
     font-size: 0.95rem;
     font-weight: bold;
-    font-family: "HEADER_FONT";
+    font-family: "REGULAR_FONT";
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5), 0 0 15px rgba(255, 215, 0, 0.5);
     text-transform: uppercase;
     z-index: 10;
