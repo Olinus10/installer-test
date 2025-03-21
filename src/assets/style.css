@@ -1662,3 +1662,56 @@ a:hover {
         text-shadow: 0 0 20px rgba(255, 255, 255, 0.4);
     }
 }
+
+/* Container for the particles */
+.particles-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  z-index: 0; /* Keep it behind content */
+  pointer-events: none; /* Allow clicks to pass through */
+}
+
+/* Individual particle styling */
+.particle {
+  position: absolute;
+  border-radius: 50%;
+  background-color: rgba(255, 255, 255, 0.3); /* White particles with transparency */
+  pointer-events: none;
+  will-change: transform; /* Performance optimization */
+}
+
+/* Specific types of particles - can be used for theme variety */
+.particle.purple {
+  background-color: rgba(140, 58, 120, 0.3); /* Purple particles */
+}
+
+.particle.green {
+  background-color: rgba(7, 60, 23, 0.3); /* Green particles */
+}
+
+/* Float animation */
+@keyframes float {
+  0% {
+    transform: translateY(0) rotate(0deg);
+  }
+  100% {
+    transform: translateY(-100vh) rotate(360deg);
+  }
+}
+
+/* Horizontal float variation */
+@keyframes float-horizontal {
+  0% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+  50% {
+    transform: translate(20px, -50vh) rotate(180deg);
+  }
+  100% {
+    transform: translate(-20px, -100vh) rotate(360deg);
+  }
+}
