@@ -185,11 +185,10 @@ a:hover {
     gap: 3px;
 }
 
-/* Dropdown Menu */
+/* Dropdown Menu - Fixed */
 .dropdown {
     position: relative;
     display: inline-block;
-    font-family: inherit;
 }
 
 .dropdown-content {
@@ -207,7 +206,7 @@ a:hover {
     max-height: 400px;
     overflow-y: auto;
     border: 1px solid rgba(255, 255, 255, 0.1);
-    font-family: "PRIMARY_FONT", monospace;
+    font-family: "REGULAR_FONT"; /* Consistent font name */
 }
 
 .dropdown:hover .dropdown-content,
@@ -236,7 +235,7 @@ a:hover {
     text-align: left;
     background-color: transparent;
     border: none;
-    font-family: "REGULAR_FONT";
+    font-family: "REGULAR_FONT"; /* Consistent font name */
     font-size: 0.9rem;
     color: #fce8f6;
     cursor: pointer;
@@ -244,6 +243,7 @@ a:hover {
     border-bottom: 1px solid rgba(255, 255, 255, 0.05);
     position: relative;
     overflow: hidden;
+    letter-spacing: 0.06em;
 }
 
 .dropdown-item:last-child {
@@ -266,34 +266,36 @@ a:hover {
 }
 
 .dropdown-content .dropdown-item {
-    font-family: "PRIMARY_FONT", monospace !important; /* Use !important to override any conflicting styles */
+    font-family: "REGULAR_FONT", monospace !important; /* Use !important to override any conflicting styles */
     letter-spacing: 0.06em;
     font-size: 0.9rem;
     color: #fce8f6;
 }
 
 /* Buttons */
+/* Header Tab Button - Fixed */
 .header-tab-button, .settings-button {
     background-color: rgba(0, 0, 0, 0.5);
     border: 1px solid rgba(255, 255, 255, 0.2);
     border-radius: 6px;
     padding: 8px 16px;
-    font-family: "REGULAR_FONT";
+    font-family: "REGULAR_FONT"; /* Consistent font name */
     font-size: 1rem;
     color: #fce8f6;
     position: relative;
     overflow: hidden;
     transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+    letter-spacing: 0.06em;
 }
 
 .header-tab-button {
-    font-family: "PRIMARY_FONT", monospace !important;
+    font-family: "REGULAR_FONT", monospace !important;
     letter-spacing: 0.06em;
 }
 
 .header-tabs .dropdown .dropdown-content .dropdown-item {
-    font-family: "PRIMARY_FONT", monospace !important;
+    font-family: "REGULAR_FONT", monospace !important;
 }
 
 .header-tab-button:hover, .settings-button:hover {
