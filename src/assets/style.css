@@ -2213,3 +2213,113 @@ transform: scale(1.03);
     background: linear-gradient(to right, transparent, rgba(255, 255, 255, 0.3), transparent);
   }
 }
+
+
+.section-divider {
+  position: relative;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+  margin: 30px auto;
+  width: 100%;
+  max-width: 1000px;
+}
+
+/* Divider with title */
+.section-divider.with-title {
+  height: auto;
+  text-align: center;
+  background: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 40px auto;
+}
+
+.section-divider.with-title::before,
+.section-divider.with-title::after {
+  content: "";
+  flex-grow: 1;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), rgba(255, 255, 255, 0.6));
+}
+
+.section-divider.with-title::after {
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.6), rgba(255, 255, 255, 0.4), transparent);
+}
+
+.divider-title {
+  padding: 0 20px;
+  font-family: "HEADER_FONT";
+  font-size: 1.4rem;
+  color: #fce8f6;
+  text-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
+  letter-spacing: 0.08em;
+}
+
+/* Fancy divider */
+.section-divider.fancy {
+  height: 2px;
+  background: linear-gradient(90deg, 
+    transparent, 
+    rgba(7, 60, 23, 0.6), 
+    rgba(255, 255, 255, 0.8), 
+    rgba(7, 60, 23, 0.6), 
+    transparent
+  );
+  position: relative;
+}
+
+.section-divider.fancy::before,
+.section-divider.fancy::after {
+  content: '';
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.8);
+  top: 50%;
+  transform: translateY(-50%);
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.6);
+}
+
+.section-divider.fancy::before {
+  left: calc(50% - 100px);
+}
+
+.section-divider.fancy::after {
+  right: calc(50% - 100px);
+}
+
+/* Animated divider */
+.section-divider.animated {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+  overflow: hidden;
+  position: relative;
+}
+
+.section-divider.animated::before {
+  content: '';
+  position: absolute;
+  width: 50%;
+  height: 1px;
+  background: linear-gradient(90deg, 
+    transparent, 
+    rgba(255, 255, 255, 0), 
+    rgba(255, 255, 255, 0.8), 
+    rgba(255, 255, 255, 0), 
+    transparent
+  );
+  top: 0;
+  left: -50%;
+  animation: divider-shine 3s infinite ease-in-out;
+}
+
+@keyframes divider-shine {
+  0% {
+    left: -50%;
+  }
+  100% {
+    left: 100%;
+  }
+}
