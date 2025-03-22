@@ -65,7 +65,7 @@ fn ChangelogSection(changelog: Option<Changelog>) -> Element {
         rsx! {
             div { class: "changelog-container",
                 div { class: "section-divider with-title", 
-                    span { class: "divider-title", "Latest Changes" }
+                    span { class: "divider-title", "LATEST CHANGES" }
                 }
                 
                 div { class: "changelog-entries",
@@ -189,7 +189,7 @@ fn HomePage(
             
             // Add a section divider with title
             div { class: "section-divider with-title", 
-                span { class: "divider-title", "Featured Modpacks" }
+                span { class: "divider-title", "FEATURED MODPACKS" }
             }
             
             div { class: "home-grid",
@@ -1356,7 +1356,7 @@ fn Version(mut props: VersionProps) -> Element {
                     }
                     
                     // Features heading with debug counter to confirm refreshes
-                    h2 { "Optional Features" }
+                    h2 { "OPTIONAL FEATURES" }
                     
                     // Feature cards in a responsive grid with explicit feature handling
                     div { class: "feature-cards-container",
