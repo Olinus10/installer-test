@@ -163,7 +163,7 @@ fn Footer() -> Element {
             }
             
             div { class: "footer-bottom",
-                p { class: "copyright", "© 2023-2025 Wynncraft Overhaul. CC BY-NC-SA 4.0." }
+                p { class: "copyright", "© 2023-2025 Majestic Overhaul. CC BY-NC-SA 4.0." }
             }
         }
     }
@@ -315,8 +315,8 @@ fn StatisticsDisplay() -> Element {
     rsx! {
         div { class: "stats-container",
             div { class: "stat-item",
-                span { class: "stat-value", "3+" }
-                span { class: "stat-label", "MODPACKS" }
+                span { class: "stat-value", "200+" }
+                span { class: "stat-label", "´FPS" }
             }
             div { class: "stat-item",
                 span { class: "stat-value", "100+" }
