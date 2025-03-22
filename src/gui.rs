@@ -4,6 +4,7 @@ use dioxus::prelude::*;
 use log::{error, debug};
 use modal::ModalContext;
 use modal::Modal; 
+use serde::{Deserialize, Serialize};
 
 use crate::{get_app_data, get_installed_packs, get_launcher, uninstall, InstallerProfile, Launcher, PackName};
 
@@ -55,6 +56,120 @@ fn BackgroundParticles() -> Element {
     }
 }
 
+#[component]
+fn ChangelogSection(changelog: Option<Changelog>) -> Element {
+    if let Some(changelog_data) = changelog {
+        if changelog_data.entries.is_empty() {
+            return None;
+        }
+        
+        rsx! {
+            div { class: "changelog-container",
+                div { class: "section-divider with-title", 
+                    span { class: "divider-title", "Latest Changes" }
+                }
+                
+                div { class: "changelog-entries",
+                    for (index, entry) in changelog_data.entries.iter().enumerate().take(5) {
+                        div { 
+                            class: "changelog-entry",
+                            "data-importance": "{entry.importance.clone().unwrap_or_else(|| String::from(\"normal\"))}",
+                            
+                            div { class: "changelog-header",
+                                h3 { class: "changelog-title", "{entry.title}" }
+                                
+                                if let Some(version) = &entry.version {
+                                    span { class: "changelog-version", "v{version}" }
+                                }
+                                
+                                if let Some(date) = &entry.date {
+                                    span { class: "changelog-date", "{date}" }
+                                }
+                            }
+                            
+                            div { 
+                                class: "changelog-content",
+                                dangerous_inner_html: "{entry.contents}"
+                            }
+                            
+                            // Show divider between entries except for the last one
+                            if index < changelog_data.entries.len() - 1 && index < 4 {
+                                div { class: "entry-divider" }
+                            }
+                        }
+                    }
+                    
+                    // Show "View all changes" button if more than 5 entries
+                    if changelog_data.entries.len() > 5 {
+                        div { class: "view-all-changes",
+                            button { class: "view-all-button",
+                                "View All Changes"
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    } else {
+        // Return empty div while loading
+        rsx! { div { class: "changelog-loading" } }
+    }
+}
+
+// Add this new component for the footer with Discord button
+#[component]
+fn Footer() -> Element {
+    rsx! {
+        footer { class: "app-footer",
+            div { class: "footer-content",
+                div { class: "footer-section",
+                    h3 { class: "footer-heading", "Community" }
+                    a { 
+                        class: "discord-button",
+                        href: "https://discord.gg/olinus-corner-778965021656743966",
+                        target: "_blank",
+                        rel: "noopener noreferrer",
+                        
+                        // Discord logo (simplified SVG as inline content)
+                        svg {
+                            class: "discord-logo",
+                            xmlns: "http://www.w3.org/2000/svg",
+                            width: "24",
+                            height: "24",
+                            viewBox: "0 0 24 24",
+                            fill: "currentColor",
+                            
+                            path {
+                                d: "M19.54 0c1.356 0 2.46 1.104 2.46 2.472v21.528l-2.58-2.28-1.452-1.344-1.536-1.428.636 2.22h-13.608c-1.356 0-2.46-1.104-2.46-2.472v-16.224c0-1.368 1.104-2.472 2.46-2.472h16.08zm-4.632 15.672c2.652-.084 3.672-1.824 3.672-1.824 0-3.864-1.728-6.996-1.728-6.996-1.728-1.296-3.372-1.26-3.372-1.26l-.168.192c2.04.624 2.988 1.524 2.988 1.524-1.248-.684-2.472-1.02-3.612-1.152-.864-.096-1.692-.072-2.424.024l-.204.024c-.42.036-1.44.192-2.724.756-.444.204-.708.348-.708.348s.996-.948 3.156-1.572l-.12-.144s-1.644-.036-3.372 1.26c0 0-1.728 3.132-1.728 6.996 0 0 1.008 1.74 3.66 1.824 0 0 .444-.54.804-.996-1.524-.456-2.1-1.416-2.1-1.416l.336.204.048.036.047.027.014.006.047.027c.3.168.6.3.876.408.492.192 1.08.384 1.764.516.9.168 1.956.228 3.108.012.564-.096 1.14-.264 1.74-.516.42-.156.888-.384 1.38-.708 0 0-.6.984-2.172 1.428.36.456.792.972.792.972zm-5.58-5.604c-.684 0-1.224.6-1.224 1.332 0 .732.552 1.332 1.224 1.332.684 0 1.224-.6 1.224-1.332.012-.732-.54-1.332-1.224-1.332zm4.38 0c-.684 0-1.224.6-1.224 1.332 0 .732.552 1.332 1.224 1.332.684 0 1.224-.6 1.224-1.332 0-.732-.54-1.332-1.224-1.332z"
+                            }
+                        }
+                        
+                        span { "Join our Discord" }
+                    }
+                }
+                
+                div { class: "footer-section",
+                    h3 { class: "footer-heading", "About" }
+                    p { class: "footer-text", 
+                        "The Wynncraft Overhaul Installer provides easy access to modpacks that enhance your Wynncraft experience."
+                    }
+                }
+                
+                div { class: "footer-section",
+                    h3 { class: "footer-heading", "Legal" }
+                    p { class: "footer-text", 
+                        "All modpacks are made by the community and are not affiliated with Wynncraft."
+                    }
+                }
+            }
+            
+            div { class: "footer-bottom",
+                p { class: "copyright", "© 2023-2025 Wynncraft Overhaul. All rights reserved." }
+            }
+        }
+    }
+}
+
 // Home Page component with redundancy removed
 #[component]
 fn HomePage(
@@ -62,6 +177,11 @@ fn HomePage(
     page: Signal<usize>
 ) -> Element {
     debug!("HomePage component rendering with {} tabs", pages().len());
+    
+    // Get the changelog from the first modpack profile we can find
+    let changelog = pages().values().next().and_then(|tab_info| {
+        tab_info.modpacks.first().and_then(|profile| profile.changelog.clone())
+    });
     
     rsx! {
         div { class: "home-container",
@@ -83,11 +203,9 @@ fn HomePage(
                             
                             // Get metadata for enhanced card presentation
                             let category = modpack.manifest.category.clone().unwrap_or_else(|| "Gameplay".to_string());
-                            let version = modpack.manifest.modpack_version.clone();
                             let is_trending = modpack.manifest.trend.unwrap_or(false);
                             let is_updated = modpack.update_available;
                             let is_new = modpack.manifest.is_new.unwrap_or(false);
-                            let mods_count = modpack.manifest.mods.len();
                             let description = modpack.manifest.short_description.clone();
                             
                             rsx! {
@@ -110,71 +228,68 @@ fn HomePage(
                                         div { class: "trending-crown" }
                                         
                                         div { 
-    class: "home-pack-card trending",
-    style: "background-image: url('{info.background}'); background-color: {info.color};",
-    "data-category": "{category}",
-    "data-new": "{is_new}",
-    "data-updated": "{is_updated}",
-    
-    // Category badge
-    div { class: "category-badge {category.to_lowercase()}", "{category}" }
-    
-    // Add trending badge
-    div { class: "trending-badge", "Popular" }
-    
-    div { class: "home-pack-info",
-        h2 { class: "home-pack-title", "{modpack_subtitle}" }
-        
-        // Description (hidden until hover)
-        if let Some(desc) = &description {
-            div { class: "home-pack-description", "{desc}" }
-        }
-        
-        div { class: "home-pack-button", "View Modpack" }
-    }
-}
+                                            class: "home-pack-card trending",
+                                            style: "background-image: url('{info.background}'); background-color: {info.color};",
+                                            "data-category": "{category}",
+                                            
+                                            // Category badge
+                                            div { class: "category-badge {category.to_lowercase()}", "{category}" }
+                                            
+                                            // Add trending badge
+                                            div { class: "trending-badge", "Popular" }
+                                            
+                                            div { class: "home-pack-info",
+                                                h2 { class: "home-pack-title", "{modpack_subtitle}" }
+                                                
+                                                // Description (hidden until hover)
+                                                if let Some(desc) = &description {
+                                                    div { class: "home-pack-description", "{desc}" }
+                                                }
+                                                
+                                                div { class: "home-pack-button", "View Modpack" }
+                                            }
+                                        }
                                     }
                                 } else {
                                     // Regular non-trending card
                                     div { 
-    class: "home-pack-card",
-    style: "background-image: url('{info.background}'); background-color: {info.color};",
-    "data-category": "{category}",
-    "data-new": "{is_new}",
-    "data-updated": "{is_updated}",
-    onclick: move |_| {
-        let old_page = page();
-        debug!("HOME CLICK: Changing page from {} to {} ({}) - HOME_PAGE={}", 
-            old_page, tab_index, tab_title, HOME_PAGE);
-        
-        page.write().clone_from(&tab_index);
-        
-        let new_page = page();
-        debug!("HOME CLICK RESULT: Page is now {}", new_page);
-    },
-    
-    // Category badge
-    div { class: "category-badge {category.to_lowercase()}", "{category}" }
-    
-    // NEW/UPDATED ribbon if applicable
-    if is_new {
-        div { class: "new-ribbon", "NEW" }
-    } else if is_updated {
-        div { class: "updated-ribbon", "UPDATED" }
-    }
-    
-    div { class: "home-pack-info",
-        h2 { class: "home-pack-title", "{modpack_subtitle}" }
-        
-        // Description (hidden until hover)
-        if let Some(desc) = &description {
-            div { class: "home-pack-description", "{desc}" }
-        }
-        
-        div { class: "home-pack-button", "View Modpack" }
-    }
-}
-
+                                        class: "home-pack-card",
+                                        style: "background-image: url('{info.background}'); background-color: {info.color};",
+                                        "data-category": "{category}",
+                                        "data-new": "{is_new}",
+                                        "data-updated": "{is_updated}",
+                                        onclick: move |_| {
+                                            let old_page = page();
+                                            debug!("HOME CLICK: Changing page from {} to {} ({}) - HOME_PAGE={}", 
+                                                old_page, tab_index, tab_title, HOME_PAGE);
+                                            
+                                            page.write().clone_from(&tab_index);
+                                            
+                                            let new_page = page();
+                                            debug!("HOME CLICK RESULT: Page is now {}", new_page);
+                                        },
+                                        
+                                        // Category badge
+                                        div { class: "category-badge {category.to_lowercase()}", "{category}" }
+                                        
+                                        // NEW/UPDATED ribbon if applicable
+                                        if is_new {
+                                            div { class: "new-ribbon", "NEW" }
+                                        } else if is_updated {
+                                            div { class: "updated-ribbon", "UPDATED" }
+                                        }
+                                        
+                                        div { class: "home-pack-info",
+                                            h2 { class: "home-pack-title", "{modpack_subtitle}" }
+                                            
+                                            // Description (hidden until hover)
+                                            if let Some(desc) = &description {
+                                                div { class: "home-pack-description", "{desc}" }
+                                            }
+                                            
+                                            div { class: "home-pack-button", "View Modpack" }
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -182,9 +297,15 @@ fn HomePage(
                 }
             }
             
-            // Add another section divider
+            // Add Changelog Section
+            ChangelogSection { changelog: changelog }
+            
+            // Add a section divider
             div { class: "section-divider animated" }
         }
+        
+        // Add Footer
+        Footer {}
     }
 }
 // Special value for home page
