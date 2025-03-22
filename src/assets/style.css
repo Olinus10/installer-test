@@ -1240,23 +1240,23 @@ a:hover {
   animation: button-shine 6s infinite;
 }
 
-.main-install-button:hover([disabled]) {
-transform: translateY(-5px);
-background-image: linear-gradient(135deg, #0f6229, #0a4d1e);
-text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
-border-color: rgba(255, 255, 255, 0.4);
-box-shadow: 0 15px 30px rgba(0, 0, 0, 0.5), 0 0 35px rgba(7, 60, 23, 0.9);
-animation: button-glow 1.5s infinite alternate;
+.main-install-button:hover:not([disabled]) {
+  transform: translateY(-5px);
+  background-image: linear-gradient(135deg, #0f6229, #0a4d1e);
+  text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+  border-color: rgba(255, 255, 255, 0.4);
+  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.5), 0 0 35px rgba(7, 60, 23, 0.9);
+  animation: button-glow 1.5s infinite alternate;
 }
 
 .button-scale-wrapper:hover .main-install-button:not([disabled]) {
     animation: button-glow 1.5s infinite alternate;
 }
 
-.main-install-button:active([disabled]) {
-transform: translateY(-2px);
-transition: all 0.1s ease;
-box-shadow: 0 8px 16px rgba(0, 0, 0, 0.5), 0 0 25px rgba(7, 60, 23, 0.8);
+.main-install-button:active:not([disabled]) {
+  transform: translateY(-2px);
+  transition: all 0.1s ease;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.5), 0 0 25px rgba(7, 60, 23, 0.8);
 }
 
 .main-install-button:disabled {
@@ -1266,16 +1266,16 @@ opacity: 0.7;
 box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3), 0 0 15px rgba(7, 60, 23, 0.2);
 }
 
-/* Progress indicator in button /
+/* Progress indicator in button */
 .button-progress {
-position: absolute;
-bottom: 0;
-left: 0;
-height: 3px;
-width: 0%; / Set dynamically with JS */
-background-color: rgba(255, 255, 255, 0.8);
-border-radius: 0 0 0 8px;
-transition: width 0.3s ease;
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: 3px;
+  width: 0%; /* Set dynamically with JS */
+  background-color: rgba(255, 255, 255, 0.8);
+  border-radius: 0 0 0 8px;
+  transition: width 0.3s ease;
 }
 /* Different button states */
 .main-install-button[data-state="processing"] {
