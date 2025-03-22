@@ -110,86 +110,71 @@ fn HomePage(
                                         div { class: "trending-crown" }
                                         
                                         div { 
-                                            class: "home-pack-card trending",
-                                            style: "background-image: url('{info.background}'); background-color: {info.color};",
-                                            "data-category": "{category}",
-                                            "data-version": "{version}",
-                                            "data-new": "{is_new}",
-                                            "data-updated": "{is_updated}",
-                                            "data-mods-count": "{mods_count}",
-                                            
-                                            // Category badge
-                                            div { class: "category-badge {category.to_lowercase()}", "{category}" }
-                                            
-                                            // Version badge
-                                            div { class: "version-badge", "v{version}" }
-                                            
-                                            // Add trending badge
-                                            div { class: "trending-badge", "Popular" }
-                                            
-                                            // Mods count indicator
-                                            div { class: "mods-count", "{mods_count} mods" }
-                                            
-                                            div { class: "home-pack-info",
-                                                h2 { class: "home-pack-title", "{modpack_subtitle}" }
-                                                
-                                                // Description (hidden until hover)
-                                                if let Some(desc) = &description {
-                                                    div { class: "home-pack-description", "{desc}" }
-                                                }
-                                                
-                                                div { class: "home-pack-button", "View Modpack" }
-                                            }
-                                        }
+    class: "home-pack-card trending",
+    style: "background-image: url('{info.background}'); background-color: {info.color};",
+    "data-category": "{category}",
+    "data-new": "{is_new}",
+    "data-updated": "{is_updated}",
+    
+    // Category badge
+    div { class: "category-badge {category.to_lowercase()}", "{category}" }
+    
+    // Add trending badge
+    div { class: "trending-badge", "Popular" }
+    
+    div { class: "home-pack-info",
+        h2 { class: "home-pack-title", "{modpack_subtitle}" }
+        
+        // Description (hidden until hover)
+        if let Some(desc) = &description {
+            div { class: "home-pack-description", "{desc}" }
+        }
+        
+        div { class: "home-pack-button", "View Modpack" }
+    }
+}
                                     }
                                 } else {
                                     // Regular non-trending card
                                     div { 
-                                        class: "home-pack-card",
-                                        style: "background-image: url('{info.background}'); background-color: {info.color};",
-                                        "data-category": "{category}",
-                                        "data-version": "{version}",
-                                        "data-new": "{is_new}",
-                                        "data-updated": "{is_updated}",
-                                        "data-mods-count": "{mods_count}",
-                                        onclick: move |_| {
-                                            let old_page = page();
-                                            debug!("HOME CLICK: Changing page from {} to {} ({}) - HOME_PAGE={}", 
-                                                old_page, tab_index, tab_title, HOME_PAGE);
-                                            
-                                            page.write().clone_from(&tab_index);
-                                            
-                                            let new_page = page();
-                                            debug!("HOME CLICK RESULT: Page is now {}", new_page);
-                                        },
-                                        
-                                        // Category badge
-                                        div { class: "category-badge {category.to_lowercase()}", "{category}" }
-                                        
-                                        // Version badge
-                                        div { class: "version-badge", "v{version}" }
-                                        
-                                        // NEW/UPDATED ribbon if applicable
-                                        if is_new {
-                                            div { class: "new-ribbon", "NEW" }
-                                        } else if is_updated {
-                                            div { class: "updated-ribbon", "UPDATED" }
-                                        }
-                                        
-                                        // Mods count indicator
-                                        div { class: "mods-count", "{mods_count} mods" }
-                                        
-                                        div { class: "home-pack-info",
-                                            h2 { class: "home-pack-title", "{modpack_subtitle}" }
-                                            
-                                            // Description (hidden until hover)
-                                            if let Some(desc) = &description {
-                                                div { class: "home-pack-description", "{desc}" }
-                                            }
-                                            
-                                            div { class: "home-pack-button", "View Modpack" }
-                                        }
-                                    }
+    class: "home-pack-card",
+    style: "background-image: url('{info.background}'); background-color: {info.color};",
+    "data-category": "{category}",
+    "data-new": "{is_new}",
+    "data-updated": "{is_updated}",
+    onclick: move |_| {
+        let old_page = page();
+        debug!("HOME CLICK: Changing page from {} to {} ({}) - HOME_PAGE={}", 
+            old_page, tab_index, tab_title, HOME_PAGE);
+        
+        page.write().clone_from(&tab_index);
+        
+        let new_page = page();
+        debug!("HOME CLICK RESULT: Page is now {}", new_page);
+    },
+    
+    // Category badge
+    div { class: "category-badge {category.to_lowercase()}", "{category}" }
+    
+    // NEW/UPDATED ribbon if applicable
+    if is_new {
+        div { class: "new-ribbon", "NEW" }
+    } else if is_updated {
+        div { class: "updated-ribbon", "UPDATED" }
+    }
+    
+    div { class: "home-pack-info",
+        h2 { class: "home-pack-title", "{modpack_subtitle}" }
+        
+        // Description (hidden until hover)
+        if let Some(desc) = &description {
+            div { class: "home-pack-description", "{desc}" }
+        }
+        
+        div { class: "home-pack-button", "View Modpack" }
+    }
+}
+
                                 }
                             }
                         }
