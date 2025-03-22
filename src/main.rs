@@ -1894,22 +1894,14 @@ async fn init(
     debug!("  Branch: {}", modpack_branch);
     debug!("  Launcher: {:?}", launcher);
 
-    let full_source = format!("{}{}", modpack_source, modpack_branch);
-    let changelog = match fetch_changelog(&full_source, &http_client).await {
-        Ok(changelog) => Some(changelog),
-        Err(e) => {
-            // Just log the error but don't fail - changelog is optional
-            warn!("Couldn't fetch changelog: {}", e);
-            None
-        }
-    };
-
+    // Create http_client first
     let http_client = CachedHttpClient::new();
     
-    // Construct full URL
+    // Construct full URL for manifest
     let full_url = format!("{}{}{}/manifest.json", GH_RAW, modpack_source, modpack_branch);
     debug!("Fetching manifest from URL: {}", full_url);
 
+    // Fetch manifest
     let mut manifest_resp = match http_client.get_async(full_url.clone()).await {
         Ok(val) => val,
         Err(e) => {
@@ -1944,6 +1936,21 @@ async fn init(
             manifest.manifest_version
         ));
     }
+
+    // Now try to fetch the changelog
+    let full_source = format!("{}{}", modpack_source, modpack_branch);
+    let changelog = match fetch_changelog(&full_source, &http_client).await {
+        Ok(changelog) => {
+            debug!("Successfully fetched changelog with {} entries", changelog.entries.len());
+            Some(changelog)
+        },
+        Err(e) => {
+            // Just log the error but don't fail - changelog is optional
+            warn!("Couldn't fetch changelog: {}", e);
+            None
+        }
+    };
+
     let modpack_root = get_modpack_root(&launcher, &manifest.uuid);
     let mut installed = modpack_root.join(Path::new("manifest.json")).exists();
     let local_manifest: Option<Result<Manifest, serde_json::Error>> = if installed {
@@ -1987,7 +1994,6 @@ async fn init(
         } else {
             None
         },
-        changelog, // Add this field
+        changelog, // Add the changelog field
     })
 }
-
