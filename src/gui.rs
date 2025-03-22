@@ -1051,6 +1051,7 @@ struct VersionProps {
     tab_group: usize,
 }
 
+
 #[component]
 fn Version(mut props: VersionProps) -> Element {
     let installer_profile = props.installer_profile.clone();
@@ -1067,22 +1068,22 @@ fn Version(mut props: VersionProps) -> Element {
     let mut install_item_amount = use_signal(|| 0);
     let features = use_signal(|| installer_profile.manifest.features.clone());
     
-    // Simple expanded state signal
+    // Add a signal to track if features are expanded
     let mut features_expanded = use_signal(|| false);
     
-    // Count visible features (non-hidden)
-    let features_data = features.read();
-    let visible_features = features_data.iter()
+    // Calculate visible features (non-hidden)
+    let visible_features = features.read().iter()
         .filter(|feat| !feat.hidden)
         .collect::<Vec<_>>();
     
     let visible_features_count = visible_features.len();
     
-    // Determine if we need expansion - if there are more than 3 features
+    // Determine if we need expansion - typically more than one row (3-4 features)
     let needs_expansion = visible_features_count > 3;
     
-    // Use signal for enabled_features with cleaner initialization
+    // Rest of your existing signals...
     let mut enabled_features = use_signal(|| {
+        // Your existing enabled_features initialization...
         let mut feature_list = vec!["default".to_string()];
         
         if installer_profile.installed && installer_profile.local_manifest.is_some() {
@@ -1095,11 +1096,10 @@ fn Version(mut props: VersionProps) -> Element {
                 }
             }
         }
-
         feature_list
     });
     
-    // Clone local_manifest to prevent ownership issues
+    // Your existing local_features, handle_feature_toggle, etc.
     let mut local_features = use_signal(|| {
         if let Some(ref manifest) = installer_profile.local_manifest {
             Some(manifest.enabled_features.clone())
@@ -1108,44 +1108,12 @@ fn Version(mut props: VersionProps) -> Element {
         }
     });
     
-    // Define a handler function for feature toggles
-    let mut handle_feature_toggle = move |feat: super::Feature, new_state: bool| {
-        // Update enabled_features first
-        enabled_features.with_mut(|feature_list| {
-            if new_state {
-                if !feature_list.contains(&feat.id) {
-                    feature_list.push(feat.id.clone());
-                }
-            } else {
-                feature_list.retain(|id| id != &feat.id);
-            }
-        });
-        
-        // Handle modify flag
-        if let Some(local_feat) = local_features.read().as_ref() {
-            let was_enabled = local_feat.contains(&feat.id);
-            let is_modified = was_enabled != new_state;
-            
-            if is_modified {
-                modify_count.with_mut(|x| *x += 1);
-                if *modify_count.read() > 0 {
-                    modify.set(true);
-                }
-            } else {
-                modify_count.with_mut(|x| *x -= 1);
-                if *modify_count.read() <= 0 {
-                    modify.set(false);
-                }
-            }
-        }
+    // Function to toggle expansion state
+    let toggle_expansion = move |_| {
+        features_expanded.with_mut(|expanded| *expanded = !*expanded);
     };
     
-    let movable_profile = installer_profile.clone();
-    let on_submit = move |_| {
-        // Your existing on_submit logic
-    };
-
-    // Button label logic
+    // Your existing code for button labels, installations, etc.
     let button_label = if !*installed.read() {
         "Install"
     } else if *update_available.read() {
@@ -1157,12 +1125,6 @@ fn Version(mut props: VersionProps) -> Element {
     };
     
     let install_disable = *installed.read() && !*update_available.read() && !*modify.read();
-    
-    // Toggle expanded state function
-    let toggle_expansion = move |_| {
-        let current = *features_expanded.read();
-        features_expanded.set(!current);
-    };
     
     rsx! {
         if *installing.read() {
@@ -1180,7 +1142,7 @@ fn Version(mut props: VersionProps) -> Element {
             }
         } else {
             div { class: "version-container",
-                form { onsubmit: on_submit,
+                form { onsubmit: on_submit,  // Make sure you include your on_submit handler here
                     // Header section with title and subtitle
                     div { class: "content-header",
                         h1 { "{installer_profile.manifest.subtitle}" }
@@ -1209,7 +1171,7 @@ fn Version(mut props: VersionProps) -> Element {
                         span { class: "features-count", "{visible_features_count}" }
                     }
                     
-                    // Simple expandable container with a clear class naming
+                    // Expandable features container - key part for the collapsible feature
                     div { 
                         class: if needs_expansion {
                             if *features_expanded.read() {
@@ -1223,14 +1185,15 @@ fn Version(mut props: VersionProps) -> Element {
                         
                         // Feature cards grid
                         div { class: "feature-cards-container",
-                            // Render feature cards
-                            for feat in features_data.iter() {
+                            // Render feature cards - your existing feature card rendering logic
+                            for feat in features.read().iter() {
                                 if !feat.hidden {
                                     {
+                                        let feat_id = feat.id.clone();
                                         let feat_name = feat.name.clone();
                                         let feat_description = feat.description.clone();
                                         let is_enabled = enabled_features.read().contains(&feat.id);
-                                        let feat_for_toggle = feat.clone();
+                                        let feat_clone = feat.clone();
                                         
                                         rsx! {
                                             div { 
@@ -1242,11 +1205,12 @@ fn Version(mut props: VersionProps) -> Element {
                                                     div { class: "feature-card-description", "{description}" }
                                                 }
                                                 
-                                                // Toggle button
+                                                // Your toggle button implementation
                                                 div {
                                                     class: if is_enabled { "feature-toggle-button enabled" } else { "feature-toggle-button disabled" },
                                                     onclick: move |_| {
-                                                        handle_feature_toggle(feat_for_toggle.clone(), !is_enabled);
+                                                        // Your handle_feature_toggle function call
+                                                        handle_feature_toggle(feat_clone.clone(), !is_enabled);
                                                     },
                                                     if is_enabled { "Enabled" } else { "Disabled" }
                                                 }
@@ -1258,7 +1222,7 @@ fn Version(mut props: VersionProps) -> Element {
                         }
                     }
                     
-                    // Simple button outside the container
+                    // Show/hide features button - only display if expansion is needed
                     if needs_expansion {
                         button {
                             class: "show-features-button",
