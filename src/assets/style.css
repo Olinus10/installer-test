@@ -1034,6 +1034,7 @@ a:hover {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
     gap: 12px;
+    margin-bottom: 30px;
     padding: 10px;
     box-sizing: border-box;
 }
@@ -1042,11 +1043,12 @@ a:hover {
 .feature-card {
     background-color: rgba(0, 0, 0, 0.7);
     border-radius: 8px;
-    padding: 12px;
+    padding: 10px;
     transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     display: flex;
     flex-direction: column;
-    min-height: 160px;
+    min-height: auto;
+    max-height: none;
     position: relative;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
