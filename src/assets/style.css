@@ -943,7 +943,7 @@ a:hover {
 
 .content-description {
     max-width: 85%;
-    margin: 0 auto 20px auto; /* Reduced bottom margin from 30px to 20px */
+    margin: 0 auto 10px auto; /* Reduced bottom margin from 30px to 20px */
     line-height: 1.6;
     text-align: center;
     position: relative;
@@ -966,9 +966,14 @@ a:hover {
     margin-top: 0;
 }
 
+/* Make sure description paragraphs have minimal bottom margin */
+.content-description p:last-child {
+  margin-bottom: 5px;
+}
+
 .credits-link {
     display: inline-block;
-    margin-top: 10px; /* Reduced from 15px */
+    margin-top: 0px; /* Reduced from 15px */
     margin-bottom: 10px;
     font-style: italic;
     text-align: center;
@@ -1000,8 +1005,8 @@ a:hover {
     color: #fce8f6;
     padding: 8px 16px;
     border-radius: 6px;
-    margin-top: 5px; /* Reduced from 10px */
-    margin-bottom: 15px;
+    margin-top: 0px; /* Reduced from 10px */
+    margin-bottom: 10px;
     font-family: "HEADER_FONT";
     font-size: 0.9rem;
     border: 1px solid rgba(255, 255, 255, 0.2);
