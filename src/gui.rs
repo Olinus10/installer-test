@@ -1730,6 +1730,14 @@ pub(crate) fn app() -> Element {
     // Use constants instead of TabInfo properties
     debug!("Updating CSS with: color={}, bg_image={}", bg_color, bg_image);
 
+    css
+        .replace("<BG_COLOR>", &bg_color)
+        .replace("<BG_IMAGE>", &bg_image)
+        .replace("<SECONDARY_FONT>", HEADER_FONT)
+        .replace("<PRIMARY_FONT>", REGULAR_FONT)
+        + "/* Font fixes applied */"
+};
+        
     let mut modal_context = use_context_provider(ModalContext::default);
     if let Some(e) = err() {
         modal_context.open("Error", rsx! {
