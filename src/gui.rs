@@ -164,7 +164,7 @@ fn Footer() -> Element {
             }
             
             div { class: "footer-bottom",
-                p { class: "copyright", "© 2023-2025 Wynncraft Overhaul. All rights reserved." }
+                p { class: "copyright", "© 2023-2025 Wynncraft Overhaul. CC BY-NC-SA 4.0." }
             }
         }
     }
