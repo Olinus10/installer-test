@@ -1350,7 +1350,7 @@ fn Version(mut props: VersionProps) -> Element {
                                     debug!("SET CREDITS: true");
                                     evt.stop_propagation();
                                 },
-                                "View Credits"
+                                
                             }
                         }
                     }
@@ -1920,12 +1920,15 @@ pub(crate) fn app() -> Element {
                             dangerous_inner_html: "{profile.manifest.description}",
                             
                             // Credits link
-                            div {
-                                a { 
-                                    class: "credits-link",
-                                    "View Credits"
-                                }
-                            }
+                            a { 
+    class: "credits-link",
+    onclick: move |evt| {
+        // Code to toggle the credits view
+        // Ideally using a signal like credits.set(true)
+        evt.stop_propagation();
+    },
+    "View Credits"
+}
                         }
                         
                         // Features heading
