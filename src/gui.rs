@@ -1923,8 +1923,7 @@ pub(crate) fn app() -> Element {
                             a { 
     class: "credits-link",
     onclick: move |evt| {
-        // Code to toggle the credits view
-        // Ideally using a signal like credits.set(true)
+        credits.set(true);
         evt.stop_propagation();
     },
     "View Credits"
