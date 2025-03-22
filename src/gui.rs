@@ -1298,8 +1298,10 @@ fn Version(mut props: VersionProps) -> Element {
     
     // Toggle expanded/collapsed state
     let toggle_expansion = move |_| {
-        features_expanded.set(!features_expanded.read());
-        debug!("Features expanded: {}", features_expanded.read());
+        // Read the current value first, then negate it
+        let current_expanded = *features_expanded.read();
+        features_expanded.set(!current_expanded);
+        debug!("Features expanded: {}", *features_expanded.read());
     };
     
     rsx! {
@@ -1727,108 +1729,6 @@ pub(crate) fn app() -> Element {
     
     // Use constants instead of TabInfo properties
     debug!("Updating CSS with: color={}, bg_image={}", bg_color, bg_image);
-        
-    // Improved dropdown menu CSS with better hover behavior and font consistency
-    let dropdown_css = "
-    /* Dropdown styles */
-    .dropdown { 
-        position: relative; 
-        display: inline-block; 
-    }
-
-    /* Position the dropdown content */
-    .dropdown-content {
-        display: none;
-        position: absolute;
-        top: 100%;
-        left: 0;
-        background-color: rgba(0, 0, 0, 0.9);
-        min-width: 200px;
-        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.6);
-        z-index: 1000;
-        border-radius: 4px;
-        overflow: hidden;
-        margin-top: 5px;
-        max-height: 400px;
-        overflow-y: auto;
-        border: 1px solid rgba(255, 255, 255, 0.1);
-    }
-
-    /* Show dropdown on hover with increased target area */
-    .dropdown:hover .dropdown-content,
-    .dropdown-content:hover {
-        display: block;
-    }
-
-    /* Add a pseudo-element to create an invisible connection between the button and dropdown */
-    .dropdown::after {
-        content: '';
-        position: absolute;
-        height: 10px;
-        width: 100%;
-        left: 0;
-        top: 100%;
-        display: none;
-    }
-
-    .dropdown:hover::after {
-        display: block;
-    }
-
-    .dropdown-item {
-        display: block;
-        width: 100%;
-        padding: 10px 15px;
-        text-align: left;
-        background-color: transparent;
-        border: none;
-        /* Explicitly use the PRIMARY_FONT */
-        font-family: \\\"PRIMARY_FONT\\\";
-        font-size: 0.9rem;
-        color: #fce8f6;
-        cursor: pointer;
-        transition: background-color 0.2s ease;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-    }
-
-    .dropdown-item:last-child {
-        border-bottom: none;
-    }
-
-    .dropdown-item:hover {
-        background-color: rgba(50, 6, 37, 0.8);
-        border-color: rgba(255, 255, 255, 0.4);
-        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
-    }
-
-    .dropdown-item.active {
-        background-color: var(--bg-color);
-        border-color: #fce8f6;
-        box-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
-        color: #fff;
-    }
-
-    /* Fix for header-tabs to prevent dropdown from affecting it */
-    .header-tabs {
-        display: flex;
-        gap: 5px;
-        margin: 0 10px;
-        flex-grow: 1;
-        justify-content: center;
-        flex-wrap: wrap;
-        overflow-x: visible;
-        scrollbar-width: thin;
-        max-width: 70%;
-        position: relative;
-    }";
-        
-    css
-        .replace("<BG_COLOR>", &bg_color)
-        .replace("<BG_IMAGE>", &bg_image)
-        .replace("<SECONDARY_FONT>", HEADER_FONT)
-        .replace("<PRIMARY_FONT>", REGULAR_FONT)
-        + "/* Font fixes applied */"
-};
 
     let mut modal_context = use_context_provider(ModalContext::default);
     if let Some(e) = err() {
