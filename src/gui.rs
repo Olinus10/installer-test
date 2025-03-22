@@ -316,7 +316,7 @@ fn StatisticsDisplay() -> Element {
         div { class: "stats-container",
             div { class: "stat-item",
                 span { class: "stat-value", "200+" }
-                span { class: "stat-label", "´FPS" }
+                span { class: "stat-label", "FPS" }
             }
             div { class: "stat-item",
                 span { class: "stat-value", "100+" }
