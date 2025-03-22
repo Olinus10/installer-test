@@ -1938,21 +1938,22 @@ pub(crate) fn app() -> Element {
                                     }
                                     
                                     // Description section
-                                    div { class: "content-description",
-                                        dangerous_inner_html: "{profile.manifest.description}",
-                                        
-                                        // Credits link with proper click handler
-                                        a { 
-                                            class: "credits-link",
-                                            onclick: move |evt| {
-                                                debug!("Credits clicked for profile index {}", index);
-                                                selected_profile.set(Some(profile_clone.clone()));
-                                                credits_visible.set(true);
-                                                evt.stop_propagation();
-                                            },
-                                            "View Credits"
-                                        }
-                                    }
+div { class: "content-description",
+    dangerous_inner_html: "{profile.manifest.description}"
+}
+
+// Credits link - moved outside the description HTML
+div { class: "credits-link-container", style: "text-align: center; margin: 15px 0;",
+    a {
+        class: "credits-link",
+        onclick: move |evt| {
+            // Your event handler
+            credits_visible.set(true);
+            evt.stop_propagation();
+        },
+        "View Credits"
+    }
+}
                                     
                                     // Features heading
                                     h2 { "Optional Features" }
