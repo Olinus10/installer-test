@@ -1071,11 +1071,10 @@ fn Version(mut props: VersionProps) -> Element {
     let mut install_item_amount = use_signal(|| 0);
     let features = use_signal(|| installer_profile.manifest.features.clone());
     
-    // Add a signal to track if features are expanded
+    // Signal for tracking expanded state - IMPORTANT!
     let mut features_expanded = use_signal(|| false);
     
-    // Calculate visible features (non-hidden)
-    // Fix the borrowing issue by keeping the read value in a binding first
+    // Get a count of visible features - fix borrowing issue
     let features_binding = features.read();
     let visible_features = features_binding.iter()
         .filter(|feat| !feat.hidden)
@@ -1083,12 +1082,11 @@ fn Version(mut props: VersionProps) -> Element {
     
     let visible_features_count = visible_features.len();
     
-    // Determine if we need expansion - typically more than one row (3-4 features)
-    let needs_expansion = visible_features_count > 3;
+    // Only show expand button if we have more than one row (4+ features)
+    let needs_expansion = visible_features_count > 4;
     
     // Rest of your existing signals...
     let mut enabled_features = use_signal(|| {
-        // Your existing enabled_features initialization...
         let mut feature_list = vec!["default".to_string()];
         
         if installer_profile.installed && installer_profile.local_manifest.is_some() {
@@ -1104,7 +1102,6 @@ fn Version(mut props: VersionProps) -> Element {
         feature_list
     });
     
-    // Your existing local_features, handle_feature_toggle, etc.
     let mut local_features = use_signal(|| {
         if let Some(ref manifest) = installer_profile.local_manifest {
             Some(manifest.enabled_features.clone())
@@ -1113,12 +1110,7 @@ fn Version(mut props: VersionProps) -> Element {
         }
     });
     
-    // Function to toggle expansion state
-    let toggle_expansion = move |_| {
-        features_expanded.with_mut(|expanded| *expanded = !*expanded);
-    };
-    
-    // Your existing code for button labels, installations, etc.
+    // Button labels and other UI state
     let button_label = if !*installed.read() {
         "Install"
     } else if *update_available.read() {
@@ -1130,6 +1122,16 @@ fn Version(mut props: VersionProps) -> Element {
     };
     
     let install_disable = *installed.read() && !*update_available.read() && !*modify.read();
+    
+    // This function renders debug info - very useful for troubleshooting!
+    let render_debug_info = move || {
+        rsx! {
+            div {
+                style: "color: white; background: rgba(0,0,0,0.7); padding: 10px; margin: 10px 0; font-size: 12px; border-radius: 4px;",
+                "DEBUG: Features count: {visible_features_count}, Needs expansion: {needs_expansion}, Is expanded: {*features_expanded.read()}"
+            }
+        }
+    };
     
     rsx! {
         if *installing.read() {
@@ -1148,21 +1150,17 @@ fn Version(mut props: VersionProps) -> Element {
         } else {
             div { class: "version-container",
                 form {
-                    // Use your existing onsubmit handler here - this will vary based on your code
-                    onsubmit: move |evt| {
-                        // Reference your existing submission logic here
-                        // This could be installing the modpack, updating, etc.
-                        
-                        // Calculate total items to process for progress tracking
-                        install_item_amount.set(installer_profile.manifest.mods.len()
+                    // Your existing form submission handler
+                    onsubmit: move |_| {
+                        // Calculate total items to process
+                        *install_item_amount.write() = installer_profile.manifest.mods.len()
                             + installer_profile.manifest.resourcepacks.len()
                             + installer_profile.manifest.shaderpacks.len()
-                            + installer_profile.manifest.include.len());
-                        
-                        // Your existing installation logic...
-                        // You'll likely want to copy this from your existing code
-                        // which handles the installation process
+                            + installer_profile.manifest.include.len();
+                            
+                        // Include your existing installation logic here
                     },
+                    
                     // Header section with title and subtitle
                     div { class: "content-header",
                         h1 { "{installer_profile.manifest.subtitle}" }
@@ -1185,31 +1183,32 @@ fn Version(mut props: VersionProps) -> Element {
                         }
                     }
                     
+                    // Uncomment this for debugging
+                    // {render_debug_info()}
+                    
                     // Features heading with count
                     div { class: "features-heading-container",
                         h2 { "OPTIONAL FEATURES" }
                         span { class: "features-count", "{visible_features_count}" }
                     }
                     
-                    // Expandable features container - key part for the collapsible feature
+                    // EXPANDABLE FEATURES CONTAINER
                     div { 
-                        class: if needs_expansion {
-                            if *features_expanded.read() {
-                                "expandable-features-container expanded"
-                            } else {
-                                "expandable-features-container"
-                            }
+                        // This div gets either "expandable-features-container" or "expandable-features-container expanded"
+                        class: if *features_expanded.read() {
+                            "expandable-features-container expanded"
                         } else {
-                            "expandable-features-container no-expansion"
+                            "expandable-features-container"
                         },
+                        // For debugging, temporarily add a style
+                        // style: "border: 2px solid red;",
                         
                         // Feature cards grid
                         div { class: "feature-cards-container",
-                            // Render feature cards - your existing feature card rendering logic
-                            for feat in features.read().iter() {
+                            // Your existing feature cards code
+                            for feat in features_binding.iter() {
                                 if !feat.hidden {
                                     {
-                                        let feat_id = feat.id.clone();
                                         let feat_name = feat.name.clone();
                                         let feat_description = feat.description.clone();
                                         let is_enabled = enabled_features.read().contains(&feat.id);
@@ -1225,14 +1224,13 @@ fn Version(mut props: VersionProps) -> Element {
                                                     div { class: "feature-card-description", "{description}" }
                                                 }
                                                 
-                                                // Your toggle button implementation
+                                                // Toggle button implementation
                                                 div {
                                                     class: if is_enabled { "feature-toggle-button enabled" } else { "feature-toggle-button disabled" },
                                                     onclick: move |_| {
                                                         // Update enabled_features based on the toggle
                                                         let new_state = !is_enabled;
                                                         
-                                                        // Update enabled_features first
                                                         enabled_features.with_mut(|feature_list| {
                                                             if new_state {
                                                                 if !feature_list.contains(&feat_clone.id) {
@@ -1271,11 +1269,15 @@ fn Version(mut props: VersionProps) -> Element {
                         }
                     }
                     
-                    // Show/hide features button - only display if expansion is needed
+                    // EXPAND/COLLAPSE BUTTON - Show only if we have enough features
+                    // IMPORTANT: This needs to be outside and after the expandable container
                     if needs_expansion {
                         button {
                             class: "show-features-button",
-                            onclick: toggle_expansion,
+                            onclick: move |_| {
+                                // Toggle expanded state
+                                features_expanded.with_mut(|expanded| *expanded = !*expanded);
+                            },
                             
                             if *features_expanded.read() {
                                 "Show Less"
@@ -1290,7 +1292,7 @@ fn Version(mut props: VersionProps) -> Element {
                         }
                     }
                     
-                    // Install button
+                    // Install button - keep this after the expandable section
                     div { class: "install-button-container",
                         div { class: "button-scale-wrapper",
                             button {
