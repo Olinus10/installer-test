@@ -387,7 +387,7 @@ a:hover {
 .home-container {
     max-width: 1200px;
     margin: 0 auto;
-    padding: 10px;
+     padding: 5px;
     text-align: center;
     box-sizing: border-box;
 }
@@ -399,7 +399,8 @@ a:hover {
     justify-items: center;
     width: 100%;
     box-sizing: border-box;
-    padding-top: 5px;
+    padding-top: 0;
+    margin-top: 10px;
 }
 
 /* Pack Cards */
@@ -973,7 +974,7 @@ a:hover {
 .feature-cards-container {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-    gap: 15px;
+    gap: 12px;
     margin-bottom: 40px;
     padding: 10px;
     box-sizing: border-box;
@@ -2157,7 +2158,7 @@ transform: scale(1.03);
   display: flex;
   justify-content: center;
   gap: 40px;
-  margin: 30px auto;
+  margin: 15px auto;
   max-width: 800px;
   padding: 15px;
   background: rgba(0, 0, 0, 0.4);
@@ -2251,7 +2252,7 @@ transform: scale(1.03);
   display: flex;
   align-items: center;
   justify-content: center;
-  margin: 40px auto;
+  margin: 25px auto;
 }
 
 .section-divider.with-title::before,
@@ -2315,6 +2316,7 @@ transform: scale(1.03);
   background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
   overflow: hidden;
   position: relative;
+  margin: 20px auto;
 }
 
 .section-divider.animated::before {
@@ -2347,7 +2349,7 @@ transform: scale(1.03);
 /* Changelog Section Styles */
 .changelog-container {
   max-width: 1000px;
-  margin: 30px auto 50px auto;
+  margin: 20px auto 30px auto;
   padding: 20px;
   background-color: rgba(0, 0, 0, 0.5);
   border-radius: 10px;
@@ -2361,8 +2363,8 @@ transform: scale(1.03);
 
 .changelog-entry {
   background-color: rgba(0, 0, 0, 0.3);
-  padding: 15px 20px;
-  margin: 10px 0;
+    padding: 12px 15px;
+  margin: 8px 0;
   border-radius: 6px;
   box-shadow: 0 3px 8px rgba(0, 0, 0, 0.3);
   border-left: 3px solid rgba(255, 255, 255, 0.2);
