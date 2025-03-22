@@ -93,10 +93,10 @@ p, .feature-card-description, .content-description-clean,
 
 /* Webkit browsers (Chrome, Safari, newer versions of Edge) */
 ::-webkit-scrollbar {
-  width: 12px;
-  height: 12px;
-  position: absolute;
-  right: 0;
+    width: 12px;
+    height: 12px;
+    position: absolute;
+    right: 0;
 }
 
 ::-webkit-scrollbar-track {
@@ -377,10 +377,16 @@ a:hover {
 .main-container {
     height: calc(100vh - 80px);
     overflow-y: auto;
-    padding: 20px;
+    padding: 20px 0 20px 20px; /* Keep padding on top, bottom, and left, but remove it on right */
     margin: 0;
-    width: calc(100% - 40px);
+    width: 100%; /* Change from calc(100% - 40px) to 100% */
     box-sizing: border-box;
+}
+
+/* Add right padding to inner content instead */
+.version-container, .home-container, .settings-container, 
+.launcher-container, .no-launcher-container, .progress-container {
+    padding-right: 20px; /* Add right padding here instead */
 }
 
 /* Home Container */
