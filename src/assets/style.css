@@ -2156,10 +2156,10 @@ transform: scale(1.03);
 .stats-container {
   display: flex;
   justify-content: center;
-  gap: 25px;  /* Reduced gap between items */
-  margin: 15px auto;  /* Reduced top/bottom margin */
+  gap: 40px;
+  margin: 30px auto;
   max-width: 800px;
-  padding: 10px;  /* Reduced padding */
+  padding: 15px;
   background: rgba(0, 0, 0, 0.4);
   border-radius: 10px;
   border: 1px solid rgba(255, 255, 255, 0.1);
@@ -2168,26 +2168,26 @@ transform: scale(1.03);
 
 .stat-item {
   display: flex;
-  flex-direction: row;  /* Change to row for horizontal layout */
+  flex-direction: column;
   align-items: center;
   position: relative;
-  padding: 0 10px;
+  padding: 0 15px;
 }
 
 .stat-item:not(:last-child):after {
   content: '';
   position: absolute;
-  top: 20%;
-  right: -12px;
-  height: 60%;
+  top: 15%;
+  right: -20px;
+  height: 70%;
   width: 1px;
   background: linear-gradient(to bottom, transparent, rgba(255, 255, 255, 0.3), transparent);
 }
 
-stat-value {
+.stat-value {
   font-family: "HEADER_FONT";
-  font-size: 2rem;  /* Reduced font size */
-  margin-right: 8px;  /* Add spacing between value and label */
+  font-size: 2.5rem;
+  margin-bottom: 5px;
   background: linear-gradient(180deg, #fce8f6 0%, #d8b8d0 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -2198,7 +2198,7 @@ stat-value {
 
 .stat-label {
   font-family: "REGULAR_FONT";
-  font-size: 0.75rem;  /* Smaller font for labels */
+  font-size: 0.9rem;
   color: #fce8f6;
   text-transform: uppercase;
   letter-spacing: 0.1em;
@@ -2206,7 +2206,7 @@ stat-value {
 }
 
 .stat-item:hover .stat-value {
-  transform: scale(1.05);  /* Slightly smaller scale effect */
+  transform: translateY(-3px);
   transition: transform 0.3s ease;
 }
 
@@ -2215,34 +2215,13 @@ stat-value {
   transition: opacity 0.3s ease;
 }
 
-/* Responsive adjustment */
-@media (max-width: 600px) {
+@media (max-width: 768px) {
   .stats-container {
-    flex-direction: row;  /* Keep as row even on small screens */
-    padding: 8px;
-    gap: 15px;
-  }
-
-/* Responsive adjustment */
-@media (max-width: 600px) {
-  .stats-container {
-    flex-direction: row;  /* Keep as row even on small screens */
-    padding: 8px;
-    gap: 15px;
+    flex-direction: column;
+    gap: 20px;
+    padding: 20px;
   }
   
-  .stat-value {
-    font-size: 1.5rem;  /* Even smaller on mobile */
-  }
-  
-  .stat-label {
-    font-size: 0.65rem;
-  }
-  
-  .stat-item:not(:last-child):after {
-    right: -7px;
-  }
-}
   .stat-item:not(:last-child):after {
     top: auto;
     right: 20%;
