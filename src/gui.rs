@@ -9,8 +9,8 @@ use crate::{get_app_data, get_installed_packs, get_launcher, uninstall, Installe
 
 mod modal;
 
-const HEADER_FONT: &str = "https://raw.githubusercontent.com/Wynncraft-Overhaul/installer/master/src/assets/FFFFORWA.TTF";
-const REGULAR_FONT: &str = "https://raw.githubusercontent.com/Wynncraft-Overhaul/installer/master/src/assets/Wynncraft_Game_Font.woff2";
+const HEADER_FONT: &str = "\"HEADER_FONT\"";
+const REGULAR_FONT: &str = "\"REGULAR_FONT\"";
 
 #[derive(Debug, Clone)]
 struct TabInfo {
@@ -55,7 +55,7 @@ fn BackgroundParticles() -> Element {
     }
 }
 
-// Home Page component to display all available modpacks as a grid
+// Home Page component with redundancy removed
 #[component]
 fn HomePage(
     pages: Signal<BTreeMap<usize, TabInfo>>,
@@ -65,8 +65,6 @@ fn HomePage(
     
     rsx! {
         div { class: "home-container",
-            h1 { class: "home-title", "Available Modpacks" }
-            
             // Add Statistics Display
             StatisticsDisplay {}
             
@@ -591,7 +589,9 @@ fn InstallButton(
     
     rsx! {
         div { class: "install-button-container",
-            div { class: "button-scale-wrapper",
+            div { 
+                class: "button-scale-wrapper",
+                style: "animation: button-scale-pulse 3s infinite alternate, button-breathe 4s infinite ease-in-out;",
                 button {
                     class: "main-install-button",
                     disabled: disabled,
@@ -1696,8 +1696,8 @@ pub(crate) fn app() -> Element {
         .replace("<BG_COLOR>", &bg_color)
         .replace("<BG_IMAGE>", &bg_image)
         .replace("<SECONDARY_FONT>", HEADER_FONT)
-        .replace("<PRIMARY_FONT>", REGULAR_FONT) 
-        + dropdown_css
+        .replace("<PRIMARY_FONT>", REGULAR_FONT)
+        + "/* Font fixes applied */"
 };
 
     let mut modal_context = use_context_provider(ModalContext::default);
