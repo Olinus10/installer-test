@@ -1,4 +1,4 @@
-/* Font Definitions */
+sc/* Font Definitions */
 @font-face {
     font-family: "REGULAR_FONT";
     src: url(https://raw.githubusercontent.com/Wynncraft-Overhaul/installer/master/src/assets/Wynncraft_Game_Font.woff2);
@@ -24,8 +24,11 @@ html, body {
     -webkit-user-select: none;
     cursor: default;
     overflow-wrap: break-word;
+    overflow-x: hidden;
+    scrollbar-width: thin;
     --bg-color: <BG_COLOR>;
     --bg-image: url(<BG_IMAGE>);
+    scrollbar-color: var(--bg-color) rgba(0, 0, 0, 0.3);
 }
 
 body {
@@ -90,6 +93,8 @@ p, .feature-card-description, .content-description-clean,
 ::-webkit-scrollbar {
   width: 12px;
   height: 12px;
+  position: absolute;
+  right: 0;
 }
 
 ::-webkit-scrollbar-track {
