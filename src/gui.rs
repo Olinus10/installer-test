@@ -1904,7 +1904,7 @@ pub(crate) fn app() -> Element {
         
         // Create a separate credits signal for this rendering path
         let mut credits_visible = use_signal(|| false);
-        let selected_profile = use_signal(|| modpacks.first().cloned());
+        let mut selected_profile = use_signal(|| modpacks.first().cloned());
         
         // Directly return the RSX without unnecessary nesting
         rsx! {
