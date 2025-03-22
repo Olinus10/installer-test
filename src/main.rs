@@ -26,6 +26,7 @@ use simplelog::{
     ColorChoice, CombinedLogger, Config as LogConfig, LevelFilter, TermLogger, TerminalMode,
     WriteLogger,
 };
+use std::sync::Arc;
 use std::collections::HashMap;
 use std::fmt::{Debug, Display};
 use std::fs::File;
@@ -1799,6 +1800,61 @@ impl Display for Launcher {
     }
 }
 
+pub async fn fetch_changelog(
+    modpack_source: &str, 
+    http_client: &CachedHttpClient
+) -> Result<Changelog, String> {
+    debug!("Fetching changelog from {}{}/changelog.json", GH_RAW, modpack_source);
+    
+    let changelog_url = format!("{}{}/changelog.json", GH_RAW, modpack_source);
+    
+    let mut changelog_resp = match http_client.get_async(changelog_url.clone()).await {
+        Ok(val) => val,
+        Err(e) => {
+            warn!("Failed to fetch changelog: {}", e);
+            return Err(format!("Failed to fetch changelog: {}", e));
+        }
+    };
+    
+    if changelog_resp.status() != StatusCode::OK {
+        warn!("Changelog returned non-200 status: {}", changelog_resp.status());
+        return Err(format!("Changelog returned status: {}", changelog_resp.status()));
+    }
+    
+    let changelog_text = match changelog_resp.text().await {
+        Ok(text) => text,
+        Err(e) => {
+            warn!("Failed to read changelog response: {}", e);
+            return Err(format!("Failed to read changelog response: {}", e));
+        }
+    };
+    
+    match serde_json::from_str::<Changelog>(&changelog_text) {
+        Ok(changelog) => {
+            debug!("Successfully parsed changelog with {} entries", changelog.entries.len());
+            Ok(changelog)
+        },
+        Err(e) => {
+            warn!("Failed to parse changelog: {}", e);
+            Err(format!("Failed to parse changelog: {}", e))
+        }
+    }
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct ChangelogEntry {
+    pub title: String,
+    pub contents: String,
+    pub date: Option<String>,        // Optional date field
+    pub version: Option<String>,     // Optional version tracking
+    pub importance: Option<String>,  // Could be "major", "minor", "bugfix" - for styling
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct Changelog {
+    pub entries: Vec<ChangelogEntry>,
+}
+
 #[derive(Debug, Clone)]
 struct InstallerProfile {
     manifest: Manifest,
@@ -1810,11 +1866,21 @@ struct InstallerProfile {
     enabled_features: Vec<String>,
     launcher: Option<Launcher>,
     local_manifest: Option<Manifest>,
+    changelog: Option<Changelog>, // Add this field
 }
 
 impl PartialEq for InstallerProfile {
     fn eq(&self, other: &Self) -> bool {
-        self.manifest == other.manifest && self.installed == other.installed && self.update_available == other.update_available && self.modpack_source == other.modpack_source && self.modpack_branch == other.modpack_branch && self.enabled_features == other.enabled_features && self.launcher == other.launcher && self.local_manifest == other.local_manifest
+        self.manifest == other.manifest && 
+        self.installed == other.installed && 
+        self.update_available == other.update_available && 
+        self.modpack_source == other.modpack_source && 
+        self.modpack_branch == other.modpack_branch && 
+        self.enabled_features == other.enabled_features && 
+        self.launcher == other.launcher && 
+        self.local_manifest == other.local_manifest
+        // We're intentionally not comparing changelog for equality
+        // as it's not critical for determining if profiles are equal
     }
 }
 
@@ -1827,6 +1893,16 @@ async fn init(
     debug!("  Source: {}", modpack_source);
     debug!("  Branch: {}", modpack_branch);
     debug!("  Launcher: {:?}", launcher);
+
+    let full_source = format!("{}{}", modpack_source, modpack_branch);
+    let changelog = match fetch_changelog(&full_source, &http_client).await {
+        Ok(changelog) => Some(changelog),
+        Err(e) => {
+            // Just log the error but don't fail - changelog is optional
+            warn!("Couldn't fetch changelog: {}", e);
+            None
+        }
+    };
 
     let http_client = CachedHttpClient::new();
     
@@ -1911,5 +1987,7 @@ async fn init(
         } else {
             None
         },
+        changelog, // Add this field
     })
 }
+
