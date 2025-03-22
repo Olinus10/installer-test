@@ -875,8 +875,8 @@ a:hover {
 .version-container {
     max-width: 1000px;
     margin: 0 auto;
-    padding: 20px;
-    padding-bottom: 70px;
+    padding: 15px;
+    padding-bottom: 50px;
     position: relative;
     overflow: visible;
 }
@@ -886,11 +886,12 @@ a:hover {
     height: 100%;
     position: relative;
     z-index: 1;
+    padding-top: 10px;
 }
 
 .version-container h2 {
     text-align: center;
-    margin: 30px 0 20px 0;
+    margin: 20px 0 15px 0;
     font-family: "HEADER_FONT";
     font-size: 2rem;
     position: relative;
@@ -920,7 +921,7 @@ a:hover {
 /* Content Header */
 .content-header {
     text-align: center;
-    padding: 30px 0 15px 0;
+    padding: 20px 0 10px 0;
     position: relative;
 }
 
@@ -928,6 +929,7 @@ a:hover {
     font-family: "HEADER_FONT";
     font-size: 3.5rem;
     margin: 0;
+    margin-bottom: 5px;
     text-shadow: 0 4px 12px rgba(0, 0, 0, 0.8);
     background: linear-gradient(180deg, #fce8f6 0%, #d8b8d0 100%);
     -webkit-background-clip: text;
@@ -936,6 +938,14 @@ a:hover {
     animation: glow 2s ease-in-out infinite alternate;
     position: relative;
     display: inline-block;
+    text-align: center;
+}
+
+/* Center the description and make it more compact */
+.content-description {
+  text-align: center;
+  max-width: 85%;
+  margin: 0 auto 20px auto; /* Reduced bottom margin from 30px */
 }
 
 .content-description-clean {
@@ -954,9 +964,11 @@ a:hover {
 }
 
 .credits-link {
-    display: inline-block;
+    display: block;
     margin-top: 15px;
+    margin: 10px auto;
     font-style: italic;
+    text-align: center;
     color: #fce8f6;
     text-decoration: none;
     cursor: pointer;
@@ -975,7 +987,7 @@ a:hover {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
     gap: 12px;
-    margin-bottom: 40px;
+    margin-bottom: 30px;
     padding: 10px;
     box-sizing: border-box;
 }
@@ -983,7 +995,7 @@ a:hover {
 .feature-card {
     background-color: rgba(0, 0, 0, 0.7);
     border-radius: 8px;
-    padding: 12px;
+    padding: 10px;
     transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     display: flex;
     flex-direction: column;
@@ -1193,7 +1205,7 @@ a:hover {
   justify-content: center;
   align-items: center;
   width: 100%;
-  margin: 40px 0 60px 0;
+  margin: 30px 0 40px 0;
   padding: 0;
   position: relative;
 }
