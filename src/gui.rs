@@ -1142,7 +1142,22 @@ fn Version(mut props: VersionProps) -> Element {
             }
         } else {
             div { class: "version-container",
-                form { onsubmit: on_submit,  // Make sure you include your on_submit handler here
+                form {
+                    // Use your existing onsubmit handler here - this will vary based on your code
+                    onsubmit: move |evt| {
+                        // Reference your existing submission logic here
+                        // This could be installing the modpack, updating, etc.
+                        
+                        // Calculate total items to process for progress tracking
+                        install_item_amount.set(installer_profile.manifest.mods.len()
+                            + installer_profile.manifest.resourcepacks.len()
+                            + installer_profile.manifest.shaderpacks.len()
+                            + installer_profile.manifest.include.len());
+                        
+                        // Your existing installation logic...
+                        // You'll likely want to copy this from your existing code
+                        // which handles the installation process
+                    },
                     // Header section with title and subtitle
                     div { class: "content-header",
                         h1 { "{installer_profile.manifest.subtitle}" }
