@@ -2645,8 +2645,7 @@ transform: scale(1.03);
     margin-bottom: 5px;
   }
 }
-
-* Create a new expandable container class that will wrap the feature cards */
+/* Expandable features container */
 .expandable-features-container {
     position: relative;
     max-height: 200px; /* Show approximately one row */
@@ -2713,7 +2712,7 @@ transform: scale(1.03);
     transform: rotate(180deg);
 }
 
-/* Properly style the features heading with count */
+/* Features heading with count */
 .features-heading-container {
     display: flex;
     align-items: center;
