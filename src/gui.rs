@@ -1052,6 +1052,8 @@ struct VersionProps {
 }
 
 
+// Add these modifications to your Version component in gui.rs
+
 #[component]
 fn Version(mut props: VersionProps) -> Element {
     let installer_profile = props.installer_profile.clone();
@@ -1224,8 +1226,37 @@ fn Version(mut props: VersionProps) -> Element {
                                                 div {
                                                     class: if is_enabled { "feature-toggle-button enabled" } else { "feature-toggle-button disabled" },
                                                     onclick: move |_| {
-                                                        // Your handle_feature_toggle function call
-                                                        handle_feature_toggle(feat_clone.clone(), !is_enabled);
+                                                        // Update enabled_features based on the toggle
+                                                        let new_state = !is_enabled;
+                                                        
+                                                        // Update enabled_features first
+                                                        enabled_features.with_mut(|feature_list| {
+                                                            if new_state {
+                                                                if !feature_list.contains(&feat_clone.id) {
+                                                                    feature_list.push(feat_clone.id.clone());
+                                                                }
+                                                            } else {
+                                                                feature_list.retain(|id| id != &feat_clone.id);
+                                                            }
+                                                        });
+                                                        
+                                                        // Handle modify flag
+                                                        if let Some(local_feat) = local_features.read().as_ref() {
+                                                            let was_enabled = local_feat.contains(&feat_clone.id);
+                                                            let is_modified = was_enabled != new_state;
+                                                            
+                                                            if is_modified {
+                                                                modify_count.with_mut(|x| *x += 1);
+                                                                if *modify_count.read() > 0 {
+                                                                    modify.set(true);
+                                                                }
+                                                            } else {
+                                                                modify_count.with_mut(|x| *x -= 1);
+                                                                if *modify_count.read() <= 0 {
+                                                                    modify.set(false);
+                                                                }
+                                                            }
+                                                        }
                                                     },
                                                     if is_enabled { "Enabled" } else { "Disabled" }
                                                 }
