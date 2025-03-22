@@ -1575,6 +1575,7 @@ pub(crate) fn app() -> Element {
     let mut err: Signal<Option<String>> = use_signal(|| None);
     let page = use_signal(|| HOME_PAGE);  // Initially set to HOME_PAGE
     let mut pages = use_signal(BTreeMap::<usize, TabInfo>::new);
+    
 
     // DIAGNOSTIC: Print branches available
     debug!("DIAGNOSTIC: Available branches: {}", branches.len());
@@ -1872,6 +1873,8 @@ pub(crate) fn app() -> Element {
                     }
                 } else {
                     // DIAGNOSTIC CONTENT RENDERING SECTION
+
+                    
                     if current_page == HOME_PAGE {
     debug!("RENDERING: HomePage");
     rsx! {
@@ -1899,100 +1902,119 @@ pub(crate) fn app() -> Element {
             debug!("Preparing to render modpack: {}", profile.manifest.subtitle);
         }
         
+        // Create a separate credits signal for this rendering path
+        let mut credits_visible = use_signal(|| false);
+        let selected_profile = use_signal(|| modpacks.first().cloned());
+        
         // Directly return the RSX without unnecessary nesting
         rsx! {
-            div { 
-                class: "version-page-container",
-                style: "display: block; width: 100%;",
-                
-                for profile in modpacks {
-                    // Debug statements MUST NOT be inside RSX blocks
-                    div { 
-                        class: "version-container",
-                        
-                        // Header section
-                        div { class: "content-header",
-                            h1 { "{profile.manifest.subtitle}" }
-                        }
-                        
-                        // Description section
-                        div { class: "content-description",
-                            dangerous_inner_html: "{profile.manifest.description}",
-                            
-                            // Credits link
-                            a { 
-    class: "credits-link",
-    onclick: move |evt| {
-        credits.set(true);
-        evt.stop_propagation();
-    },
-    "View Credits"
-}
-                        }
-                        
-                        // Features heading
-                        h2 { "Optional Features" }
-                        
-                        // Feature cards
-                        
-
-div { class: "feature-cards-container",
-    for feat in profile.manifest.features {
-        if !feat.hidden {
-            {
-                // Move this Rust code outside the RSX by wrapping it in its own block
-                let feat_id = feat.id.clone();
-                let feat_name = feat.name.clone();
-                let feat_description = feat.description.clone();
-                
-                // Check if feature is enabled
-                let is_enabled = profile.enabled_features.contains(&feat_id) || feat.default;
-                
-                // Extract feature toggle function parameters for this feature
-                let feature_clone = feat.clone();
-                
-                // Return the RSX from this block
-                rsx! {
-                    div { 
-                        class: if is_enabled { "feature-card feature-enabled" } else { "feature-card feature-disabled" },
-                        h3 { class: "feature-card-title", "{feat_name}" }
-                        
-                        // Description if available
-                        if let Some(description) = &feat_description {
-                            div { class: "feature-card-description", "{description}" }
-                        }
-                        
-                        // Toggle button with proper functionality
-                        label {
-                            class: if is_enabled { "feature-toggle-button enabled" } else { "feature-toggle-button disabled" },
-                            
-                            // Hidden checkbox to track state
-                            input {
-                                r#type: "checkbox",
-                                name: "{feat_id}",
-                                checked: if is_enabled { Some("true") } else { None },
-                                onchange: move |evt| {
-                                    // Here we'll call a proper feature_change function
-                                    debug!("Feature toggle changed: {}", feat_id);
-                                    
-                                    // You would call your feature_change function here
-                                    // feature_change(local_features, modify, evt, &feature_clone, modify_count, enabled_features);
-                                },
-                                style: "display: none;"
-                            }
-                            
-                            if is_enabled { "Enabled" } else { "Disabled" }
-                        }
+            // First, conditionally render either the credits view or the normal content
+            if *credits_visible.read() {
+                // Render the Credits component with the selected profile
+                if let Some(profile) = selected_profile.read().clone() {
+                    Credits {
+                        manifest: profile.manifest.clone(),
+                        enabled: profile.enabled_features.clone(),
+                        credits: credits_visible
                     }
                 }
-            }
-        }
-    }
-}
-                        
-                        // Install button
-                        div { class: "install-button-container",
-                            button { class: "main-install-button", "Install" }
+            } else {
+                // Render the normal modpack content
+                div { 
+                    class: "version-page-container",
+                    style: "display: block; width: 100%;",
+                    
+                    for (index, profile) in modpacks.iter().enumerate() {
+                        {
+                            let profile_clone = profile.clone();
+                            
+                            rsx! {
+                                div { 
+                                    class: "version-container",
+                                    
+                                    // Header section
+                                    div { class: "content-header",
+                                        h1 { "{profile.manifest.subtitle}" }
+                                    }
+                                    
+                                    // Description section
+                                    div { class: "content-description",
+                                        dangerous_inner_html: "{profile.manifest.description}",
+                                        
+                                        // Credits link with proper click handler
+                                        a { 
+                                            class: "credits-link",
+                                            onclick: move |evt| {
+                                                debug!("Credits clicked for profile index {}", index);
+                                                selected_profile.set(Some(profile_clone.clone()));
+                                                credits_visible.set(true);
+                                                evt.stop_propagation();
+                                            },
+                                            "View Credits"
+                                        }
+                                    }
+                                    
+                                    // Features heading
+                                    h2 { "Optional Features" }
+                                    
+                                    // Feature cards
+                                    div { class: "feature-cards-container",
+                                        for feat in &profile.manifest.features {
+                                            if !feat.hidden {
+                                                {
+                                                    // Move this Rust code outside the RSX by wrapping it in its own block
+                                                    let feat_id = feat.id.clone();
+                                                    let feat_name = feat.name.clone();
+                                                    let feat_description = feat.description.clone();
+                                                    
+                                                    // Check if feature is enabled
+                                                    let is_enabled = profile.enabled_features.contains(&feat_id) || feat.default;
+                                                    
+                                                    // Return the RSX from this block
+                                                    rsx! {
+                                                        div { 
+                                                            class: if is_enabled { "feature-card feature-enabled" } else { "feature-card feature-disabled" },
+                                                            h3 { class: "feature-card-title", "{feat_name}" }
+                                                            
+                                                            // Description if available
+                                                            if let Some(description) = &feat_description {
+                                                                div { class: "feature-card-description", "{description}" }
+                                                            }
+                                                            
+                                                            // Toggle button with proper functionality
+                                                            label {
+                                                                class: if is_enabled { "feature-toggle-button enabled" } else { "feature-toggle-button disabled" },
+                                                                
+                                                                // Hidden checkbox to track state
+                                                                input {
+                                                                    r#type: "checkbox",
+                                                                    name: "{feat_id}",
+                                                                    checked: if is_enabled { Some("true") } else { None },
+                                                                    onchange: move |evt| {
+                                                                        // Here we'll call a proper feature_change function
+                                                                        debug!("Feature toggle changed: {}", feat_id);
+                                                                        
+                                                                        // You would call your feature_change function here
+                                                                        // feature_change(local_features, modify, evt, &feature_clone, modify_count, enabled_features);
+                                                                    },
+                                                                    style: "display: none;"
+                                                                }
+                                                                
+                                                                if is_enabled { "Enabled" } else { "Disabled" }
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                    
+                                    // Install button
+                                    div { class: "install-button-container",
+                                        button { class: "main-install-button", "Install" }
+                                    }
+                                }
+                            }
                         }
                     }
                 }
