@@ -1945,13 +1945,13 @@ div { class: "content-description",
 // Credits link - moved outside the description HTML
 div { class: "credits-link-container", style: "text-align: center; margin: 15px 0;",
     a {
-        class: "credits-link",
+        class: "credits-button",
         onclick: move |evt| {
             // Your event handler
             credits_visible.set(true);
             evt.stop_propagation();
         },
-        "View Credits"
+        "VIEW CREDITS"
     }
 }
                                     
@@ -2001,7 +2001,7 @@ div { class: "credits-link-container", style: "text-align: center; margin: 15px 
                                                                     style: "display: none;"
                                                                 }
                                                                 
-                                                                if is_enabled { "Enabled" } else { "Disabled" }
+                                                                if is_enabled { "ENABLED" } else { "DISABLED" }
                                                             }
                                                         }
                                                     }
