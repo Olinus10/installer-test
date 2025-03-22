@@ -21,6 +21,40 @@ struct TabInfo {
     modpacks: Vec<InstallerProfile>,
 }
 
+#[component]
+fn BackgroundParticles() -> Element {
+    rsx! {
+        div { class: "particles-container",
+            // Generate particles with different sizes, colors and animations
+            for i in 0..20 {
+                {
+                    let size = 4 + (i % 6);
+                    let delay = i as f32 * 0.5;
+                    let duration = 10.0 + (i % 10) as f32;
+                    let left = 5 + (i * 5) % 95;
+                    
+                    let particle_class = match i % 3 {
+                        0 => "particle",
+                        1 => "particle purple",
+                        _ => "particle green",
+                    };
+                    
+                    let animation = if i % 2 == 0 { "float" } else { "float-horizontal" };
+                    
+                    rsx! {
+                        div {
+                            class: "{particle_class}",
+                            style: "width: {size}px; height: {size}px; left: {left}%; 
+                                bottom: -50px; opacity: 0.6; 
+                                animation: {animation} {duration}s ease-in infinite {delay}s;"
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
 // Home Page component to display all available modpacks as a grid
 #[component]
 fn HomePage(
@@ -1689,40 +1723,7 @@ pub(crate) fn app() -> Element {
             style { {css_content} }
             Modal {}
 
-            #[component]
-fn BackgroundParticles() -> Element {
-    rsx! {
-        div { class: "particles-container",
-            // Generate particles with different sizes, colors and animations
-            for i in 0..20 {
-                {
-                    let size = 4 + (i % 6);
-                    let delay = i as f32 * 0.5;
-                    let duration = 10.0 + (i % 10) as f32;
-                    let left = 5 + (i * 5) % 95;
-                    
-                    let particle_class = match i % 3 {
-                        0 => "particle",
-                        1 => "particle purple",
-                        _ => "particle green",
-                    };
-                    
-                    let animation = if i % 2 == 0 { "float" } else { "float-horizontal" };
-                    
-                    rsx! {
-                        div {
-                            class: "{particle_class}",
-                            style: "width: {size}px; height: {size}px; left: {left}%; 
-                                bottom: -50px; opacity: 0.6; 
-                                animation: {animation} {duration}s ease-in infinite {delay}s;"
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
+            BackgroundParticles {}
             
             {if !config.read().first_launch.unwrap_or(true) && launcher.is_some() && !settings() {
                 rsx! {
