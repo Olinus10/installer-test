@@ -1055,35 +1055,33 @@ struct VersionProps {
 fn Version(mut props: VersionProps) -> Element {
     let installer_profile = props.installer_profile.clone();
     
-    // Add explicit debugging for initial state
-    debug!("INITIAL STATE: installed={}, update_available={}", 
-           installer_profile.installed, installer_profile.update_available);
-    
-    // Force reactivity with explicit signal declarations and consistent usage
+    // Existing signals
     let mut installing = use_signal(|| false);
     let mut progress_status = use_signal(|| "".to_string());
     let mut install_progress = use_signal(|| 0);
     let mut modify = use_signal(|| false);
     let mut modify_count = use_signal(|| 0);
     let mut credits = use_signal(|| false);
-    
-    // Convert these to mutable signals to ensure their changes trigger rerendering
     let mut installed = use_signal(|| installer_profile.installed);
     let mut update_available = use_signal(|| installer_profile.update_available);
     let mut install_item_amount = use_signal(|| 0);
-
-    // Create a debug signal to force refreshes when needed
     let mut debug_counter = use_signal(|| 0);
-    
-    // IMPORTANT: Store the features collection in a signal to solve lifetime issues
     let features = use_signal(|| installer_profile.manifest.features.clone());
     
-    // Add debugging to watch for signal changes
-    use_effect(move || {
-        debug!("SIGNAL UPDATE: installed={}, update_available={}, modify={}, credits={}, debug_counter={}",
-               *installed.read(), *update_available.read(), *modify.read(), *credits.read(), *debug_counter.read());
-    });
-
+    // New signal for expanded/collapsed state
+    let mut features_expanded = use_signal(|| false);
+    
+    // Count visible features (non-hidden)
+    let visible_features = features.read().iter()
+        .filter(|feat| !feat.hidden)
+        .collect::<Vec<_>>();
+    
+    let visible_features_count = visible_features.len();
+    
+    // Determine if we need expansion - this depends on screen size
+    // We'll use a simpler approach: if there are more than 4 features, enable expansion
+    let needs_expansion = visible_features_count > 4;
+    
     // Use signal for enabled_features with cleaner initialization
     let mut enabled_features = use_signal(|| {
         let mut feature_list = vec!["default".to_string()];
@@ -1294,23 +1292,15 @@ fn Version(mut props: VersionProps) -> Element {
     };
     
     let install_disable = *installed.read() && !*update_available.read() && !*modify.read();
-    debug!("Button disabled: {}", install_disable);
-    
-    // Log all feature states for debugging - using proper signal access
-    let features_ref = features.read();
-    for feat in features_ref.iter() {
-        let is_enabled = enabled_features.read().contains(&feat.id);
-        debug!("Feature state: {}: enabled={}", feat.id, is_enabled);
-    }
-    
-    // Using the debug_counter in our effect dependency array ensures
-    // that the component will update whenever we increment it
-    use_effect(move || {
-        debug!("Re-rendering after debug counter update: {}", *debug_counter.read());
-    });
     
     // Get a reference to the features collection for rendering
     let features_for_rendering = features.read();
+    
+    // Toggle expanded/collapsed state
+    let toggle_expansion = move |_| {
+        features_expanded.set(!features_expanded.read());
+        debug!("Features expanded: {}", features_expanded.read());
+    };
     
     rsx! {
         if *installing.read() {
@@ -1350,64 +1340,98 @@ fn Version(mut props: VersionProps) -> Element {
                                     debug!("SET CREDITS: true");
                                     evt.stop_propagation();
                                 },
-                                
+                                "View Credits"
                             }
                         }
                     }
                     
-                    // Features heading with debug counter to confirm refreshes
-                    h2 { "OPTIONAL FEATURES" }
+                    // Features heading with count
+                    div { class: "features-heading-container",
+                        h2 { "OPTIONAL FEATURES" }
+                        span { class: "features-count", "{visible_features_count}" }
+                    }
                     
-                    // Feature cards in a responsive grid with explicit feature handling
-                    div { class: "feature-cards-container",
-                        for feat in features_for_rendering.iter() {
-                            if !feat.hidden {
-                                {
-                                    let feat_name = feat.name.clone();
-                                    let feat_description = feat.description.clone();
-                                    
-                                    // Check feature state with each render by reading from signal
-                                    let is_enabled = enabled_features.read().contains(&feat.id);
-                                    let feat_for_toggle = feat.clone();
-                                    
-                                    rsx! {
-                                        div { 
-                                            class: if is_enabled { "feature-card feature-enabled" } else { "feature-card feature-disabled" },
-                                            h3 { class: "feature-card-title", "{feat_name}" }
-                                            
-                                            // Render description if available
-                                            if let Some(description) = &feat_description {
-                                                div { class: "feature-card-description", "{description}" }
-                                            }
-                                            
-                                            // Toggle button with direct click handler
-                                            div {
-                                                class: if is_enabled { "feature-toggle-button enabled" } else { "feature-toggle-button disabled" },
-                                                onclick: move |_| {
-                                                    let new_state = !is_enabled;
-                                                    debug!("Toggle clicked for feature {}: {} -> {}", 
-                                                           feat_for_toggle.id, is_enabled, new_state);
-                                                    handle_feature_toggle(feat_for_toggle.clone(), new_state);
-                                                },
-                                                if is_enabled { "Enabled" } else { "Disabled" }
+                    // Features wrapper with expandable container
+                    div { 
+                        class: "features-wrapper",
+                        "data-count": "{visible_features_count}",
+                        "data-needs-expansion": "{needs_expansion}",
+                        
+                        // Feature cards container
+                        div { 
+                            class: if *features_expanded.read() || !needs_expansion { 
+                                "feature-cards-container expanded" 
+                            } else { 
+                                "feature-cards-container" 
+                            },
+                            
+                            // Render only visible features
+                            for feat in features_for_rendering.iter() {
+                                if !feat.hidden {
+                                    {
+                                        let feat_name = feat.name.clone();
+                                        let feat_description = feat.description.clone();
+                                        
+                                        // Check feature state with each render by reading from signal
+                                        let is_enabled = enabled_features.read().contains(&feat.id);
+                                        let feat_for_toggle = feat.clone();
+                                        
+                                        rsx! {
+                                            div { 
+                                                class: if is_enabled { "feature-card feature-enabled" } else { "feature-card feature-disabled" },
+                                                h3 { class: "feature-card-title", "{feat_name}" }
+                                                
+                                                // Render description if available
+                                                if let Some(description) = &feat_description {
+                                                    div { class: "feature-card-description", "{description}" }
+                                                }
+                                                
+                                                // Toggle button with direct click handler
+                                                div {
+                                                    class: if is_enabled { "feature-toggle-button enabled" } else { "feature-toggle-button disabled" },
+                                                    onclick: move |_| {
+                                                        let new_state = !is_enabled;
+                                                        debug!("Toggle clicked for feature {}: {} -> {}", 
+                                                               feat_for_toggle.id, is_enabled, new_state);
+                                                        handle_feature_toggle(feat_for_toggle.clone(), new_state);
+                                                    },
+                                                    if is_enabled { "Enabled" } else { "Disabled" }
+                                                }
                                             }
                                         }
                                     }
                                 }
                             }
                         }
+                        
+                        // Expand/collapse button - only show if we need expansion
+                        if needs_expansion {
+                            button {
+                                class: if *features_expanded.read() { "expand-features-button expanded" } else { "expand-features-button" },
+                                onclick: toggle_expansion,
+                                
+                                if *features_expanded.read() {
+                                    "Show Less "
+                                } else {
+                                    "Show All Features "
+                                }
+                                
+                                // Arrow icon
+                                span { class: "arrow-icon", "▼" }
+                            }
+                        }
                     }
                     
                     // Install/Update/Modify button at the bottom with explicit label
                     div { class: "install-button-container",
-    div { class: "button-scale-wrapper",
-        button {
-            class: "main-install-button",
-            disabled: install_disable,
-            "{button_label}"
-        }
-    }
-}
+                        div { class: "button-scale-wrapper",
+                            button {
+                                class: "main-install-button",
+                                disabled: install_disable,
+                                "{button_label}"
+                            }
+                        }
+                    }
                 }
             }
         }
