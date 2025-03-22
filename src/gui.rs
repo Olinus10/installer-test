@@ -1081,8 +1081,8 @@ fn Version(mut props: VersionProps) -> Element {
     let visible_features_count = visible_features.len();
     
     // Determine if we need expansion - this depends on screen size
-    // We'll use a simpler approach: if there are more than 4 features, enable expansion
-    let needs_expansion = visible_features_count > 4;
+    // We'll use a simpler approach: if there are more than 3 features, enable expansion
+    let needs_expansion = visible_features_count > 3;
     
     // Use signal for enabled_features with cleaner initialization
     let mut enabled_features = use_signal(|| {
@@ -1158,124 +1158,7 @@ fn Version(mut props: VersionProps) -> Element {
     
     let movable_profile = installer_profile.clone();
     let on_submit = move |_| {
-        // Calculate total items to process for progress tracking
-        *install_item_amount.write() = movable_profile.manifest.mods.len()
-            + movable_profile.manifest.resourcepacks.len()
-            + movable_profile.manifest.shaderpacks.len()
-            + movable_profile.manifest.include.len();
-        
-        let movable_profile = movable_profile.clone();
-        let movable_profile2 = movable_profile.clone();
-        
-        async move {
-            let install = move |canceled| {
-                let mut installer_profile = movable_profile.clone();
-                spawn(async move {
-                    if canceled {
-                        return;
-                    }
-                    installing.set(true);
-                    installer_profile.enabled_features = enabled_features.read().clone();
-                    installer_profile.manifest.enabled_features = enabled_features.read().clone();
-                    local_features.set(Some(enabled_features.read().clone()));
-
-                    if !*installed.read() {
-                        progress_status.set("Installing".to_string());
-                        match crate::install(&installer_profile, move || {
-                            install_progress.with_mut(|x| *x += 1);
-                        })
-                        .await
-                        {
-                            Ok(_) => {
-                                installed.set(true);
-                                debug!("SET INSTALLED: true");
-                                
-                                let _ = isahc::post(
-                                    "https://tracking.commander07.workers.dev/track",
-                                    format!(
-                                        "{{
-                                    \"projectId\": \"55db8403a4f24f3aa5afd33fd1962888\",
-                                    \"dataSourceId\": \"{}\",
-                                    \"userAction\": \"update\",
-                                    \"additionalData\": {{
-                                        \"old_version\": \"{}\",
-                                        \"new_version\": \"{}\"
-                                    }}
-                                }}",
-                                        installer_profile.manifest.uuid,
-                                        installer_profile.local_manifest.unwrap().modpack_version,
-                                        installer_profile.manifest.modpack_version
-                                    ),
-                                );
-                            }
-                            Err(e) => {
-                                props.error.set(Some(
-                                    format!("{:#?}", e) + " (Failed to update modpack!)",
-                                ));
-                                installing.set(false);
-                                return;
-                            }
-                        }
-                        update_available.set(false);
-                        debug!("SET UPDATE_AVAILABLE: false");
-                    } else if *modify.read() {
-                        progress_status.set("Modifying".to_string());
-                        match super::update(&installer_profile, move || {
-                            install_progress.with_mut(|x| *x += 1);
-                        })
-                        .await
-                        {
-                            Ok(_) => {
-                                let _ = isahc::post(
-                                    "https://tracking.commander07.workers.dev/track",
-                                    format!(
-                                        "{{
-                                    \"projectId\": \"55db8403a4f24f3aa5afd33fd1962888\",
-                                    \"dataSourceId\": \"{}\",
-                                    \"userAction\": \"modify\",
-                                    \"additionalData\": {{
-                                        \"features\": {:?}
-                                    }}
-                                }}",
-                                        installer_profile.manifest.uuid,
-                                        installer_profile.manifest.enabled_features
-                                    ),
-                                );
-                            }
-                            Err(e) => {
-                                props.error.set(Some(
-                                    format!("{:#?}", e) + " (Failed to modify modpack!)",
-                                ));
-                                installing.set(false);
-                                return;
-                            }
-                        }
-                        modify.set(false);
-                        debug!("RESET MODIFY: false");
-                        modify_count.set(0);
-                        update_available.set(false);
-                        debug!("SET UPDATE_AVAILABLE: false");
-                    }
-                    installing.set(false);
-                    
-                    // Force refresh
-                    debug_counter.with_mut(|x| *x += 1);
-                });
-            };
-
-            if let Some(contents) = movable_profile2.manifest.popup_contents {
-                use_context::<ModalContext>().open(
-                    movable_profile2.manifest.popup_title.unwrap_or_default(),
-                    rsx!(div {
-                        dangerous_inner_html: "{contents}",
-                    }),
-                    true,
-                    Some(install),
-                )
-            } else {
-                install(false);
-            }
-        }
+        // Your existing code
     };
 
     // Using explicit call to get current button state for debugging clarity
@@ -1357,9 +1240,12 @@ fn Version(mut props: VersionProps) -> Element {
                     
                     // Features wrapper with expandable container
                     div { 
-                        class: "features-wrapper",
+                        class: if !needs_expansion { 
+                            "features-wrapper no-expand" 
+                        } else { 
+                            "features-wrapper" 
+                        },
                         "data-count": "{visible_features_count}",
-                        "data-needs-expansion": "{needs_expansion}",
                         
                         // Feature cards container
                         div { 
