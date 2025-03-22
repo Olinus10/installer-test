@@ -927,7 +927,7 @@ a:hover {
 
 .content-header h1 {
     font-family: "HEADER_FONT";
-    font-size: 3.5rem;
+    font-size: 3rem;
     margin: 0;
     margin-bottom: 5px;
     text-shadow: 0 4px 12px rgba(0, 0, 0, 0.8);
@@ -1000,7 +1000,8 @@ a:hover {
     color: #fce8f6;
     padding: 8px 16px;
     border-radius: 6px;
-    margin: 10px auto;
+    margin-top: 5px; /* Reduced from 10px */
+    margin-bottom: 15px;
     font-family: "HEADER_FONT";
     font-size: 0.9rem;
     border: 1px solid rgba(255, 255, 255, 0.2);
