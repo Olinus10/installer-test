@@ -1841,16 +1841,16 @@ pub async fn fetch_changelog(
     }
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
 pub struct ChangelogEntry {
     pub title: String,
     pub contents: String,
-    pub date: Option<String>,        // Optional date field
-    pub version: Option<String>,     // Optional version tracking
-    pub importance: Option<String>,  // Could be "major", "minor", "bugfix" - for styling
+    pub date: Option<String>,
+    pub version: Option<String>,
+    pub importance: Option<String>,
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
 pub struct Changelog {
     pub entries: Vec<ChangelogEntry>,
 }
