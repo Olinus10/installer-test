@@ -1054,6 +1054,7 @@ struct VersionProps {
 
 // Add these modifications to your Version component in gui.rs
 
+
 #[component]
 fn Version(mut props: VersionProps) -> Element {
     let installer_profile = props.installer_profile.clone();
@@ -1074,7 +1075,9 @@ fn Version(mut props: VersionProps) -> Element {
     let mut features_expanded = use_signal(|| false);
     
     // Calculate visible features (non-hidden)
-    let visible_features = features.read().iter()
+    // Fix the borrowing issue by keeping the read value in a binding first
+    let features_binding = features.read();
+    let visible_features = features_binding.iter()
         .filter(|feat| !feat.hidden)
         .collect::<Vec<_>>();
     
@@ -1302,7 +1305,6 @@ fn Version(mut props: VersionProps) -> Element {
         }
     }
 }
-
 /// New header component with tabs - updated to display tab groups 1-3 in main row
 #[component]
 fn AppHeader(
