@@ -1956,7 +1956,7 @@ div { class: "credits-link-container", style: "text-align: center; margin: 15px 
 }
                                     
                                     // Features heading
-                                    h2 { "Optional Features" }
+                                    h2 { "OPTIONAL FEATURES" }
                                     
                                     // Feature cards
                                     div { class: "feature-cards-container",
