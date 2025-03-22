@@ -1072,7 +1072,9 @@ fn Version(mut props: VersionProps) -> Element {
     let mut features_expanded = use_signal(|| false);
     
     // Count visible features (non-hidden)
-    let visible_features = features.read().iter()
+    // First, create a longer-lived binding to features data
+    let features_data = features.read();
+    let visible_features = features_data.iter()
         .filter(|feat| !feat.hidden)
         .collect::<Vec<_>>();
     
