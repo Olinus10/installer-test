@@ -1465,7 +1465,7 @@ transform: scale(1.03);
 
 .credit-name {
     font-size: 1.2rem;
-    font-weight: bold;
+    font-family: "HEADER_FONT";
     margin-bottom: 5px;
 }
 
