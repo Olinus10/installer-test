@@ -2646,18 +2646,19 @@ transform: scale(1.03);
     margin-bottom: 5px;
   }
 }
-/* Expandable features container */
 .expandable-features-container {
     position: relative;
-    max-height: 170px; /* Reduced from 200px - show exactly one row */
-    overflow: hidden;
+    max-height: 180px !important; /* Force with !important */
+    height: auto;
+    overflow: hidden !important; /* Force overflow hidden */
     transition: max-height 0.5s ease;
     margin-bottom: 40px;
+    box-sizing: border-box;
+    border: 2px solid rgba(255, 0, 0, 0.5); /* Debug border */
 }
 
-/* This class is added when expanded */
 .expandable-features-container.expanded {
-    max-height: 2000px; /* Large enough to contain all possible features */
+    max-height: 2000px !important; /* Large value with !important */
 }
 
 /* Fade effect at the bottom when collapsed */
