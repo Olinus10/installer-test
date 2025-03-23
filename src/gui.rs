@@ -1071,16 +1071,13 @@ fn Version(mut props: VersionProps) -> Element {
     let mut install_item_amount = use_signal(|| 0);
     let features = use_signal(|| installer_profile.manifest.features.clone());
     
-    // Signal for tracking expanded state - IMPORTANT!
+    // Signal for tracking expanded state
     let mut features_expanded = use_signal(|| false);
     
-    // Get a count of visible features - fix borrowing issue
-    let features_binding = features.read();
-    let visible_features = features_binding.iter()
+    // Get a count of visible features
+    let visible_features_count = features.read().iter()
         .filter(|feat| !feat.hidden)
-        .collect::<Vec<_>>();
-    
-    let visible_features_count = visible_features.len();
+        .count();
     
     // Only show expand button if we have more than one row (4+ features)
     let needs_expansion = visible_features_count > 3;
@@ -1123,12 +1120,36 @@ fn Version(mut props: VersionProps) -> Element {
     
     let install_disable = *installed.read() && !*update_available.read() && !*modify.read();
     
-    // This function renders debug info - very useful for troubleshooting!
-    let render_debug_info = move || {
-        rsx! {
-            div {
-                style: "color: white; background: rgba(0,0,0,0.7); padding: 10px; margin: 10px 0; font-size: 12px; border-radius: 4px;",
-                "DEBUG: Features count: {visible_features_count}, Needs expansion: {needs_expansion}, Is expanded: {*features_expanded.read()}"
+    // Handle feature toggle
+    let handle_feature_toggle = move |feat: super::Feature, new_state: bool| {
+        debug!("Feature toggle requested: {} -> {}", feat.id, new_state);
+        
+        // Update enabled_features
+        enabled_features.with_mut(|feature_list| {
+            if new_state {
+                if !feature_list.contains(&feat.id) {
+                    feature_list.push(feat.id.clone());
+                }
+            } else {
+                feature_list.retain(|id| id != &feat.id);
+            }
+        });
+        
+        // Handle modify flag
+        if let Some(local_feat) = local_features.read().as_ref() {
+            let was_enabled = local_feat.contains(&feat.id);
+            let is_modified = was_enabled != new_state;
+            
+            if is_modified {
+                modify_count.with_mut(|x| *x += 1);
+                if *modify_count.read() > 0 {
+                    modify.set(true);
+                }
+            } else {
+                modify_count.with_mut(|x| *x -= 1);
+                if *modify_count.read() <= 0 {
+                    modify.set(false);
+                }
             }
         }
     };
@@ -1183,9 +1204,6 @@ fn Version(mut props: VersionProps) -> Element {
                         }
                     }
                     
-                    // Uncomment this for debugging
-                    // {render_debug_info()}
-                    
                     // Features heading with count
                     div { class: "features-heading-container",
                         h2 { "OPTIONAL FEATURES" }
@@ -1194,70 +1212,36 @@ fn Version(mut props: VersionProps) -> Element {
                     
                     // EXPANDABLE FEATURES CONTAINER
                     div { 
-                        // This div gets either "expandable-features-container" or "expandable-features-container expanded"
                         class: if *features_expanded.read() {
                             "expandable-features-container expanded"
                         } else {
                             "expandable-features-container"
                         },
-                        // For debugging, temporarily add a style
-                        // style: "border: 2px solid red;",
                         
                         // Feature cards grid
                         div { class: "feature-cards-container",
                             // Your existing feature cards code
-                            for feat in features_binding.iter() {
+                            for feat in features.read().iter() {
                                 if !feat.hidden {
                                     {
-                                        let feat_name = feat.name.clone();
-                                        let feat_description = feat.description.clone();
-                                        let is_enabled = enabled_features.read().contains(&feat.id);
                                         let feat_clone = feat.clone();
+                                        let is_enabled = enabled_features.read().contains(&feat.id);
                                         
                                         rsx! {
                                             div { 
                                                 class: if is_enabled { "feature-card feature-enabled" } else { "feature-card feature-disabled" },
-                                                h3 { class: "feature-card-title", "{feat_name}" }
+                                                h3 { class: "feature-card-title", "{feat.name}" }
                                                 
                                                 // Description if available
-                                                if let Some(description) = &feat_description {
+                                                if let Some(description) = &feat.description {
                                                     div { class: "feature-card-description", "{description}" }
                                                 }
                                                 
-                                                // Toggle button implementation
+                                                // Toggle button
                                                 div {
                                                     class: if is_enabled { "feature-toggle-button enabled" } else { "feature-toggle-button disabled" },
                                                     onclick: move |_| {
-                                                        // Update enabled_features based on the toggle
-                                                        let new_state = !is_enabled;
-                                                        
-                                                        enabled_features.with_mut(|feature_list| {
-                                                            if new_state {
-                                                                if !feature_list.contains(&feat_clone.id) {
-                                                                    feature_list.push(feat_clone.id.clone());
-                                                                }
-                                                            } else {
-                                                                feature_list.retain(|id| id != &feat_clone.id);
-                                                            }
-                                                        });
-                                                        
-                                                        // Handle modify flag
-                                                        if let Some(local_feat) = local_features.read().as_ref() {
-                                                            let was_enabled = local_feat.contains(&feat_clone.id);
-                                                            let is_modified = was_enabled != new_state;
-                                                            
-                                                            if is_modified {
-                                                                modify_count.with_mut(|x| *x += 1);
-                                                                if *modify_count.read() > 0 {
-                                                                    modify.set(true);
-                                                                }
-                                                            } else {
-                                                                modify_count.with_mut(|x| *x -= 1);
-                                                                if *modify_count.read() <= 0 {
-                                                                    modify.set(false);
-                                                                }
-                                                            }
-                                                        }
+                                                        handle_feature_toggle(feat_clone.clone(), !is_enabled);
                                                     },
                                                     if is_enabled { "Enabled" } else { "Disabled" }
                                                 }
@@ -1270,19 +1254,20 @@ fn Version(mut props: VersionProps) -> Element {
                     }
                     
                     // EXPAND/COLLAPSE BUTTON - Show only if we have enough features
-                    // IMPORTANT: This needs to be outside and after the expandable container
                     if needs_expansion {
                         button {
                             class: "show-features-button",
-                            onclick: move |_| {
+                            r#type: "button", // Important: prevent form submission
+                            onclick: move |evt| {
                                 // Toggle expanded state
-                                features_expanded.with_mut(|expanded| *expanded = !*expanded);
+                                features_expanded.set(!*features_expanded.read());
+                                evt.stop_propagation();
                             },
                             
                             if *features_expanded.read() {
-                                "Show Less"
+                                "Show Less "
                             } else {
-                                "Show All Features"
+                                "Show All Features "
                             }
                             
                             span { 
@@ -1298,6 +1283,7 @@ fn Version(mut props: VersionProps) -> Element {
                             button {
                                 class: "main-install-button",
                                 disabled: install_disable,
+                                r#type: "submit", // Important: submit the form
                                 "{button_label}"
                             }
                         }
