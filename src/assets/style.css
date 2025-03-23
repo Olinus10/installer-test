@@ -1034,8 +1034,8 @@ a:hover {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
     gap: 15px;
-    padding: 5px 5px 85px 5px; /* Add extra padding at bottom for gradient */
-    box-sizing: border-box;
+    padding: 5px;
+    border: none !important;
 }
 
 /* Ensure feature cards maintain their original style */
@@ -1253,8 +1253,10 @@ a:hover {
   align-items: center;
   width: 100%;
   margin: 30px 0 40px 0;
+margin-top: 25px;
   padding: 0;
   position: relative;
+    z-index: 10;
 }
 
 .button-scale-wrapper {
@@ -2651,12 +2653,15 @@ transform: scale(1.03);
 /* expansion */
 
 /* Expandable Features Container */
+/* Expandable Features Container - CRITICAL FIXES */
 .expandable-features-container {
     position: relative;
-    max-height: 280px; /* Height of approximately one row of cards plus some margin */
+    max-height: 280px; /* Height of approximately one row of cards plus margin */
     overflow: hidden;
     transition: max-height 0.5s ease;
     margin-bottom: 40px;
+    /* Remove any debug borders */
+    border: none !important;
 }
 
 .expandable-features-container.expanded {
