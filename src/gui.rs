@@ -1449,7 +1449,7 @@ fn Version(mut props: VersionProps) -> Element {
                                     if *expanded_features.read() {
                                         "Collapse Features"
                                     } else {
-                                        format!("Show {} More Features", visible_features.len() - first_row_count)
+                                        {format!("Show {} More Features", visible_features.len() - first_row_count)}
                                     }
                                 }
                             }
