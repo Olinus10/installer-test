@@ -1262,7 +1262,7 @@ fn Version(mut props: VersionProps) -> Element {
     debug!("Button disabled: {}", install_disable);
     
     // Feature toggle handler function
-    let handle_feature_toggle = move |feat: super::Feature, evt: FormEvent| {
+    let mut handle_feature_toggle = move |feat: super::Feature, evt: FormEvent| {
         // Extract form value
         let enabled = match &*evt.data.value() {
             "true" => true,
@@ -1443,7 +1443,8 @@ fn Version(mut props: VersionProps) -> Element {
                                 button {
                                     class: "features-expand-button",
                                     onclick: move |_| {
-                                        expanded_features.set(!*expanded_features.read());
+                                        let current_state = *expanded_features.read();
+expanded_features.set(!current_state);
                                         debug!("Toggled expanded features: {}", !*expanded_features.read());
                                     },
                                     if *expanded_features.read() {
