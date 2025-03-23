@@ -907,6 +907,7 @@ fn FeatureCard(props: FeatureCardProps) -> Element {
 }
 
 
+
 fn feature_change(
     local_features: Signal<Option<Vec<String>>>,
     mut modify: Signal<bool>,
@@ -1051,37 +1052,41 @@ struct VersionProps {
     tab_group: usize,
 }
 
-
-// Add these modifications to your Version component in gui.rs
-
-
 #[component]
 fn Version(mut props: VersionProps) -> Element {
     let installer_profile = props.installer_profile.clone();
     
-    // Existing signals
+    // Add explicit debugging for initial state
+    debug!("INITIAL STATE: installed={}, update_available={}", 
+           installer_profile.installed, installer_profile.update_available);
+    
+    // Force reactivity with explicit signal declarations and consistent usage
     let mut installing = use_signal(|| false);
     let mut progress_status = use_signal(|| "".to_string());
     let mut install_progress = use_signal(|| 0);
     let mut modify = use_signal(|| false);
     let mut modify_count = use_signal(|| 0);
     let mut credits = use_signal(|| false);
+    let mut expanded_features = use_signal(|| false);
+    
+    // Convert these to mutable signals to ensure their changes trigger rerendering
     let mut installed = use_signal(|| installer_profile.installed);
     let mut update_available = use_signal(|| installer_profile.update_available);
     let mut install_item_amount = use_signal(|| 0);
+
+    // Create a debug signal to force refreshes when needed
+    let mut debug_counter = use_signal(|| 0);
+    
+    // IMPORTANT: Store the features collection in a signal to solve lifetime issues
     let features = use_signal(|| installer_profile.manifest.features.clone());
     
-    // Signal for tracking expanded state
-    let mut features_expanded = use_signal(|| false);
-    
-    // Get a count of visible features directly
-    let visible_features_count = features.read().iter()
-        .filter(|feat| !feat.hidden)
-        .count();
-    
-    // Only show expand button if we have more than one row (4+ features)
-    let needs_expansion = visible_features_count > 3;
-    
+    // Add debugging to watch for signal changes
+    use_effect(move || {
+        debug!("SIGNAL UPDATE: installed={}, update_available={}, modify={}, credits={}, debug_counter={}",
+               *installed.read(), *update_available.read(), *modify.read(), *credits.read(), *debug_counter.read());
+    });
+
+    // Use signal for enabled_features with cleaner initialization
     let mut enabled_features = use_signal(|| {
         let mut feature_list = vec!["default".to_string()];
         
@@ -1095,9 +1100,12 @@ fn Version(mut props: VersionProps) -> Element {
                 }
             }
         }
+
+        debug!("Initialized enabled_features: {:?}", feature_list);
         feature_list
     });
     
+    // Clone local_manifest to prevent ownership issues
     let mut local_features = use_signal(|| {
         if let Some(ref manifest) = installer_profile.local_manifest {
             Some(manifest.enabled_features.clone())
@@ -1106,18 +1114,207 @@ fn Version(mut props: VersionProps) -> Element {
         }
     });
     
-    // Button labels and other UI state
+    // Calculate how many features to show in first row - default to 3
+    // This could be dynamically calculated based on screen size
+    let first_row_count = 3;
+    
+    // Check if we need to show the expand button (more features than first_row_count)
+    let show_expand_button = features.read().iter().filter(|f| !f.hidden).count() > first_row_count;
+    
+    let movable_profile = installer_profile.clone();
+    let on_submit = move |_| {
+        // Calculate total items to process for progress tracking
+        *install_item_amount.write() = movable_profile.manifest.mods.len()
+            + movable_profile.manifest.resourcepacks.len()
+            + movable_profile.manifest.shaderpacks.len()
+            + movable_profile.manifest.include.len();
+        
+        let movable_profile = movable_profile.clone();
+        let movable_profile2 = movable_profile.clone();
+        
+        async move {
+            let install = move |canceled| {
+                let mut installer_profile = movable_profile.clone();
+                spawn(async move {
+                    if canceled {
+                        return;
+                    }
+                    installing.set(true);
+                    installer_profile.enabled_features = enabled_features.read().clone();
+                    installer_profile.manifest.enabled_features = enabled_features.read().clone();
+                    local_features.set(Some(enabled_features.read().clone()));
+
+                    if !*installed.read() {
+                        progress_status.set("Installing".to_string());
+                        match crate::install(&installer_profile, move || {
+                            install_progress.with_mut(|x| *x += 1);
+                        })
+                        .await
+                        {
+                            Ok(_) => {
+                                installed.set(true);
+                                debug!("SET INSTALLED: true");
+                                
+                                let _ = isahc::post(
+                                    "https://tracking.commander07.workers.dev/track",
+                                    format!(
+                                        "{{
+                                    \"projectId\": \"55db8403a4f24f3aa5afd33fd1962888\",
+                                    \"dataSourceId\": \"{}\",
+                                    \"userAction\": \"update\",
+                                    \"additionalData\": {{
+                                        \"old_version\": \"{}\",
+                                        \"new_version\": \"{}\"
+                                    }}
+                                }}",
+                                        installer_profile.manifest.uuid,
+                                        installer_profile.local_manifest.unwrap().modpack_version,
+                                        installer_profile.manifest.modpack_version
+                                    ),
+                                );
+                            }
+                            Err(e) => {
+                                props.error.set(Some(
+                                    format!("{:#?}", e) + " (Failed to update modpack!)",
+                                ));
+                                installing.set(false);
+                                return;
+                            }
+                        }
+                        update_available.set(false);
+                        debug!("SET UPDATE_AVAILABLE: false");
+                    } else if *modify.read() {
+                        progress_status.set("Modifying".to_string());
+                        match super::update(&installer_profile, move || {
+                            install_progress.with_mut(|x| *x += 1);
+                        })
+                        .await
+                        {
+                            Ok(_) => {
+                                let _ = isahc::post(
+                                    "https://tracking.commander07.workers.dev/track",
+                                    format!(
+                                        "{{
+                                    \"projectId\": \"55db8403a4f24f3aa5afd33fd1962888\",
+                                    \"dataSourceId\": \"{}\",
+                                    \"userAction\": \"modify\",
+                                    \"additionalData\": {{
+                                        \"features\": {:?}
+                                    }}
+                                }}",
+                                        installer_profile.manifest.uuid,
+                                        installer_profile.manifest.enabled_features
+                                    ),
+                                );
+                            }
+                            Err(e) => {
+                                props.error.set(Some(
+                                    format!("{:#?}", e) + " (Failed to modify modpack!)",
+                                ));
+                                installing.set(false);
+                                return;
+                            }
+                        }
+                        modify.set(false);
+                        debug!("RESET MODIFY: false");
+                        modify_count.set(0);
+                        update_available.set(false);
+                        debug!("SET UPDATE_AVAILABLE: false");
+                    }
+                    installing.set(false);
+                    
+                    // Force refresh
+                    debug_counter.with_mut(|x| *x += 1);
+                });
+            };
+
+            if let Some(contents) = movable_profile2.manifest.popup_contents {
+                use_context::<ModalContext>().open(
+                    movable_profile2.manifest.popup_title.unwrap_or_default(),
+                    rsx!(div {
+                        dangerous_inner_html: "{contents}",
+                    }),
+                    true,
+                    Some(install),
+                )
+            } else {
+                install(false);
+            }
+        }
+    };
+
+    // Using explicit call to get current button state for debugging clarity
     let button_label = if !*installed.read() {
+        debug!("Button state: Install");
         "Install"
     } else if *update_available.read() {
+        debug!("Button state: Update");
         "Update"
     } else if *modify.read() {
+        debug!("Button state: Modify");
         "Modify"
     } else {
+        debug!("Button state: Modify (default)");
         "Modify"
     };
     
     let install_disable = *installed.read() && !*update_available.read() && !*modify.read();
+    debug!("Button disabled: {}", install_disable);
+    
+    // Feature toggle handler function
+    let handle_feature_toggle = move |feat: super::Feature, evt: FormEvent| {
+        // Extract form value
+        let enabled = match &*evt.data.value() {
+            "true" => true,
+            "false" => false,
+            _ => panic!("Invalid bool from feature"),
+        };
+        
+        debug!("Feature toggle changed: {} -> {}", feat.id, enabled);
+        
+        // Update enabled_features
+        enabled_features.with_mut(|feature_list| {
+            if enabled {
+                if !feature_list.contains(&feat.id) {
+                    feature_list.push(feat.id.clone());
+                    debug!("Added feature: {}", feat.id);
+                }
+            } else {
+                feature_list.retain(|id| id != &feat.id);
+                debug!("Removed feature: {}", feat.id);
+            }
+        });
+        
+        // Handle modify flag
+        if let Some(local_feat) = local_features.read().as_ref() {
+            let was_enabled = local_feat.contains(&feat.id);
+            let is_modified = was_enabled != enabled;
+            
+            debug!("Feature modified check: was_enabled={}, new_state={}, is_modified={}", 
+                   was_enabled, enabled, is_modified);
+            
+            if is_modified {
+                modify_count.with_mut(|x| *x += 1);
+                if *modify_count.read() > 0 {
+                    modify.set(true);
+                    debug!("SET MODIFY FLAG: true");
+                }
+            } else {
+                modify_count.with_mut(|x| *x -= 1);
+                if *modify_count.read() <= 0 {
+                    modify.set(false);
+                    debug!("SET MODIFY FLAG: false");
+                }
+            }
+        }
+        
+        // Force refresh
+        debug_counter.with_mut(|x| *x += 1);
+    };
+    
+    // Get a reference to the features collection for rendering
+    let features_for_rendering = features.read();
+    let visible_features = features_for_rendering.iter().filter(|f| !f.hidden).collect::<Vec<_>>();
     
     rsx! {
         if *installing.read() {
@@ -1135,18 +1332,9 @@ fn Version(mut props: VersionProps) -> Element {
             }
         } else {
             div { class: "version-container",
-                form {
-                    // Your existing form submission handler
-                    onsubmit: move |_| {
-                        // Calculate total items to process
-                        *install_item_amount.write() = installer_profile.manifest.mods.len()
-                            + installer_profile.manifest.resourcepacks.len()
-                            + installer_profile.manifest.shaderpacks.len()
-                            + installer_profile.manifest.include.len();
-                            
-                        // Include your existing installation logic here
-                    },
-                    
+                "<!-- debug counter: {debug_counter} -->",
+                
+                form { onsubmit: on_submit,
                     // Header section with title and subtitle
                     div { class: "content-header",
                         h1 { "{installer_profile.manifest.subtitle}" }
@@ -1157,86 +1345,89 @@ fn Version(mut props: VersionProps) -> Element {
                         dangerous_inner_html: "{installer_profile.manifest.description}",
                         
                         // Credits link
-                        div {
+                        div { class: "credits-link-container", style: "text-align: center; margin: 15px 0;",
                             a {
-                                class: "credits-link",
+                                class: "credits-button",
                                 onclick: move |evt| {
+                                    debug!("Credits clicked");
                                     credits.set(true);
+                                    debug!("SET CREDITS: true");
                                     evt.stop_propagation();
                                 },
-                                "View Credits"
+                                "VIEW CREDITS"
                             }
                         }
                     }
                     
-                    // Features heading with count
-                    div { class: "features-heading-container",
-                        h2 { "OPTIONAL FEATURES" }
-                        span { class: "features-count", "{visible_features_count}" }
-                    }
-                    
-                    // EXPANDABLE FEATURES CONTAINER - Direct implementation
-                    div { 
-                        class: if *features_expanded.read() {
-                            "expandable-features-container expanded"
-                        } else {
-                            "expandable-features-container"
-                        },
+                    // Expandable Features Section
+                    div { class: "features-section",
+                        h2 { class: "features-heading", "OPTIONAL FEATURES" }
                         
-                        // Feature cards grid
                         div { class: "feature-cards-container",
-                            // Your existing feature cards code
-                            for feat in features.read().iter() {
-                                if !feat.hidden {
+                            // Always show the first row of features
+                            for (index, feat) in visible_features.iter().enumerate().take(first_row_count) {
+                                {
+                                    let is_enabled = enabled_features.read().contains(&feat.id);
+                                    let feat_clone = feat.clone();
+                                    
+                                    rsx! {
+                                        div { 
+                                            class: if is_enabled { "feature-card feature-enabled" } else { "feature-card feature-disabled" },
+                                            div { class: "feature-card-header",
+                                                h3 { class: "feature-card-title", "{feat.name}" }
+                                            }
+                                            
+                                            // Render description if available
+                                            if let Some(description) = &feat.description {
+                                                div { class: "feature-card-description", "{description}" }
+                                            }
+                                            
+                                            // Toggle button
+                                            label {
+                                                class: if is_enabled { "feature-toggle-button enabled" } else { "feature-toggle-button disabled" },
+                                                input {
+                                                    r#type: "checkbox",
+                                                    name: "{feat.id}",
+                                                    checked: if is_enabled { Some("true") } else { None },
+                                                    onchange: move |evt| handle_feature_toggle((*feat_clone).clone(), evt),
+                                                    style: "display: none;"
+                                                }
+                                                if is_enabled { "Enabled" } else { "Disabled" }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            
+                            // Show the rest of the features only when expanded
+                            if *expanded_features.read() {
+                                for (index, feat) in visible_features.iter().enumerate().skip(first_row_count) {
                                     {
-                                        let feat_id = feat.id.clone();
-                                        let is_enabled = enabled_features.read().contains(&feat_id);
+                                        let is_enabled = enabled_features.read().contains(&feat.id);
+                                        let feat_clone = feat.clone();
                                         
                                         rsx! {
                                             div { 
                                                 class: if is_enabled { "feature-card feature-enabled" } else { "feature-card feature-disabled" },
-                                                h3 { class: "feature-card-title", "{feat.name}" }
+                                                div { class: "feature-card-header",
+                                                    h3 { class: "feature-card-title", "{feat.name}" }
+                                                }
                                                 
-                                                // Description if available
+                                                // Render description if available
                                                 if let Some(description) = &feat.description {
                                                     div { class: "feature-card-description", "{description}" }
                                                 }
                                                 
-                                                // Toggle button with direct click handler
-                                                div {
+                                                // Toggle button
+                                                label {
                                                     class: if is_enabled { "feature-toggle-button enabled" } else { "feature-toggle-button disabled" },
-                                                    onclick: move |_| {
-                                                        let new_state = !is_enabled;
-                                                        
-                                                        // Update enabled_features
-                                                        enabled_features.with_mut(|feature_list| {
-                                                            if new_state {
-                                                                if !feature_list.contains(&feat_id) {
-                                                                    feature_list.push(feat_id.clone());
-                                                                }
-                                                            } else {
-                                                                feature_list.retain(|id| id != &feat_id);
-                                                            }
-                                                        });
-                                                        
-                                                        // Handle modify flag
-                                                        if let Some(local_feat) = local_features.read().as_ref() {
-                                                            let was_enabled = local_feat.contains(&feat_id);
-                                                            let is_modified = was_enabled != new_state;
-                                                            
-                                                            if is_modified {
-                                                                modify_count.with_mut(|x| *x += 1);
-                                                                if *modify_count.read() > 0 {
-                                                                    modify.set(true);
-                                                                }
-                                                            } else {
-                                                                modify_count.with_mut(|x| *x -= 1);
-                                                                if *modify_count.read() <= 0 {
-                                                                    modify.set(false);
-                                                                }
-                                                            }
-                                                        }
-                                                    },
+                                                    input {
+                                                        r#type: "checkbox",
+                                                        name: "{feat.id}",
+                                                        checked: if is_enabled { Some("true") } else { None },
+                                                        onchange: move |evt| handle_feature_toggle((*feat_clone).clone(), evt),
+                                                        style: "display: none;"
+                                                    }
                                                     if is_enabled { "Enabled" } else { "Disabled" }
                                                 }
                                             }
@@ -1245,47 +1436,32 @@ fn Version(mut props: VersionProps) -> Element {
                                 }
                             }
                         }
-                    }
-                    
-                    // EXPAND/COLLAPSE BUTTON - Show only if we have enough features
-                    if needs_expansion {
-                        button {
-                            class: "show-features-button",
-                            r#type: "button", // Important: prevent form submission
-                            onclick: move |evt| {
-                                // Toggle expanded state with with_mut() to avoid borrow issues
-                                features_expanded.with_mut(|expanded| *expanded = !*expanded);
-                                evt.stop_propagation();
-                            },
-                            
-                            // Get the current state for display
-                            {
-                                let is_expanded = *features_expanded.read();
-                                rsx! {
-                                    span {
-                                        if is_expanded {
-                                            "Show Less "
-                                        } else {
-                                            "Show All Features "
-                                        }
-                                    }
-                                    
-                                    span { 
-                                        class: if is_expanded { "button-arrow up" } else { "button-arrow" },
-                                        "▼" 
+                        
+                        // Only show expand button if there are more features than first row
+                        if show_expand_button {
+                            div { class: "features-expand-container",
+                                button {
+                                    class: "features-expand-button",
+                                    onclick: move |_| {
+                                        expanded_features.set(!expanded_features.get());
+                                        debug!("Toggled expanded features: {}", !expanded_features.get());
+                                    },
+                                    if *expanded_features.read() {
+                                        "Collapse Features"
+                                    } else {
+                                        format!("Show {} More Features", visible_features.len() - first_row_count)
                                     }
                                 }
                             }
                         }
                     }
                     
-                    // Install button - keep this after the expandable section
+                    // Install/Update/Modify button at the bottom with explicit label
                     div { class: "install-button-container",
                         div { class: "button-scale-wrapper",
                             button {
                                 class: "main-install-button",
                                 disabled: install_disable,
-                                r#type: "submit", // Important: submit the form
                                 "{button_label}"
                             }
                         }
@@ -1295,7 +1471,6 @@ fn Version(mut props: VersionProps) -> Element {
         }
     }
 }
-
 
 /// New header component with tabs - updated to display tab groups 1-3 in main row
 #[component]
@@ -1586,7 +1761,101 @@ pub(crate) fn app() -> Element {
     
     // Use constants instead of TabInfo properties
     debug!("Updating CSS with: color={}, bg_image={}", bg_color, bg_image);
+        
+    // Improved dropdown menu CSS with better hover behavior and font consistency
+    let dropdown_css = "
+    /* Dropdown styles */
+    .dropdown { 
+        position: relative; 
+        display: inline-block; 
+    }
 
+    /* Position the dropdown content */
+    .dropdown-content {
+        display: none;
+        position: absolute;
+        top: 100%;
+        left: 0;
+        background-color: rgba(0, 0, 0, 0.9);
+        min-width: 200px;
+        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.6);
+        z-index: 1000;
+        border-radius: 4px;
+        overflow: hidden;
+        margin-top: 5px;
+        max-height: 400px;
+        overflow-y: auto;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    /* Show dropdown on hover with increased target area */
+    .dropdown:hover .dropdown-content,
+    .dropdown-content:hover {
+        display: block;
+    }
+
+    /* Add a pseudo-element to create an invisible connection between the button and dropdown */
+    .dropdown::after {
+        content: '';
+        position: absolute;
+        height: 10px;
+        width: 100%;
+        left: 0;
+        top: 100%;
+        display: none;
+    }
+
+    .dropdown:hover::after {
+        display: block;
+    }
+
+    .dropdown-item {
+        display: block;
+        width: 100%;
+        padding: 10px 15px;
+        text-align: left;
+        background-color: transparent;
+        border: none;
+        /* Explicitly use the PRIMARY_FONT */
+        font-family: \\\"PRIMARY_FONT\\\";
+        font-size: 0.9rem;
+        color: #fce8f6;
+        cursor: pointer;
+        transition: background-color 0.2s ease;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .dropdown-item:last-child {
+        border-bottom: none;
+    }
+
+    .dropdown-item:hover {
+        background-color: rgba(50, 6, 37, 0.8);
+        border-color: rgba(255, 255, 255, 0.4);
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+    }
+
+    .dropdown-item.active {
+        background-color: var(--bg-color);
+        border-color: #fce8f6;
+        box-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
+        color: #fff;
+    }
+
+    /* Fix for header-tabs to prevent dropdown from affecting it */
+    .header-tabs {
+        display: flex;
+        gap: 5px;
+        margin: 0 10px;
+        flex-grow: 1;
+        justify-content: center;
+        flex-wrap: wrap;
+        overflow-x: visible;
+        scrollbar-width: thin;
+        max-width: 70%;
+        position: relative;
+    }";
+        
     css
         .replace("<BG_COLOR>", &bg_color)
         .replace("<BG_IMAGE>", &bg_image)
@@ -1594,7 +1863,7 @@ pub(crate) fn app() -> Element {
         .replace("<PRIMARY_FONT>", REGULAR_FONT)
         + "/* Font fixes applied */"
 };
-        
+
     let mut modal_context = use_context_provider(ModalContext::default);
     if let Some(e) = err() {
         modal_context.open("Error", rsx! {
