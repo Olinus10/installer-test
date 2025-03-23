@@ -721,25 +721,8 @@ fn ExpandableFeatures(
     // Track expanded state
     let mut is_expanded = use_signal(|| initially_expanded);
     
-    // Extract the children as a node
-    let children_node = children.unwrap_or_default();
-    
-    // Function to count visible feature cards
-    let feature_card_count = use_memo(move || {
-        let mut count = 0;
-        children_node.for_each_node(|node| {
-            if node.class_name.matches("feature-card").next().is_some() {
-                // Only count visible (non-hidden) cards
-                if !node.class_name.matches("hidden").next().is_some() {
-                    count += 1;
-                }
-            }
-        });
-        count
-    });
-    
-    // Only show expand button if we have more than the threshold number of cards
-    let needs_expansion = feature_card_count > visible_card_threshold;
+    // Let the parent determine if expansion is needed
+    let needs_expansion = visible_card_threshold > 0 && show_button;
     
     rsx! {
         // Container with conditional class based on expanded state
@@ -751,11 +734,11 @@ fn ExpandableFeatures(
             },
             
             // Render the children directly
-            {children_node}
+            {children}
         }
         
-        // Only show the button if there are enough cards and showButton is true
-        if needs_expansion && show_button {
+        // Only show the button if expansion is needed
+        if needs_expansion {
             button {
                 class: "show-features-button",
                 r#type: "button",
@@ -1146,8 +1129,10 @@ fn Version(mut props: VersionProps) -> Element {
     
     // Count visible features
     let visible_features_count = features.read().iter()
-        .filter(|feat| !feat.hidden)
-        .count();
+    .filter(|feat| !feat.hidden)
+    .count();
+
+    let needs_expansion = visible_features_count > 3;
     
     // Rest of your signal setup...
     let mut enabled_features = use_signal(|| {
@@ -1237,9 +1222,10 @@ fn Version(mut props: VersionProps) -> Element {
                     }
                     
                     // *** USING THE EXPANDABLE FEATURES COMPONENT ***
-                    ExpandableFeatures {
-                        initially_expanded: false,
-                        visible_card_threshold: 3,
+ExpandableFeatures {
+    initially_expanded: false,
+    visible_card_threshold: if needs_expansion { 3 } else { 0 }, // Only enable if needed
+    show_button: needs_expansion,
                         
                         // Feature cards container
                         div { class: "feature-cards-container",
