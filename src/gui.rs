@@ -1443,8 +1443,8 @@ fn Version(mut props: VersionProps) -> Element {
                                 button {
                                     class: "features-expand-button",
                                     onclick: move |_| {
-                                        expanded_features.set(!expanded_features.get());
-                                        debug!("Toggled expanded features: {}", !expanded_features.get());
+                                        expanded_features.set(!*expanded_features.read());
+                                        debug!("Toggled expanded features: {}", !*expanded_features.read());
                                     },
                                     if *expanded_features.read() {
                                         "Collapse Features"
