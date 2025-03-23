@@ -1033,9 +1033,8 @@ a:hover {
 .feature-cards-container {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-    gap: 12px;
-    margin-bottom: 30px;
-    padding: 10px;
+    gap: 15px;
+    padding: 5px 5px 85px 5px; /* Add extra padding at bottom for gradient */
     box-sizing: border-box;
 }
 
@@ -2650,7 +2649,7 @@ transform: scale(1.03);
 /* Expandable features container */
 .expandable-features-container {
     position: relative;
-    max-height: 200px; /* Adjust this value to show exactly one row of features */
+    max-height: 170px; /* Reduced from 200px - show exactly one row */
     overflow: hidden;
     transition: max-height 0.5s ease;
     margin-bottom: 40px;
@@ -2679,7 +2678,7 @@ transform: scale(1.03);
     z-index: 5; /* Make sure this is high enough to appear above content */
 }
 
-/* The expand/collapse button */
+/* The expand/collapse button 
 .show-features-button {
     display: block;
     width: 200px;
@@ -2694,10 +2693,29 @@ transform: scale(1.03);
     text-align: center;
     cursor: pointer;
     position: relative;
-    z-index: 10; /* Higher than the fade gradient */
+    z-index: 10;  
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
     transition: all 0.3s ease;
-    margin-top: -20px; /* Pull button up into the gradient */
+    margin-top: -20px; 
+} */
+
+.show-features-button {
+    display: block;
+    width: 200px;
+    margin: 0 auto;
+    padding: 10px 15px;
+    background: rgba(7, 60, 23, 0.9); /* Darker to be more visible */
+    color: #fce8f6;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 6px;
+    font-size: 1rem;
+    text-align: center;
+    cursor: pointer;
+    position: relative;
+    z-index: 20; /* Increased z-index */
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.7); /* Stronger shadow */
+    transition: all 0.3s ease;
+    margin-top: -25px; /* Pull button up more */
 }
 
 .show-features-button:hover {
@@ -2739,4 +2757,13 @@ transform: scale(1.03);
     align-items: center;
     justify-content: center;
     min-width: 24px;
+}
+
+/* Temporary debug styling - remove after fixing */
+.expandable-features-container {
+    border: 2px solid rgba(255, 0, 0, 0.5);
+}
+
+.feature-cards-container {
+    border: 2px solid rgba(0, 255, 0, 0.5);
 }
