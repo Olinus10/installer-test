@@ -2021,56 +2021,123 @@ div { class: "credits-link-container", style: "text-align: center; margin: 15px 
                                     h2 { "OPTIONAL FEATURES" }
                                     
                                     // Feature cards
-                                    div { class: "feature-cards-container",
-                                        for feat in &profile.manifest.features {
-                                            if !feat.hidden {
-                                                {
-                                                    // Move this Rust code outside the RSX by wrapping it in its own block
-                                                    let feat_id = feat.id.clone();
-                                                    let feat_name = feat.name.clone();
-                                                    let feat_description = feat.description.clone();
-                                                    
-                                                    // Check if feature is enabled
-                                                    let is_enabled = profile.enabled_features.contains(&feat_id) || feat.default;
-                                                    
-                                                    // Return the RSX from this block
-                                                    rsx! {
-                                                        div { 
-                                                            class: if is_enabled { "feature-card feature-enabled" } else { "feature-card feature-disabled" },
-                                                            h3 { class: "feature-card-title", "{feat_name}" }
-                                                            
-                                                            // Description if available
-                                                            if let Some(description) = &feat_description {
-                                                                div { class: "feature-card-description", "{description}" }
-                                                            }
-                                                            
-                                                            // Toggle button with proper functionality
-                                                            label {
-                                                                class: if is_enabled { "feature-toggle-button enabled" } else { "feature-toggle-button disabled" },
-                                                                
-                                                                // Hidden checkbox to track state
-                                                                input {
-                                                                    r#type: "checkbox",
-                                                                    name: "{feat_id}",
-                                                                    checked: if is_enabled { Some("true") } else { None },
-                                                                    onchange: move |evt| {
-                                                                        // Here we'll call a proper feature_change function
-                                                                        debug!("Feature toggle changed: {}", feat_id);
-                                                                        
-                                                                        // You would call your feature_change function here
-                                                                        // feature_change(local_features, modify, evt, &feature_clone, modify_count, enabled_features);
-                                                                    },
-                                                                    style: "display: none;"
-                                                                }
-                                                                
-                                                                if is_enabled { "ENABLED" } else { "DISABLED" }
-                                                            }
-                                                        }
-                                                    }
-                                                }
-                                            }
-                                        }
+                                    div { class: "features-section",
+    h2 { class: "features-heading", "OPTIONAL FEATURES" }
+    
+    div { class: "feature-cards-container",
+        {
+            // Filter features inside the RSX block
+            let features_list = profile.manifest.features.clone();
+            let visible_features: Vec<_> = features_list.iter()
+                .filter(|f| !f.hidden)
+                .collect();
+            
+            // Show expand button if we have more features than fit in first row
+            let first_row_count = 3;
+            let show_expand_button = visible_features.len() > first_row_count;
+            
+            let mut expanded_features = use_signal(|| false);
+            
+            rsx! {
+                // First row of features
+                for feat in visible_features.iter().take(first_row_count) {
+                    {
+                        let feat_id = feat.id.clone();
+                        let feat_name = feat.name.clone();
+                        let feat_description = feat.description.clone();
+                        let is_enabled = profile.enabled_features.contains(&feat_id) || feat.default;
+                        
+                        rsx! {
+                            div { 
+                                class: if is_enabled { "feature-card feature-enabled" } else { "feature-card feature-disabled" },
+                                div { class: "feature-card-header",
+                                    h3 { class: "feature-card-title", "{feat_name}" }
+                                }
+                                
+                                if let Some(description) = &feat_description {
+                                    div { class: "feature-card-description", "{description}" }
+                                }
+                                
+                                label {
+                                    class: if is_enabled { "feature-toggle-button enabled" } else { "feature-toggle-button disabled" },
+                                    input {
+                                        r#type: "checkbox",
+                                        name: "{feat_id}",
+                                        checked: if is_enabled { Some("true") } else { None },
+                                        onchange: move |evt| {
+                                            debug!("Feature toggle changed: {}", feat_id);
+                                            // Add feature toggle logic here
+                                        },
+                                        style: "display: none;"
                                     }
+                                    if is_enabled { "Enabled" } else { "Disabled" }
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                // Additional features (shown only when expanded)
+                if *expanded_features.read() {
+                    for feat in visible_features.iter().skip(first_row_count) {
+                        {
+                            let feat_id = feat.id.clone();
+                            let feat_name = feat.name.clone();
+                            let feat_description = feat.description.clone();
+                            let is_enabled = profile.enabled_features.contains(&feat_id) || feat.default;
+                            
+                            rsx! {
+                                div { 
+                                    class: if is_enabled { "feature-card feature-enabled" } else { "feature-card feature-disabled" },
+                                    div { class: "feature-card-header",
+                                        h3 { class: "feature-card-title", "{feat_name}" }
+                                    }
+                                    
+                                    if let Some(description) = &feat_description {
+                                        div { class: "feature-card-description", "{description}" }
+                                    }
+                                    
+                                    label {
+                                        class: if is_enabled { "feature-toggle-button enabled" } else { "feature-toggle-button disabled" },
+                                        input {
+                                            r#type: "checkbox",
+                                            name: "{feat_id}",
+                                            checked: if is_enabled { Some("true") } else { None },
+                                            onchange: move |evt| {
+                                                debug!("Feature toggle changed: {}", feat_id);
+                                                // Add feature toggle logic here
+                                            },
+                                            style: "display: none;"
+                                        }
+                                        if is_enabled { "Enabled" } else { "Disabled" }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                // Only show expand button if needed
+                if show_expand_button {
+                    div { class: "features-expand-container",
+                        button {
+                            class: "features-expand-button",
+                            onclick: move |_| {
+                                let current_state = *expanded_features.read();
+                                expanded_features.set(!current_state);
+                            },
+                            if *expanded_features.read() {
+                                "Collapse Features"
+                            } else {
+                                {format!("Show {} More Features", visible_features.len() - first_row_count)}
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
                                     
                                     // Install button
                                     div { class: "install-button-container",
