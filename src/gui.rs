@@ -1120,40 +1120,6 @@ fn Version(mut props: VersionProps) -> Element {
     
     let install_disable = *installed.read() && !*update_available.read() && !*modify.read();
     
-    // Handle feature toggle
-    let handle_feature_toggle = move |feat: super::Feature, new_state: bool| {
-        debug!("Feature toggle requested: {} -> {}", feat.id, new_state);
-        
-        // Update enabled_features
-        enabled_features.with_mut(|feature_list| {
-            if new_state {
-                if !feature_list.contains(&feat.id) {
-                    feature_list.push(feat.id.clone());
-                }
-            } else {
-                feature_list.retain(|id| id != &feat.id);
-            }
-        });
-        
-        // Handle modify flag
-        if let Some(local_feat) = local_features.read().as_ref() {
-            let was_enabled = local_feat.contains(&feat.id);
-            let is_modified = was_enabled != new_state;
-            
-            if is_modified {
-                modify_count.with_mut(|x| *x += 1);
-                if *modify_count.read() > 0 {
-                    modify.set(true);
-                }
-            } else {
-                modify_count.with_mut(|x| *x -= 1);
-                if *modify_count.read() <= 0 {
-                    modify.set(false);
-                }
-            }
-        }
-    };
-    
     rsx! {
         if *installing.read() {
             ProgressView {
@@ -1225,7 +1191,8 @@ fn Version(mut props: VersionProps) -> Element {
                                 if !feat.hidden {
                                     {
                                         let feat_clone = feat.clone();
-                                        let is_enabled = enabled_features.read().contains(&feat.id);
+                                        let feat_id = feat.id.clone();
+                                        let is_enabled = enabled_features.read().contains(&feat_id);
                                         
                                         rsx! {
                                             div { 
@@ -1241,7 +1208,37 @@ fn Version(mut props: VersionProps) -> Element {
                                                 div {
                                                     class: if is_enabled { "feature-toggle-button enabled" } else { "feature-toggle-button disabled" },
                                                     onclick: move |_| {
-                                                        handle_feature_toggle(feat_clone.clone(), !is_enabled);
+                                                        // Fix 1: Directly handle feature toggle here instead of calling a function
+                                                        let new_state = !is_enabled;
+                                                        
+                                                        // Update enabled_features
+                                                        enabled_features.with_mut(|feature_list| {
+                                                            if new_state {
+                                                                if !feature_list.contains(&feat_id) {
+                                                                    feature_list.push(feat_id.clone());
+                                                                }
+                                                            } else {
+                                                                feature_list.retain(|id| id != &feat_id);
+                                                            }
+                                                        });
+                                                        
+                                                        // Handle modify flag
+                                                        if let Some(local_feat) = local_features.read().as_ref() {
+                                                            let was_enabled = local_feat.contains(&feat_id);
+                                                            let is_modified = was_enabled != new_state;
+                                                            
+                                                            if is_modified {
+                                                                modify_count.with_mut(|x| *x += 1);
+                                                                if *modify_count.read() > 0 {
+                                                                    modify.set(true);
+                                                                }
+                                                            } else {
+                                                                modify_count.with_mut(|x| *x -= 1);
+                                                                if *modify_count.read() <= 0 {
+                                                                    modify.set(false);
+                                                                }
+                                                            }
+                                                        }
                                                     },
                                                     if is_enabled { "Enabled" } else { "Disabled" }
                                                 }
@@ -1259,20 +1256,26 @@ fn Version(mut props: VersionProps) -> Element {
                             class: "show-features-button",
                             r#type: "button", // Important: prevent form submission
                             onclick: move |evt| {
-                                // Toggle expanded state
-                                features_expanded.set(!*features_expanded.read());
+                                // Fix 2: Toggle expanded state with with_mut() to avoid conflicting borrows
+                                features_expanded.with_mut(|expanded| *expanded = !*expanded);
                                 evt.stop_propagation();
                             },
                             
-                            if *features_expanded.read() {
-                                "Show Less "
-                            } else {
-                                "Show All Features "
-                            }
-                            
-                            span { 
-                                class: if *features_expanded.read() { "button-arrow up" } else { "button-arrow" },
-                                "▼" 
+                            // Get the current state for display
+                            {
+                                let is_expanded = *features_expanded.read();
+                                rsx! {
+                                    if is_expanded {
+                                        "Show Less "
+                                    } else {
+                                        "Show All Features "
+                                    }
+                                    
+                                    span { 
+                                        class: if is_expanded { "button-arrow up" } else { "button-arrow" },
+                                        "▼" 
+                                    }
+                                }
                             }
                         }
                     }
