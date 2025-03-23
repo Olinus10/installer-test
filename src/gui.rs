@@ -1638,6 +1638,7 @@ pub(crate) fn app() -> Element {
     let page = use_signal(|| HOME_PAGE);  // Initially set to HOME_PAGE
     let mut pages = use_signal(BTreeMap::<usize, TabInfo>::new);
     
+
     // DIAGNOSTIC: Print branches available
     debug!("DIAGNOSTIC: Available branches: {}", branches.len());
     for branch in &branches {
@@ -1712,157 +1713,160 @@ pub(crate) fn app() -> Element {
 
     // Effect to build pages map when branches are processed
     use_effect(move || {
-        if let Some(processed_branches) = packs.read().as_ref() {
-            debug!("Building pages map from {} processed branches", processed_branches.len());
+    if let Some(processed_branches) = packs.read().as_ref() {
+        debug!("Building pages map from {} processed branches", processed_branches.len());
+        
+        let mut new_pages = BTreeMap::<usize, TabInfo>::new();
+        for (tab_group, profile) in processed_branches {
+            let tab_title = profile.manifest.tab_title.clone().unwrap_or_else(|| profile.manifest.subtitle.clone());
+            let tab_color = profile.manifest.tab_color.clone().unwrap_or_else(|| String::from("#320625"));
+            let tab_background = profile.manifest.tab_background.clone().unwrap_or_else(|| {
+                String::from("https://raw.githubusercontent.com/Wynncraft-Overhaul/installer/master/src/assets/background_installer.png")
+            });
+            let settings_background = profile.manifest.settings_background.clone().unwrap_or_else(|| tab_background.clone());
             
-            let mut new_pages = BTreeMap::<usize, TabInfo>::new();
-            for (tab_group, profile) in processed_branches {
-                let tab_title = profile.manifest.tab_title.clone().unwrap_or_else(|| profile.manifest.subtitle.clone());
-                let tab_color = profile.manifest.tab_color.clone().unwrap_or_else(|| String::from("#320625"));
-                let tab_background = profile.manifest.tab_background.clone().unwrap_or_else(|| {
-                    String::from("https://raw.githubusercontent.com/Wynncraft-Overhaul/installer/master/src/assets/background_installer.png")
-                });
-                let settings_background = profile.manifest.settings_background.clone().unwrap_or_else(|| tab_background.clone());
-                
-                // No longer including font fields
-                new_pages.entry(*tab_group).or_insert(TabInfo {
-                    color: tab_color,
-                    title: tab_title,
-                    background: tab_background,
-                    settings_background,
-                    modpacks: vec![profile.clone()],
-                });
-            }
-            
-            pages.set(new_pages);
-            debug!("Updated pages map with {} tabs", pages().len());
+            // No longer including font fields
+            new_pages.entry(*tab_group).or_insert(TabInfo {
+                color: tab_color,
+                title: tab_title,
+                background: tab_background,
+                settings_background,
+                // Remove these fields
+                // primary_font,
+                // secondary_font,
+                modpacks: vec![profile.clone()],
+            });
         }
-    });
+        
+        pages.set(new_pages);
+        debug!("Updated pages map with {} tabs", pages().len());
+    }
+});
 
     let css_content = {
-        let default_color = "#320625".to_string();
-        let default_bg = "https://raw.githubusercontent.com/Wynncraft-Overhaul/installer/master/src/assets/background_installer.png".to_string();
-        
-        let bg_color = match pages().get(&page()) {
-            Some(x) => x.color.clone(),
-            None => default_color,
-        };
-        
-        let bg_image = match pages().get(&page()) {
-            Some(x) => {
-                if settings() {
-                    x.settings_background.clone()
-                } else {
-                    x.background.clone()
-                }
-            },
-            None => default_bg,
-        };
-        
-        // Use constants instead of TabInfo properties
-        debug!("Updating CSS with: color={}, bg_image={}", bg_color, bg_image);
-            
-        // Improved dropdown menu CSS with better hover behavior and font consistency
-        let dropdown_css = "
-        /* Dropdown styles */
-        .dropdown { 
-            position: relative; 
-            display: inline-block; 
-        }
-
-        /* Position the dropdown content */
-        .dropdown-content {
-            display: none;
-            position: absolute;
-            top: 100%;
-            left: 0;
-            background-color: rgba(0, 0, 0, 0.9);
-            min-width: 200px;
-            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.6);
-            z-index: 1000;
-            border-radius: 4px;
-            overflow: hidden;
-            margin-top: 5px;
-            max-height: 400px;
-            overflow-y: auto;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        /* Show dropdown on hover with increased target area */
-        .dropdown:hover .dropdown-content,
-        .dropdown-content:hover {
-            display: block;
-        }
-
-        /* Add a pseudo-element to create an invisible connection between the button and dropdown */
-        .dropdown::after {
-            content: '';
-            position: absolute;
-            height: 10px;
-            width: 100%;
-            left: 0;
-            top: 100%;
-            display: none;
-        }
-
-        .dropdown:hover::after {
-            display: block;
-        }
-
-        .dropdown-item {
-            display: block;
-            width: 100%;
-            padding: 10px 15px;
-            text-align: left;
-            background-color: transparent;
-            border: none;
-            /* Explicitly use the PRIMARY_FONT */
-            font-family: \\\"PRIMARY_FONT\\\";
-            font-size: 0.9rem;
-            color: #fce8f6;
-            cursor: pointer;
-            transition: background-color 0.2s ease;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-        }
-
-        .dropdown-item:last-child {
-            border-bottom: none;
-        }
-
-        .dropdown-item:hover {
-            background-color: rgba(50, 6, 37, 0.8);
-            border-color: rgba(255, 255, 255, 0.4);
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
-        }
-
-        .dropdown-item.active {
-            background-color: var(--bg-color);
-            border-color: #fce8f6;
-            box-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
-            color: #fff;
-        }
-
-        /* Fix for header-tabs to prevent dropdown from affecting it */
-        .header-tabs {
-            display: flex;
-            gap: 5px;
-            margin: 0 10px;
-            flex-grow: 1;
-            justify-content: center;
-            flex-wrap: wrap;
-            overflow-x: visible;
-            scrollbar-width: thin;
-            max-width: 70%;
-            position: relative;
-        }";
-            
-        css
-            .replace("<BG_COLOR>", &bg_color)
-            .replace("<BG_IMAGE>", &bg_image)
-            .replace("<SECONDARY_FONT>", HEADER_FONT)
-            .replace("<PRIMARY_FONT>", REGULAR_FONT)
-            + "/* Font fixes applied */"
+    let default_color = "#320625".to_string();
+    let default_bg = "https://raw.githubusercontent.com/Wynncraft-Overhaul/installer/master/src/assets/background_installer.png".to_string();
+    
+    let bg_color = match pages().get(&page()) {
+        Some(x) => x.color.clone(),
+        None => default_color,
     };
+    
+    let bg_image = match pages().get(&page()) {
+        Some(x) => {
+            if settings() {
+                x.settings_background.clone()
+            } else {
+                x.background.clone()
+            }
+        },
+        None => default_bg,
+    };
+    
+    // Use constants instead of TabInfo properties
+    debug!("Updating CSS with: color={}, bg_image={}", bg_color, bg_image);
+        
+    // Improved dropdown menu CSS with better hover behavior and font consistency
+    let dropdown_css = "
+    /* Dropdown styles */
+    .dropdown { 
+        position: relative; 
+        display: inline-block; 
+    }
+
+    /* Position the dropdown content */
+    .dropdown-content {
+        display: none;
+        position: absolute;
+        top: 100%;
+        left: 0;
+        background-color: rgba(0, 0, 0, 0.9);
+        min-width: 200px;
+        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.6);
+        z-index: 1000;
+        border-radius: 4px;
+        overflow: hidden;
+        margin-top: 5px;
+        max-height: 400px;
+        overflow-y: auto;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    /* Show dropdown on hover with increased target area */
+    .dropdown:hover .dropdown-content,
+    .dropdown-content:hover {
+        display: block;
+    }
+
+    /* Add a pseudo-element to create an invisible connection between the button and dropdown */
+    .dropdown::after {
+        content: '';
+        position: absolute;
+        height: 10px;
+        width: 100%;
+        left: 0;
+        top: 100%;
+        display: none;
+    }
+
+    .dropdown:hover::after {
+        display: block;
+    }
+
+    .dropdown-item {
+        display: block;
+        width: 100%;
+        padding: 10px 15px;
+        text-align: left;
+        background-color: transparent;
+        border: none;
+        /* Explicitly use the PRIMARY_FONT */
+        font-family: \\\"PRIMARY_FONT\\\";
+        font-size: 0.9rem;
+        color: #fce8f6;
+        cursor: pointer;
+        transition: background-color 0.2s ease;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .dropdown-item:last-child {
+        border-bottom: none;
+    }
+
+    .dropdown-item:hover {
+        background-color: rgba(50, 6, 37, 0.8);
+        border-color: rgba(255, 255, 255, 0.4);
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+    }
+
+    .dropdown-item.active {
+        background-color: var(--bg-color);
+        border-color: #fce8f6;
+        box-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
+        color: #fff;
+    }
+
+    /* Fix for header-tabs to prevent dropdown from affecting it */
+    .header-tabs {
+        display: flex;
+        gap: 5px;
+        margin: 0 10px;
+        flex-grow: 1;
+        justify-content: center;
+        flex-wrap: wrap;
+        overflow-x: visible;
+        scrollbar-width: thin;
+        max-width: 70%;
+        position: relative;
+    }";
+        
+    css
+        .replace("<BG_COLOR>", &bg_color)
+        .replace("<BG_IMAGE>", &bg_image)
+        .replace("<SECONDARY_FONT>", HEADER_FONT)
+        .replace("<PRIMARY_FONT>", REGULAR_FONT)
+        + "/* Font fixes applied */"
+};
 
     let mut modal_context = use_context_provider(ModalContext::default);
     if let Some(e) = err() {
@@ -1877,7 +1881,7 @@ pub(crate) fn app() -> Element {
     // Determine which logo to use
     let logo_url = Some("https://raw.githubusercontent.com/Wynncraft-Overhaul/installer/master/src/assets/icon.png".to_string());
     
-    // Get current page for rendering decisions
+    // Fix: Return the JSX from the app function
     let current_page = page();
     debug!("RENDER DECISION: current_page={}, HOME_PAGE={}, is_home={}",
            current_page, HOME_PAGE, current_page == HOME_PAGE);
@@ -1930,62 +1934,239 @@ pub(crate) fn app() -> Element {
                         }
                     }
                 } else {
-                    // Main content rendering section
+                    // DIAGNOSTIC CONTENT RENDERING SECTION
+
+                    
                     if current_page == HOME_PAGE {
-                        debug!("RENDERING: HomePage");
-                        rsx! {
-                            HomePage {
-                                pages,
-                                page
-                            }
-                        }
-                    } else {
-                        debug!("RENDERING: Content for page {}", current_page);
-                        
-                        // Get tab info without temporary references
-                        let pages_map = pages();
-                        
-                        if let Some(tab_info) = pages_map.get(&current_page) {
-                            debug!("FOUND tab group {} with {} modpacks", 
-                                current_page, tab_info.modpacks.len());
+    debug!("RENDERING: HomePage");
+    rsx! {
+        HomePage {
+            pages,
+            page
+        }
+    }
+} else {
+    debug!("RENDERING: Content for page {}", current_page);
+    
+    // Get tab info without temporary references
+    let pages_map = pages();
+    
+    if let Some(tab_info) = pages_map.get(&current_page) {
+        debug!("FOUND tab group {} with {} modpacks", 
+               current_page, tab_info.modpacks.len());
+        
+        // CRITICAL FIX: Get all modpacks before rendering
+        let modpacks = tab_info.modpacks.clone();
+        debug!("Cloned {} modpacks for rendering", modpacks.len());
+        
+        // Log each modpack outside the RSX
+        for profile in &modpacks {
+            debug!("Preparing to render modpack: {}", profile.manifest.subtitle);
+        }
+        
+        // Create a separate credits signal for this rendering path
+        let mut credits_visible = use_signal(|| false);
+        let mut selected_profile = use_signal(|| modpacks.first().cloned());
+        
+        // Directly return the RSX without unnecessary nesting
+        rsx! {
+            // First, conditionally render either the credits view or the normal content
+            if *credits_visible.read() {
+                // Render the Credits component with the selected profile
+                if let Some(profile) = selected_profile.read().clone() {
+                    Credits {
+                        manifest: profile.manifest.clone(),
+                        enabled: profile.enabled_features.clone(),
+                        credits: credits_visible
+                    }
+                }
+            } else {
+                // Render the normal modpack content
+                div { 
+                    class: "version-page-container",
+                    style: "display: block; width: 100%;",
+                    
+                    for (index, profile) in modpacks.iter().enumerate() {
+                        {
+                            let profile_clone = profile.clone();
                             
-                            // Get all modpacks for this tab group
-                            let modpacks = tab_info.modpacks.clone();
-                            debug!("Cloned {} modpacks for rendering", modpacks.len());
-                            
-                            // Create a container to hold the modpack displays
                             rsx! {
                                 div { 
-                                    class: "version-page-container",
-                                    style: "display: block; width: 100%;",
+                                    class: "version-container",
                                     
-                                    // Render each modpack using the Version component
-                                    for (index, profile) in modpacks.iter().enumerate() {
+                                    // Header section
+                                    div { class: "content-header",
+                                        h1 { "{profile.manifest.subtitle}" }
+                                    }
+                                    
+                                    // Description section
+                                    div { class: "content-description",
+                                        dangerous_inner_html: "{profile.manifest.description}"
+                                    }
+
+                                    // Credits link - moved outside the description HTML
+                                    div { class: "credits-link-container", style: "text-align: center; margin: 15px 0;",
+                                        a {
+                                            class: "credits-button",
+                                            onclick: move |evt| {
+                                                // Set the selected profile and show credits
+                                                selected_profile.set(Some(profile_clone.clone()));
+                                                credits_visible.set(true);
+                                                evt.stop_propagation();
+                                            },
+                                            "VIEW CREDITS"
+                                        }
+                                    }
+                                    
+                                    // Features heading
+                                    h2 { class: "features-heading", "OPTIONAL FEATURES" }
+                                    
+                                    // MODIFIED SECTION: Expandable Features
+                                    div { class: "features-section",
                                         {
-                                            // Clone the profile before passing to component
-                                            let profile_clone = profile.clone();
+                                            // Filter features inside the RSX block
+                                            let visible_features: Vec<_> = profile.manifest.features.iter()
+                                                .filter(|f| !f.hidden)
+                                                .collect();
                                             
-                                            // Use the Version component for each modpack
+                                            // Calculate whether to show expand button
+                                            let first_row_count = 3;
+                                            let show_expand_button = visible_features.len() > first_row_count;
+                                            
+                                            // Using a unique signal for each profile's expanded state
+                                            let expanded_signal_id = format!("expanded-{}-{}", current_page, index);
+                                            let mut expanded_features = use_signal(|| false);
+                                            
                                             rsx! {
-                                                Version {
-                                                    installer_profile: profile_clone,
-                                                    error: err.clone(),
-                                                    current_page: current_page,
-                                                    tab_group: current_page, // Using current_page as tab_group
+                                                div { class: "feature-cards-container",
+                                                    // First row of features
+                                                    for (feat_idx, feat) in visible_features.iter().enumerate().take(first_row_count) {
+                                                        {
+                                                            let feat_id = feat.id.clone();
+                                                            let feat_name = feat.name.clone();
+                                                            let feat_description = feat.description.clone();
+                                                            let is_enabled = profile.enabled_features.contains(&feat_id) || feat.default;
+                                                            
+                                                            rsx! {
+                                                                div { 
+                                                                    class: if is_enabled { "feature-card feature-enabled" } else { "feature-card feature-disabled" },
+                                                                    div { class: "feature-card-header",
+                                                                        h3 { class: "feature-card-title", "{feat_name}" }
+                                                                    }
+                                                                    
+                                                                    if let Some(description) = &feat_description {
+                                                                        div { class: "feature-card-description", "{description}" }
+                                                                    }
+                                                                    
+                                                                    label {
+                                                                        class: if is_enabled { "feature-toggle-button enabled" } else { "feature-toggle-button disabled" },
+                                                                        input {
+                                                                            r#type: "checkbox",
+                                                                            name: "{feat_id}",
+                                                                            checked: if is_enabled { Some("true") } else { None },
+                                                                            onchange: move |evt| {
+                                                                                debug!("Feature toggle changed: {}", feat_id);
+                                                                                // You can call feature_change function here if needed
+                                                                            },
+                                                                            style: "display: none;"
+                                                                        }
+                                                                        if is_enabled { "Enabled" } else { "Disabled" }
+                                                                    }
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                    
+                                                    // Additional features (shown only when expanded)
+                                                    if *expanded_features.read() {
+                                                        for (feat_idx, feat) in visible_features.iter().enumerate().skip(first_row_count) {
+                                                            {
+                                                                let feat_id = feat.id.clone();
+                                                                let feat_name = feat.name.clone();
+                                                                let feat_description = feat.description.clone();
+                                                                let is_enabled = profile.enabled_features.contains(&feat_id) || feat.default;
+                                                                
+                                                                rsx! {
+                                                                    div { 
+                                                                        class: if is_enabled { "feature-card feature-enabled" } else { "feature-card feature-disabled" },
+                                                                        div { class: "feature-card-header",
+                                                                            h3 { class: "feature-card-title", "{feat_name}" }
+                                                                        }
+                                                                        
+                                                                        if let Some(description) = &feat_description {
+                                                                            div { class: "feature-card-description", "{description}" }
+                                                                        }
+                                                                        
+                                                                        label {
+                                                                            class: if is_enabled { "feature-toggle-button enabled" } else { "feature-toggle-button disabled" },
+                                                                            input {
+                                                                                r#type: "checkbox",
+                                                                                name: "{feat_id}",
+                                                                                checked: if is_enabled { Some("true") } else { None },
+                                                                                onchange: move |evt| {
+                                                                                    debug!("Feature toggle changed: {}", feat_id);
+                                                                                    // You can call feature_change function here if needed
+                                                                                },
+                                                                                style: "display: none;"
+                                                                            }
+                                                                            if is_enabled { "Enabled" } else { "Disabled" }
+                                                                        }
+                                                                    }
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                                
+                                                // Only show expand button if needed
+                                                if show_expand_button {
+                                                    div { class: "features-expand-container",
+                                                        button {
+                                                            class: "features-expand-button",
+                                                            onclick: move |_| {
+                                                                let current_state = *expanded_features.read();
+                                                                expanded_features.set(!current_state);
+                                                                debug!("Toggled expanded features: {} for profile {}", !current_state, expanded_signal_id);
+                                                            },
+                                                            if *expanded_features.read() {
+                                                                "Collapse Features"
+                                                            } else {
+                                                                {format!("Show {} More Features", visible_features.len() - first_row_count)}
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                    
+                                    // Install button
+                                    div { class: "install-button-container",
+                                        div { class: "button-scale-wrapper",
+                                            button { 
+                                                class: "main-install-button",
+                                                // You can add proper install logic here if needed
+                                                // disabled: install_disable,
+                                                if profile.installed && profile.update_available {
+                                                    "Update"
+                                                } else if profile.installed {
+                                                    "Modify"
+                                                } else {
+                                                    "Install"
                                                 }
                                             }
                                         }
                                     }
                                 }
                             }
-                        } else {
-                            debug!("NO TAB INFO found for page {}", current_page);
-                            rsx! { div { "No modpack information found for this tab." } }
                         }
                     }
                 }
             }
         }
+    } else {
+        debug!("NO TAB INFO found for page {}", current_page);
+        rsx! { div { "No modpack information found for this tab." } }
     }
 }
-}
+}}}}}}
