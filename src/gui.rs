@@ -712,62 +712,6 @@ fn InstallButton(
 }
 
 #[component]
-fn ExpandableFeatures(
-    children: Element,
-    #[props(default = false)] initially_expanded: bool,
-    #[props(default = 3)] visible_card_threshold: usize,
-    #[props(default = true)] show_button: bool
-) -> Element {
-    // Track expanded state
-    let mut is_expanded = use_signal(|| initially_expanded);
-    
-    // Let the parent determine if expansion is needed
-    let needs_expansion = visible_card_threshold > 0 && show_button;
-    
-    rsx! {
-        // Container with conditional class based on expanded state
-        div { 
-            class: if *is_expanded.read() {
-                "expandable-features-container expanded"
-            } else {
-                "expandable-features-container"
-            },
-            
-            // Render the children directly
-            {children}
-        }
-        
-        // Only show the button if expansion is needed
-        if needs_expansion {
-            button {
-                class: "show-features-button",
-                r#type: "button",
-                onclick: move |evt| {
-                    is_expanded.with_mut(|expanded| *expanded = !*expanded);
-                    evt.stop_propagation();
-                },
-                
-                {
-                    let is_currently_expanded = *is_expanded.read();
-                    rsx! {
-                        if is_currently_expanded {
-                            "Show Less "
-                        } else {
-                            "Show All Features "
-                        }
-                        
-                        span { 
-                            class: if is_currently_expanded { "button-arrow up" } else { "button-arrow" },
-                            "▼" 
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-#[component]
 fn Launcher(mut props: LauncherProps) -> Element {
     let mut vanilla = None;
     let mut multimc = None;
@@ -1115,7 +1059,7 @@ struct VersionProps {
 fn Version(mut props: VersionProps) -> Element {
     let installer_profile = props.installer_profile.clone();
     
-    // Existing signals (simplified for clarity)
+    // Existing signals
     let mut installing = use_signal(|| false);
     let mut progress_status = use_signal(|| "".to_string());
     let mut install_progress = use_signal(|| 0);
@@ -1127,14 +1071,17 @@ fn Version(mut props: VersionProps) -> Element {
     let mut install_item_amount = use_signal(|| 0);
     let features = use_signal(|| installer_profile.manifest.features.clone());
     
-    // Count visible features
+    // Signal for tracking expanded state
+    let mut features_expanded = use_signal(|| false);
+    
+    // Get a count of visible features directly
     let visible_features_count = features.read().iter()
-    .filter(|feat| !feat.hidden)
-    .count();
-
+        .filter(|feat| !feat.hidden)
+        .count();
+    
+    // Only show expand button if we have more than one row (4+ features)
     let needs_expansion = visible_features_count > 3;
     
-    // Rest of your signal setup...
     let mut enabled_features = use_signal(|| {
         let mut feature_list = vec!["default".to_string()];
         
@@ -1189,12 +1136,18 @@ fn Version(mut props: VersionProps) -> Element {
         } else {
             div { class: "version-container",
                 form {
-                    // Your form submission handler
+                    // Your existing form submission handler
                     onsubmit: move |_| {
-                        // Your installation logic
+                        // Calculate total items to process
+                        *install_item_amount.write() = installer_profile.manifest.mods.len()
+                            + installer_profile.manifest.resourcepacks.len()
+                            + installer_profile.manifest.shaderpacks.len()
+                            + installer_profile.manifest.include.len();
+                            
+                        // Include your existing installation logic here
                     },
                     
-                    // Header section
+                    // Header section with title and subtitle
                     div { class: "content-header",
                         h1 { "{installer_profile.manifest.subtitle}" }
                     }
@@ -1203,6 +1156,7 @@ fn Version(mut props: VersionProps) -> Element {
                     div { class: "content-description",
                         dangerous_inner_html: "{installer_profile.manifest.description}",
                         
+                        // Credits link
                         div {
                             a {
                                 class: "credits-link",
@@ -1221,14 +1175,17 @@ fn Version(mut props: VersionProps) -> Element {
                         span { class: "features-count", "{visible_features_count}" }
                     }
                     
-                    // *** USING THE EXPANDABLE FEATURES COMPONENT ***
-ExpandableFeatures {
-    initially_expanded: false,
-    visible_card_threshold: if needs_expansion { 3 } else { 0 }, // Only enable if needed
-    show_button: needs_expansion,
+                    // EXPANDABLE FEATURES CONTAINER - Direct implementation
+                    div { 
+                        class: if *features_expanded.read() {
+                            "expandable-features-container expanded"
+                        } else {
+                            "expandable-features-container"
+                        },
                         
-                        // Feature cards container
+                        // Feature cards grid
                         div { class: "feature-cards-container",
+                            // Your existing feature cards code
                             for feat in features.read().iter() {
                                 if !feat.hidden {
                                     {
@@ -1240,15 +1197,18 @@ ExpandableFeatures {
                                                 class: if is_enabled { "feature-card feature-enabled" } else { "feature-card feature-disabled" },
                                                 h3 { class: "feature-card-title", "{feat.name}" }
                                                 
+                                                // Description if available
                                                 if let Some(description) = &feat.description {
                                                     div { class: "feature-card-description", "{description}" }
                                                 }
                                                 
+                                                // Toggle button with direct click handler
                                                 div {
                                                     class: if is_enabled { "feature-toggle-button enabled" } else { "feature-toggle-button disabled" },
                                                     onclick: move |_| {
                                                         let new_state = !is_enabled;
                                                         
+                                                        // Update enabled_features
                                                         enabled_features.with_mut(|feature_list| {
                                                             if new_state {
                                                                 if !feature_list.contains(&feat_id) {
@@ -1259,6 +1219,7 @@ ExpandableFeatures {
                                                             }
                                                         });
                                                         
+                                                        // Handle modify flag
                                                         if let Some(local_feat) = local_features.read().as_ref() {
                                                             let was_enabled = local_feat.contains(&feat_id);
                                                             let is_modified = was_enabled != new_state;
@@ -1286,13 +1247,45 @@ ExpandableFeatures {
                         }
                     }
                     
-                    // Install button 
+                    // EXPAND/COLLAPSE BUTTON - Show only if we have enough features
+                    if needs_expansion {
+                        button {
+                            class: "show-features-button",
+                            r#type: "button", // Important: prevent form submission
+                            onclick: move |evt| {
+                                // Toggle expanded state with with_mut() to avoid borrow issues
+                                features_expanded.with_mut(|expanded| *expanded = !*expanded);
+                                evt.stop_propagation();
+                            },
+                            
+                            // Get the current state for display
+                            {
+                                let is_expanded = *features_expanded.read();
+                                rsx! {
+                                    span {
+                                        if is_expanded {
+                                            "Show Less "
+                                        } else {
+                                            "Show All Features "
+                                        }
+                                    }
+                                    
+                                    span { 
+                                        class: if is_expanded { "button-arrow up" } else { "button-arrow" },
+                                        "▼" 
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    
+                    // Install button - keep this after the expandable section
                     div { class: "install-button-container",
                         div { class: "button-scale-wrapper",
                             button {
                                 class: "main-install-button",
                                 disabled: install_disable,
-                                r#type: "submit",
+                                r#type: "submit", // Important: submit the form
                                 "{button_label}"
                             }
                         }
@@ -1302,6 +1295,8 @@ ExpandableFeatures {
         }
     }
 }
+
+
 /// New header component with tabs - updated to display tab groups 1-3 in main row
 #[component]
 fn AppHeader(
