@@ -1083,7 +1083,7 @@ fn Version(mut props: VersionProps) -> Element {
     let visible_features_count = visible_features.len();
     
     // Only show expand button if we have more than one row (4+ features)
-    let needs_expansion = visible_features_count > 4;
+    let needs_expansion = visible_features_count > 3;
     
     // Rest of your existing signals...
     let mut enabled_features = use_signal(|| {
