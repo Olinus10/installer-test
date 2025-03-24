@@ -73,9 +73,6 @@ fn get_current_launcher_type() -> Result<LauncherType, String> {
 
 // Launch vanilla Minecraft with the specified profile
 fn launch_vanilla(profile_id: &str) -> Result<(), String> {
-    // Find the Minecraft launcher executable
-    let launcher_path = find_minecraft_launcher()?;
-    
     debug!("Launching vanilla Minecraft with profile {}", profile_id);
     
     // Build the complete game directory path
@@ -84,41 +81,82 @@ fn launch_vanilla(profile_id: &str) -> Result<(), String> {
     
     debug!("Game directory: {:?}", game_dir);
     
-    // Try to get the version ID from the launcher_profiles.json file
-    let mut version_id = None;
-    if let Ok(profiles_json) = std::fs::read_to_string(minecraft_dir.join("launcher_profiles.json")) {
-        if let Ok(profiles) = serde_json::from_str::<serde_json::Value>(&profiles_json) {
-            if let Some(version) = profiles["profiles"][profile_id]["lastVersionId"].as_str() {
-                version_id = Some(version.to_string());
-                debug!("Found version ID for profile: {}", version);
-            }
+    // Create a temporary script file
+    let script_path = if cfg!(target_os = "windows") {
+        // Windows batch file
+        let script_path = std::env::temp_dir().join(format!("launch_minecraft_{}.bat", profile_id));
+        let launcher_path = find_minecraft_launcher()?;
+        
+        // Create batch file content
+        let batch_content = format!(
+            "@echo off\n\
+             echo Launching Minecraft profile: {}\n\
+             \"{launcher}\" --workDir \"{minecraft}\" --gameDir \"{gamedir}\" --username \"${{}USERNAME%%}\" --version \"fabric-loader\" --assetsDir \"{minecraft}\\assets\" --assetIndex \"1.20\" --uuid \"${{}RANDOM%%}${{}RANDOM%%}\" --accessToken 0 --userType legacy --versionType release\n",
+            profile_id,
+            launcher = launcher_path,
+            minecraft = minecraft_dir.display(),
+            gamedir = game_dir.display()
+        );
+        
+        // Write to batch file
+        match std::fs::write(&script_path, batch_content) {
+            Ok(_) => debug!("Created launch script at {:?}", script_path),
+            Err(e) => return Err(format!("Failed to create launch script: {}", e))
         }
-    }
+        
+        script_path
+    } else if cfg!(target_os = "macos") || cfg!(target_os = "linux") {
+        // Shell script for macOS/Linux
+        let script_path = std::env::temp_dir().join(format!("launch_minecraft_{}.sh", profile_id));
+        let launcher_path = find_minecraft_launcher()?;
+        
+        // Create shell script content 
+        let shell_content = format!(
+            "#!/bin/bash\n\
+             echo \"Launching Minecraft profile: {}\"\n\
+             \"{}\" --workDir \"{}\" --gameDir \"{}\" --username \"$USER\" --version \"fabric-loader\" --assetsDir \"{}/assets\" --assetIndex \"1.20\" --uuid \"$RANDOM$RANDOM\" --accessToken 0 --userType legacy --versionType release\n",
+            profile_id,
+            launcher_path,
+            minecraft_dir.display(),
+            game_dir.display(),
+            minecraft_dir.display()
+        );
+        
+        // Write to shell script
+        match std::fs::write(&script_path, shell_content) {
+            Ok(_) => debug!("Created launch script at {:?}", script_path),
+            Err(e) => return Err(format!("Failed to create launch script: {}", e))
+        }
+        
+        // Make the script executable
+        use std::os::unix::fs::PermissionsExt;
+        let metadata = std::fs::metadata(&script_path)?;
+        let mut permissions = metadata.permissions();
+        permissions.set_mode(0o755); // rwxr-xr-x
+        std::fs::set_permissions(&script_path, permissions)?;
+        
+        script_path
+    } else {
+        return Err("Unsupported operating system".to_string());
+    };
     
-    // Create a command-line with arguments that newer launcher versions expect
-    let mut command = Command::new(launcher_path);
+    // Execute the script
+    let mut command = if cfg!(target_os = "windows") {
+        Command::new(&script_path)
+    } else {
+        Command::new("sh").arg(&script_path)
+    };
     
-    // Use the newer syntax that some launchers require
-    command.arg("--gameDir").arg(&game_dir);
-    
-    if let Some(version) = version_id {
-        command.arg("--versionName").arg(version);
-    }
-    
-    // Additional direct launch parameters
-    command.arg("--launchProfile").arg(profile_id);
-    
-    // Log the exact command we're running for debugging
-    debug!("Running command: {:?}", command);
+    debug!("Running script: {:?}", script_path);
     
     match command.spawn() {
         Ok(_) => {
-            debug!("Minecraft launcher started successfully with profile: {}", profile_id);
+            debug!("Minecraft launch script executed successfully");
             Ok(())
         },
         Err(e) => {
-            error!("Failed to start Minecraft launcher: {}", e);
-            Err(format!("Failed to start Minecraft launcher: {}", e))
+            error!("Failed to execute Minecraft launch script: {}", e);
+            Err(format!("Failed to execute Minecraft launch script: {}", e))
         }
     }
 }
