@@ -15,8 +15,8 @@ pub fn launch_modpack(profile_id: &str) -> Result<(), String> {
     command.arg("--workDir").arg(crate::launcher::config::get_minecraft_dir());
     
     // If your launcher can directly launch a specific profile, use these:
-    // command.arg("--launch");
-    // command.arg(profile_id);
+command.arg("--launch");
+command.arg(profile_id);
     
     // Start the process
     match command.spawn() {
