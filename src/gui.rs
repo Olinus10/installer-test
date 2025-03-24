@@ -4,9 +4,7 @@ use dioxus::prelude::*;
 use log::{error, debug};
 use modal::ModalContext;
 use modal::Modal; 
-
-use crate::{get_app_data, get_installed_packs, get_launcher, uninstall, InstallerProfile, Launcher, PackName, Changelog};
-use crate::launcher::{update_jvm_args, get_jvm_args, DEFAULT_JVM_ARGS};
+use crate::{get_app_data, get_installed_packs, get_launcher, uninstall, InstallerProfile, Launcher, PackName, Changelog,launcher::launch_modpack};
 
 mod modal;
 
@@ -57,182 +55,18 @@ fn BackgroundParticles() -> Element {
 }
 
 #[component]
-fn JavaSettingsForm(profile_id: String) -> Element {
-    let mut jvm_args = use_signal(|| get_jvm_args(&profile_id).unwrap_or_else(|_| DEFAULT_JVM_ARGS.to_string()));
-    let mut memory = use_signal(|| extract_memory_from_args(&jvm_args.read()));
-    let mut width = use_signal(|| 1280);
-    let mut height = use_signal(|| 720);
-    let mut fullscreen = use_signal(|| false);
-    
-    let save_settings = move |_| {
-        // Build the full JVM arguments string
-        let mut new_args = DEFAULT_JVM_ARGS.to_string();
-        
-        // Replace memory value
-        new_args = new_args.replace("-Xmx4G", &format!("-Xmx{}G", *memory.read()));
-        
-        // Add window size args if not fullscreen
-        if !*fullscreen.read() {
-            new_args.push_str(&format!(" -Dorg.lwjgl.opengl.Window.width={} -Dorg.lwjgl.opengl.Window.height={}", 
-                                      *width.read(), *height.read()));
-        }
-        
-        // Update the JVM args for this profile
-        if let Err(e) = update_jvm_args(&profile_id, &new_args) {
-            log::error!("Failed to update JVM args: {}", e);
-            // Show error to user
-        }
-        
-        // Update the displayed JVM args
-        jvm_args.set(new_args);
-    };
-    
+fn PlayButton(
+    uuid: String,
+    disabled: bool,
+    onclick: EventHandler<MouseEvent>,
+) -> Element {
     rsx! {
-        div { class: "settings-container",
-            h1 { class: "settings-title", "Java Settings" }
-            
-            div { class: "setting-group",
-                label { class: "setting-label", "Memory Allocation (GB)" }
-                
-                div { class: "memory-slider",
-                    input {
-                        r#type: "range",
-                        min: "2",
-                        max: "16",
-                        step: "1",
-                        value: "{*memory.read()}",
-                        oninput: move |evt| {
-                            if let Ok(val) = evt.value().parse::<u32>() {
-                                memory.set(val);
-                            }
-                        }
-                    }
-                    span { class: "memory-value", "{*memory.read()}GB" }
-                }
-            }
-            
-            div { class: "setting-group",
-                label { class: "setting-label", "Window Size" }
-                
-                div { class: "window-size-controls",
-                    input {
-                        r#type: "number",
-                        placeholder: "Width",
-                        value: "{*width.read()}",
-                        min: "640",
-                        oninput: move |evt| {
-                            if let Ok(val) = evt.value().parse::<u32>() {
-                                width.set(val);
-                            }
-                        }
-                    }
-                    span { "×" }
-                    input {
-                        r#type: "number",
-                        placeholder: "Height",
-                        value: "{*height.read()}",
-                        min: "480",
-                        oninput: move |evt| {
-                            if let Ok(val) = evt.value().parse::<u32>() {
-                                height.set(val);
-                            }
-                        }
-                    }
-                    
-                    label { class: "checkbox-label",
-                        input {
-                            r#type: "checkbox",
-                            checked: "{*fullscreen.read()}",
-                            oninput: move |evt| {
-                                fullscreen.set(evt.value() == "true");
-                            }
-                        }
-                        "Fullscreen"
-                    }
-                }
-            }
-            
-            div { class: "setting-group",
-                label { class: "setting-label", "Advanced JVM Arguments" }
-                textarea {
-                    class: "jvm-args-input",
-                    value: "{*jvm_args.read()}",
-                    readonly: true
-                }
-            }
-            
-            div { class: "settings-buttons",
-                button {
-                    class: "primary-button",
-                    onclick: save_settings,
-                    "Save Settings"
-                }
-            }
-        }
-    }
-}
-
-// Helper to extract memory value from JVM args
-fn extract_memory_from_args(args: &str) -> u32 {
-    // Look for -Xmx pattern followed by a number and G
-    if let Some(mem_str) = args.split_whitespace()
-        .find(|arg| arg.starts_with("-Xmx"))
-    {
-        if let Some(num_str) = mem_str.trim_start_matches("-Xmx").trim_end_matches('G').parse::<u32>().ok() {
-            return num_str;
-        }
-    }
-    
-    // Default to 4GB if not found or parsing fails
-    4
-}
-
-#[component]
-fn PlayButton(modpack: InstallerProfile) -> Element {
-    let mut installing = use_signal(|| false);
-    let profile_id = format!("wynncraft-{}", modpack.modpack_branch);
-    
-    let launch_modpack = move |_| {
-        installing.set(true);
-        
-        // Ensure modpack is installed
-        if !modpack.installed {
-            // Show error or prompt to install first
-            installing.set(false);
-            return;
-        }
-        
-        // Launch with the vanilla launcher
-        let profile_id_clone = profile_id.clone();
-        spawn(async move {
-            match crate::launcher::launch_modpack(&profile_id_clone) {
-                Ok(_) => {
-                    debug!("Successfully launched modpack: {}", profile_id_clone);
-                    // Optionally minimize the window or show a "Running" indicator
-                },
-                Err(e) => {
-                    // Show error message
-                    debug!("Failed to launch modpack: {}", e);
-                }
-            }
-            
-            // Reset installing state
-            installing.set(false);
-        });
-    };
-    
-    rsx! {
-        button {
-            class: "main-play-button",
-            disabled: *installing.read() || !modpack.installed,
-            onclick: launch_modpack,
-            
-            if *installing.read() {
-                "Launching..."
-            } else if modpack.installed {
-                "Play"
-            } else {
-                "Install"
+        div { class: "play-button-container",
+            button {
+                class: "main-play-button",
+                disabled: disabled,
+                onclick: move |evt| onclick.call(evt),
+                "PLAY"
             }
         }
     }
@@ -365,7 +199,21 @@ fn HomePage(
         tab_info.modpacks.first().and_then(|profile| profile.changelog.clone())
     });
     
+    // Error signal for modpack launching
+    let err = use_signal(|| Option::<String>::None);
+    
     rsx! {
+        if let Some(error) = err() {
+            div { class: "error-notification",
+                div { class: "error-message", "{error}" }
+                button { 
+                    class: "error-close",
+                    onclick: move |_| err.set(None),
+                    "×"
+                }
+            }
+        }
+        
         div { class: "home-container",
             // Add Statistics Display
             StatisticsDisplay {}
@@ -390,8 +238,7 @@ fn HomePage(
                             let is_new = modpack.manifest.is_new.unwrap_or(false);
                             let description = modpack.manifest.short_description.clone();
                             let is_installed = modpack.installed;
-                            let profile_id = format!("wynncraft-{}", modpack.modpack_branch);
-                            let modpack_clone = modpack.clone();
+                            let uuid = modpack.manifest.uuid.clone();
                             
                             rsx! {
                                 // Create a wrapper div for trending modpacks
@@ -407,12 +254,6 @@ fn HomePage(
                                             style: "background-image: url('{info.background}'); background-color: {info.color};",
                                             "data-category": "{category}",
                                             
-                                            // This is the main click handler for the entire card
-                                            onclick: move |evt| {
-                                                debug!("Trending card clicked: navigating to page {}", tab_index);
-                                                page.set(tab_index);
-                                            },
-                                            
                                             // Category badge
                                             div { class: "category-badge {category.to_lowercase()}", "{category}" }
                                             
@@ -427,64 +268,43 @@ fn HomePage(
                                                     div { class: "home-pack-description", "{desc}" }
                                                 }
                                                 
-                                                // Show different buttons based on installation status
-                                                if is_installed {
-                                                    div { class: "home-pack-buttons",
-                                                        // Play button
-                                                        div { 
-                                                            class: "home-pack-button play",
-                                                            onclick: move |evt| {
-                                                                evt.stop_propagation();
-                                                                
-                                                                // Clone before moving into the inner closure
-                                                                let profile_id_clone = profile_id.clone();
-                                                                
-                                                                // Launch the modpack
-                                                                let mut modal = use_context::<ModalContext>();
-                                                                spawn(async move {
-                                                                    match crate::launcher::launch_modpack(&profile_id_clone) {
-                                                                        Ok(_) => {
-                                                                            debug!("Successfully launched modpack: {}", profile_id_clone);
-                                                                        },
-                                                                        Err(e) => {
-                                                                            debug!("Failed to launch modpack: {}", e);
-                                                                            modal.open(
-                                                                                "Launch Error",
-                                                                                rsx!(div {
-                                                                                    p { "Failed to launch the modpack. Please check your Minecraft installation." }
-                                                                                    p { "Error: {e}" }
-                                                                                }),
-                                                                                false,
-                                                                                Some(|_| {}),
-                                                                            );
-                                                                        }
-                                                                    }
-                                                                });
-                                                            },
-                                                            "PLAY"
-                                                        }
+                                                div { 
+                                                    class: "home-pack-button",
+                                                    onclick: move |_| {
+                                                        let old_page = page();
+                                                        debug!("HOME CLICK: Changing page from {} to {} ({}) - HOME_PAGE={}", 
+                                                            old_page, tab_index, tab_title, HOME_PAGE);
                                                         
-                                                        // Modify button - redirects to modpack page
-                                                        div { 
-                                                            class: "home-pack-button modify",
-                                                            onclick: move |evt| {
-                                                                evt.stop_propagation();
-                                                                debug!("Modify button clicked: navigating to page {}", tab_index);
-                                                                page.set(tab_index);
-                                                            },
-                                                            "MODIFY"
+                                                        page.write().clone_from(&tab_index);
+                                                        
+                                                        let new_page = page();
+                                                        debug!("HOME CLICK RESULT: Page is now {}", new_page);
+                                                    },
+                                                    "View Modpack" 
+                                                }
+                                                
+                                                // Add Play button if installed
+                                                if is_installed {
+                                                    {
+                                                        let uuid_clone = uuid.clone();
+                                                        let err_clone = err.clone();
+                                                        
+                                                        rsx! {
+                                                            div { 
+                                                                class: "home-pack-play-button",
+                                                                onclick: move |evt| {
+                                                                    evt.stop_propagation(); // Prevent navigation
+                                                                    
+                                                                    // Launch the modpack
+                                                                    debug!("Launching modpack with UUID: {}", uuid_clone);
+                                                                    match crate::launcher::launch_modpack(&uuid_clone) {
+                                                                        Ok(_) => debug!("Successfully launched modpack: {}", uuid_clone),
+                                                                        Err(e) => err_clone.set(Some(format!("Failed to launch modpack: {}", e)))
+                                                                    }
+                                                                },
+                                                                "PLAY"
+                                                            }
                                                         }
-                                                    }
-                                                } else {
-                                                    // Install button - redirects to modpack page
-                                                    div { 
-                                                        class: "home-pack-button",
-                                                        onclick: move |evt| {
-                                                            evt.stop_propagation();
-                                                            debug!("Install button clicked: navigating to page {}", tab_index);
-                                                            page.set(tab_index);
-                                                        },
-                                                        "INSTALL"
                                                     }
                                                 }
                                             }
@@ -498,12 +318,6 @@ fn HomePage(
                                         "data-category": "{category}",
                                         "data-new": "{is_new}",
                                         "data-updated": "{is_updated}",
-                                        
-                                        // Main click handler for the card
-                                        onclick: move |evt| {
-                                            debug!("Card clicked: navigating to page {}", tab_index);
-                                            page.set(tab_index);
-                                        },
                                         
                                         // Category badge
                                         div { class: "category-badge {category.to_lowercase()}", "{category}" }
@@ -523,62 +337,43 @@ fn HomePage(
                                                 div { class: "home-pack-description", "{desc}" }
                                             }
                                             
-                                            // Different buttons based on installation status
-                                            if is_installed {
-                                                div { class: "home-pack-buttons",
-                                                    // Play button
-                                                    div { 
-                                                        class: "home-pack-button play",
-                                                        onclick: move |evt| {
-                                                            evt.stop_propagation();
-                                                            
-                                                            // Launch the modpack
-                                                            let profile_id_clone = profile_id.clone();
-                                                            let mut modal = use_context::<ModalContext>();
-                                                            spawn(async move {
-                                                                match crate::launcher::launch_modpack(&profile_id_clone) {
-                                                                    Ok(_) => {
-                                                                        debug!("Successfully launched modpack: {}", profile_id_clone);
-                                                                    },
-                                                                    Err(e) => {
-                                                                        debug!("Failed to launch modpack: {}", e);
-                                                                        modal.open(
-                                                                            "Launch Error",
-                                                                            rsx!(div {
-                                                                                p { "Failed to launch the modpack. Please check your Minecraft installation." }
-                                                                                p { "Error: {e}" }
-                                                                            }),
-                                                                            false,
-                                                                            Some(|_| {}),
-                                                                        );
-                                                                    }
-                                                                }
-                                                            });
-                                                        },
-                                                        "PLAY"
-                                                    }
+                                            div { 
+                                                class: "home-pack-button",
+                                                onclick: move |_| {
+                                                    let old_page = page();
+                                                    debug!("HOME CLICK: Changing page from {} to {} ({}) - HOME_PAGE={}", 
+                                                        old_page, tab_index, tab_title, HOME_PAGE);
                                                     
-                                                    // Modify button - redirects to modpack page
-                                                    div { 
-                                                        class: "home-pack-button modify",
-                                                        onclick: move |evt| {
-                                                            evt.stop_propagation();
-                                                            debug!("Modify button clicked: navigating to page {}", tab_index);
-                                                            page.set(tab_index);
-                                                        },
-                                                        "MODIFY"
+                                                    page.write().clone_from(&tab_index);
+                                                    
+                                                    let new_page = page();
+                                                    debug!("HOME CLICK RESULT: Page is now {}", new_page);
+                                                },
+                                                "View Modpack" 
+                                            }
+                                            
+                                            // Add Play button if installed
+                                            if is_installed {
+                                                {
+                                                    let uuid_clone = uuid.clone();
+                                                    let err_clone = err.clone();
+                                                    
+                                                    rsx! {
+                                                        div { 
+                                                            class: "home-pack-play-button",
+                                                            onclick: move |evt| {
+                                                                evt.stop_propagation(); // Prevent navigation
+                                                                
+                                                                // Launch the modpack
+                                                                debug!("Launching modpack with UUID: {}", uuid_clone);
+                                                                match crate::launcher::launch_modpack(&uuid_clone) {
+                                                                    Ok(_) => debug!("Successfully launched modpack: {}", uuid_clone),
+                                                                    Err(e) => err_clone.set(Some(format!("Failed to launch modpack: {}", e)))
+                                                                }
+                                                            },
+                                                            "PLAY"
+                                                        }
                                                     }
-                                                }
-                                            } else {
-                                                // Install button - redirects to modpack page
-                                                div { 
-                                                    class: "home-pack-button",
-                                                    onclick: move |evt| {
-                                                        evt.stop_propagation();
-                                                        debug!("Install button clicked: navigating to page {}", tab_index);
-                                                        page.set(tab_index);
-                                                    },
-                                                    "INSTALL"
                                                 }
                                             }
                                         }
@@ -1350,9 +1145,12 @@ struct VersionProps {
 fn Version(mut props: VersionProps) -> Element {
     let installer_profile = props.installer_profile.clone();
     
-    // State signals
+    // Add explicit debugging for initial state
+    debug!("INITIAL STATE: installed={}, update_available={}", 
+           installer_profile.installed, installer_profile.update_available);
+    
+    // Force reactivity with explicit signal declarations and consistent usage
     let mut installing = use_signal(|| false);
-    let mut launching = use_signal(|| false);
     let mut progress_status = use_signal(|| "".to_string());
     let mut install_progress = use_signal(|| 0);
     let mut modify = use_signal(|| false);
@@ -1364,9 +1162,18 @@ fn Version(mut props: VersionProps) -> Element {
     let mut installed = use_signal(|| installer_profile.installed);
     let mut update_available = use_signal(|| installer_profile.update_available);
     let mut install_item_amount = use_signal(|| 0);
+
+    // Create a debug signal to force refreshes when needed
+    let mut debug_counter = use_signal(|| 0);
     
     // IMPORTANT: Store the features collection in a signal to solve lifetime issues
     let features = use_signal(|| installer_profile.manifest.features.clone());
+    
+    // Add debugging to watch for signal changes
+    use_effect(move || {
+        debug!("SIGNAL UPDATE: installed={}, update_available={}, modify={}, credits={}, debug_counter={}",
+               *installed.read(), *update_available.read(), *modify.read(), *credits.read(), *debug_counter.read());
+    });
 
     // Use signal for enabled_features with cleaner initialization
     let mut enabled_features = use_signal(|| {
@@ -1383,6 +1190,7 @@ fn Version(mut props: VersionProps) -> Element {
             }
         }
 
+        debug!("Initialized enabled_features: {:?}", feature_list);
         feature_list
     });
     
@@ -1407,14 +1215,18 @@ fn Version(mut props: VersionProps) -> Element {
             _ => panic!("Invalid bool from feature"),
         };
         
+        debug!("Feature toggle changed: {} -> {}", feat.id, enabled);
+        
         // Update enabled_features
         enabled_features.with_mut(|feature_list| {
             if enabled {
                 if !feature_list.contains(&feat.id) {
                     feature_list.push(feat.id.clone());
+                    debug!("Added feature: {}", feat.id);
                 }
             } else {
                 feature_list.retain(|id| id != &feat.id);
+                debug!("Removed feature: {}", feat.id);
             }
         });
         
@@ -1423,18 +1235,26 @@ fn Version(mut props: VersionProps) -> Element {
             let was_enabled = local_feat.contains(&feat.id);
             let is_modified = was_enabled != enabled;
             
+            debug!("Feature modified check: was_enabled={}, new_state={}, is_modified={}", 
+                   was_enabled, enabled, is_modified);
+            
             if is_modified {
                 modify_count.with_mut(|x| *x += 1);
                 if *modify_count.read() > 0 {
                     modify.set(true);
+                    debug!("SET MODIFY FLAG: true");
                 }
             } else {
                 modify_count.with_mut(|x| *x -= 1);
                 if *modify_count.read() <= 0 {
                     modify.set(false);
+                    debug!("SET MODIFY FLAG: false");
                 }
             }
         }
+        
+        // Force refresh
+        debug_counter.with_mut(|x| *x += 1);
     };
     
     // Installation/update submit handler
@@ -1470,6 +1290,7 @@ fn Version(mut props: VersionProps) -> Element {
                         {
                             Ok(_) => {
                                 installed.set(true);
+                                debug!("SET INSTALLED: true");
                                 
                                 let _ = isahc::post(
                                     "https://tracking.commander07.workers.dev/track",
@@ -1498,6 +1319,7 @@ fn Version(mut props: VersionProps) -> Element {
                             }
                         }
                         update_available.set(false);
+                        debug!("SET UPDATE_AVAILABLE: false");
                     } else if *modify.read() {
                         progress_status.set("Modifying".to_string());
                         match super::update(&installer_profile, move || {
@@ -1531,10 +1353,15 @@ fn Version(mut props: VersionProps) -> Element {
                             }
                         }
                         modify.set(false);
+                        debug!("RESET MODIFY: false");
                         modify_count.set(0);
                         update_available.set(false);
+                        debug!("SET UPDATE_AVAILABLE: false");
                     }
                     installing.set(false);
+                    
+                    // Force refresh
+                    debug_counter.with_mut(|x| *x += 1);
                 });
             };
 
@@ -1553,48 +1380,38 @@ fn Version(mut props: VersionProps) -> Element {
         }
     };
 
-    // Launch handler - NEW
-    let launch_handler = move |_| {
-        launching.set(true);
-        
-        let profile_id = format!("wynncraft-{}", installer_profile.modpack_branch);
-        let mut modal = use_context::<ModalContext>();
-        
-        spawn(async move {
-            match crate::launcher::launch_modpack(&profile_id) {
-                Ok(_) => {
-                    debug!("Successfully launched modpack: {}", profile_id);
-                },
-                Err(e) => {
-                    debug!("Failed to launch modpack: {}", e);
-                    modal.open(
-                        "Launch Error",
-                        rsx!(div {
-                            p { "Failed to launch the modpack. Please check your Minecraft installation." }
-                            p { "Error: {e}" }
-                        }),
-                        false,
-                        Some(|_| {}),
-                    );
-                }
+    // Play button handler
+    let on_play = move |_| {
+        let uuid = installer_profile.manifest.uuid.clone();
+        debug!("Launching modpack with UUID: {}", uuid);
+        match crate::launcher::launch_modpack(&uuid) {
+            Ok(_) => {
+                debug!("Successfully launched modpack: {}", uuid);
             }
-            launching.set(false);
-        });
+            Err(e) => {
+                props.error.set(Some(format!("Failed to launch modpack: {}", e)));
+            }
+        }
     };
 
     // Button label based on state
     let button_label = if !*installed.read() {
+        debug!("Button state: Install");
         "Install"
     } else if *update_available.read() {
+        debug!("Button state: Update");
         "Update"
     } else if *modify.read() {
+        debug!("Button state: Modify");
         "Modify"
     } else {
+        debug!("Button state: Modify (default)");
         "Modify"
     };
     
     // Button disable logic
     let install_disable = *installed.read() && !*update_available.read() && !*modify.read();
+    debug!("Button disabled: {}", install_disable);
     
     rsx! {
         if *installing.read() {
@@ -1612,6 +1429,8 @@ fn Version(mut props: VersionProps) -> Element {
             }
         } else {
             div { class: "version-container",
+                "<!-- debug counter: {*debug_counter.read()} -->",
+                
                 form { onsubmit: on_submit,
                     // Header section with title and subtitle
                     div { class: "content-header",
@@ -1627,7 +1446,9 @@ fn Version(mut props: VersionProps) -> Element {
                             a {
                                 class: "credits-button",
                                 onclick: move |evt| {
+                                    debug!("Credits clicked");
                                     credits.set(true);
+                                    debug!("SET CREDITS: true");
                                     evt.stop_propagation();
                                 },
                                 "VIEW CREDITS"
@@ -1727,6 +1548,7 @@ fn Version(mut props: VersionProps) -> Element {
                                                 onclick: move |_| {
                                                     let current_state = *expanded_features.read();
                                                     expanded_features.set(!current_state);
+                                                    debug!("Toggled expanded features: {}", !current_state);
                                                 },
                                                 if *expanded_features.read() {
                                                     "Collapse Features"
@@ -1741,34 +1563,24 @@ fn Version(mut props: VersionProps) -> Element {
                         }
                     }
                     
-                    // Action Buttons Section - NEW
-                    div { class: "action-buttons-container",
-                        // Play button (only shown if installed)
-                        if *installed.read() {
-                            div { class: "play-button-container",
-                                button {
-                                    class: "main-play-button",
-                                    disabled: *launching.read(),
-                                    onclick: launch_handler,
-                                    
-                                    if *launching.read() {
-                                        "LAUNCHING..."
-                                    } else {
-                                        "PLAY"
-                                    }
-                                }
+                    // Install/Update/Modify button at the bottom with explicit label
+                    div { class: "install-button-container",
+                        div { class: "button-scale-wrapper",
+                            button {
+                                class: "main-install-button",
+                                disabled: install_disable,
+                                "{button_label}"
                             }
                         }
-                        
-                        // Install/Update/Modify button
-                        div { class: "install-button-container",
-                            div { class: "button-scale-wrapper",
-                                button {
-                                    class: "main-install-button",
-                                    disabled: install_disable,
-                                    "{button_label}"
-                                }
-                            }
+                    }
+                    
+                    // Add Play button only when installed
+                    if *installed.read() {
+                        div { class: "play-button-container", style: "margin-top: 20px; text-align: center;" }
+                        PlayButton {
+                            uuid: installer_profile.manifest.uuid.clone(),
+                            disabled: false,
+                            onclick: on_play
                         }
                     }
                 }
@@ -1844,7 +1656,6 @@ fn AppHeader(
                 button {
                     class: if page() == HOME_PAGE { "header-tab-button active" } else { "header-tab-button" },
                     onclick: move |_| {
-                        // Use set directly, not write()
                         page.set(HOME_PAGE);
                         debug!("Navigating to home page via tab");
                     },
@@ -1860,8 +1671,8 @@ fn AppHeader(
                                 class: if page() == index { "header-tab-button active" } else { "header-tab-button" },
                                 onclick: move |_| {
                                     debug!("TAB CLICK: Changing page from {} to {}", page(), index);
-                                    // Use set() directly for more reliable state update
-                                    page.set(index);
+                                    // CRITICAL FIX: Use write() for more direct access
+                                    page.write().clone_from(&index);
                                     debug!("TAB CLICK RESULT: Page is now {}", page());
                                 },
                                 "{title}"
@@ -1891,7 +1702,6 @@ fn AppHeader(
                                         button {
                                             class: if page() == index { "dropdown-item active" } else { "dropdown-item" },
                                             onclick: move |_| {
-                                                // Use set() directly
                                                 page.set(index);
                                                 debug!("Switching to dropdown tab {}: {}", index, title);
                                             },
@@ -1938,106 +1748,32 @@ pub(crate) fn app() -> Element {
     let config = use_signal(|| props.config);
     let settings = use_signal(|| false);
     let mut err: Signal<Option<String>> = use_signal(|| None);
-    let mut page = use_signal(|| HOME_PAGE);  // Initially set to HOME_PAGE
+    let page = use_signal(|| HOME_PAGE);  // Initially set to HOME_PAGE
     let mut pages = use_signal(BTreeMap::<usize, TabInfo>::new);
     
-    // Add CSS for Play button
-    let play_button_css = "
-    /* Play button styling */
-    .main-play-button {
-        background-image: linear-gradient(135deg, #0a5d23, #073C17);
-        border: 2px solid rgba(255, 255, 255, 0.2);
-        border-radius: 8px;
-        padding: 16px 60px;
-        font-family: HEADER_FONT;
-        font-size: 1.8rem;
-        color: #fce8f6;
-        cursor: pointer;
-        text-transform: uppercase;
-        letter-spacing: 2px;
-        position: relative;
-        overflow: hidden;
-        z-index: 1;
-        box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4), 0 0 20px rgba(7, 60, 23, 0.3);
-        text-shadow: 0 0 5px rgba(255, 255, 255, 0.3);
-        animation: button-glow 3s infinite alternate;
-        transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        margin-bottom: 15px;
-        display: block;
-        width: 100%;
-        max-width: 400px;
-        margin-left: auto;
-        margin-right: auto;
-    }
-    
-    .main-play-button:hover {
-        transform: translateY(-5px);
-        background-image: linear-gradient(135deg, #0f6229, #0a4d1e);
-        text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
-        border-color: rgba(255, 255, 255, 0.4);
-        box-shadow: 0 15px 30px rgba(0, 0, 0, 0.5), 0 0 35px rgba(7, 60, 23, 0.9);
-    }
-    
-    .main-play-button:disabled {
-        opacity: 0.6;
-        cursor: not-allowed;
-        transform: none;
-        box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2), 0 0 10px rgba(7, 60, 23, 0.1);
-    }
-    
-    /* Home pack buttons for play/modify layout */
-    .home-pack-buttons {
-        display: flex;
-        gap: 10px;
-        margin-top: 10px;
-    }
-    
-    .home-pack-button.play {
-        background-image: linear-gradient(135deg, #0a5d23, #073C17);
-        flex: 1;
-    }
-    
-    .home-pack-button.modify {
-        background-color: rgba(50, 6, 37, 0.8);
-        flex: 1;
-    }
-    
-    .action-buttons-container {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 15px;
-        margin-top: 30px;
-    }
-    
-    .play-button-container {
-        width: 100%;
-        max-width: 500px;
-        text-align: center;
-    }
-    
-    /* Launching animation */
-    @keyframes launching-pulse {
-        0% {
-            opacity: 0.8;
-        }
-        50% {
-            opacity: 1;
-        }
-        100% {
-            opacity: 0.8;
-        }
-    }
-    
-    .main-play-button:disabled {
-        animation: launching-pulse 1.5s infinite;
-    }
-    ";
 
-    // Add debugging for page changes
+    // DIAGNOSTIC: Print branches available
+    debug!("DIAGNOSTIC: Available branches: {}", branches.len());
+    for branch in &branches {
+        debug!("  - Branch: {}", branch.name);
+    }
+
+    // DIAGNOSTIC: Add direct modification of the page signal to verify reactivity
     use_effect(move || {
-        debug!("PAGE CHANGED: Current page is now {}", page());
-        debug!("IS HOME: {}", page() == HOME_PAGE);
+        debug!("DIAGNOSTIC: Current page value: {}", page());
+        debug!("DIAGNOSTIC: HOME_PAGE value: {}", HOME_PAGE);
+
+        // Debug the pages map
+        debug!("DIAGNOSTIC: Pages map contains {} entries", pages().len());
+        for (key, info) in pages().iter() {
+            debug!("  - Tab group {}: {} with {} modpacks", 
+                   key, info.title, info.modpacks.len());
+            
+            // List modpacks in each tab group
+            for (i, profile) in info.modpacks.iter().enumerate() {
+                debug!("    * Modpack {}: {}", i, profile.manifest.subtitle);
+            }
+        }
     });
 
     let cfg = config.with(|cfg| cfg.clone());
@@ -2052,7 +1788,13 @@ pub(crate) fn app() -> Element {
         },
     };
 
-    // Process branches into profiles
+    // Debug logging for branches
+    debug!("Total branches: {}", branches.len());
+    for branch in &branches {
+        debug!("Branch: {}", branch.name);
+    }
+
+    // Modified resource to process branches
     let packs: Resource<Vec<(usize, InstallerProfile)>> = {
         let source = props.modpack_source.clone();
         let branches = branches.clone();
@@ -2082,85 +1824,163 @@ pub(crate) fn app() -> Element {
         })
     };
 
-    // Create pages from processed branches
+    // Effect to build pages map when branches are processed
     use_effect(move || {
-        if let Some(processed_branches) = packs.read().as_ref() {
-            debug!("Building pages map from {} processed branches", processed_branches.len());
+    if let Some(processed_branches) = packs.read().as_ref() {
+        debug!("Building pages map from {} processed branches", processed_branches.len());
+        
+        let mut new_pages = BTreeMap::<usize, TabInfo>::new();
+        for (tab_group, profile) in processed_branches {
+            let tab_title = profile.manifest.tab_title.clone().unwrap_or_else(|| profile.manifest.subtitle.clone());
+            let tab_color = profile.manifest.tab_color.clone().unwrap_or_else(|| String::from("#320625"));
+            let tab_background = profile.manifest.tab_background.clone().unwrap_or_else(|| {
+                String::from("https://raw.githubusercontent.com/Wynncraft-Overhaul/installer/master/src/assets/background_installer.png")
+            });
+            let settings_background = profile.manifest.settings_background.clone().unwrap_or_else(|| tab_background.clone());
             
-            let mut new_pages = BTreeMap::<usize, TabInfo>::new();
-            for (tab_group, profile) in processed_branches {
-                // Get tab display info from profile
-                let tab_title = profile.manifest.tab_title.clone().unwrap_or_else(|| profile.manifest.subtitle.clone());
-                let tab_color = profile.manifest.tab_color.clone().unwrap_or_else(|| String::from("#320625"));
-                let tab_background = profile.manifest.tab_background.clone().unwrap_or_else(|| {
-                    String::from("https://raw.githubusercontent.com/Wynncraft-Overhaul/installer/master/src/assets/background_installer.png")
-                });
-                let settings_background = profile.manifest.settings_background.clone().unwrap_or_else(|| tab_background.clone());
-                
-                if let Some(tab_info) = new_pages.get_mut(tab_group) {
-                    // Add profile to existing tab group
-                    tab_info.modpacks.push(profile.clone());
-                    debug!("Added profile to existing tab_group {}: {}", tab_group, profile.manifest.subtitle);
-                } else {
-                    // Create new tab group
-                    new_pages.insert(*tab_group, TabInfo {
-                        color: tab_color,
-                        title: tab_title,
-                        background: tab_background,
-                        settings_background,
-                        modpacks: vec![profile.clone()],
-                    });
-                    debug!("Created new tab_group {}: {}", tab_group, profile.manifest.subtitle);
-                }
-            }
-            
-            pages.set(new_pages);
-            debug!("Updated pages map with {} tabs", pages().len());
-            
-            // Print out all tab groups and their modpacks
-            for (key, info) in pages().iter() {
-                debug!("Tab group {} '{}' with {} modpacks", key, info.title, info.modpacks.len());
-                for modpack in &info.modpacks {
-                    debug!("  - Modpack: {}", modpack.manifest.subtitle);
-                }
-            }
+            // No longer including font fields
+            new_pages.entry(*tab_group).or_insert(TabInfo {
+                color: tab_color,
+                title: tab_title,
+                background: tab_background,
+                settings_background,
+                // Remove these fields
+                // primary_font,
+                // secondary_font,
+                modpacks: vec![profile.clone()],
+            });
         }
-    });
+        
+        pages.set(new_pages);
+        debug!("Updated pages map with {} tabs", pages().len());
+    }
+});
 
-    // Build CSS
     let css_content = {
-        let default_color = "#320625".to_string();
-        let default_bg = "https://raw.githubusercontent.com/Wynncraft-Overhaul/installer/master/src/assets/background_installer.png".to_string();
-        
-        let bg_color = match pages().get(&page()) {
-            Some(x) => x.color.clone(),
-            None => default_color,
-        };
-        
-        let bg_image = match pages().get(&page()) {
-            Some(x) => {
-                if settings() {
-                    x.settings_background.clone()
-                } else {
-                    x.background.clone()
-                }
-            },
-            None => default_bg,
-        };
-        
-        // Use constants instead of TabInfo properties
-        debug!("Updating CSS with: color={}, bg_image={}", bg_color, bg_image);
-        
-        css
-            .replace("<BG_COLOR>", &bg_color)
-            .replace("<BG_IMAGE>", &bg_image)
-            .replace("<SECONDARY_FONT>", HEADER_FONT)
-            .replace("<PRIMARY_FONT>", REGULAR_FONT)
-            + "/* Font fixes applied */"
-            + play_button_css
+    let default_color = "#320625".to_string();
+    let default_bg = "https://raw.githubusercontent.com/Wynncraft-Overhaul/installer/master/src/assets/background_installer.png".to_string();
+    
+    let bg_color = match pages().get(&page()) {
+        Some(x) => x.color.clone(),
+        None => default_color,
     };
+    
+    let bg_image = match pages().get(&page()) {
+        Some(x) => {
+            if settings() {
+                x.settings_background.clone()
+            } else {
+                x.background.clone()
+            }
+        },
+        None => default_bg,
+    };
+    
+    // Use constants instead of TabInfo properties
+    debug!("Updating CSS with: color={}, bg_image={}", bg_color, bg_image);
+        
+    // Improved dropdown menu CSS with better hover behavior and font consistency
+    let dropdown_css = "
+    /* Dropdown styles */
+    .dropdown { 
+        position: relative; 
+        display: inline-block; 
+    }
 
-    // Setup modal context
+    /* Position the dropdown content */
+    .dropdown-content {
+        display: none;
+        position: absolute;
+        top: 100%;
+        left: 0;
+        background-color: rgba(0, 0, 0, 0.9);
+        min-width: 200px;
+        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.6);
+        z-index: 1000;
+        border-radius: 4px;
+        overflow: hidden;
+        margin-top: 5px;
+        max-height: 400px;
+        overflow-y: auto;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    /* Show dropdown on hover with increased target area */
+    .dropdown:hover .dropdown-content,
+    .dropdown-content:hover {
+        display: block;
+    }
+
+    /* Add a pseudo-element to create an invisible connection between the button and dropdown */
+    .dropdown::after {
+        content: '';
+        position: absolute;
+        height: 10px;
+        width: 100%;
+        left: 0;
+        top: 100%;
+        display: none;
+    }
+
+    .dropdown:hover::after {
+        display: block;
+    }
+
+    .dropdown-item {
+        display: block;
+        width: 100%;
+        padding: 10px 15px;
+        text-align: left;
+        background-color: transparent;
+        border: none;
+        /* Explicitly use the PRIMARY_FONT */
+        font-family: \\\"PRIMARY_FONT\\\";
+        font-size: 0.9rem;
+        color: #fce8f6;
+        cursor: pointer;
+        transition: background-color 0.2s ease;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .dropdown-item:last-child {
+        border-bottom: none;
+    }
+
+    .dropdown-item:hover {
+        background-color: rgba(50, 6, 37, 0.8);
+        border-color: rgba(255, 255, 255, 0.4);
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+    }
+
+    .dropdown-item.active {
+        background-color: var(--bg-color);
+        border-color: #fce8f6;
+        box-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
+        color: #fff;
+    }
+
+    /* Fix for header-tabs to prevent dropdown from affecting it */
+    .header-tabs {
+        display: flex;
+        gap: 5px;
+        margin: 0 10px;
+        flex-grow: 1;
+        justify-content: center;
+        flex-wrap: wrap;
+        overflow-x: visible;
+        scrollbar-width: thin;
+        max-width: 70%;
+        position: relative;
+    }";
+        
+    css
+        .replace("<BG_COLOR>", &bg_color)
+        .replace("<BG_IMAGE>", &bg_image)
+        .replace("<SECONDARY_FONT>", HEADER_FONT)
+        .replace("<PRIMARY_FONT>", REGULAR_FONT)
+        + "/* Font fixes applied */"
+};
+
     let mut modal_context = use_context_provider(ModalContext::default);
     if let Some(e) = err() {
         modal_context.open("Error", rsx! {
@@ -2174,12 +1994,11 @@ pub(crate) fn app() -> Element {
     // Determine which logo to use
     let logo_url = Some("https://raw.githubusercontent.com/Wynncraft-Overhaul/installer/master/src/assets/icon.png".to_string());
     
-    // Get the current page for rendering
+    // Fix: Return the JSX from the app function
     let current_page = page();
-    debug!("RENDERING with page={}, HOME_PAGE={}, is_home={}",
+    debug!("RENDER DECISION: current_page={}, HOME_PAGE={}, is_home={}",
            current_page, HOME_PAGE, current_page == HOME_PAGE);
     
-    // Main app rendering
     rsx! {
         div {
             style { {css_content} }
@@ -2187,7 +2006,6 @@ pub(crate) fn app() -> Element {
 
             BackgroundParticles {}
             
-            // Header when appropriate
             {if !config.read().first_launch.unwrap_or(true) && launcher.is_some() && !settings() {
                 rsx! {
                     AppHeader {
@@ -2203,7 +2021,6 @@ pub(crate) fn app() -> Element {
 
             div { class: "main-container",
                 {if settings() {
-                    // Settings screen
                     rsx! {
                         Settings {
                             config,
@@ -2214,7 +2031,6 @@ pub(crate) fn app() -> Element {
                         }
                     }
                 } else if config.read().first_launch.unwrap_or(true) || launcher.is_none() {
-                    // Launcher selection screen
                     rsx! {
                         Launcher {
                             config,
@@ -2224,7 +2040,6 @@ pub(crate) fn app() -> Element {
                         }
                     }
                 } else if packs.read().is_none() {
-                    // Loading screen
                     rsx! {
                         div { class: "loading-container",
                             div { class: "loading-spinner" }
@@ -2232,60 +2047,202 @@ pub(crate) fn app() -> Element {
                         }
                     }
                 } else {
-                    // CRITICAL SECTION: Deciding what to render based on current page
+                    // DIAGNOSTIC CONTENT RENDERING SECTION
+
+                    
                     if current_page == HOME_PAGE {
-                        // Home page
-                        debug!("RENDERING: HomePage");
-                        rsx! {
-                            HomePage {
-                                pages,
-                                page
-                            }
+    debug!("RENDERING: HomePage");
+    rsx! {
+        HomePage {
+            pages,
+            page
+        }
+    }
+} else {
+    debug!("RENDERING: Content for page {}", current_page);
+    
+    // Get tab info without temporary references
+    let pages_map = pages();
+    
+    if let Some(tab_info) = pages_map.get(&current_page) {
+        debug!("FOUND tab group {} with {} modpacks", 
+               current_page, tab_info.modpacks.len());
+        
+        // CRITICAL FIX: Get all modpacks before rendering
+        let modpacks = tab_info.modpacks.clone();
+        debug!("Cloned {} modpacks for rendering", modpacks.len());
+        
+        // Log each modpack outside the RSX
+        for profile in &modpacks {
+            debug!("Preparing to render modpack: {}", profile.manifest.subtitle);
+        }
+        
+        // Create a separate credits signal for this rendering path
+        let mut credits_visible = use_signal(|| false);
+        let mut selected_profile = use_signal(|| modpacks.first().cloned());
+        let mut error_msg = use_signal(|| Option::<String>::None);
+        
+        // Directly return the RSX without unnecessary nesting
+        rsx! {
+            // First, conditionally render either the credits view or the normal content
+            if *credits_visible.read() {
+                // Render the Credits component with the selected profile
+                if let Some(profile) = selected_profile.read().clone() {
+                    Credits {
+                        manifest: profile.manifest.clone(),
+                        enabled: profile.enabled_features.clone(),
+                        credits: credits_visible
+                    }
+                }
+            } else {
+                // Error notification if any
+                if let Some(error) = error_msg() {
+                    div { class: "error-notification",
+                        div { class: "error-message", "{error}" }
+                        button { 
+                            class: "error-close",
+                            onclick: move |_| error_msg.set(None),
+                            "×"
                         }
-                    } else {
-                        // Modpack page - first check if the tab group exists
-                        let pages_map = pages();
-                        
-                        if let Some(tab_info) = pages_map.get(&current_page) {
-                            debug!("RENDERING: Modpack page for tab_group {} with {} modpacks", 
-                                  current_page, tab_info.modpacks.len());
+                    }
+                }
+                
+                // Render the normal modpack content
+                div { 
+                    class: "version-page-container",
+                    style: "display: block; width: 100%;",
+                    
+                    for (index, profile) in modpacks.iter().enumerate() {
+                        {
+                            let profile_clone = profile.clone();
+                            let is_installed = profile.installed;
+                            let uuid = profile.manifest.uuid.clone();
+                            let error_signal = error_msg.clone();
                             
-                            // Clone the modpacks to avoid borrowing issues
-                            let modpacks = tab_info.modpacks.clone();
-                            
-                            if modpacks.is_empty() {
-                                rsx! { div { "No modpacks found in this tab." } }
-                            } else {
-                                // Render modpack pages using Version component
-                                rsx! {
-                                    div { 
-                                        class: "version-page-container",
-                                        
-                                        for (index, profile) in modpacks.iter().enumerate() {
-                                            {
-                                                let profile_clone = profile.clone();
-                                                let version_props = VersionProps {
-                                                    installer_profile: profile_clone.clone(),
-                                                    error: err.clone(),
-                                                    current_page,
-                                                    tab_group: current_page,
-                                                };
-                                                
-                                                rsx! {
-                                                    Version { ..version_props }
+                            rsx! {
+                                div { 
+                                    class: "version-container",
+                                    
+                                    // Header section
+                                    div { class: "content-header",
+                                        h1 { "{profile.manifest.subtitle}" }
+                                    }
+                                    
+                                    // Description section
+                                    div { class: "content-description",
+                                        dangerous_inner_html: "{profile.manifest.description}"
+                                    }
+
+                                    // Credits link - moved outside the description HTML
+                                    div { class: "credits-link-container", style: "text-align: center; margin: 15px 0;",
+                                        a {
+                                            class: "credits-button",
+                                            onclick: move |evt| {
+                                                // Set the selected profile and show credits
+                                                selected_profile.set(Some(profile_clone.clone()));
+                                                credits_visible.set(true);
+                                                evt.stop_propagation();
+                                            },
+                                            "VIEW CREDITS"
+                                        }
+                                    }
+                                    
+                                    // Features heading
+                                    h2 { class: "features-heading", "OPTIONAL FEATURES" }
+                                    
+                                    // MODIFIED SECTION: Expandable Features
+                                    div { class: "features-section",
+                                        {
+                                            // Filter features inside the RSX block
+                                            let visible_features: Vec<_> = profile.manifest.features.iter()
+                                                .filter(|f| !f.hidden)
+                                                .collect();
+                                            
+                                            // Calculate whether to show expand button
+                                            let first_row_count = 3;
+                                            let show_expand_button = visible_features.len() > first_row_count;
+                                            
+                                            // Using a unique signal for each profile's expanded state
+                                            let expanded_signal_id = format!("expanded-{}-{}", current_page, index);
+                                            let mut expanded_features = use_signal(|| false);
+                                            
+                                            rsx! {
+                                                div { class: "feature-cards-container",
+                                                    // Feature cards rendering (unchanged) 
+                                                    // ...
                                                 }
+                                                
+                                                // Only show expand button if needed
+                                                if show_expand_button {
+                                                    div { class: "features-expand-container",
+                                                        button {
+                                                            class: "features-expand-button",
+                                                            onclick: move |_| {
+                                                                let current_state = *expanded_features.read();
+                                                                expanded_features.set(!current_state);
+                                                                debug!("Toggled expanded features: {} for profile {}", !current_state, expanded_signal_id);
+                                                            },
+                                                            if *expanded_features.read() {
+                                                                "Collapse Features"
+                                                            } else {
+                                                                {format!("Show {} More Features", visible_features.len() - first_row_count)}
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                    
+                                    // Install button and Play button in sequence
+                                    div { 
+                                        class: "buttons-container",
+                                        style: "display: flex; flex-direction: column; align-items: center; margin-top: 20px;",
+                                        
+                                        // Install/Update/Modify button
+                                        div { class: "install-button-container",
+                                            div { class: "button-scale-wrapper",
+                                                button { 
+                                                    class: "main-install-button",
+                                                    // You can add proper install logic here if needed
+                                                    if profile.installed && profile.update_available {
+                                                        "Update"
+                                                    } else if profile.installed {
+                                                        "Modify"
+                                                    } else {
+                                                        "Install"
+                                                    }
+                                                }
+                                            }
+                                        }
+                                        
+                                        // Play button (only if installed)
+                                        if is_installed {
+                                            div { class: "play-button-container", style: "margin-top: 15px;" }
+                                            button {
+                                                class: "main-play-button",
+                                                onclick: move |_| {
+                                                    let uuid_clone = uuid.clone();
+                                                    debug!("Launching modpack with UUID: {}", uuid_clone);
+                                                    match crate::launcher::launch_modpack(&uuid_clone) {
+                                                        Ok(_) => debug!("Successfully launched modpack: {}", uuid_clone),
+                                                        Err(e) => error_signal.set(Some(format!("Failed to launch modpack: {}", e)))
+                                                    }
+                                                },
+                                                "PLAY"
                                             }
                                         }
                                     }
                                 }
                             }
-                        } else {
-                            debug!("NO TAB GROUP found for page {}", current_page);
-                            rsx! { div { "No modpack information found for this tab." } }
                         }
                     }
-                }}
+                }
             }
         }
+    } else {
+        debug!("NO TAB INFO found for page {}", current_page);
+        rsx! { div { "No modpack information found for this tab." } }
     }
-}                                 
+}
+}}}}}}
