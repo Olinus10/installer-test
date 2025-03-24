@@ -73,7 +73,7 @@ fn get_current_launcher_type() -> Result<LauncherType, String> {
 
 // Launch vanilla Minecraft with the specified profile
 fn launch_vanilla(profile_id: &str) -> Result<(), String> {
-    debug!("Directly launching Minecraft for profile {}", profile_id);
+    debug!("Trying to launch Minecraft executable directly for profile {}", profile_id);
     
     // Build the complete game directory path
     let minecraft_dir = crate::launcher::config::get_minecraft_dir();
@@ -81,76 +81,61 @@ fn launch_vanilla(profile_id: &str) -> Result<(), String> {
     
     debug!("Game directory: {:?}", game_dir);
     
-    // 1. Read profile information to get version
-    let profiles_path = minecraft_dir.join("launcher_profiles.json");
-    let version_id = match std::fs::read_to_string(&profiles_path) {
-        Ok(content) => {
-            match serde_json::from_str::<serde_json::Value>(&content) {
-                Ok(json) => {
-                    match json["profiles"][profile_id]["lastVersionId"].as_str() {
-                        Some(version) => {
-                            debug!("Found version ID for profile: {}", version);
-                            version.to_string()
-                        },
-                        None => {
-                            debug!("Version ID not found, using default");
-                            // If not found, try a reasonable default based on typical Fabric loader patterns
-                            "fabric-loader".to_string()
-                        }
-                    }
-                },
-                Err(e) => {
-                    debug!("Failed to parse profiles JSON: {}", e);
-                    return Err(format!("Failed to parse profiles JSON: {}", e));
-                }
-            }
-        },
-        Err(e) => {
-            debug!("Failed to read profiles file: {}", e);
-            return Err(format!("Failed to read profiles file: {}", e));
-        }
-    };
+    // Create a batch file that will call the Minecraft launcher with the debug window
+    let script_path = std::env::temp_dir().join(format!("debug_minecraft_{}.bat", profile_id));
     
-    // 2. Find Java executable
-    let java_path = find_java_executable()?;
-    debug!("Found Java executable: {}", java_path);
-    
-    // 3. Create batch file to launch Minecraft directly
-    let script_path = std::env::temp_dir().join(format!("direct_minecraft_{}.bat", profile_id));
-    
-    // Create a simplified launch command with the essential parameters
-    let launch_command = format!(
-        "\"{}\" -Xmx2G -XX:+UnlockExperimentalVMOptions -XX:+UseG1GC -XX:G1NewSizePercent=20 -XX:G1ReservePercent=20 -XX:MaxGCPauseMillis=50 -XX:G1HeapRegionSize=32M -Djava.library.path=\"{}\\versions\\{}\\natives\" -cp \"{}\\libraries\\*;{}\\versions\\{}\\{}.jar\" net.minecraft.client.main.Main --username Player --version {} --gameDir \"{}\" --assetsDir \"{}\\assets\" --assetIndex 1.20 --uuid {} --accessToken 0 --clientId null --userProperties {{}} --userType mojang",
-        java_path,
-        minecraft_dir.display(),
-        version_id,
-        minecraft_dir.display(),
-        minecraft_dir.display(), 
-        version_id,
-        version_id,
-        version_id,
-        game_dir.display(),
-        minecraft_dir.display(),
-        generate_random_uuid()
+    // More robust batch file that keeps the window open to see any errors
+    let batch_content = format!(
+        "@echo off\r\n\
+         echo === MINECRAFT LAUNCHER DEBUG ===\r\n\
+         echo Attempting to launch profile: {}\r\n\
+         echo Game directory: {}\r\n\
+         echo ===============================\r\n\
+         \r\n\
+         echo Trying launcher with direct profile...\r\n\
+         \"C:\\Program Files (x86)\\Minecraft Launcher\\MinecraftLauncher.exe\" --profile \"{}\" --workDir \"{}\" --gameDir \"{}\"\r\n\
+         \r\n\
+         if %ERRORLEVEL% NEQ 0 (\r\n\
+           echo First attempt failed with error code: %ERRORLEVEL%\r\n\
+           echo Trying second method...\r\n\
+           \"C:\\Program Files (x86)\\Minecraft Launcher\\MinecraftLauncher.exe\" --workDir \"{}\" --gameDir \"{}\"\r\n\
+         )\r\n\
+         \r\n\
+         echo Press any key to close this window...\r\n\
+         pause > nul\r\n",
+         profile_id,
+         game_dir.display(),
+         profile_id,
+         minecraft_dir.display(),
+         game_dir.display(),
+         minecraft_dir.display(),
+         game_dir.display()
     );
     
-    // Write the launch command to a batch file
-    let batch_content = format!("@echo off\r\necho Launching Minecraft directly...\r\n{}\r\n", launch_command);
+    // First, update the launcher profiles
+    update_launcher_profiles(profile_id, &minecraft_dir)?;
+    
+    // Write the batch file
     match std::fs::write(&script_path, batch_content) {
-        Ok(_) => debug!("Created direct launch script at {:?}", script_path),
-        Err(e) => return Err(format!("Failed to create launch script: {}", e))
+        Ok(_) => debug!("Created debug launch script at {:?}", script_path),
+        Err(e) => return Err(format!("Failed to create debug script: {}", e))
     }
     
-    // Run the batch file
-    debug!("Running direct launch script: {:?}", script_path);
-    match Command::new("cmd.exe").arg("/C").arg(&script_path).spawn() {
+    // Execute the batch file in a visible window (without /B flag)
+    debug!("Running debug script");
+    match Command::new("cmd.exe")
+        .arg("/C")
+        .arg("start")
+        .arg(script_path.to_str().unwrap())
+        .spawn() 
+    {
         Ok(_) => {
-            debug!("Minecraft direct launch script executed successfully");
+            debug!("Debug script executed successfully");
             Ok(())
         },
         Err(e) => {
-            error!("Failed to execute Minecraft direct launch script: {}", e);
-            Err(format!("Failed to execute Minecraft direct launch script: {}", e))
+            error!("Failed to execute debug script: {}", e);
+            Err(format!("Failed to execute debug script: {}", e))
         }
     }
 }
