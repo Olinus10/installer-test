@@ -1991,117 +1991,25 @@ pub(crate) fn app() -> Element {
     let page = use_signal(|| HOME_PAGE);  // Initially set to HOME_PAGE
     let mut pages = use_signal(BTreeMap::<usize, TabInfo>::new);
     
-    // Add CSS for Play button
-    let play_button_css = "
-    /* Play button styling */
-    .main-play-button {
-        background-image: linear-gradient(135deg, #0a5d23, #073C17);
-        border: 2px solid rgba(255, 255, 255, 0.2);
-        border-radius: 8px;
-        padding: 16px 60px;
-        font-family: HEADER_FONT;
-        font-size: 1.8rem;
-        color: #fce8f6;
-        cursor: pointer;
-        text-transform: uppercase;
-        letter-spacing: 2px;
-        position: relative;
-        overflow: hidden;
-        z-index: 1;
-        box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4), 0 0 20px rgba(7, 60, 23, 0.3);
-        text-shadow: 0 0 5px rgba(255, 255, 255, 0.3);
-        animation: button-glow 3s infinite alternate;
-        transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        margin-bottom: 15px;
-        display: block;
-        width: 100%;
-        max-width: 400px;
-        margin-left: auto;
-        margin-right: auto;
+    // CONFIG: Enable debug mode to help identify issues
+    let debug_mode = true;
+    
+    // Debug message for initial state
+    if debug_mode {
+        debug!("APP INIT: Loading with page={}, HOME_PAGE={}", page(), HOME_PAGE);
+        debug!("APP INIT: Settings={}", settings());
     }
     
-    .main-play-button:hover {
-        transform: translateY(-5px);
-        background-image: linear-gradient(135deg, #0f6229, #0a4d1e);
-        text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
-        border-color: rgba(255, 255, 255, 0.4);
-        box-shadow: 0 15px 30px rgba(0, 0, 0, 0.5), 0 0 35px rgba(7, 60, 23, 0.9);
-    }
-    
-    .main-play-button:disabled {
-        opacity: 0.6;
-        cursor: not-allowed;
-        transform: none;
-        box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2), 0 0 10px rgba(7, 60, 23, 0.1);
-    }
-    
-    /* Home pack buttons for play/modify layout */
-    .home-pack-buttons {
-        display: flex;
-        gap: 10px;
-        margin-top: 10px;
-    }
-    
-    .home-pack-button.play {
-        background-image: linear-gradient(135deg, #0a5d23, #073C17);
-        flex: 1;
-    }
-    
-    .home-pack-button.modify {
-        background-color: rgba(50, 6, 37, 0.8);
-        flex: 1;
-    }
-    
-    .action-buttons-container {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 15px;
-        margin-top: 30px;
-    }
-    
-    .play-button-container {
-        width: 100%;
-        max-width: 500px;
-        text-align: center;
-    }
-    
-    /* Launching animation */
-    @keyframes launching-pulse {
-        0% {
-            opacity: 0.8;
-        }
-        50% {
-            opacity: 1;
-        }
-        100% {
-            opacity: 0.8;
-        }
-    }
-    
-    .main-play-button:disabled {
-        animation: launching-pulse 1.5s infinite;
-    }
-    ";
-
-    // DIAGNOSTIC: Add direct modification of the page signal to verify reactivity
+    // Explicitly track page changes
     use_effect(move || {
-        debug!("DIAGNOSTIC: Current page value: {}", page());
-        debug!("DIAGNOSTIC: HOME_PAGE value: {}", HOME_PAGE);
-
-        // Debug the pages map
-        debug!("DIAGNOSTIC: Pages map contains {} entries", pages().len());
-        for (key, info) in pages().iter() {
-            debug!("  - Tab group {}: {} with {} modpacks", 
-                   key, info.title, info.modpacks.len());
-            
-            // List modpacks in each tab group
-            for (i, profile) in info.modpacks.iter().enumerate() {
-                debug!("    * Modpack {}: {}", i, profile.manifest.subtitle);
-            }
+        if debug_mode {
+            debug!("PAGE CHANGED: page is now {}", page());
+            debug!("PAGE CHANGED: HOME_PAGE is {}", HOME_PAGE);
+            debug!("PAGE CHANGED: is home? {}", page() == HOME_PAGE);
         }
     });
-
+    
+    // Load launcher and CSS
     let cfg = config.with(|cfg| cfg.clone());
     let launcher = match super::get_launcher(&cfg.launcher) {
         Ok(val) => {
@@ -2113,8 +2021,8 @@ pub(crate) fn app() -> Element {
             None
         },
     };
-
-    // Modified resource to process branches
+    
+    // Process branches as before
     let packs: Resource<Vec<(usize, InstallerProfile)>> = {
         let source = props.modpack_source.clone();
         let branches = branches.clone();
@@ -2143,11 +2051,13 @@ pub(crate) fn app() -> Element {
             }
         })
     };
-
-    // Effect to build pages map when branches are processed
+    
+    // Process branches into pages map
     use_effect(move || {
         if let Some(processed_branches) = packs.read().as_ref() {
-            debug!("Building pages map from {} processed branches", processed_branches.len());
+            if debug_mode {
+                debug!("PAGES BUILD: Processing {} branches into pages map", processed_branches.len());
+            }
             
             let mut new_pages = BTreeMap::<usize, TabInfo>::new();
             for (tab_group, profile) in processed_branches {
@@ -2161,7 +2071,9 @@ pub(crate) fn app() -> Element {
                 if let Some(tab_info) = new_pages.get_mut(tab_group) {
                     // Add to existing tab group
                     tab_info.modpacks.push(profile.clone());
-                    debug!("Added profile to existing tab group {}: {}", tab_group, profile.manifest.subtitle);
+                    if debug_mode {
+                        debug!("PAGES BUILD: Added profile to tab_group {}: {}", tab_group, profile.manifest.subtitle);
+                    }
                 } else {
                     // Create new tab group
                     new_pages.insert(*tab_group, TabInfo {
@@ -2171,141 +2083,30 @@ pub(crate) fn app() -> Element {
                         settings_background,
                         modpacks: vec![profile.clone()],
                     });
-                    debug!("Created new tab group {}: {}", tab_group, profile.manifest.subtitle);
+                    if debug_mode {
+                        debug!("PAGES BUILD: Created new tab_group {}: {}", tab_group, profile.manifest.subtitle);
+                    }
                 }
             }
             
             pages.set(new_pages);
-            debug!("Updated pages map with {} tabs", pages().len());
+            if debug_mode {
+                debug!("PAGES BUILD: Completed with {} tab groups", pages().len());
+                for (key, info) in pages().iter() {
+                    debug!("PAGES BUILD: Tab group {} '{}' has {} modpacks", key, info.title, info.modpacks.len());
+                }
+            }
         }
     });
-
-    let css_content = {
-        let default_color = "#320625".to_string();
-        let default_bg = "https://raw.githubusercontent.com/Wynncraft-Overhaul/installer/master/src/assets/background_installer.png".to_string();
-        
-        let bg_color = match pages().get(&page()) {
-            Some(x) => x.color.clone(),
-            None => default_color,
-        };
-        
-        let bg_image = match pages().get(&page()) {
-            Some(x) => {
-                if settings() {
-                    x.settings_background.clone()
-                } else {
-                    x.background.clone()
-                }
-            },
-            None => default_bg,
-        };
-        
-        // Use constants instead of TabInfo properties
-        debug!("Updating CSS with: color={}, bg_image={}", bg_color, bg_image);
-            
-        // Improved dropdown menu CSS with better hover behavior and font consistency
-        let dropdown_css = "
-        /* Dropdown styles */
-        .dropdown { 
-            position: relative; 
-            display: inline-block; 
-        }
-
-        /* Position the dropdown content */
-        .dropdown-content {
-            display: none;
-            position: absolute;
-            top: 100%;
-            left: 0;
-            background-color: rgba(0, 0, 0, 0.9);
-            min-width: 200px;
-            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.6);
-            z-index: 1000;
-            border-radius: 4px;
-            overflow: hidden;
-            margin-top: 5px;
-            max-height: 400px;
-            overflow-y: auto;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        /* Show dropdown on hover with increased target area */
-        .dropdown:hover .dropdown-content,
-        .dropdown-content:hover {
-            display: block;
-        }
-
-        /* Add a pseudo-element to create an invisible connection between the button and dropdown */
-        .dropdown::after {
-            content: '';
-            position: absolute;
-            height: 10px;
-            width: 100%;
-            left: 0;
-            top: 100%;
-            display: none;
-        }
-
-        .dropdown:hover::after {
-            display: block;
-        }
-
-        .dropdown-item {
-            display: block;
-            width: 100%;
-            padding: 10px 15px;
-            text-align: left;
-            background-color: transparent;
-            border: none;
-            /* Explicitly use the PRIMARY_FONT */
-            font-family: \\\"PRIMARY_FONT\\\";
-            font-size: 0.9rem;
-            color: #fce8f6;
-            cursor: pointer;
-            transition: background-color 0.2s ease;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-        }
-
-        .dropdown-item:last-child {
-            border-bottom: none;
-        }
-
-        .dropdown-item:hover {
-            background-color: rgba(50, 6, 37, 0.8);
-            border-color: rgba(255, 255, 255, 0.4);
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
-        }
-
-        .dropdown-item.active {
-            background-color: var(--bg-color);
-            border-color: #fce8f6;
-            box-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
-            color: #fff;
-        }
-
-        /* Fix for header-tabs to prevent dropdown from affecting it */
-        .header-tabs {
-            display: flex;
-            gap: 5px;
-            margin: 0 10px;
-            flex-grow: 1;
-            justify-content: center;
-            flex-wrap: wrap;
-            overflow-x: visible;
-            scrollbar-width: thin;
-            max-width: 70%;
-            position: relative;
-        }";
-            
-        css
-            .replace("<BG_COLOR>", &bg_color)
-            .replace("<BG_IMAGE>", &bg_image)
-            .replace("<SECONDARY_FONT>", HEADER_FONT)
-            .replace("<PRIMARY_FONT>", REGULAR_FONT)
-            + "/* Font fixes applied */"
-            + play_button_css
-    };
-
+    
+    // Get the default styling
+    let css_content = css
+        .replace("<BG_COLOR>", "#320625")
+        .replace("<BG_IMAGE>", "https://raw.githubusercontent.com/Wynncraft-Overhaul/installer/master/src/assets/background_installer.png")
+        .replace("<SECONDARY_FONT>", HEADER_FONT)
+        .replace("<PRIMARY_FONT>", REGULAR_FONT);
+    
+    // Setup modal context
     let mut modal_context = use_context_provider(ModalContext::default);
     if let Some(e) = err() {
         modal_context.open("Error", rsx! {
@@ -2315,21 +2116,48 @@ pub(crate) fn app() -> Element {
             textarea { class: "error-area", readonly: true, "{e}" }
         }, false, Some(move |_| err.set(None)));
     }
-
-    // Determine which logo to use
+    
+    // Logo URL
     let logo_url = Some("https://raw.githubusercontent.com/Wynncraft-Overhaul/installer/master/src/assets/icon.png".to_string());
     
+    // Current page for rendering
     let current_page = page();
-    debug!("RENDER DECISION: current_page={}, HOME_PAGE={}, is_home={}",
-           current_page, HOME_PAGE, current_page == HOME_PAGE);
     
+    // Render app with explicit debug info
     rsx! {
         div {
             style { {css_content} }
             Modal {}
-
+            
             BackgroundParticles {}
             
+            // Add debugging overlay in debug mode
+            if debug_mode {
+                div {
+                    style: "position: fixed; top: 10px; left: 10px; background-color: rgba(0,0,0,0.7); color: white; padding: 10px; z-index: 9999; font-size: 12px; max-width: 300px; border-radius: 4px;",
+                    p { "Debug Info:" }
+                    p { "Current Page: {current_page}" }
+                    p { "Is Home: {current_page == HOME_PAGE}" }
+                    p { "Settings: {settings()}" }
+                    p { "Pages Loaded: {pages().len()}" }
+                    button {
+                        onclick: move |_| {
+                            page.set(HOME_PAGE);
+                            debug!("FORCED NAVIGATION: Set page to HOME_PAGE");
+                        },
+                        "Force Home"
+                    }
+                    
+                    if let Some(tab_info) = pages().get(&current_page) {
+                        p { "Current Tab: {tab_info.title}" }
+                        p { "Modpacks: {tab_info.modpacks.len()}" }
+                    } else {
+                        p { "No tab info for current page" }
+                    }
+                }
+            }
+            
+            // Header when appropriate
             {if !config.read().first_launch.unwrap_or(true) && launcher.is_some() && !settings() {
                 rsx! {
                     AppHeader {
@@ -2342,9 +2170,11 @@ pub(crate) fn app() -> Element {
             } else {
                 None
             }}
-
+            
+            // Main container
             div { class: "main-container",
                 {if settings() {
+                    // Settings screen
                     rsx! {
                         Settings {
                             config,
@@ -2355,6 +2185,7 @@ pub(crate) fn app() -> Element {
                         }
                     }
                 } else if config.read().first_launch.unwrap_or(true) || launcher.is_none() {
+                    // Launcher selection screen
                     rsx! {
                         Launcher {
                             config,
@@ -2364,6 +2195,7 @@ pub(crate) fn app() -> Element {
                         }
                     }
                 } else if packs.read().is_none() {
+                    // Loading screen
                     rsx! {
                         div { class: "loading-container",
                             div { class: "loading-spinner" }
@@ -2371,9 +2203,12 @@ pub(crate) fn app() -> Element {
                         }
                     }
                 } else {
-                    // RENDERING DECISION - This section is critical
+                    // RENDERING DECISION - SIMPLIFIED FOR DEBUGGING
                     if current_page == HOME_PAGE {
-                        debug!("RENDERING: HomePage");
+                        // Show home page
+                        if debug_mode {
+                            debug!("RENDERING: HomePage");
+                        }
                         rsx! {
                             HomePage {
                                 pages,
@@ -2381,30 +2216,53 @@ pub(crate) fn app() -> Element {
                             }
                         }
                     } else {
-                        debug!("RENDERING: Content for page {}", current_page);
+                        // Show modpack page - SIMPLIFIED VERSION
+                        if debug_mode {
+                            debug!("RENDERING: Modpack page {}", current_page);
+                        }
                         
-                        // Get tab info without temporary references
+                        // Get tab info
                         let pages_map = pages();
                         
                         if let Some(tab_info) = pages_map.get(&current_page) {
-                            debug!("FOUND tab group {} with {} modpacks", 
-                                  current_page, tab_info.modpacks.len());
+                            if debug_mode {
+                                debug!("RENDERING: Found tab_group {} with {} modpacks", current_page, tab_info.modpacks.len());
+                            }
                             
-                            // Get all modpacks before rendering
+                            // Clone modpacks
                             let modpacks = tab_info.modpacks.clone();
-                            debug!("Cloned {} modpacks for rendering", modpacks.len());
                             
-                            // Check if we have any modpacks to render
+                            // Check if we have any modpacks
                             if modpacks.is_empty() {
-                                debug!("No modpacks found in tab group {}", current_page);
-                                rsx! { div { "No modpacks found in this tab." } }
+                                if debug_mode {
+                                    debug!("RENDERING: No modpacks in tab_group {}", current_page);
+                                }
+                                rsx! { 
+                                    div { 
+                                        style: "color: white; padding: 20px; text-align: center;",
+                                        "No modpacks found in this tab." 
+                                    } 
+                                }
                             } else {
+                                if debug_mode {
+                                    debug!("RENDERING: Rendering {} modpacks from tab_group {}", modpacks.len(), current_page);
+                                }
                                 rsx! {
-                                    // Regular modpack content
+                                    // SIMPLIFIED CONTAINER
                                     div { 
                                         class: "version-page-container",
-                                        style: "display: block; width: 100%;",
+                                        style: "display: block; width: 100%; background-color: rgba(0,0,0,0.2); padding: 20px; margin-top: 20px; border-radius: 8px;",
                                         
+                                        // Debug header
+                                        if debug_mode {
+                                            div {
+                                                style: "background-color: rgba(0,0,0,0.5); padding: 10px; margin-bottom: 20px; border-radius: 4px;",
+                                                h2 { "DEBUG: Modpack Page for Tab Group {current_page}" }
+                                                p { "Found {modpacks.len()} modpacks to display" }
+                                            }
+                                        }
+                                        
+                                        // Render each modpack with simplified component
                                         for (index, profile) in modpacks.iter().enumerate() {
                                             {
                                                 let profile_clone = profile.clone();
@@ -2416,8 +2274,8 @@ pub(crate) fn app() -> Element {
                                                 };
                                                 
                                                 rsx! {
-                                                    // Use the updated Version component
-                                                    Version { ..version_props }
+                                                    // Use simplified debug component instead of full Version
+                                                    DebugVersionComponent { ..version_props }
                                                 }
                                             }
                                         }
@@ -2425,8 +2283,15 @@ pub(crate) fn app() -> Element {
                                 }
                             }
                         } else {
-                            debug!("NO TAB INFO found for page {}", current_page);
-                            rsx! { div { "No modpack information found for this tab." } }
+                            if debug_mode {
+                                debug!("RENDERING: No tab info found for page {}", current_page);
+                            }
+                            rsx! { 
+                                div { 
+                                    style: "color: white; padding: 20px; text-align: center;",
+                                    "No modpack information found for this tab." 
+                                } 
+                            }
                         }
                     }
                 }}
