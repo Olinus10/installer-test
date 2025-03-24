@@ -6,6 +6,7 @@ use modal::ModalContext;
 use modal::Modal; 
 
 use crate::{get_app_data, get_installed_packs, get_launcher, uninstall, InstallerProfile, Launcher, PackName, Changelog};
+use crate::launcher::{update_jvm_args, get_jvm_args, DEFAULT_JVM_ARGS};
 
 mod modal;
 
@@ -50,6 +51,183 @@ fn BackgroundParticles() -> Element {
                         }
                     }
                 }
+            }
+        }
+    }
+}
+
+#[component]
+fn JavaSettingsForm(profile_id: String) -> Element {
+    let jvm_args = use_state(|| get_jvm_args(&profile_id).unwrap_or_else(|_| DEFAULT_JVM_ARGS.to_string()));
+    let memory = use_state(|| extract_memory_from_args(&jvm_args));
+    let width = use_state(|| 1280);
+    let height = use_state(|| 720);
+    let fullscreen = use_state(|| false);
+    
+    let save_settings = move |_| {
+        // Build the full JVM arguments string
+        let mut new_args = DEFAULT_JVM_ARGS.to_string();
+        
+        // Replace memory value
+        new_args = new_args.replace("-Xmx4G", &format!("-Xmx{}G", memory.get()));
+        
+        // Add window size args if not fullscreen
+        if !*fullscreen.get() {
+            new_args.push_str(&format!(" -Dorg.lwjgl.opengl.Window.width={} -Dorg.lwjgl.opengl.Window.height={}", 
+                                      width.get(), height.get()));
+        }
+        
+        // Update the JVM args for this profile
+        if let Err(e) = update_jvm_args(&profile_id, &new_args) {
+            log::error!("Failed to update JVM args: {}", e);
+            // Show error to user
+        }
+        
+        // Update the displayed JVM args
+        jvm_args.set(new_args);
+    };
+    
+    rsx! {
+        div { class: "settings-container",
+            h1 { class: "settings-title", "Java Settings" }
+            
+            div { class: "setting-group",
+                label { class: "setting-label", "Memory Allocation (GB)" }
+                
+                div { class: "memory-slider",
+                    input {
+                        r#type: "range",
+                        min: "2",
+                        max: "16",
+                        step: "1",
+                        value: "{memory}",
+                        oninput: move |evt| {
+                            if let Ok(val) = evt.value.parse::<u32>() {
+                                memory.set(val);
+                            }
+                        }
+                    }
+                    span { class: "memory-value", "{memory}GB" }
+                }
+            }
+            
+            div { class: "setting-group",
+                label { class: "setting-label", "Window Size" }
+                
+                div { class: "window-size-controls",
+                    input {
+                        r#type: "number",
+                        placeholder: "Width",
+                        value: "{width}",
+                        min: "640",
+                        oninput: move |evt| {
+                            if let Ok(val) = evt.value.parse::<u32>() {
+                                width.set(val);
+                            }
+                        }
+                    }
+                    span { "×" }
+                    input {
+                        r#type: "number",
+                        placeholder: "Height",
+                        value: "{height}",
+                        min: "480",
+                        oninput: move |evt| {
+                            if let Ok(val) = evt.value.parse::<u32>() {
+                                height.set(val);
+                            }
+                        }
+                    }
+                    
+                    label { class: "checkbox-label",
+                        input {
+                            r#type: "checkbox",
+                            checked: "{fullscreen}",
+                            oninput: move |evt| {
+                                fullscreen.set(evt.value == "true");
+                            }
+                        }
+                        "Fullscreen"
+                    }
+                }
+            }
+            
+            div { class: "setting-group",
+                label { class: "setting-label", "Advanced JVM Arguments" }
+                textarea {
+                    class: "jvm-args-input",
+                    value: "{jvm_args}",
+                    readonly: true
+                }
+            }
+            
+            div { class: "settings-buttons",
+                button {
+                    class: "primary-button",
+                    onclick: save_settings,
+                    "Save Settings"
+                }
+            }
+        }
+    }
+}
+
+// Helper to extract memory value from JVM args
+fn extract_memory_from_args(args: &str) -> u32 {
+    // Look for -Xmx pattern followed by a number and G
+    if let Some(mem_str) = args.split_whitespace()
+        .find(|arg| arg.starts_with("-Xmx"))
+    {
+        if let Some(num_str) = mem_str.trim_start_matches("-Xmx").trim_end_matches('G').parse::<u32>().ok() {
+            return num_str;
+        }
+    }
+    
+    // Default to 4GB if not found or parsing fails
+    4
+}
+
+#[component]
+fn PlayButton(modpack: InstallerProfile) -> Element {
+    let installing = use_signal(|| false);
+    let profile_id = format!("wynncraft-{}", modpack.modpack_branch);
+    
+    let launch_modpack = move |_| {
+        installing.set(true);
+        
+        // Ensure modpack is installed
+        if !modpack.installed {
+            // Show error or prompt to install first
+            installing.set(false);
+            return;
+        }
+        
+        // Launch with the vanilla launcher
+        match crate::launcher::launch_modpack(&profile_id) {
+            Ok(_) => {
+                // Optionally minimize the window or show a "Running" indicator
+            },
+            Err(e) => {
+                // Show error message
+                log::error!("Failed to launch modpack: {}", e);
+            }
+        }
+        
+        installing.set(false);
+    };
+    
+    rsx! {
+        button {
+            class: "main-play-button",
+            disabled: *installing.read() || !modpack.installed,
+            onclick: launch_modpack,
+            
+            if *installing.read() {
+                "Launching..."
+            } else if modpack.installed {
+                "Play"
+            } else {
+                "Install"
             }
         }
     }
