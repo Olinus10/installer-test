@@ -58,11 +58,11 @@ fn BackgroundParticles() -> Element {
 
 #[component]
 fn JavaSettingsForm(profile_id: String) -> Element {
-    let jvm_args = use_state(|| get_jvm_args(&profile_id).unwrap_or_else(|_| DEFAULT_JVM_ARGS.to_string()));
-    let memory = use_state(|| extract_memory_from_args(&jvm_args));
-    let width = use_state(|| 1280);
-    let height = use_state(|| 720);
-    let fullscreen = use_state(|| false);
+    let jvm_args = use_signal(|| get_jvm_args(&profile_id).unwrap_or_else(|_| DEFAULT_JVM_ARGS.to_string()));
+    let memory = use_signal(|| extract_memory_from_args(&jvm_args));
+    let width = use_signal(|| 1280);
+    let height = use_signal(|| 720);
+    let fullscreen = use_signal(|| false);
     
     let save_settings = move |_| {
         // Build the full JVM arguments string
@@ -102,7 +102,7 @@ fn JavaSettingsForm(profile_id: String) -> Element {
                         step: "1",
                         value: "{memory}",
                         oninput: move |evt| {
-                            if let Ok(val) = evt.value.parse::<u32>() {
+                            if let Ok(val) = evt.value().parse::<u32>() {
                                 memory.set(val);
                             }
                         }
@@ -121,7 +121,7 @@ fn JavaSettingsForm(profile_id: String) -> Element {
                         value: "{width}",
                         min: "640",
                         oninput: move |evt| {
-                            if let Ok(val) = evt.value.parse::<u32>() {
+                            if let Ok(val) = evt.value().parse::<u32>() {
                                 width.set(val);
                             }
                         }
@@ -189,7 +189,7 @@ fn extract_memory_from_args(args: &str) -> u32 {
 
 #[component]
 fn PlayButton(modpack: InstallerProfile) -> Element {
-    let installing = use_signal(|| false);
+    let mut installing = use_signal(|| false);
     let profile_id = format!("wynncraft-{}", modpack.modpack_branch);
     
     let launch_modpack = move |_| {
