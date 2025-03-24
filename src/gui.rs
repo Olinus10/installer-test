@@ -58,11 +58,11 @@ fn BackgroundParticles() -> Element {
 
 #[component]
 fn JavaSettingsForm(profile_id: String) -> Element {
-    let jvm_args = use_signal(|| get_jvm_args(&profile_id).unwrap_or_else(|_| DEFAULT_JVM_ARGS.to_string()));
-    let memory = use_signal(|| extract_memory_from_args(&jvm_args.read()));
-    let width = use_signal(|| 1280);
-    let height = use_signal(|| 720);
-    let fullscreen = use_signal(|| false);
+    let mut jvm_args = use_signal(|| get_jvm_args(&profile_id).unwrap_or_else(|_| DEFAULT_JVM_ARGS.to_string()));
+    let mut memory = use_signal(|| extract_memory_from_args(&jvm_args.read()));
+    let mut width = use_signal(|| 1280);
+    let mut height = use_signal(|| 720);
+    let mut fullscreen = use_signal(|| false);
     
     let save_settings = move |_| {
         // Build the full JVM arguments string
