@@ -75,81 +75,66 @@ fn get_current_launcher_type() -> Result<LauncherType, String> {
 fn launch_vanilla(profile_id: &str) -> Result<(), String> {
     debug!("Launching vanilla Minecraft with profile {}", profile_id);
     
+    // Get the launcher executable path
+    let launcher_path = find_minecraft_launcher()?;
+    
     // Build the complete game directory path
     let minecraft_dir = crate::launcher::config::get_minecraft_dir();
     let game_dir = minecraft_dir.join(format!(".WC_OVHL/{}", profile_id));
     
     debug!("Game directory: {:?}", game_dir);
     
-    // Create a temporary script file
-    let script_path = if cfg!(target_os = "windows") {
-        // Windows batch file
-        let script_path = std::env::temp_dir().join(format!("launch_minecraft_{}.bat", profile_id));
-        let launcher_path = find_minecraft_launcher()?;
-        
-        // Create batch file content
-        let batch_content = format!(
-            "@echo off\n\
-             echo Launching Minecraft profile: {}\n\
-             \"{launcher}\" --workDir \"{minecraft}\" --gameDir \"{gamedir}\" --username \"${{}USERNAME%%}\" --version \"fabric-loader\" --assetsDir \"{minecraft}\\assets\" --assetIndex \"1.20\" --uuid \"${{}RANDOM%%}${{}RANDOM%%}\" --accessToken 0 --userType legacy --versionType release\n",
-            profile_id,
-            launcher = launcher_path,
-            minecraft = minecraft_dir.display(),
-            gamedir = game_dir.display()
-        );
-        
-        // Write to batch file
-        match std::fs::write(&script_path, batch_content) {
-            Ok(_) => debug!("Created launch script at {:?}", script_path),
-            Err(e) => return Err(format!("Failed to create launch script: {}", e))
-        }
-        
-        script_path
-    } else if cfg!(target_os = "macos") || cfg!(target_os = "linux") {
-        // Shell script for macOS/Linux
-        let script_path = std::env::temp_dir().join(format!("launch_minecraft_{}.sh", profile_id));
-        let launcher_path = find_minecraft_launcher()?;
-        
-        // Create shell script content 
-        let shell_content = format!(
-            "#!/bin/bash\n\
-             echo \"Launching Minecraft profile: {}\"\n\
-             \"{}\" --workDir \"{}\" --gameDir \"{}\" --username \"$USER\" --version \"fabric-loader\" --assetsDir \"{}/assets\" --assetIndex \"1.20\" --uuid \"$RANDOM$RANDOM\" --accessToken 0 --userType legacy --versionType release\n",
-            profile_id,
-            launcher_path,
-            minecraft_dir.display(),
-            game_dir.display(),
-            minecraft_dir.display()
-        );
-        
-        // Write to shell script
-        match std::fs::write(&script_path, shell_content) {
-            Ok(_) => debug!("Created launch script at {:?}", script_path),
-            Err(e) => return Err(format!("Failed to create launch script: {}", e))
-        }
-        
-        // Make the script executable
-        use std::os::unix::fs::PermissionsExt;
-        let metadata = std::fs::metadata(&script_path)?;
-        let mut permissions = metadata.permissions();
-        permissions.set_mode(0o755); // rwxr-xr-x
-        std::fs::set_permissions(&script_path, permissions)?;
-        
-        script_path
-    } else {
-        return Err("Unsupported operating system".to_string());
-    };
+    // Try multiple different command lines to work with different launcher versions
+    let launch_attempts = vec![
+        // Approach 1: Direct approach with --launch parameter
+        format!("\"{}\" --workDir \"{}\" --launch \"{}\"", 
+            launcher_path, minecraft_dir.display(), profile_id),
+            
+        // Approach 2: Try with --profile instead of --launch
+        format!("\"{}\" --workDir \"{}\" --profile \"{}\"",
+            launcher_path, minecraft_dir.display(), profile_id),
+            
+        // Approach 3: Using gameDir and direct version specification
+        format!("\"{}\" --gameDir \"{}\"",
+            launcher_path, game_dir.display()),
+            
+        // Approach 4: Just launch the default profile
+        format!("\"{}\"", launcher_path)
+    ];
     
-    // Execute the script
-    let mut command = if cfg!(target_os = "windows") {
-        Command::new(&script_path)
-    } else {
-        Command::new("sh").arg(&script_path)
-    };
+    // Create a temporary batch file
+    let script_path = std::env::temp_dir().join(format!("launch_minecraft_{}.bat", profile_id));
     
+    // Create a batch script that tries all approaches
+    let mut batch_content = format!("@echo off\r\n");
+    batch_content.push_str(&format!("echo Attempting to launch Minecraft with profile: {}\r\n\r\n", profile_id));
+    
+    // Add each launch attempt to the batch file
+    for (i, attempt) in launch_attempts.iter().enumerate() {
+        batch_content.push_str(&format!("echo Attempt {}...\r\n", i + 1));
+        batch_content.push_str(&format!("{}\r\n", attempt));
+        batch_content.push_str("if %ERRORLEVEL% EQU 0 goto success\r\n");
+        batch_content.push_str("echo Attempt failed, trying next method...\r\n\r\n");
+    }
+    
+    // Add success and failure handlers
+    batch_content.push_str(":success\r\n");
+    batch_content.push_str("echo Successfully launched Minecraft!\r\n");
+    batch_content.push_str("exit /b 0\r\n");
+    batch_content.push_str(":failure\r\n");
+    batch_content.push_str("echo All launch attempts failed.\r\n");
+    batch_content.push_str("pause\r\n");
+    batch_content.push_str("exit /b 1\r\n");
+    
+    // Write batch file
+    match std::fs::write(&script_path, batch_content) {
+        Ok(_) => debug!("Created multi-approach launch script at {:?}", script_path),
+        Err(e) => return Err(format!("Failed to create launch script: {}", e))
+    }
+    
+    // Execute the batch file
     debug!("Running script: {:?}", script_path);
-    
-    match command.spawn() {
+    match Command::new("cmd.exe").arg("/C").arg(&script_path).spawn() {
         Ok(_) => {
             debug!("Minecraft launch script executed successfully");
             Ok(())
