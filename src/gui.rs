@@ -1988,7 +1988,7 @@ pub(crate) fn app() -> Element {
     let config = use_signal(|| props.config);
     let settings = use_signal(|| false);
     let mut err: Signal<Option<String>> = use_signal(|| None);
-    let page = use_signal(|| HOME_PAGE);  // Initially set to HOME_PAGE
+    let mut page = use_signal(|| HOME_PAGE);  // Initially set to HOME_PAGE
     let mut pages = use_signal(BTreeMap::<usize, TabInfo>::new);
     
     // CONFIG: Enable debug mode to help identify issues
