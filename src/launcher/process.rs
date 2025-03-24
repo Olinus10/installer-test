@@ -1,14 +1,68 @@
+// Let's update the process.rs file to better handle different launcher types
+
 use std::process::Command;
 use log::{debug, error};
 
 // Launch Minecraft with a specific profile
 pub fn launch_modpack(profile_id: &str) -> Result<(), String> {
+    // Get the current launcher type
+    let launcher_type = get_current_launcher_type()?;
+    
+    debug!("Launching modpack {} with {} launcher", profile_id, launcher_type);
+    
+    match launcher_type {
+        LauncherType::Vanilla => launch_vanilla(profile_id),
+        LauncherType::MultiMC => launch_multimc(profile_id),
+        LauncherType::PrismLauncher => launch_prism(profile_id),
+        LauncherType::Custom(path) => launch_custom_multimc(profile_id, path),
+    }
+}
+
+// Enum to represent different launcher types
+enum LauncherType {
+    Vanilla,
+    MultiMC,
+    PrismLauncher,
+    Custom(String),
+}
+
+// Determine which launcher we're using
+fn get_current_launcher_type() -> Result<LauncherType, String> {
+    // Read config to determine current launcher
+    let config = match std::fs::read_to_string(crate::get_app_data().join(".WC_OVHL/config.json")) {
+        Ok(content) => content,
+        Err(e) => return Err(format!("Failed to read config: {}", e)),
+    };
+    
+    let config: serde_json::Value = match serde_json::from_str(&config) {
+        Ok(parsed) => parsed,
+        Err(e) => return Err(format!("Failed to parse config: {}", e)),
+    };
+    
+    let launcher = match config["launcher"].as_str() {
+        Some(val) => val,
+        None => return Err("Launcher not specified in config".to_string()),
+    };
+    
+    match launcher {
+        "vanilla" => Ok(LauncherType::Vanilla),
+        "multimc-MultiMC" => Ok(LauncherType::MultiMC),
+        "multimc-PrismLauncher" => Ok(LauncherType::PrismLauncher),
+        custom if custom.starts_with("custom-") => {
+            let path = custom.trim_start_matches("custom-").to_string();
+            Ok(LauncherType::Custom(path))
+        },
+        _ => Err(format!("Unknown launcher type: {}", launcher)),
+    }
+}
+
+// Launch vanilla Minecraft with the specified profile
+fn launch_vanilla(profile_id: &str) -> Result<(), String> {
     // Find the Minecraft launcher executable
     let launcher_path = find_minecraft_launcher()?;
     
-    debug!("Launching Minecraft with profile {}", profile_id);
+    debug!("Launching vanilla Minecraft with profile {}", profile_id);
     
-    // Start the launcher process with direct launch arguments
     let mut command = Command::new(launcher_path);
     
     // Add arguments to directly launch the profile
@@ -31,11 +85,128 @@ pub fn launch_modpack(profile_id: &str) -> Result<(), String> {
     }
 }
 
-// Find the Minecraft launcher executable
+// Launch MultiMC with the specified instance
+fn launch_multimc(profile_id: &str) -> Result<(), String> {
+    let multimc_path = crate::get_multimc_folder("MultiMC")
+        .map_err(|e| format!("Failed to find MultiMC folder: {}", e))?;
+    
+    let executable = if cfg!(target_os = "windows") {
+        multimc_path.join("MultiMC.exe")
+    } else if cfg!(target_os = "macos") {
+        multimc_path.join("MultiMC.app/Contents/MacOS/MultiMC")
+    } else {
+        multimc_path.join("MultiMC")
+    };
+    
+    debug!("Launching MultiMC with instance {}", profile_id);
+    
+    // Launch MultiMC with the instance
+    match Command::new(executable)
+        .arg("-l") // Launch instance directly
+        .arg(profile_id)
+        .spawn() {
+            Ok(_) => {
+                debug!("MultiMC launched successfully with instance: {}", profile_id);
+                Ok(())
+            },
+            Err(e) => {
+                error!("Failed to start MultiMC: {}", e);
+                Err(format!("Failed to start MultiMC: {}", e))
+            }
+        }
+}
+
+// Launch Prism Launcher with the specified instance
+fn launch_prism(profile_id: &str) -> Result<(), String> {
+    let prism_path = crate::get_multimc_folder("PrismLauncher")
+        .map_err(|e| format!("Failed to find Prism Launcher folder: {}", e))?;
+    
+    let executable = if cfg!(target_os = "windows") {
+        prism_path.join("prismlauncher.exe")
+    } else if cfg!(target_os = "macos") {
+        prism_path.join("prismlauncher.app/Contents/MacOS/prismlauncher")
+    } else {
+        prism_path.join("prismlauncher")
+    };
+    
+    debug!("Launching Prism Launcher with instance {}", profile_id);
+    
+    // Launch Prism with the instance
+    match Command::new(executable)
+        .arg("-l") // Launch instance directly
+        .arg(profile_id)
+        .spawn() {
+            Ok(_) => {
+                debug!("Prism Launcher launched successfully with instance: {}", profile_id);
+                Ok(())
+            },
+            Err(e) => {
+                error!("Failed to start Prism Launcher: {}", e);
+                Err(format!("Failed to start Prism Launcher: {}", e))
+            }
+        }
+}
+
+// Launch custom MultiMC with the specified instance
+fn launch_custom_multimc(profile_id: &str, path: String) -> Result<(), String> {
+    // Convert path string to PathBuf
+    let custom_path = std::path::PathBuf::from(path);
+    
+    // Try to determine the executable name
+    let executable = if cfg!(target_os = "windows") {
+        // Look for common executables
+        if custom_path.join("MultiMC.exe").exists() {
+            custom_path.join("MultiMC.exe")
+        } else if custom_path.join("prismlauncher.exe").exists() {
+            custom_path.join("prismlauncher.exe")
+        } else {
+            // Default to MultiMC.exe and hope for the best
+            custom_path.join("MultiMC.exe")
+        }
+    } else if cfg!(target_os = "macos") {
+        // Look for common executables
+        if custom_path.join("MultiMC.app/Contents/MacOS/MultiMC").exists() {
+            custom_path.join("MultiMC.app/Contents/MacOS/MultiMC")
+        } else if custom_path.join("prismlauncher.app/Contents/MacOS/prismlauncher").exists() {
+            custom_path.join("prismlauncher.app/Contents/MacOS/prismlauncher")
+        } else {
+            // Default to MultiMC and hope for the best
+            custom_path.join("MultiMC.app/Contents/MacOS/MultiMC")
+        }
+    } else {
+        // Linux: look for common executables
+        if custom_path.join("MultiMC").exists() {
+            custom_path.join("MultiMC")
+        } else if custom_path.join("prismlauncher").exists() {
+            custom_path.join("prismlauncher")
+        } else {
+            // Default to MultiMC and hope for the best
+            custom_path.join("MultiMC")
+        }
+    };
+    
+    debug!("Launching custom MultiMC-like launcher with instance {}", profile_id);
+    
+    // Launch with the instance
+    match Command::new(executable)
+        .arg("-l") // Launch instance directly
+        .arg(profile_id)
+        .spawn() {
+            Ok(_) => {
+                debug!("Custom launcher launched successfully with instance: {}", profile_id);
+                Ok(())
+            },
+            Err(e) => {
+                error!("Failed to start custom launcher: {}", e);
+                Err(format!("Failed to start custom launcher: {}", e))
+            }
+        }
+}
+
+// Find the Minecraft launcher executable - existing function, keep it
 fn find_minecraft_launcher() -> Result<String, String> {
     #[cfg(target_os = "windows")]
     {
-        // Replace the existing code with this version that includes logging:
         debug!("Searching for Minecraft launcher on Windows...");
         
         // First try Program Files (x86)
