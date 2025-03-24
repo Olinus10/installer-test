@@ -204,7 +204,6 @@ fn PlayButton(modpack: InstallerProfile) -> Element {
         
         // Launch with the vanilla launcher
         let profile_id_clone = profile_id.clone();
-        let mut modal = use_context::<ModalContext>();
         spawn(async move {
             match crate::launcher::launch_modpack(&profile_id_clone) {
                 Ok(_) => {
@@ -212,18 +211,12 @@ fn PlayButton(modpack: InstallerProfile) -> Element {
                     // Optionally minimize the window or show a "Running" indicator
                 },
                 Err(e) => {
+                    // Show error message
                     debug!("Failed to launch modpack: {}", e);
-                    modal.open(
-                        "Launch Error",
-                        rsx!(div {
-                            p { "Failed to launch the modpack. Please check your Minecraft installation." }
-                            p { "Error: {e}" }
-                        }),
-                        false,
-                        Some(|_| {}),
-                    );
                 }
             }
+            
+            // Reset installing state
             installing.set(false);
         });
     };
@@ -415,7 +408,7 @@ fn HomePage(
                                             "data-category": "{category}",
                                             
                                             // This is the main click handler for the entire card
-                                            onclick: move |_| {
+                                            onclick: move |evt| {
                                                 debug!("Trending card clicked: navigating to page {}", tab_index);
                                                 page.set(tab_index);
                                             },
@@ -507,7 +500,7 @@ fn HomePage(
                                         "data-updated": "{is_updated}",
                                         
                                         // Main click handler for the card
-                                        onclick: move |_| {
+                                        onclick: move |evt| {
                                             debug!("Card clicked: navigating to page {}", tab_index);
                                             page.set(tab_index);
                                         },
@@ -1357,11 +1350,7 @@ struct VersionProps {
 fn Version(mut props: VersionProps) -> Element {
     let installer_profile = props.installer_profile.clone();
     
-    // Add explicit debugging for initial state
-    debug!("INITIAL STATE: installed={}, update_available={}", 
-           installer_profile.installed, installer_profile.update_available);
-    
-    // Force reactivity with explicit signal declarations and consistent usage
+    // State signals
     let mut installing = use_signal(|| false);
     let mut launching = use_signal(|| false);
     let mut progress_status = use_signal(|| "".to_string());
@@ -1375,18 +1364,9 @@ fn Version(mut props: VersionProps) -> Element {
     let mut installed = use_signal(|| installer_profile.installed);
     let mut update_available = use_signal(|| installer_profile.update_available);
     let mut install_item_amount = use_signal(|| 0);
-
-    // Create a debug signal to force refreshes when needed
-    let mut debug_counter = use_signal(|| 0);
     
     // IMPORTANT: Store the features collection in a signal to solve lifetime issues
     let features = use_signal(|| installer_profile.manifest.features.clone());
-    
-    // Add debugging to watch for signal changes
-    use_effect(move || {
-        debug!("SIGNAL UPDATE: installed={}, update_available={}, modify={}, credits={}, debug_counter={}",
-               *installed.read(), *update_available.read(), *modify.read(), *credits.read(), *debug_counter.read());
-    });
 
     // Use signal for enabled_features with cleaner initialization
     let mut enabled_features = use_signal(|| {
@@ -1403,7 +1383,6 @@ fn Version(mut props: VersionProps) -> Element {
             }
         }
 
-        debug!("Initialized enabled_features: {:?}", feature_list);
         feature_list
     });
     
@@ -1428,18 +1407,14 @@ fn Version(mut props: VersionProps) -> Element {
             _ => panic!("Invalid bool from feature"),
         };
         
-        debug!("Feature toggle changed: {} -> {}", feat.id, enabled);
-        
         // Update enabled_features
         enabled_features.with_mut(|feature_list| {
             if enabled {
                 if !feature_list.contains(&feat.id) {
                     feature_list.push(feat.id.clone());
-                    debug!("Added feature: {}", feat.id);
                 }
             } else {
                 feature_list.retain(|id| id != &feat.id);
-                debug!("Removed feature: {}", feat.id);
             }
         });
         
@@ -1448,26 +1423,18 @@ fn Version(mut props: VersionProps) -> Element {
             let was_enabled = local_feat.contains(&feat.id);
             let is_modified = was_enabled != enabled;
             
-            debug!("Feature modified check: was_enabled={}, new_state={}, is_modified={}", 
-                   was_enabled, enabled, is_modified);
-            
             if is_modified {
                 modify_count.with_mut(|x| *x += 1);
                 if *modify_count.read() > 0 {
                     modify.set(true);
-                    debug!("SET MODIFY FLAG: true");
                 }
             } else {
                 modify_count.with_mut(|x| *x -= 1);
                 if *modify_count.read() <= 0 {
                     modify.set(false);
-                    debug!("SET MODIFY FLAG: false");
                 }
             }
         }
-        
-        // Force refresh
-        debug_counter.with_mut(|x| *x += 1);
     };
     
     // Installation/update submit handler
@@ -1503,7 +1470,6 @@ fn Version(mut props: VersionProps) -> Element {
                         {
                             Ok(_) => {
                                 installed.set(true);
-                                debug!("SET INSTALLED: true");
                                 
                                 let _ = isahc::post(
                                     "https://tracking.commander07.workers.dev/track",
@@ -1532,7 +1498,6 @@ fn Version(mut props: VersionProps) -> Element {
                             }
                         }
                         update_available.set(false);
-                        debug!("SET UPDATE_AVAILABLE: false");
                     } else if *modify.read() {
                         progress_status.set("Modifying".to_string());
                         match super::update(&installer_profile, move || {
@@ -1566,15 +1531,10 @@ fn Version(mut props: VersionProps) -> Element {
                             }
                         }
                         modify.set(false);
-                        debug!("RESET MODIFY: false");
                         modify_count.set(0);
                         update_available.set(false);
-                        debug!("SET UPDATE_AVAILABLE: false");
                     }
                     installing.set(false);
-                    
-                    // Force refresh
-                    debug_counter.with_mut(|x| *x += 1);
                 });
             };
 
@@ -1593,17 +1553,17 @@ fn Version(mut props: VersionProps) -> Element {
         }
     };
 
-    // Launch handler
-    let profile_id = format!("wynncraft-{}", installer_profile.modpack_branch);
+    // Launch handler - NEW
     let launch_handler = move |_| {
         launching.set(true);
         
-        let profile_id_clone = profile_id.clone();
+        let profile_id = format!("wynncraft-{}", installer_profile.modpack_branch);
         let mut modal = use_context::<ModalContext>();
+        
         spawn(async move {
-            match crate::launcher::launch_modpack(&profile_id_clone) {
+            match crate::launcher::launch_modpack(&profile_id) {
                 Ok(_) => {
-                    debug!("Successfully launched modpack with profile ID: {}", profile_id_clone);
+                    debug!("Successfully launched modpack: {}", profile_id);
                 },
                 Err(e) => {
                     debug!("Failed to launch modpack: {}", e);
@@ -1624,22 +1584,17 @@ fn Version(mut props: VersionProps) -> Element {
 
     // Button label based on state
     let button_label = if !*installed.read() {
-        debug!("Button state: Install");
         "Install"
     } else if *update_available.read() {
-        debug!("Button state: Update");
         "Update"
     } else if *modify.read() {
-        debug!("Button state: Modify");
         "Modify"
     } else {
-        debug!("Button state: Modify (default)");
         "Modify"
     };
     
     // Button disable logic
     let install_disable = *installed.read() && !*update_available.read() && !*modify.read();
-    debug!("Button disabled: {}", install_disable);
     
     rsx! {
         if *installing.read() {
@@ -1657,8 +1612,6 @@ fn Version(mut props: VersionProps) -> Element {
             }
         } else {
             div { class: "version-container",
-                "<!-- debug counter: {*debug_counter.read()} -->",
-                
                 form { onsubmit: on_submit,
                     // Header section with title and subtitle
                     div { class: "content-header",
@@ -1674,9 +1627,7 @@ fn Version(mut props: VersionProps) -> Element {
                             a {
                                 class: "credits-button",
                                 onclick: move |evt| {
-                                    debug!("Credits clicked");
                                     credits.set(true);
-                                    debug!("SET CREDITS: true");
                                     evt.stop_propagation();
                                 },
                                 "VIEW CREDITS"
@@ -1776,7 +1727,6 @@ fn Version(mut props: VersionProps) -> Element {
                                                 onclick: move |_| {
                                                     let current_state = *expanded_features.read();
                                                     expanded_features.set(!current_state);
-                                                    debug!("Toggled expanded features: {}", !current_state);
                                                 },
                                                 if *expanded_features.read() {
                                                     "Collapse Features"
@@ -1791,7 +1741,7 @@ fn Version(mut props: VersionProps) -> Element {
                         }
                     }
                     
-                    // Action Buttons Section
+                    // Action Buttons Section - NEW
                     div { class: "action-buttons-container",
                         // Play button (only shown if installed)
                         if *installed.read() {
@@ -1991,25 +1941,105 @@ pub(crate) fn app() -> Element {
     let mut page = use_signal(|| HOME_PAGE);  // Initially set to HOME_PAGE
     let mut pages = use_signal(BTreeMap::<usize, TabInfo>::new);
     
-    // CONFIG: Enable debug mode to help identify issues
-    let debug_mode = true;
-    
-    // Debug message for initial state
-    if debug_mode {
-        debug!("APP INIT: Loading with page={}, HOME_PAGE={}", page(), HOME_PAGE);
-        debug!("APP INIT: Settings={}", settings());
+    // Add CSS for Play button
+    let play_button_css = "
+    /* Play button styling */
+    .main-play-button {
+        background-image: linear-gradient(135deg, #0a5d23, #073C17);
+        border: 2px solid rgba(255, 255, 255, 0.2);
+        border-radius: 8px;
+        padding: 16px 60px;
+        font-family: HEADER_FONT;
+        font-size: 1.8rem;
+        color: #fce8f6;
+        cursor: pointer;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        position: relative;
+        overflow: hidden;
+        z-index: 1;
+        box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4), 0 0 20px rgba(7, 60, 23, 0.3);
+        text-shadow: 0 0 5px rgba(255, 255, 255, 0.3);
+        animation: button-glow 3s infinite alternate;
+        transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        margin-bottom: 15px;
+        display: block;
+        width: 100%;
+        max-width: 400px;
+        margin-left: auto;
+        margin-right: auto;
     }
     
-    // Explicitly track page changes
-    use_effect(move || {
-        if debug_mode {
-            debug!("PAGE CHANGED: page is now {}", page());
-            debug!("PAGE CHANGED: HOME_PAGE is {}", HOME_PAGE);
-            debug!("PAGE CHANGED: is home? {}", page() == HOME_PAGE);
-        }
-    });
+    .main-play-button:hover {
+        transform: translateY(-5px);
+        background-image: linear-gradient(135deg, #0f6229, #0a4d1e);
+        text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+        border-color: rgba(255, 255, 255, 0.4);
+        box-shadow: 0 15px 30px rgba(0, 0, 0, 0.5), 0 0 35px rgba(7, 60, 23, 0.9);
+    }
     
-    // Load launcher and CSS
+    .main-play-button:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        transform: none;
+        box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2), 0 0 10px rgba(7, 60, 23, 0.1);
+    }
+    
+    /* Home pack buttons for play/modify layout */
+    .home-pack-buttons {
+        display: flex;
+        gap: 10px;
+        margin-top: 10px;
+    }
+    
+    .home-pack-button.play {
+        background-image: linear-gradient(135deg, #0a5d23, #073C17);
+        flex: 1;
+    }
+    
+    .home-pack-button.modify {
+        background-color: rgba(50, 6, 37, 0.8);
+        flex: 1;
+    }
+    
+    .action-buttons-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 15px;
+        margin-top: 30px;
+    }
+    
+    .play-button-container {
+        width: 100%;
+        max-width: 500px;
+        text-align: center;
+    }
+    
+    /* Launching animation */
+    @keyframes launching-pulse {
+        0% {
+            opacity: 0.8;
+        }
+        50% {
+            opacity: 1;
+        }
+        100% {
+            opacity: 0.8;
+        }
+    }
+    
+    .main-play-button:disabled {
+        animation: launching-pulse 1.5s infinite;
+    }
+    ";
+
+    // Add debugging for page changes
+    use_effect(move || {
+        debug!("PAGE CHANGED: Current page is now {}", page());
+        debug!("IS HOME: {}", page() == HOME_PAGE);
+    });
+
     let cfg = config.with(|cfg| cfg.clone());
     let launcher = match super::get_launcher(&cfg.launcher) {
         Ok(val) => {
@@ -2021,8 +2051,8 @@ pub(crate) fn app() -> Element {
             None
         },
     };
-    
-    // Process branches as before
+
+    // Process branches into profiles
     let packs: Resource<Vec<(usize, InstallerProfile)>> = {
         let source = props.modpack_source.clone();
         let branches = branches.clone();
@@ -2051,16 +2081,15 @@ pub(crate) fn app() -> Element {
             }
         })
     };
-    
-    // Process branches into pages map
+
+    // Create pages from processed branches
     use_effect(move || {
         if let Some(processed_branches) = packs.read().as_ref() {
-            if debug_mode {
-                debug!("PAGES BUILD: Processing {} branches into pages map", processed_branches.len());
-            }
+            debug!("Building pages map from {} processed branches", processed_branches.len());
             
             let mut new_pages = BTreeMap::<usize, TabInfo>::new();
             for (tab_group, profile) in processed_branches {
+                // Get tab display info from profile
                 let tab_title = profile.manifest.tab_title.clone().unwrap_or_else(|| profile.manifest.subtitle.clone());
                 let tab_color = profile.manifest.tab_color.clone().unwrap_or_else(|| String::from("#320625"));
                 let tab_background = profile.manifest.tab_background.clone().unwrap_or_else(|| {
@@ -2069,11 +2098,9 @@ pub(crate) fn app() -> Element {
                 let settings_background = profile.manifest.settings_background.clone().unwrap_or_else(|| tab_background.clone());
                 
                 if let Some(tab_info) = new_pages.get_mut(tab_group) {
-                    // Add to existing tab group
+                    // Add profile to existing tab group
                     tab_info.modpacks.push(profile.clone());
-                    if debug_mode {
-                        debug!("PAGES BUILD: Added profile to tab_group {}: {}", tab_group, profile.manifest.subtitle);
-                    }
+                    debug!("Added profile to existing tab_group {}: {}", tab_group, profile.manifest.subtitle);
                 } else {
                     // Create new tab group
                     new_pages.insert(*tab_group, TabInfo {
@@ -2083,29 +2110,56 @@ pub(crate) fn app() -> Element {
                         settings_background,
                         modpacks: vec![profile.clone()],
                     });
-                    if debug_mode {
-                        debug!("PAGES BUILD: Created new tab_group {}: {}", tab_group, profile.manifest.subtitle);
-                    }
+                    debug!("Created new tab_group {}: {}", tab_group, profile.manifest.subtitle);
                 }
             }
             
             pages.set(new_pages);
-            if debug_mode {
-                debug!("PAGES BUILD: Completed with {} tab groups", pages().len());
-                for (key, info) in pages().iter() {
-                    debug!("PAGES BUILD: Tab group {} '{}' has {} modpacks", key, info.title, info.modpacks.len());
+            debug!("Updated pages map with {} tabs", pages().len());
+            
+            // Print out all tab groups and their modpacks
+            for (key, info) in pages().iter() {
+                debug!("Tab group {} '{}' with {} modpacks", key, info.title, info.modpacks.len());
+                for modpack in &info.modpacks {
+                    debug!("  - Modpack: {}", modpack.manifest.subtitle);
                 }
             }
         }
     });
-    
-    // Get the default styling
-    let css_content = css
-        .replace("<BG_COLOR>", "#320625")
-        .replace("<BG_IMAGE>", "https://raw.githubusercontent.com/Wynncraft-Overhaul/installer/master/src/assets/background_installer.png")
-        .replace("<SECONDARY_FONT>", HEADER_FONT)
-        .replace("<PRIMARY_FONT>", REGULAR_FONT);
-    
+
+    // Build CSS
+    let css_content = {
+        let default_color = "#320625".to_string();
+        let default_bg = "https://raw.githubusercontent.com/Wynncraft-Overhaul/installer/master/src/assets/background_installer.png".to_string();
+        
+        let bg_color = match pages().get(&page()) {
+            Some(x) => x.color.clone(),
+            None => default_color,
+        };
+        
+        let bg_image = match pages().get(&page()) {
+            Some(x) => {
+                if settings() {
+                    x.settings_background.clone()
+                } else {
+                    x.background.clone()
+                }
+            },
+            None => default_bg,
+        };
+        
+        // Use constants instead of TabInfo properties
+        debug!("Updating CSS with: color={}, bg_image={}", bg_color, bg_image);
+        
+        css
+            .replace("<BG_COLOR>", &bg_color)
+            .replace("<BG_IMAGE>", &bg_image)
+            .replace("<SECONDARY_FONT>", HEADER_FONT)
+            .replace("<PRIMARY_FONT>", REGULAR_FONT)
+            + "/* Font fixes applied */"
+            + play_button_css
+    };
+
     // Setup modal context
     let mut modal_context = use_context_provider(ModalContext::default);
     if let Some(e) = err() {
@@ -2116,46 +2170,22 @@ pub(crate) fn app() -> Element {
             textarea { class: "error-area", readonly: true, "{e}" }
         }, false, Some(move |_| err.set(None)));
     }
-    
-    // Logo URL
+
+    // Determine which logo to use
     let logo_url = Some("https://raw.githubusercontent.com/Wynncraft-Overhaul/installer/master/src/assets/icon.png".to_string());
     
-    // Current page for rendering
+    // Get the current page for rendering
     let current_page = page();
+    debug!("RENDERING with page={}, HOME_PAGE={}, is_home={}",
+           current_page, HOME_PAGE, current_page == HOME_PAGE);
     
-    // Render app with explicit debug info
+    // Main app rendering
     rsx! {
         div {
             style { {css_content} }
             Modal {}
-            
+
             BackgroundParticles {}
-            
-            // Add debugging overlay in debug mode
-            if debug_mode {
-                div {
-                    style: "position: fixed; top: 10px; left: 10px; background-color: rgba(0,0,0,0.7); color: white; padding: 10px; z-index: 9999; font-size: 12px; max-width: 300px; border-radius: 4px;",
-                    p { "Debug Info:" }
-                    p { "Current Page: {current_page}" }
-                    p { "Is Home: {current_page == HOME_PAGE}" }
-                    p { "Settings: {settings()}" }
-                    p { "Pages Loaded: {pages().len()}" }
-                    button {
-                        onclick: move |_| {
-                            page.set(HOME_PAGE);
-                            debug!("FORCED NAVIGATION: Set page to HOME_PAGE");
-                        },
-                        "Force Home"
-                    }
-                    
-                    if let Some(tab_info) = pages().get(&current_page) {
-                        p { "Current Tab: {tab_info.title}" }
-                        p { "Modpacks: {tab_info.modpacks.len()}" }
-                    } else {
-                        p { "No tab info for current page" }
-                    }
-                }
-            }
             
             // Header when appropriate
             {if !config.read().first_launch.unwrap_or(true) && launcher.is_some() && !settings() {
@@ -2170,8 +2200,7 @@ pub(crate) fn app() -> Element {
             } else {
                 None
             }}
-            
-            // Main container
+
             div { class: "main-container",
                 {if settings() {
                     // Settings screen
@@ -2203,12 +2232,10 @@ pub(crate) fn app() -> Element {
                         }
                     }
                 } else {
-                    // RENDERING DECISION - SIMPLIFIED FOR DEBUGGING
+                    // CRITICAL SECTION: Deciding what to render based on current page
                     if current_page == HOME_PAGE {
-                        // Show home page
-                        if debug_mode {
-                            debug!("RENDERING: HomePage");
-                        }
+                        // Home page
+                        debug!("RENDERING: HomePage");
                         rsx! {
                             HomePage {
                                 pages,
@@ -2216,53 +2243,24 @@ pub(crate) fn app() -> Element {
                             }
                         }
                     } else {
-                        // Show modpack page - SIMPLIFIED VERSION
-                        if debug_mode {
-                            debug!("RENDERING: Modpack page {}", current_page);
-                        }
-                        
-                        // Get tab info
+                        // Modpack page - first check if the tab group exists
                         let pages_map = pages();
                         
                         if let Some(tab_info) = pages_map.get(&current_page) {
-                            if debug_mode {
-                                debug!("RENDERING: Found tab_group {} with {} modpacks", current_page, tab_info.modpacks.len());
-                            }
+                            debug!("RENDERING: Modpack page for tab_group {} with {} modpacks", 
+                                  current_page, tab_info.modpacks.len());
                             
-                            // Clone modpacks
+                            // Clone the modpacks to avoid borrowing issues
                             let modpacks = tab_info.modpacks.clone();
                             
-                            // Check if we have any modpacks
                             if modpacks.is_empty() {
-                                if debug_mode {
-                                    debug!("RENDERING: No modpacks in tab_group {}", current_page);
-                                }
-                                rsx! { 
-                                    div { 
-                                        style: "color: white; padding: 20px; text-align: center;",
-                                        "No modpacks found in this tab." 
-                                    } 
-                                }
+                                rsx! { div { "No modpacks found in this tab." } }
                             } else {
-                                if debug_mode {
-                                    debug!("RENDERING: Rendering {} modpacks from tab_group {}", modpacks.len(), current_page);
-                                }
+                                // Render modpack pages using Version component
                                 rsx! {
-                                    // SIMPLIFIED CONTAINER
                                     div { 
                                         class: "version-page-container",
-                                        style: "display: block; width: 100%; background-color: rgba(0,0,0,0.2); padding: 20px; margin-top: 20px; border-radius: 8px;",
                                         
-                                        // Debug header
-                                        if debug_mode {
-                                            div {
-                                                style: "background-color: rgba(0,0,0,0.5); padding: 10px; margin-bottom: 20px; border-radius: 4px;",
-                                                h2 { "DEBUG: Modpack Page for Tab Group {current_page}" }
-                                                p { "Found {modpacks.len()} modpacks to display" }
-                                            }
-                                        }
-                                        
-                                        // Render each modpack with simplified component
                                         for (index, profile) in modpacks.iter().enumerate() {
                                             {
                                                 let profile_clone = profile.clone();
@@ -2274,7 +2272,6 @@ pub(crate) fn app() -> Element {
                                                 };
                                                 
                                                 rsx! {
-                                                    // Use simplified debug component instead of full Version
                                                     Version { ..version_props }
                                                 }
                                             }
@@ -2283,19 +2280,12 @@ pub(crate) fn app() -> Element {
                                 }
                             }
                         } else {
-                            if debug_mode {
-                                debug!("RENDERING: No tab info found for page {}", current_page);
-                            }
-                            rsx! { 
-                                div { 
-                                    style: "color: white; padding: 20px; text-align: center;",
-                                    "No modpack information found for this tab." 
-                                } 
-                            }
+                            debug!("NO TAB GROUP found for page {}", current_page);
+                            rsx! { div { "No modpack information found for this tab." } }
                         }
                     }
                 }}
             }
         }
     }
-}                                    
+}                                 
