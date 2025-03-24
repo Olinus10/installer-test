@@ -203,17 +203,29 @@ fn PlayButton(modpack: InstallerProfile) -> Element {
         }
         
         // Launch with the vanilla launcher
-        match crate::launcher::launch_modpack(&profile_id) {
-            Ok(_) => {
-                // Optionally minimize the window or show a "Running" indicator
-            },
-            Err(e) => {
-                // Show error message
-                log::error!("Failed to launch modpack: {}", e);
+        let profile_id_clone = profile_id.clone();
+        let mut modal = use_context::<ModalContext>();
+        spawn(async move {
+            match crate::launcher::launch_modpack(&profile_id_clone) {
+                Ok(_) => {
+                    debug!("Successfully launched modpack: {}", profile_id_clone);
+                    // Optionally minimize the window or show a "Running" indicator
+                },
+                Err(e) => {
+                    debug!("Failed to launch modpack: {}", e);
+                    modal.open(
+                        "Launch Error",
+                        rsx!(div {
+                            p { "Failed to launch the modpack. Please check your Minecraft installation." }
+                            p { "Error: {e}" }
+                        }),
+                        false,
+                        Some(|_| {}),
+                    );
+                }
             }
-        }
-        
-        installing.set(false);
+            installing.set(false);
+        });
     };
     
     rsx! {
@@ -402,6 +414,15 @@ fn HomePage(
                                             style: "background-image: url('{info.background}'); background-color: {info.color};",
                                             "data-category": "{category}",
                                             
+                                            // This is the main click handler for the entire card
+                                            onclick: move |evt| {
+                                                // Don't do anything if it's clicked on the buttons
+                                                if !evt.stopped_propagation() {
+                                                    debug!("Trending card clicked: navigating to page {}", tab_index);
+                                                    page.set(tab_index);
+                                                }
+                                            },
+                                            
                                             // Category badge
                                             div { class: "category-badge {category.to_lowercase()}", "{category}" }
                                             
@@ -423,42 +444,43 @@ fn HomePage(
                                                         div { 
                                                             class: "home-pack-button play",
                                                             onclick: move |evt| {
-    evt.stop_propagation();
-    
-    // Clone before moving into the inner closure
-    let profile_id_clone = profile_id.clone();
-    
-    // Launch the modpack
-    let mut modal = use_context::<ModalContext>();
-    spawn(async move {
-        match crate::launcher::launch_modpack(&profile_id_clone) {  // Use the cloned value
-            Ok(_) => {
-                debug!("Successfully launched modpack: {}", profile_id_clone);
-            },
-            Err(e) => {
-                debug!("Failed to launch modpack: {}", e);
-                modal.open(
-                    "Launch Error",
-                    rsx!(div {
-                        p { "Failed to launch the modpack. Please check your Minecraft installation." }
-                        p { "Error: {e}" }
-                    }),
-                    false,
-                    Some(|_| {}),
-                );
-            }
-        }
-    });
-},
+                                                                evt.stop_propagation();
+                                                                
+                                                                // Clone before moving into the inner closure
+                                                                let profile_id_clone = profile_id.clone();
+                                                                
+                                                                // Launch the modpack
+                                                                let mut modal = use_context::<ModalContext>();
+                                                                spawn(async move {
+                                                                    match crate::launcher::launch_modpack(&profile_id_clone) {
+                                                                        Ok(_) => {
+                                                                            debug!("Successfully launched modpack: {}", profile_id_clone);
+                                                                        },
+                                                                        Err(e) => {
+                                                                            debug!("Failed to launch modpack: {}", e);
+                                                                            modal.open(
+                                                                                "Launch Error",
+                                                                                rsx!(div {
+                                                                                    p { "Failed to launch the modpack. Please check your Minecraft installation." }
+                                                                                    p { "Error: {e}" }
+                                                                                }),
+                                                                                false,
+                                                                                Some(|_| {}),
+                                                                            );
+                                                                        }
+                                                                    }
+                                                                });
+                                                            },
                                                             "PLAY"
                                                         }
                                                         
                                                         // Modify button - redirects to modpack page
                                                         div { 
                                                             class: "home-pack-button modify",
-                                                            onclick: move |_| {
-                                                                page.write().clone_from(&tab_index);
-                                                                debug!("Navigating to modpack page: {}", tab_index);
+                                                            onclick: move |evt| {
+                                                                evt.stop_propagation();
+                                                                debug!("Modify button clicked: navigating to page {}", tab_index);
+                                                                page.set(tab_index);
                                                             },
                                                             "MODIFY"
                                                         }
@@ -467,9 +489,10 @@ fn HomePage(
                                                     // Install button - redirects to modpack page
                                                     div { 
                                                         class: "home-pack-button",
-                                                        onclick: move |_| {
-                                                            page.write().clone_from(&tab_index);
-                                                            debug!("Navigating to modpack page: {}", tab_index);
+                                                        onclick: move |evt| {
+                                                            evt.stop_propagation();
+                                                            debug!("Install button clicked: navigating to page {}", tab_index);
+                                                            page.set(tab_index);
                                                         },
                                                         "INSTALL"
                                                     }
@@ -485,6 +508,15 @@ fn HomePage(
                                         "data-category": "{category}",
                                         "data-new": "{is_new}",
                                         "data-updated": "{is_updated}",
+                                        
+                                        // Main click handler for the card
+                                        onclick: move |evt| {
+                                            // Don't do anything if it's clicked on the buttons
+                                            if !evt.stopped_propagation() {
+                                                debug!("Card clicked: navigating to page {}", tab_index);
+                                                page.set(tab_index);
+                                            }
+                                        },
                                         
                                         // Category badge
                                         div { class: "category-badge {category.to_lowercase()}", "{category}" }
@@ -542,9 +574,10 @@ fn HomePage(
                                                     // Modify button - redirects to modpack page
                                                     div { 
                                                         class: "home-pack-button modify",
-                                                        onclick: move |_| {
-                                                            page.write().clone_from(&tab_index);
-                                                            debug!("Navigating to modpack page: {}", tab_index);
+                                                        onclick: move |evt| {
+                                                            evt.stop_propagation();
+                                                            debug!("Modify button clicked: navigating to page {}", tab_index);
+                                                            page.set(tab_index);
                                                         },
                                                         "MODIFY"
                                                     }
@@ -553,9 +586,10 @@ fn HomePage(
                                                 // Install button - redirects to modpack page
                                                 div { 
                                                     class: "home-pack-button",
-                                                    onclick: move |_| {
-                                                        page.write().clone_from(&tab_index);
-                                                        debug!("Navigating to modpack page: {}", tab_index);
+                                                    onclick: move |evt| {
+                                                        evt.stop_propagation();
+                                                        debug!("Install button clicked: navigating to page {}", tab_index);
+                                                        page.set(tab_index);
                                                     },
                                                     "INSTALL"
                                                 }
@@ -1566,18 +1600,19 @@ fn Version(mut props: VersionProps) -> Element {
     };
 
     // Launch handler
+    let profile_id = format!("wynncraft-{}", installer_profile.modpack_branch);
     let launch_handler = move |_| {
-        let profile_id = format!("wynncraft-{}", installer_profile.modpack_branch);
         launching.set(true);
         
+        let profile_id_clone = profile_id.clone();
+        let mut modal = use_context::<ModalContext>();
         spawn(async move {
-            match crate::launcher::launch_modpack(&profile_id) {
+            match crate::launcher::launch_modpack(&profile_id_clone) {
                 Ok(_) => {
-                    debug!("Successfully launched modpack with profile ID: {}", profile_id);
+                    debug!("Successfully launched modpack with profile ID: {}", profile_id_clone);
                 },
                 Err(e) => {
                     debug!("Failed to launch modpack: {}", e);
-                    let mut modal = use_context::<ModalContext>();
                     modal.open(
                         "Launch Error",
                         rsx!(div {
@@ -1865,6 +1900,7 @@ fn AppHeader(
                 button {
                     class: if page() == HOME_PAGE { "header-tab-button active" } else { "header-tab-button" },
                     onclick: move |_| {
+                        // Use set directly, not write()
                         page.set(HOME_PAGE);
                         debug!("Navigating to home page via tab");
                     },
@@ -1880,8 +1916,8 @@ fn AppHeader(
                                 class: if page() == index { "header-tab-button active" } else { "header-tab-button" },
                                 onclick: move |_| {
                                     debug!("TAB CLICK: Changing page from {} to {}", page(), index);
-                                    // CRITICAL FIX: Use write() for more direct access
-                                    page.write().clone_from(&index);
+                                    // Use set() directly for more reliable state update
+                                    page.set(index);
                                     debug!("TAB CLICK RESULT: Page is now {}", page());
                                 },
                                 "{title}"
@@ -1911,6 +1947,7 @@ fn AppHeader(
                                         button {
                                             class: if page() == index { "dropdown-item active" } else { "dropdown-item" },
                                             onclick: move |_| {
+                                                // Use set() directly
                                                 page.set(index);
                                                 debug!("Switching to dropdown tab {}: {}", index, title);
                                             },
@@ -2053,12 +2090,6 @@ pub(crate) fn app() -> Element {
     }
     ";
 
-    // DIAGNOSTIC: Print branches available
-    debug!("DIAGNOSTIC: Available branches: {}", branches.len());
-    for branch in &branches {
-        debug!("  - Branch: {}", branch.name);
-    }
-
     // DIAGNOSTIC: Add direct modification of the page signal to verify reactivity
     use_effect(move || {
         debug!("DIAGNOSTIC: Current page value: {}", page());
@@ -2088,12 +2119,6 @@ pub(crate) fn app() -> Element {
             None
         },
     };
-
-    // Debug logging for branches
-    debug!("Total branches: {}", branches.len());
-    for branch in &branches {
-        debug!("Branch: {}", branch.name);
-    }
 
     // Modified resource to process branches
     let packs: Resource<Vec<(usize, InstallerProfile)>> = {
@@ -2139,14 +2164,21 @@ pub(crate) fn app() -> Element {
                 });
                 let settings_background = profile.manifest.settings_background.clone().unwrap_or_else(|| tab_background.clone());
                 
-                // No longer including font fields
-                new_pages.entry(*tab_group).or_insert(TabInfo {
-                    color: tab_color,
-                    title: tab_title,
-                    background: tab_background,
-                    settings_background,
-                    modpacks: vec![profile.clone()],
-                });
+                if let Some(tab_info) = new_pages.get_mut(tab_group) {
+                    // Add to existing tab group
+                    tab_info.modpacks.push(profile.clone());
+                    debug!("Added profile to existing tab group {}: {}", tab_group, profile.manifest.subtitle);
+                } else {
+                    // Create new tab group
+                    new_pages.insert(*tab_group, TabInfo {
+                        color: tab_color,
+                        title: tab_title,
+                        background: tab_background,
+                        settings_background,
+                        modpacks: vec![profile.clone()],
+                    });
+                    debug!("Created new tab group {}: {}", tab_group, profile.manifest.subtitle);
+                }
             }
             
             pages.set(new_pages);
@@ -2293,7 +2325,6 @@ pub(crate) fn app() -> Element {
     // Determine which logo to use
     let logo_url = Some("https://raw.githubusercontent.com/Wynncraft-Overhaul/installer/master/src/assets/icon.png".to_string());
     
-    // Fix: Return the JSX from the app function
     let current_page = page();
     debug!("RENDER DECISION: current_page={}, HOME_PAGE={}, is_home={}",
            current_page, HOME_PAGE, current_page == HOME_PAGE);
@@ -2346,7 +2377,7 @@ pub(crate) fn app() -> Element {
                         }
                     }
                 } else {
-                    // RENDERING DECISION
+                    // RENDERING DECISION - This section is critical
                     if current_page == HOME_PAGE {
                         debug!("RENDERING: HomePage");
                         rsx! {
@@ -2363,27 +2394,18 @@ pub(crate) fn app() -> Element {
                         
                         if let Some(tab_info) = pages_map.get(&current_page) {
                             debug!("FOUND tab group {} with {} modpacks", 
-                                   current_page, tab_info.modpacks.len());
+                                  current_page, tab_info.modpacks.len());
                             
                             // Get all modpacks before rendering
                             let modpacks = tab_info.modpacks.clone();
                             debug!("Cloned {} modpacks for rendering", modpacks.len());
                             
-                            // Create a separate credits signal for this rendering path
-                            let mut credits_visible = use_signal(|| false);
-                            let mut selected_profile = use_signal(|| modpacks.first().cloned());
-                            
-                            rsx! {
-                                // First check if showing credits
-                                if *credits_visible.read() {
-                                    if let Some(profile) = selected_profile.read().clone() {
-                                        Credits {
-                                            manifest: profile.manifest.clone(),
-                                            enabled: profile.enabled_features.clone(),
-                                            credits: credits_visible
-                                        }
-                                    }
-                                } else {
+                            // Check if we have any modpacks to render
+                            if modpacks.is_empty() {
+                                debug!("No modpacks found in tab group {}", current_page);
+                                rsx! { div { "No modpacks found in this tab." } }
+                            } else {
+                                rsx! {
                                     // Regular modpack content
                                     div { 
                                         class: "version-page-container",
@@ -2413,9 +2435,8 @@ pub(crate) fn app() -> Element {
                             rsx! { div { "No modpack information found for this tab." } }
                         }
                     }
-                }
+                }}
             }
         }
     }
-}                                          
-}
+}                                    
