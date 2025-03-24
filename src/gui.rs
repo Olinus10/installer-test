@@ -1169,6 +1169,9 @@ fn Version(mut props: VersionProps) -> Element {
     // IMPORTANT: Store the features collection in a signal to solve lifetime issues
     let features = use_signal(|| installer_profile.manifest.features.clone());
     
+    // Clone the UUID right away to avoid ownership issues
+    let uuid = installer_profile.manifest.uuid.clone();
+    
     // Add debugging to watch for signal changes
     use_effect(move || {
         debug!("SIGNAL UPDATE: installed={}, update_available={}, modify={}, credits={}, debug_counter={}",
@@ -1380,13 +1383,13 @@ fn Version(mut props: VersionProps) -> Element {
         }
     };
 
-    // Play button handler
+    // Play button handler - use the pre-cloned UUID
+    let uuid_clone = uuid.clone();
     let on_play = move |_| {
-        let uuid = installer_profile.manifest.uuid.clone();
-        debug!("Launching modpack with UUID: {}", uuid);
-        match crate::launcher::launch_modpack(&uuid) {
+        debug!("Launching modpack with UUID: {}", uuid_clone);
+        match crate::launcher::launch_modpack(&uuid_clone) {
             Ok(_) => {
-                debug!("Successfully launched modpack: {}", uuid);
+                debug!("Successfully launched modpack: {}", uuid_clone);
             }
             Err(e) => {
                 props.error.set(Some(format!("Failed to launch modpack: {}", e)));
@@ -1578,7 +1581,7 @@ fn Version(mut props: VersionProps) -> Element {
                     if *installed.read() {
                         div { class: "play-button-container", style: "margin-top: 20px; text-align: center;" }
                         PlayButton {
-                            uuid: installer_profile.manifest.uuid.clone(),
+                            uuid: uuid.clone(),
                             disabled: false,
                             onclick: on_play
                         }
