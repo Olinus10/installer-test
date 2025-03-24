@@ -59,7 +59,7 @@ fn BackgroundParticles() -> Element {
 #[component]
 fn JavaSettingsForm(profile_id: String) -> Element {
     let jvm_args = use_signal(|| get_jvm_args(&profile_id).unwrap_or_else(|_| DEFAULT_JVM_ARGS.to_string()));
-    let memory = use_signal(|| extract_memory_from_args(&jvm_args));
+    let memory = use_signal(|| extract_memory_from_args(&jvm_args.read()));
     let width = use_signal(|| 1280);
     let height = use_signal(|| 720);
     let fullscreen = use_signal(|| false);
@@ -69,12 +69,12 @@ fn JavaSettingsForm(profile_id: String) -> Element {
         let mut new_args = DEFAULT_JVM_ARGS.to_string();
         
         // Replace memory value
-        new_args = new_args.replace("-Xmx4G", &format!("-Xmx{}G", memory.get()));
+        new_args = new_args.replace("-Xmx4G", &format!("-Xmx{}G", *memory.read()));
         
         // Add window size args if not fullscreen
-        if !*fullscreen.get() {
+        if !*fullscreen.read() {
             new_args.push_str(&format!(" -Dorg.lwjgl.opengl.Window.width={} -Dorg.lwjgl.opengl.Window.height={}", 
-                                      width.get(), height.get()));
+                                      *width.read(), *height.read()));
         }
         
         // Update the JVM args for this profile
@@ -100,14 +100,14 @@ fn JavaSettingsForm(profile_id: String) -> Element {
                         min: "2",
                         max: "16",
                         step: "1",
-                        value: "{memory}",
+                        value: "{*memory.read()}",
                         oninput: move |evt| {
                             if let Ok(val) = evt.value().parse::<u32>() {
                                 memory.set(val);
                             }
                         }
                     }
-                    span { class: "memory-value", "{memory}GB" }
+                    span { class: "memory-value", "{*memory.read()}GB" }
                 }
             }
             
@@ -118,7 +118,7 @@ fn JavaSettingsForm(profile_id: String) -> Element {
                     input {
                         r#type: "number",
                         placeholder: "Width",
-                        value: "{width}",
+                        value: "{*width.read()}",
                         min: "640",
                         oninput: move |evt| {
                             if let Ok(val) = evt.value().parse::<u32>() {
@@ -130,10 +130,10 @@ fn JavaSettingsForm(profile_id: String) -> Element {
                     input {
                         r#type: "number",
                         placeholder: "Height",
-                        value: "{height}",
+                        value: "{*height.read()}",
                         min: "480",
                         oninput: move |evt| {
-                            if let Ok(val) = evt.value.parse::<u32>() {
+                            if let Ok(val) = evt.value().parse::<u32>() {
                                 height.set(val);
                             }
                         }
@@ -142,9 +142,9 @@ fn JavaSettingsForm(profile_id: String) -> Element {
                     label { class: "checkbox-label",
                         input {
                             r#type: "checkbox",
-                            checked: "{fullscreen}",
+                            checked: "{*fullscreen.read()}",
                             oninput: move |evt| {
-                                fullscreen.set(evt.value == "true");
+                                fullscreen.set(evt.value() == "true");
                             }
                         }
                         "Fullscreen"
@@ -156,7 +156,7 @@ fn JavaSettingsForm(profile_id: String) -> Element {
                 label { class: "setting-label", "Advanced JVM Arguments" }
                 textarea {
                     class: "jvm-args-input",
-                    value: "{jvm_args}",
+                    value: "{*jvm_args.read()}",
                     readonly: true
                 }
             }
@@ -423,30 +423,33 @@ fn HomePage(
                                                         div { 
                                                             class: "home-pack-button play",
                                                             onclick: move |evt| {
-                                                                evt.stop_propagation();
-                                                                
-                                                                // Launch the modpack
-                                                                let mut modal = use_context::<ModalContext>();
-                                                                spawn(async move {
-                                                                    match crate::launcher::launch_modpack(&profile_id) {
-                                                                        Ok(_) => {
-                                                                            debug!("Successfully launched modpack: {}", profile_id);
-                                                                        },
-                                                                        Err(e) => {
-                                                                            debug!("Failed to launch modpack: {}", e);
-                                                                            modal.open(
-                                                                                "Launch Error",
-                                                                                rsx!(div {
-                                                                                    p { "Failed to launch the modpack. Please check your Minecraft installation." }
-                                                                                    p { "Error: {e}" }
-                                                                                }),
-                                                                                false,
-                                                                                Some(|_| {}),
-                                                                            );
-                                                                        }
-                                                                    }
-                                                                });
-                                                            },
+    evt.stop_propagation();
+    
+    // Clone before moving into the inner closure
+    let profile_id_clone = profile_id.clone();
+    
+    // Launch the modpack
+    let mut modal = use_context::<ModalContext>();
+    spawn(async move {
+        match crate::launcher::launch_modpack(&profile_id_clone) {  // Use the cloned value
+            Ok(_) => {
+                debug!("Successfully launched modpack: {}", profile_id_clone);
+            },
+            Err(e) => {
+                debug!("Failed to launch modpack: {}", e);
+                modal.open(
+                    "Launch Error",
+                    rsx!(div {
+                        p { "Failed to launch the modpack. Please check your Minecraft installation." }
+                        p { "Error: {e}" }
+                    }),
+                    false,
+                    Some(|_| {}),
+                );
+            }
+        }
+    });
+},
                                                             "PLAY"
                                                         }
                                                         
