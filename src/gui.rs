@@ -2275,7 +2275,7 @@ pub(crate) fn app() -> Element {
                                                 
                                                 rsx! {
                                                     // Use simplified debug component instead of full Version
-                                                    DebugVersionComponent { ..version_props }
+                                                    Version { ..version_props }
                                                 }
                                             }
                                         }
