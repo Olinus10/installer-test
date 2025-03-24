@@ -415,12 +415,9 @@ fn HomePage(
                                             "data-category": "{category}",
                                             
                                             // This is the main click handler for the entire card
-                                            onclick: move |evt| {
-                                                // Don't do anything if it's clicked on the buttons
-                                                if !evt.stopped_propagation() {
-                                                    debug!("Trending card clicked: navigating to page {}", tab_index);
-                                                    page.set(tab_index);
-                                                }
+                                            onclick: move |_| {
+                                                debug!("Trending card clicked: navigating to page {}", tab_index);
+                                                page.set(tab_index);
                                             },
                                             
                                             // Category badge
@@ -510,12 +507,9 @@ fn HomePage(
                                         "data-updated": "{is_updated}",
                                         
                                         // Main click handler for the card
-                                        onclick: move |evt| {
-                                            // Don't do anything if it's clicked on the buttons
-                                            if !evt.stopped_propagation() {
-                                                debug!("Card clicked: navigating to page {}", tab_index);
-                                                page.set(tab_index);
-                                            }
+                                        onclick: move |_| {
+                                            debug!("Card clicked: navigating to page {}", tab_index);
+                                            page.set(tab_index);
                                         },
                                         
                                         // Category badge
