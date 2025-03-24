@@ -2754,3 +2754,33 @@ transform: scale(1.03);
 .credits-link-container {
   margin-bottom: 5px !important;
 }
+
+/* Play button style */
+.main-play-button {
+    background-image: linear-gradient(135deg, #0a5d23, #073C17);
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    border-radius: 8px;
+    padding: 16px 60px;
+    font-family: "HEADER_FONT";
+    font-size: 1.8rem;
+    color: #fce8f6;
+    cursor: pointer;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    position: relative;
+    overflow: hidden;
+    z-index: 1;
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4), 0 0 20px rgba(7, 60, 23, 0.3);
+    text-shadow: 0 0 5px rgba(255, 255, 255, 0.3);
+    animation: button-glow 3s infinite alternate;
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    margin-bottom: 15px;
+}
+
+.main-play-button:hover {
+    transform: translateY(-5px);
+    background-image: linear-gradient(135deg, #0f6229, #0a4d1e);
+    text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+    border-color: rgba(255, 255, 255, 0.4);
+    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.5), 0 0 35px rgba(7, 60, 23, 0.9);
+}
