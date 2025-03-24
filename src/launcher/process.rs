@@ -34,19 +34,35 @@ command.arg(profile_id);
 // Find the Minecraft launcher executable
 fn find_minecraft_launcher() -> Result<String, String> {
     #[cfg(target_os = "windows")]
-    {
-        let program_files = std::env::var("ProgramFiles(x86)")
-            .or_else(|_| std::env::var("ProgramFiles"))
-            .map_err(|_| "Could not find Program Files directory".to_string())?;
-            
-        let launcher_path = format!("{}\\Minecraft Launcher\\MinecraftLauncher.exe", program_files);
+{
+    let program_files = std::env::var("ProgramFiles(x86)")
+        .or_else(|_| std::env::var("ProgramFiles"))
+        .map_err(|_| "Could not find Program Files directory".to_string())?;
         
-        if std::path::Path::new(&launcher_path).exists() {
-            return Ok(launcher_path);
-        }
-        
-        Err("Could not find Minecraft launcher".to_string())
+    // Try the old location
+    let old_launcher_path = format!("{}\\Minecraft Launcher\\MinecraftLauncher.exe", program_files);
+    if std::path::Path::new(&old_launcher_path).exists() {
+        return Ok(old_launcher_path);
     }
+    
+    // Try the new location
+    let program_files_no_x86 = std::env::var("ProgramFiles")
+        .map_err(|_| "Could not find Program Files directory".to_string())?;
+    let new_launcher_path = format!("{}\\Minecraft\\MinecraftLauncher.exe", program_files_no_x86);
+    if std::path::Path::new(&new_launcher_path).exists() {
+        return Ok(new_launcher_path);
+    }
+    
+    // Try the Microsoft Store location
+    let appdata = std::env::var("LOCALAPPDATA")
+        .map_err(|_| "Could not find AppData directory".to_string())?;
+    let ms_store_path = format!("{}\\Packages\\Microsoft.4297127D64EC6_8wekyb3d8bbwe\\LocalCache\\Local\\runtime\\jre-x64\\bin\\javaw.exe", appdata);
+    if std::path::Path::new(&ms_store_path).exists() {
+        return Ok(ms_store_path);
+    }
+    
+    Err("Could not find Minecraft launcher. Please ensure it is installed.".to_string())
+}
     
     #[cfg(target_os = "macos")]
     {
