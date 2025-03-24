@@ -84,27 +84,30 @@ fn launch_vanilla(profile_id: &str) -> Result<(), String> {
     
     debug!("Game directory: {:?}", game_dir);
     
-    // Create a command-line with arguments that newer launcher versions expect
-    let mut command = Command::new(launcher_path);
-    
-    // Different approach for vanilla launcher
-    command
-        .arg("--gameDir").arg(&game_dir)
-        .arg("--workDir").arg(&minecraft_dir);
-    
-    // Try additional arguments that might help
-    if let Ok(profile_json) = std::fs::read_to_string(minecraft_dir.join("launcher_profiles.json")) {
-        if let Ok(profiles) = serde_json::from_str::<serde_json::Value>(&profile_json) {
-            if let Some(profile_obj) = profiles["profiles"][profile_id].as_object() {
-                // If the profile has a lastVersionId, use it
-                if let Some(version) = profile_obj.get("lastVersionId").and_then(|v| v.as_str()) {
-                    debug!("Found version ID for profile: {}", version);
-                    command.arg("--version").arg(version);
-                }
+    // Try to get the version ID from the launcher_profiles.json file
+    let mut version_id = None;
+    if let Ok(profiles_json) = std::fs::read_to_string(minecraft_dir.join("launcher_profiles.json")) {
+        if let Ok(profiles) = serde_json::from_str::<serde_json::Value>(&profiles_json) {
+            if let Some(version) = profiles["profiles"][profile_id]["lastVersionId"].as_str() {
+                version_id = Some(version.to_string());
+                debug!("Found version ID for profile: {}", version);
             }
         }
     }
-
+    
+    // Create a command-line with arguments that newer launcher versions expect
+    let mut command = Command::new(launcher_path);
+    
+    // Use the newer syntax that some launchers require
+    command.arg("--gameDir").arg(&game_dir);
+    
+    if let Some(version) = version_id {
+        command.arg("--versionName").arg(version);
+    }
+    
+    // Additional direct launch parameters
+    command.arg("--launchProfile").arg(profile_id);
+    
     // Log the exact command we're running for debugging
     debug!("Running command: {:?}", command);
     
