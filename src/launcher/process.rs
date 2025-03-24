@@ -31,6 +31,7 @@ pub fn launch_modpack(profile_id: &str) -> Result<(), String> {
     let launcher_type = get_current_launcher_type()?;
     
     debug!("Launching modpack {} with {} launcher", profile_id, launcher_type);
+    debug!("Profile ID being used: {}", profile_id);
     
     match launcher_type {
         LauncherType::Vanilla => launch_vanilla(profile_id),
@@ -77,16 +78,22 @@ fn launch_vanilla(profile_id: &str) -> Result<(), String> {
     
     debug!("Launching vanilla Minecraft with profile {}", profile_id);
     
+    // Build the complete game directory path
+    let minecraft_dir = crate::launcher::config::get_minecraft_dir();
+    let game_dir = minecraft_dir.join(format!(".WC_OVHL/{}", profile_id));
+    
+    debug!("Game directory: {:?}", game_dir);
+    
+    // Create a more targeted command line
     let mut command = Command::new(launcher_path);
     
-    // Add arguments to directly launch the profile
-    command.arg("--workDir").arg(crate::launcher::config::get_minecraft_dir());
+    // Option 1: Standard launch arguments (as before)
+    command.arg("--workDir").arg(minecraft_dir);
+    command.arg("--launch").arg(profile_id);
     
-    // These are the key arguments to directly launch a profile
-    command.arg("--launch");
-    command.arg(profile_id);
+    // Start the process with more debugging
+    debug!("Running command: {:?}", command);
     
-    // Start the process
     match command.spawn() {
         Ok(_) => {
             debug!("Minecraft launcher started successfully with profile: {}", profile_id);
@@ -113,21 +120,31 @@ fn launch_multimc(profile_id: &str) -> Result<(), String> {
     };
     
     debug!("Launching MultiMC with instance {}", profile_id);
+    debug!("MultiMC executable path: {:?}", executable);
+    
+    // Try to determine if the instance exists
+    let instance_dir = multimc_path.join("instances").join(profile_id);
+    if !instance_dir.exists() {
+        debug!("Warning: Instance directory does not exist: {:?}", instance_dir);
+    }
     
     // Launch MultiMC with the instance
-    match Command::new(executable)
-        .arg("-l") // Launch instance directly
-        .arg(profile_id)
-        .spawn() {
-            Ok(_) => {
-                debug!("MultiMC launched successfully with instance: {}", profile_id);
-                Ok(())
-            },
-            Err(e) => {
-                error!("Failed to start MultiMC: {}", e);
-                Err(format!("Failed to start MultiMC: {}", e))
-            }
+    let command = Command::new(&executable)
+        .arg("--launch").arg(profile_id) // Try different launch syntax
+        .spawn();
+        
+    debug!("Command attempted: {:?} --launch {}", executable, profile_id);
+    
+    match command {
+        Ok(_) => {
+            debug!("MultiMC launched successfully with instance: {}", profile_id);
+            Ok(())
+        },
+        Err(e) => {
+            error!("Failed to start MultiMC: {}", e);
+            Err(format!("Failed to start MultiMC: {}", e))
         }
+    }
 }
 
 // Launch Prism Launcher with the specified instance
