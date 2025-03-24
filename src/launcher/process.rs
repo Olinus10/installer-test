@@ -75,73 +75,61 @@ fn get_current_launcher_type() -> Result<LauncherType, String> {
 fn launch_vanilla(profile_id: &str) -> Result<(), String> {
     debug!("Launching vanilla Minecraft with profile {}", profile_id);
     
-    // Get the launcher executable path
+    // Find the Minecraft launcher executable
     let launcher_path = find_minecraft_launcher()?;
     
     // Build the complete game directory path
     let minecraft_dir = crate::launcher::config::get_minecraft_dir();
-    let game_dir = minecraft_dir.join(format!(".WC_OVHL/{}", profile_id));
     
-    debug!("Game directory: {:?}", game_dir);
+    // 1. Update launcher_profiles.json to set this profile as the selected one
+    // This step increases the chances that the launcher will automatically select this profile
+    let profiles_path = minecraft_dir.join("launcher_profiles.json");
     
-    // Try multiple different command lines to work with different launcher versions
-    let launch_attempts = vec![
-        // Approach 1: Direct approach with --launch parameter
-        format!("\"{}\" --workDir \"{}\" --launch \"{}\"", 
-            launcher_path, minecraft_dir.display(), profile_id),
+    if let Ok(json_content) = std::fs::read_to_string(&profiles_path) {
+        if let Ok(mut profiles_json) = serde_json::from_str::<serde_json::Value>(&json_content) {
+            // Get current time for lastUsed field
+            use chrono::Utc;
+            let now = Utc::now().to_rfc3339();
             
-        // Approach 2: Try with --profile instead of --launch
-        format!("\"{}\" --workDir \"{}\" --profile \"{}\"",
-            launcher_path, minecraft_dir.display(), profile_id),
-            
-        // Approach 3: Using gameDir and direct version specification
-        format!("\"{}\" --gameDir \"{}\"",
-            launcher_path, game_dir.display()),
-            
-        // Approach 4: Just launch the default profile
-        format!("\"{}\"", launcher_path)
-    ];
-    
-    // Create a temporary batch file
-    let script_path = std::env::temp_dir().join(format!("launch_minecraft_{}.bat", profile_id));
-    
-    // Create a batch script that tries all approaches
-    let mut batch_content = format!("@echo off\r\n");
-    batch_content.push_str(&format!("echo Attempting to launch Minecraft with profile: {}\r\n\r\n", profile_id));
-    
-    // Add each launch attempt to the batch file
-    for (i, attempt) in launch_attempts.iter().enumerate() {
-        batch_content.push_str(&format!("echo Attempt {}...\r\n", i + 1));
-        batch_content.push_str(&format!("{}\r\n", attempt));
-        batch_content.push_str("if %ERRORLEVEL% EQU 0 goto success\r\n");
-        batch_content.push_str("echo Attempt failed, trying next method...\r\n\r\n");
+            // Update the profile's lastUsed field
+            if let Some(profiles) = profiles_json.get_mut("profiles") {
+                if let Some(profile) = profiles.get_mut(profile_id) {
+                    if let Some(profile_obj) = profile.as_object_mut() {
+                        profile_obj.insert("lastUsed".to_string(), serde_json::Value::String(now));
+                        debug!("Updated lastUsed timestamp for profile {}", profile_id);
+                        
+                        // Also mark this profile as selected
+                        if let Some(launcher_version) = profiles_json.get_mut("launcherVersion") {
+                            if let Some(launcher_obj) = launcher_version.as_object_mut() {
+                                launcher_obj.insert("selectedProfileId".to_string(), 
+                                                   serde_json::Value::String(profile_id.to_string()));
+                                debug!("Set profile {} as selected", profile_id);
+                            }
+                        }
+                        
+                        // Write updated profiles back
+                        if let Ok(updated_json) = serde_json::to_string_pretty(&profiles_json) {
+                            if let Err(e) = std::fs::write(&profiles_path, updated_json) {
+                                debug!("Failed to write updated profiles: {}", e);
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
     
-    // Add success and failure handlers
-    batch_content.push_str(":success\r\n");
-    batch_content.push_str("echo Successfully launched Minecraft!\r\n");
-    batch_content.push_str("exit /b 0\r\n");
-    batch_content.push_str(":failure\r\n");
-    batch_content.push_str("echo All launch attempts failed.\r\n");
-    batch_content.push_str("pause\r\n");
-    batch_content.push_str("exit /b 1\r\n");
-    
-    // Write batch file
-    match std::fs::write(&script_path, batch_content) {
-        Ok(_) => debug!("Created multi-approach launch script at {:?}", script_path),
-        Err(e) => return Err(format!("Failed to create launch script: {}", e))
-    }
-    
-    // Execute the batch file
-    debug!("Running script: {:?}", script_path);
-    match Command::new("cmd.exe").arg("/C").arg(&script_path).spawn() {
+    // 2. Now launch the Minecraft launcher directly
+    // Since we've updated the profiles file, it should open with our profile selected
+    debug!("Launching Minecraft with modified profiles");
+    match Command::new(launcher_path).spawn() {
         Ok(_) => {
-            debug!("Minecraft launch script executed successfully");
+            debug!("Minecraft launcher started successfully");
             Ok(())
         },
         Err(e) => {
-            error!("Failed to execute Minecraft launch script: {}", e);
-            Err(format!("Failed to execute Minecraft launch script: {}", e))
+            error!("Failed to start Minecraft launcher: {}", e);
+            Err(format!("Failed to start Minecraft launcher: {}", e))
         }
     }
 }
