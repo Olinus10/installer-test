@@ -8,20 +8,20 @@ pub fn launch_modpack(profile_id: &str) -> Result<(), String> {
     
     debug!("Launching Minecraft with profile {}", profile_id);
     
-    // Start the launcher process
+    // Start the launcher process with direct launch arguments
     let mut command = Command::new(launcher_path);
     
-    // Add arguments to select the profile
+    // Add arguments to directly launch the profile
     command.arg("--workDir").arg(crate::launcher::config::get_minecraft_dir());
     
-    // If your launcher can directly launch a specific profile, use these:
-command.arg("--launch");
-command.arg(profile_id);
+    // These are the key arguments to directly launch a profile
+    command.arg("--launch");
+    command.arg(profile_id);
     
     // Start the process
     match command.spawn() {
         Ok(_) => {
-            debug!("Minecraft launcher started successfully");
+            debug!("Minecraft launcher started successfully with profile: {}", profile_id);
             Ok(())
         },
         Err(e) => {
