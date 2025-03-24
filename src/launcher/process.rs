@@ -73,65 +73,173 @@ fn get_current_launcher_type() -> Result<LauncherType, String> {
 
 // Launch vanilla Minecraft with the specified profile
 fn launch_vanilla(profile_id: &str) -> Result<(), String> {
-    debug!("Launching vanilla Minecraft with profile {}", profile_id);
-    
-    // Find the Minecraft launcher executable
-    let launcher_path = find_minecraft_launcher()?;
+    debug!("Directly launching Minecraft for profile {}", profile_id);
     
     // Build the complete game directory path
     let minecraft_dir = crate::launcher::config::get_minecraft_dir();
+    let game_dir = minecraft_dir.join(format!(".WC_OVHL/{}", profile_id));
     
-    // 1. Update launcher_profiles.json to set this profile as the selected one
-    // This step increases the chances that the launcher will automatically select this profile
+    debug!("Game directory: {:?}", game_dir);
+    
+    // 1. Read profile information to get version
     let profiles_path = minecraft_dir.join("launcher_profiles.json");
-    
-    if let Ok(json_content) = std::fs::read_to_string(&profiles_path) {
-        if let Ok(mut profiles_json) = serde_json::from_str::<serde_json::Value>(&json_content) {
-            // Get current time for lastUsed field
-            use chrono::Utc;
-            let now = Utc::now().to_rfc3339();
-            
-            // Update the profile's lastUsed field
-            if let Some(profiles) = profiles_json.get_mut("profiles") {
-                if let Some(profile) = profiles.get_mut(profile_id) {
-                    if let Some(profile_obj) = profile.as_object_mut() {
-                        profile_obj.insert("lastUsed".to_string(), serde_json::Value::String(now));
-                        debug!("Updated lastUsed timestamp for profile {}", profile_id);
-                        
-                        // Also mark this profile as selected
-                        if let Some(launcher_version) = profiles_json.get_mut("launcherVersion") {
-                            if let Some(launcher_obj) = launcher_version.as_object_mut() {
-                                launcher_obj.insert("selectedProfileId".to_string(), 
-                                                   serde_json::Value::String(profile_id.to_string()));
-                                debug!("Set profile {} as selected", profile_id);
-                            }
-                        }
-                        
-                        // Write updated profiles back
-                        if let Ok(updated_json) = serde_json::to_string_pretty(&profiles_json) {
-                            if let Err(e) = std::fs::write(&profiles_path, updated_json) {
-                                debug!("Failed to write updated profiles: {}", e);
-                            }
+    let version_id = match std::fs::read_to_string(&profiles_path) {
+        Ok(content) => {
+            match serde_json::from_str::<serde_json::Value>(&content) {
+                Ok(json) => {
+                    match json["profiles"][profile_id]["lastVersionId"].as_str() {
+                        Some(version) => {
+                            debug!("Found version ID for profile: {}", version);
+                            version.to_string()
+                        },
+                        None => {
+                            debug!("Version ID not found, using default");
+                            // If not found, try a reasonable default based on typical Fabric loader patterns
+                            "fabric-loader".to_string()
                         }
                     }
+                },
+                Err(e) => {
+                    debug!("Failed to parse profiles JSON: {}", e);
+                    return Err(format!("Failed to parse profiles JSON: {}", e));
                 }
+            }
+        },
+        Err(e) => {
+            debug!("Failed to read profiles file: {}", e);
+            return Err(format!("Failed to read profiles file: {}", e));
+        }
+    };
+    
+    // 2. Find Java executable
+    let java_path = find_java_executable()?;
+    debug!("Found Java executable: {}", java_path);
+    
+    // 3. Create batch file to launch Minecraft directly
+    let script_path = std::env::temp_dir().join(format!("direct_minecraft_{}.bat", profile_id));
+    
+    // Create a simplified launch command with the essential parameters
+    let launch_command = format!(
+        "\"{}\" -Xmx2G -XX:+UnlockExperimentalVMOptions -XX:+UseG1GC -XX:G1NewSizePercent=20 -XX:G1ReservePercent=20 -XX:MaxGCPauseMillis=50 -XX:G1HeapRegionSize=32M -Djava.library.path=\"{}\\versions\\{}\\natives\" -cp \"{}\\libraries\\*;{}\\versions\\{}\\{}.jar\" net.minecraft.client.main.Main --username Player --version {} --gameDir \"{}\" --assetsDir \"{}\\assets\" --assetIndex 1.20 --uuid {} --accessToken 0 --clientId null --userProperties {{}} --userType mojang",
+        java_path,
+        minecraft_dir.display(),
+        version_id,
+        minecraft_dir.display(),
+        minecraft_dir.display(), 
+        version_id,
+        version_id,
+        version_id,
+        game_dir.display(),
+        minecraft_dir.display(),
+        generate_random_uuid()
+    );
+    
+    // Write the launch command to a batch file
+    let batch_content = format!("@echo off\r\necho Launching Minecraft directly...\r\n{}\r\n", launch_command);
+    match std::fs::write(&script_path, batch_content) {
+        Ok(_) => debug!("Created direct launch script at {:?}", script_path),
+        Err(e) => return Err(format!("Failed to create launch script: {}", e))
+    }
+    
+    // Run the batch file
+    debug!("Running direct launch script: {:?}", script_path);
+    match Command::new("cmd.exe").arg("/C").arg(&script_path).spawn() {
+        Ok(_) => {
+            debug!("Minecraft direct launch script executed successfully");
+            Ok(())
+        },
+        Err(e) => {
+            error!("Failed to execute Minecraft direct launch script: {}", e);
+            Err(format!("Failed to execute Minecraft direct launch script: {}", e))
+        }
+    }
+}
+
+// Helper function to find Java executable
+fn find_java_executable() -> Result<String, String> {
+    // First look in standard locations
+    let potential_paths = if cfg!(target_os = "windows") {
+        vec![
+            // Check bundled Java with Minecraft first
+            format!("{}\\runtime\\java-runtime-gamma\\bin\\javaw.exe", 
+                    crate::launcher::config::get_minecraft_dir().display()),
+            format!("{}\\runtime\\jre-x64\\bin\\javaw.exe", 
+                    crate::launcher::config::get_minecraft_dir().display()),
+            // Then standard installation locations
+            "C:\\Program Files\\Java\\jre-1.8\\bin\\javaw.exe".to_string(),
+            "C:\\Program Files (x86)\\Java\\jre-1.8\\bin\\javaw.exe".to_string(),
+            "C:\\Program Files\\Java\\jre1.8.0_301\\bin\\javaw.exe".to_string(),
+            "C:\\Program Files (x86)\\Java\\jre1.8.0_301\\bin\\javaw.exe".to_string(),
+            // Then try the latest Java versions
+            "C:\\Program Files\\Java\\jre-latest\\bin\\javaw.exe".to_string(),
+            "C:\\Program Files (x86)\\Java\\jre-latest\\bin\\javaw.exe".to_string(),
+        ]
+    } else if cfg!(target_os = "macos") {
+        vec![
+            "/Library/Java/JavaVirtualMachines/jdk1.8.0_301.jdk/Contents/Home/bin/java".to_string(),
+            "/Library/Java/JavaVirtualMachines/jdk-latest.jdk/Contents/Home/bin/java".to_string(),
+        ]
+    } else {
+        vec![
+            "/usr/bin/java".to_string(),
+            "/usr/local/bin/java".to_string(),
+        ]
+    };
+    
+    // Check each path
+    for path in potential_paths {
+        if std::path::Path::new(&path).exists() {
+            return Ok(path);
+        }
+    }
+    
+    // Try Java from system PATH
+    if cfg!(target_os = "windows") {
+        let output = match Command::new("where").arg("javaw.exe").output() {
+            Ok(output) => output,
+            Err(_) => return Err("Failed to locate Java executable".to_string())
+        };
+        
+        if output.status.success() {
+            let path = String::from_utf8_lossy(&output.stdout);
+            let first_line = path.lines().next().unwrap_or("");
+            if !first_line.is_empty() {
+                return Ok(first_line.to_string());
+            }
+        }
+    } else {
+        let output = match Command::new("which").arg("java").output() {
+            Ok(output) => output,
+            Err(_) => return Err("Failed to locate Java executable".to_string())
+        };
+        
+        if output.status.success() {
+            let path = String::from_utf8_lossy(&output.stdout);
+            let first_line = path.lines().next().unwrap_or("");
+            if !first_line.is_empty() {
+                return Ok(first_line.to_string());
             }
         }
     }
     
-    // 2. Now launch the Minecraft launcher directly
-    // Since we've updated the profiles file, it should open with our profile selected
-    debug!("Launching Minecraft with modified profiles");
-    match Command::new(launcher_path).spawn() {
-        Ok(_) => {
-            debug!("Minecraft launcher started successfully");
-            Ok(())
-        },
-        Err(e) => {
-            error!("Failed to start Minecraft launcher: {}", e);
-            Err(format!("Failed to start Minecraft launcher: {}", e))
-        }
-    }
+    Err("Could not find Java executable".to_string())
+}
+
+// Helper function to generate a random UUID
+fn generate_random_uuid() -> String {
+    use rand::Rng;
+    let mut rng = rand::thread_rng();
+    
+    // Format: 8-4-4-4-12 hex digits
+    let uuid_parts = [
+        format!("{:08x}", rng.gen::<u32>()),
+        format!("{:04x}", rng.gen::<u16>()),
+        format!("{:04x}", rng.gen::<u16>()),
+        format!("{:04x}", rng.gen::<u16>()),
+        format!("{:08x}{:04x}", rng.gen::<u32>(), rng.gen::<u16>()),
+    ];
+    
+    uuid_parts.join("-")
 }
 
 // Launch MultiMC with the specified instance
