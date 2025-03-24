@@ -7,7 +7,7 @@ use log::{error, debug};
 pub const DEFAULT_JVM_ARGS: &str = "-XX:+UseG1GC -XX:+UnlockExperimentalVMOptions -XX:G1NewSizePercent=20 -XX:G1ReservePercent=20 -XX:MaxGCPauseMillis=50 -XX:G1HeapRegionSize=32M -Xmx4G";
 
 // Get the Minecraft directory
-fn get_minecraft_dir() -> PathBuf {
+pub fn get_minecraft_dir() -> PathBuf {
     let home = dirs::home_dir().expect("Could not find home directory");
     
     #[cfg(target_os = "windows")]
