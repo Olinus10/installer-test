@@ -140,6 +140,58 @@ fn launch_vanilla(profile_id: &str) -> Result<(), String> {
     }
 }
 
+// Update launcher_profiles.json to set the profile as selected
+fn update_launcher_profiles(profile_id: &str, minecraft_dir: &std::path::Path) -> Result<(), String> {
+    let profiles_path = minecraft_dir.join("launcher_profiles.json");
+    
+    // Read the profiles file
+    let content = match std::fs::read_to_string(&profiles_path) {
+        Ok(content) => content,
+        Err(e) => return Err(format!("Failed to read launcher profiles: {}", e))
+    };
+    
+    // Parse it as JSON
+    let mut profiles_json: serde_json::Value = match serde_json::from_str(&content) {
+        Ok(json) => json,
+        Err(e) => return Err(format!("Failed to parse launcher profiles: {}", e))
+    };
+    
+    // Update the profile's lastUsed field with current time
+    let now = chrono::Utc::now().to_rfc3339();
+    
+    if let Some(profiles) = profiles_json.get_mut("profiles") {
+        if let Some(profile) = profiles.get_mut(profile_id) {
+            if let Some(profile_obj) = profile.as_object_mut() {
+                profile_obj.insert("lastUsed".to_string(), serde_json::Value::String(now));
+                debug!("Updated lastUsed timestamp for profile {}", profile_id);
+            }
+        }
+    }
+    
+    // Set as the selected profile
+    if let Some(launcher_version) = profiles_json.get_mut("launcherVersion") {
+        if let Some(launcher_obj) = launcher_version.as_object_mut() {
+            launcher_obj.insert("selectedProfileId".to_string(), 
+                              serde_json::Value::String(profile_id.to_string()));
+            debug!("Set profile {} as selected", profile_id);
+        }
+    }
+    
+    // Write the modified file back
+    match serde_json::to_string_pretty(&profiles_json) {
+        Ok(updated_json) => {
+            match std::fs::write(&profiles_path, updated_json) {
+                Ok(_) => {
+                    debug!("Successfully updated launcher profiles");
+                    Ok(())
+                },
+                Err(e) => Err(format!("Failed to write updated launcher profiles: {}", e))
+            }
+        },
+        Err(e) => Err(format!("Failed to serialize launcher profiles: {}", e))
+    }
+}
+
 // Helper function to find Java executable
 fn find_java_executable() -> Result<String, String> {
     // First look in standard locations
