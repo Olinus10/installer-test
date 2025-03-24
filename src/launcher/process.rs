@@ -2,6 +2,28 @@
 
 use std::process::Command;
 use log::{debug, error};
+use std::fmt;
+
+#[derive(Debug)]
+enum LauncherType {
+    Vanilla,
+    MultiMC,
+    PrismLauncher,
+    Custom(String),
+}
+
+// Implement Display trait for LauncherType
+impl fmt::Display for LauncherType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            LauncherType::Vanilla => write!(f, "Vanilla"),
+            LauncherType::MultiMC => write!(f, "MultiMC"),
+            LauncherType::PrismLauncher => write!(f, "Prism Launcher"),
+            LauncherType::Custom(path) => write!(f, "Custom ({})", path),
+        }
+    }
+}
+
 
 // Launch Minecraft with a specific profile
 pub fn launch_modpack(profile_id: &str) -> Result<(), String> {
