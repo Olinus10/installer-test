@@ -40,14 +40,6 @@ pub fn launch_modpack(profile_id: &str) -> Result<(), String> {
     }
 }
 
-// Enum to represent different launcher types
-enum LauncherType {
-    Vanilla,
-    MultiMC,
-    PrismLauncher,
-    Custom(String),
-}
-
 // Determine which launcher we're using
 fn get_current_launcher_type() -> Result<LauncherType, String> {
     // Read config to determine current launcher
