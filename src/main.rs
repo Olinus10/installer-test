@@ -41,6 +41,8 @@ use std::{
 };
 
 mod gui;
+mod launcher;
+pub use launcher::{launch_modpack, update_jvm_args, get_jvm_args};
 
 const CURRENT_MANIFEST_VERSION: i32 = 3;
 const GH_API: &str = "https://api.github.com/repos/";
