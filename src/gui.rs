@@ -200,7 +200,7 @@ fn HomePage(
     });
     
     // Error signal for modpack launching
-    let err = use_signal(|| Option::<String>::None);
+    let mut err = use_signal(|| Option::<String>::None);
     
     rsx! {
         if let Some(error) = err() {
@@ -287,7 +287,7 @@ fn HomePage(
                                                 if is_installed {
                                                     {
                                                         let uuid_clone = uuid.clone();
-                                                        let err_clone = err.clone();
+                                                        let mut err_clone = err.clone();
                                                         
                                                         rsx! {
                                                             div { 
@@ -356,7 +356,7 @@ fn HomePage(
                                             if is_installed {
                                                 {
                                                     let uuid_clone = uuid.clone();
-                                                    let err_clone = err.clone();
+                                                    let mut err_clone = err.clone();
                                                     
                                                     rsx! {
                                                         div { 
@@ -2117,7 +2117,7 @@ pub(crate) fn app() -> Element {
                             let profile_clone = profile.clone();
                             let is_installed = profile.installed;
                             let uuid = profile.manifest.uuid.clone();
-                            let error_signal = error_msg.clone();
+                            let mut error_signal = error_msg.clone();
                             
                             rsx! {
                                 div { 
