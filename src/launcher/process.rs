@@ -1,5 +1,3 @@
-// Let's update the process.rs file to better handle different launcher types
-
 use std::process::Command;
 use log::{debug, error};
 use std::fmt;
@@ -24,13 +22,12 @@ impl fmt::Display for LauncherType {
     }
 }
 
-
-// Launch Minecraft with a specific profile
-pub fn launch_modpack(profile_id: &str) -> Result<(), String> {
+// Launch Minecraft with a specific profile using the system launcher
+pub fn launch_modpack_legacy(profile_id: &str) -> Result<(), String> {
     // Get the current launcher type
     let launcher_type = get_current_launcher_type()?;
     
-    debug!("Launching modpack {} with {} launcher", profile_id, launcher_type);
+    debug!("Launching modpack {} with {} launcher (legacy method)", profile_id, launcher_type);
     debug!("Profile ID being used: {}", profile_id);
     
     match launcher_type {
@@ -183,145 +180,6 @@ fn launch_vanilla(profile_id: &str) -> Result<(), String> {
     }
 }
 
-// Update launcher_profiles.json to set the profile as selected
-fn update_launcher_profiles(profile_id: &str, minecraft_dir: &std::path::Path) -> Result<(), String> {
-    let profiles_path = minecraft_dir.join("launcher_profiles.json");
-    
-    // Read the profiles file
-    let content = match std::fs::read_to_string(&profiles_path) {
-        Ok(content) => content,
-        Err(e) => return Err(format!("Failed to read launcher profiles: {}", e))
-    };
-    
-    // Parse it as JSON
-    let mut profiles_json: serde_json::Value = match serde_json::from_str(&content) {
-        Ok(json) => json,
-        Err(e) => return Err(format!("Failed to parse launcher profiles: {}", e))
-    };
-    
-    // Update the profile's lastUsed field with current time
-    let now = chrono::Utc::now().to_rfc3339();
-    
-    if let Some(profiles) = profiles_json.get_mut("profiles") {
-        if let Some(profile) = profiles.get_mut(profile_id) {
-            if let Some(profile_obj) = profile.as_object_mut() {
-                profile_obj.insert("lastUsed".to_string(), serde_json::Value::String(now));
-                debug!("Updated lastUsed timestamp for profile {}", profile_id);
-            }
-        }
-    }
-    
-    // Set as the selected profile
-    if let Some(launcher_version) = profiles_json.get_mut("launcherVersion") {
-        if let Some(launcher_obj) = launcher_version.as_object_mut() {
-            launcher_obj.insert("selectedProfileId".to_string(), 
-                              serde_json::Value::String(profile_id.to_string()));
-            debug!("Set profile {} as selected", profile_id);
-        }
-    }
-    
-    // Write the modified file back
-    match serde_json::to_string_pretty(&profiles_json) {
-        Ok(updated_json) => {
-            match std::fs::write(&profiles_path, updated_json) {
-                Ok(_) => {
-                    debug!("Successfully updated launcher profiles");
-                    Ok(())
-                },
-                Err(e) => Err(format!("Failed to write updated launcher profiles: {}", e))
-            }
-        },
-        Err(e) => Err(format!("Failed to serialize launcher profiles: {}", e))
-    }
-}
-
-// Helper function to find Java executable
-fn find_java_executable() -> Result<String, String> {
-    // First look in standard locations
-    let potential_paths = if cfg!(target_os = "windows") {
-        vec![
-            // Check bundled Java with Minecraft first
-            format!("{}\\runtime\\java-runtime-gamma\\bin\\javaw.exe", 
-                    crate::launcher::config::get_minecraft_dir().display()),
-            format!("{}\\runtime\\jre-x64\\bin\\javaw.exe", 
-                    crate::launcher::config::get_minecraft_dir().display()),
-            // Then standard installation locations
-            "C:\\Program Files\\Java\\jre-1.8\\bin\\javaw.exe".to_string(),
-            "C:\\Program Files (x86)\\Java\\jre-1.8\\bin\\javaw.exe".to_string(),
-            "C:\\Program Files\\Java\\jre1.8.0_301\\bin\\javaw.exe".to_string(),
-            "C:\\Program Files (x86)\\Java\\jre1.8.0_301\\bin\\javaw.exe".to_string(),
-            // Then try the latest Java versions
-            "C:\\Program Files\\Java\\jre-latest\\bin\\javaw.exe".to_string(),
-            "C:\\Program Files (x86)\\Java\\jre-latest\\bin\\javaw.exe".to_string(),
-        ]
-    } else if cfg!(target_os = "macos") {
-        vec![
-            "/Library/Java/JavaVirtualMachines/jdk1.8.0_301.jdk/Contents/Home/bin/java".to_string(),
-            "/Library/Java/JavaVirtualMachines/jdk-latest.jdk/Contents/Home/bin/java".to_string(),
-        ]
-    } else {
-        vec![
-            "/usr/bin/java".to_string(),
-            "/usr/local/bin/java".to_string(),
-        ]
-    };
-    
-    // Check each path
-    for path in potential_paths {
-        if std::path::Path::new(&path).exists() {
-            return Ok(path);
-        }
-    }
-    
-    // Try Java from system PATH
-    if cfg!(target_os = "windows") {
-        let output = match Command::new("where").arg("javaw.exe").output() {
-            Ok(output) => output,
-            Err(_) => return Err("Failed to locate Java executable".to_string())
-        };
-        
-        if output.status.success() {
-            let path = String::from_utf8_lossy(&output.stdout);
-            let first_line = path.lines().next().unwrap_or("");
-            if !first_line.is_empty() {
-                return Ok(first_line.to_string());
-            }
-        }
-    } else {
-        let output = match Command::new("which").arg("java").output() {
-            Ok(output) => output,
-            Err(_) => return Err("Failed to locate Java executable".to_string())
-        };
-        
-        if output.status.success() {
-            let path = String::from_utf8_lossy(&output.stdout);
-            let first_line = path.lines().next().unwrap_or("");
-            if !first_line.is_empty() {
-                return Ok(first_line.to_string());
-            }
-        }
-    }
-    
-    Err("Could not find Java executable".to_string())
-}
-
-// Helper function to generate a random UUID
-fn generate_random_uuid() -> String {
-    use rand::Rng;
-    let mut rng = rand::thread_rng();
-    
-    // Format: 8-4-4-4-12 hex digits
-    let uuid_parts = [
-        format!("{:08x}", rng.gen::<u32>()),
-        format!("{:04x}", rng.gen::<u16>()),
-        format!("{:04x}", rng.gen::<u16>()),
-        format!("{:04x}", rng.gen::<u16>()),
-        format!("{:08x}{:04x}", rng.gen::<u32>(), rng.gen::<u16>()),
-    ];
-    
-    uuid_parts.join("-")
-}
-
 // Launch MultiMC with the specified instance
 fn launch_multimc(profile_id: &str) -> Result<(), String> {
     let multimc_path = crate::get_multimc_folder("MultiMC")
@@ -448,114 +306,4 @@ fn launch_custom_multimc(profile_id: &str, path: String) -> Result<(), String> {
                 Err(format!("Failed to start custom launcher: {}", e))
             }
         }
-}
-
-// Find the Minecraft launcher executable - existing function, keep it
-fn find_minecraft_launcher() -> Result<String, String> {
-    #[cfg(target_os = "windows")]
-    {
-        debug!("Searching for Minecraft launcher on Windows...");
-        
-        // First try Program Files (x86)
-        let program_files_x86 = match std::env::var("ProgramFiles(x86)") {
-            Ok(path) => {
-                debug!("Found Program Files (x86): {}", path);
-                path
-            },
-            Err(e) => {
-                debug!("Couldn't get Program Files (x86): {}", e);
-                // Continue to try regular Program Files
-                String::new()
-            }
-        };
-        
-        // Try regular Program Files if needed
-        let program_files = if program_files_x86.is_empty() {
-            match std::env::var("ProgramFiles") {
-                Ok(path) => {
-                    debug!("Found Program Files: {}", path);
-                    path
-                },
-                Err(e) => {
-                    debug!("Couldn't get Program Files either: {}", e);
-                    return Err("Could not find Program Files directory".to_string());
-                }
-            }
-        } else {
-            program_files_x86
-        };
-        
-        // Try the old path format
-        let old_launcher_path = format!("{}\\Minecraft Launcher\\MinecraftLauncher.exe", program_files);
-        debug!("Checking old launcher path: {}", old_launcher_path);
-        
-        if std::path::Path::new(&old_launcher_path).exists() {
-            debug!("Found launcher at old path: {}", old_launcher_path);
-            return Ok(old_launcher_path);
-        }
-        
-        // Try the new path format
-        let new_program_files = std::env::var("ProgramFiles").unwrap_or_default();
-        let new_launcher_path = format!("{}\\Minecraft\\MinecraftLauncher.exe", new_program_files);
-        debug!("Checking new launcher path: {}", new_launcher_path);
-        
-        if std::path::Path::new(&new_launcher_path).exists() {
-            debug!("Found launcher at new path: {}", new_launcher_path);
-            return Ok(new_launcher_path);
-        }
-        
-        // Try Microsoft Store location
-        let appdata = match std::env::var("LOCALAPPDATA") {
-            Ok(path) => {
-                debug!("Found LocalAppData: {}", path);
-                path
-            },
-            Err(e) => {
-                debug!("Couldn't get LocalAppData: {}", e);
-                // Skip this check
-                String::new()
-            }
-        };
-        
-        if !appdata.is_empty() {
-            let ms_store_path = format!("{}\\Packages\\Microsoft.4297127D64EC6_8wekyb3d8bbwe\\LocalCache\\Local\\runtime\\jre-x64\\bin\\javaw.exe", appdata);
-            debug!("Checking Microsoft Store path: {}", ms_store_path);
-            
-            if std::path::Path::new(&ms_store_path).exists() {
-                debug!("Found launcher at MS Store path: {}", ms_store_path);
-                return Ok(ms_store_path);
-            }
-        }
-        
-        // If you have Minecraft installed, check where it's located and add that path here
-        debug!("No Minecraft launcher found at any expected locations");
-        Err("Could not find Minecraft launcher".to_string())
-    }
-    
-    #[cfg(target_os = "macos")]
-    {
-        let launcher_path = "/Applications/Minecraft.app/Contents/MacOS/launcher";
-        if std::path::Path::new(launcher_path).exists() {
-            return Ok(launcher_path.to_string());
-        }
-        Err("Could not find Minecraft launcher".to_string())
-    }
-    
-    #[cfg(target_os = "linux")]
-    {
-        // Check common Linux locations
-        let possible_paths = [
-            "/usr/bin/minecraft-launcher",
-            "/usr/local/bin/minecraft-launcher",
-            "/opt/minecraft-launcher/minecraft-launcher"
-        ];
-        
-        for path in possible_paths {
-            if std::path::Path::new(path).exists() {
-                return Ok(path.to_string());
-            }
-        }
-        
-        Err("Could not find Minecraft launcher".to_string())
-    }
 }
