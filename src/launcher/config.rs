@@ -83,14 +83,69 @@ pub fn update_jvm_args(profile_id: &str, jvm_args: &str) -> Result<(), String> {
 
 // Get current JVM args for a profile (returns default if not found)
 pub fn get_jvm_args(profile_id: &str) -> Result<String, String> {
-    let profiles = read_profiles()?;
+    // First check if we have custom arguments in our own config
+    let app_data = crate::get_app_data();
+    let custom_args_path = app_data.join(format!(".WC_OVHL/{}/jvm_args.txt", profile_id));
+    
+    if custom_args_path.exists() {
+        match fs::read_to_string(&custom_args_path) {
+            Ok(args) if !args.trim().is_empty() => {
+                debug!("Using custom JVM args from {}: {}", custom_args_path.display(), args);
+                return Ok(args);
+            },
+            _ => {
+                debug!("Custom JVM args file exists but is empty or unreadable");
+            }
+        }
+    }
+    
+    // Check for JVM args in the manifest
+    let manifest_path = app_data.join(format!(".WC_OVHL/{}/manifest.json", profile_id));
+    if manifest_path.exists() {
+        if let Ok(content) = fs::read_to_string(&manifest_path) {
+            if let Ok(manifest) = serde_json::from_str::<Value>(&content) {
+                // Check for manifest-specified JVM args
+                if let Some(java_args) = manifest["java_args"].as_str() {
+                    debug!("Using JVM args from manifest: {}", java_args);
+                    return Ok(java_args.to_string());
+                }
+                
+                // Check for max_mem and min_mem
+                let mut args = String::new();
+                
+                // Base optimization flags
+                args.push_str("-XX:+UseG1GC -XX:+UnlockExperimentalVMOptions -XX:G1NewSizePercent=20 -XX:G1ReservePercent=20 -XX:MaxGCPauseMillis=50 -XX:G1HeapRegionSize=32M");
+                
+                if let Some(max_mem) = manifest["max_mem"].as_i64() {
+                    args.push_str(&format!(" -Xmx{}M", max_mem));
+                } else {
+                    args.push_str(" -Xmx4G");
+                }
+                
+                if let Some(min_mem) = manifest["min_mem"].as_i64() {
+                    args.push_str(&format!(" -Xms{}M", min_mem));
+                }
+                
+                debug!("Generated JVM args from manifest settings: {}", args);
+                return Ok(args);
+            }
+        }
+    }
+    
+    // Try checking in launcher_profiles.json
+    let profiles = match read_profiles() {
+        Ok(profiles) => profiles,
+        Err(_) => return Ok(DEFAULT_JVM_ARGS.to_string()),
+    };
     
     if let Some(profile) = profiles["profiles"].get(profile_id) {
         if let Some(args) = profile["javaArgs"].as_str() {
+            debug!("Found JVM args in launcher profile: {}", args);
             return Ok(args.to_string());
         }
     }
     
     // Return default if not found
+    debug!("No specific JVM args found, using default: {}", DEFAULT_JVM_ARGS);
     Ok(DEFAULT_JVM_ARGS.to_string())
 }
