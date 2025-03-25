@@ -44,7 +44,7 @@ serde_json = "1.0"
 base64 = "0.13"
 open = "3.0"
 uuid = { version = "1.0", features = ["v4"] }
-keyring = "1.2"  // For secure credential storage
+keyring = "1.2"  
 
 [build-dependencies]
 winres = "0.1"
