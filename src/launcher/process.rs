@@ -73,7 +73,7 @@ fn get_current_launcher_type() -> Result<LauncherType, String> {
 
 // Launch vanilla Minecraft with the specified profile
 fn launch_vanilla(profile_id: &str) -> Result<(), String> {
-    debug!("Trying to launch Minecraft executable directly for profile {}", profile_id);
+    debug!("Directly launching Minecraft game for profile {}", profile_id);
     
     // Build the complete game directory path
     let minecraft_dir = crate::launcher::config::get_minecraft_dir();
@@ -81,63 +81,157 @@ fn launch_vanilla(profile_id: &str) -> Result<(), String> {
     
     debug!("Game directory: {:?}", game_dir);
     
-    // Create a batch file that will call the Minecraft launcher with the debug window
-    let script_path = std::env::temp_dir().join(format!("debug_minecraft_{}.bat", profile_id));
+    // First, get the version ID for this profile
+    let version_info = get_profile_version_info(profile_id, &minecraft_dir)?;
+    debug!("Profile version info: {:?}", version_info);
     
-    // More robust batch file that keeps the window open to see any errors
+    // Create a batch file that will directly launch the game
+    let script_path = std::env::temp_dir().join(format!("launch_game_{}.bat", profile_id));
+    
+    // Write a script that directly launches the game via Java
     let batch_content = format!(
         "@echo off\r\n\
-         echo === MINECRAFT LAUNCHER DEBUG ===\r\n\
-         echo Attempting to launch profile: {}\r\n\
+         echo === MINECRAFT DIRECT LAUNCHER ===\r\n\
+         echo Starting Minecraft for profile: {}\r\n\
          echo Game directory: {}\r\n\
-         echo ===============================\r\n\
+         echo Version: {}\r\n\
+         echo ================================\r\n\
          \r\n\
-         echo Trying launcher with direct profile...\r\n\
-         \"C:\\Program Files (x86)\\Minecraft Launcher\\MinecraftLauncher.exe\" --profile \"{}\" --workDir \"{}\" --gameDir \"{}\"\r\n\
+         :: Set Java memory settings\r\n\
+         set MINECRAFT_JAVA_ARGS=-Xmx2G -XX:+UnlockExperimentalVMOptions -XX:+UseG1GC\r\n\
          \r\n\
-         if %ERRORLEVEL% NEQ 0 (\r\n\
-           echo First attempt failed with error code: %ERRORLEVEL%\r\n\
-           echo Trying second method...\r\n\
-           \"C:\\Program Files (x86)\\Minecraft Launcher\\MinecraftLauncher.exe\" --workDir \"{}\" --gameDir \"{}\"\r\n\
-         )\r\n\
+         :: Launch Minecraft directly\r\n\
+         echo Launching Minecraft...\r\n\
+         start \"Minecraft\" /B javaw.exe %MINECRAFT_JAVA_ARGS% -Djava.library.path=\"{}\\versions\\{}\\{}-natives\" -cp \"{}\\libraries\\*;{}\\versions\\{}\\{}.jar\" net.minecraft.client.main.Main --username Player --version {} --gameDir \"{}\" --assetsDir \"{}\\assets\" --assetIndex 1.20 --uuid 00000000-0000-0000-0000-000000000000 --accessToken 0 --clientId 0 --userType mojang --versionType release\r\n\
          \r\n\
-         echo Press any key to close this window...\r\n\
-         pause > nul\r\n",
+         :: If you need to see debug info, remove the 'exit' line below\r\n\
+         exit\r\n",
          profile_id,
          game_dir.display(),
-         profile_id,
+         version_info.id,
+         
          minecraft_dir.display(),
+         version_info.id,
+         version_info.id,
+         
+         minecraft_dir.display(),
+         minecraft_dir.display(),
+         version_info.id,
+         version_info.id,
+         
+         version_info.id,
          game_dir.display(),
-         minecraft_dir.display(),
-         game_dir.display()
+         minecraft_dir.display()
     );
-    
-    // First, update the launcher profiles
-    update_launcher_profiles(profile_id, &minecraft_dir)?;
     
     // Write the batch file
     match std::fs::write(&script_path, batch_content) {
-        Ok(_) => debug!("Created debug launch script at {:?}", script_path),
-        Err(e) => return Err(format!("Failed to create debug script: {}", e))
+        Ok(_) => debug!("Created game launch script at {:?}", script_path),
+        Err(e) => return Err(format!("Failed to create game launch script: {}", e))
     }
     
-    // Execute the batch file in a visible window (without /B flag)
-    debug!("Running debug script");
+    // Execute the batch file
+    debug!("Running game launch script");
     match Command::new("cmd.exe")
         .arg("/C")
         .arg("start")
+        .arg("/B") // Run without creating a new window
         .arg(script_path.to_str().unwrap())
         .spawn() 
     {
         Ok(_) => {
-            debug!("Debug script executed successfully");
+            debug!("Game launch script executed successfully");
             Ok(())
         },
         Err(e) => {
-            error!("Failed to execute debug script: {}", e);
-            Err(format!("Failed to execute debug script: {}", e))
+            error!("Failed to execute game launch script: {}", e);
+            Err(format!("Failed to execute game launch script: {}", e))
         }
     }
+}
+
+// Version info structure
+#[derive(Debug)]
+struct VersionInfo {
+    id: String,
+    assets_index: String,
+}
+
+// Function to get detailed version info for a profile
+fn get_profile_version_info(profile_id: &str, minecraft_dir: &std::path::Path) -> Result<VersionInfo, String> {
+    // Get the version ID from the profile
+    let profiles_path = minecraft_dir.join("launcher_profiles.json");
+    
+    let version_id = match std::fs::read_to_string(&profiles_path) {
+        Ok(content) => {
+            match serde_json::from_str::<serde_json::Value>(&content) {
+                Ok(json) => {
+                    match json["profiles"][profile_id]["lastVersionId"].as_str() {
+                        Some(version) => version.to_string(),
+                        None => {
+                            debug!("Version ID not found for profile: {}", profile_id);
+                            // Try to find a Fabric version as fallback
+                            find_fabric_version(minecraft_dir)?
+                        }
+                    }
+                },
+                Err(e) => return Err(format!("Failed to parse profiles JSON: {}", e))
+            }
+        },
+        Err(e) => return Err(format!("Failed to read profiles file: {}", e))
+    };
+    
+    // Now try to get the version's assets index
+    let version_json_path = minecraft_dir.join(format!("versions/{}/{}.json", version_id, version_id));
+    let assets_index = if version_json_path.exists() {
+        match std::fs::read_to_string(&version_json_path) {
+            Ok(content) => {
+                match serde_json::from_str::<serde_json::Value>(&content) {
+                    Ok(json) => {
+                        match json["assetIndex"]["id"].as_str() {
+                            Some(index) => index.to_string(),
+                            None => "1.20".to_string() // Default fallback
+                        }
+                    },
+                    Err(_) => "1.20".to_string() // Default fallback
+                }
+            },
+            Err(_) => "1.20".to_string() // Default fallback
+        }
+    } else {
+        "1.20".to_string() // Default fallback
+    };
+    
+    Ok(VersionInfo {
+        id: version_id,
+        assets_index,
+    })
+}
+
+// Helper to find a Fabric version if profile version isn't available
+fn find_fabric_version(minecraft_dir: &std::path::Path) -> Result<String, String> {
+    let versions_dir = minecraft_dir.join("versions");
+    
+    if !versions_dir.exists() {
+        return Err("Versions directory not found".to_string());
+    }
+    
+    if let Ok(entries) = std::fs::read_dir(versions_dir) {
+        for entry in entries {
+            if let Ok(entry) = entry {
+                let file_name = entry.file_name();
+                let name = file_name.to_string_lossy();
+                
+                if name.contains("fabric") {
+                    debug!("Found Fabric version: {}", name);
+                    return Ok(name.to_string());
+                }
+            }
+        }
+    }
+    
+    // Last resort fallback
+    Err("Could not find a Fabric version".to_string())
 }
 
 // Update launcher_profiles.json to set the profile as selected
