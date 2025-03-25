@@ -1,5 +1,5 @@
 use oauth2::{
-    AuthUrl, AuthorizationCode, ClientId, ClientSecret, CsrfToken, PkceCodeChallenge,
+    AuthUrl, AuthorizationCode, ClientId, CsrfToken, PkceCodeChallenge,
     PkceCodeVerifier, RedirectUrl, RefreshToken, Scope, TokenResponse, TokenUrl,
 };
 use oauth2::basic::{BasicClient, BasicTokenResponse};
@@ -12,9 +12,11 @@ use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpListener;
 use std::error::Error;
 use std::path::PathBuf;
-use log::{debug, error, info};
+use log::{debug, error, info, warn};
 use url::Url;
 use chrono::{DateTime, Duration, Utc};
+use std::fs;
+use std::process::Command;
 
 // Microsoft OAuth2 configuration
 const MS_CLIENT_ID: &str = "389b1b32-b5d5-43b2-bddc-84ce938d6737"; // Minecraft Launcher client ID
@@ -140,16 +142,20 @@ impl MicrosoftAuth {
         // Check if we already have valid tokens
         if let Some(auth_info) = Self::load_auth_info() {
             if auth_info.expires_at > Utc::now() {
-                debug!("Using cached auth tokens");
+                debug!("Using cached auth tokens for {}", auth_info.username);
                 return Ok(auth_info);
             }
             
             debug!("Cached tokens expired, attempting refresh");
-            if let Ok(refreshed_auth) = Self::refresh_token(&auth_info.refresh_token).await {
-                return Ok(refreshed_auth);
+            match Self::refresh_token(&auth_info.refresh_token).await {
+                Ok(refreshed_auth) => {
+                    debug!("Successfully refreshed token for {}", refreshed_auth.username);
+                    return Ok(refreshed_auth);
+                },
+                Err(e) => {
+                    debug!("Token refresh failed: {}, starting new auth flow", e);
+                }
             }
-            
-            debug!("Token refresh failed, starting new auth flow");
         }
         
         // Set up the PKCE challenge
@@ -163,20 +169,22 @@ impl MicrosoftAuth {
             .set_pkce_challenge(pkce_challenge)
             .url();
         
-        debug!("Opening browser for Microsoft authentication");
+        debug!("Opening browser for Microsoft authentication: {}", auth_url);
         // Open the browser for the user to log in
         if let Err(e) = open::that(auth_url.to_string()) {
             error!("Failed to open browser: {}", e);
             return Err(Box::new(std::io::Error::new(
                 std::io::ErrorKind::Other,
-                "Failed to open browser for authentication",
+                format!("Failed to open browser for authentication: {}", e),
             )));
         }
         
         // Start a local server to handle the redirect
+        debug!("Waiting for authentication response...");
         let code = Self::wait_for_redirect(csrf_state).await?;
         
         // Exchange the authorization code for tokens
+        debug!("Exchanging authorization code for tokens");
         let token_response = client
             .exchange_code(AuthorizationCode::new(code))
             .set_pkce_verifier(pkce_verifier)
@@ -192,6 +200,18 @@ impl MicrosoftAuth {
             .secret()
             .to_string();
         
+        // Complete the authentication chain
+        let auth_info = Self::complete_auth_chain(ms_token, ms_refresh_token).await?;
+        
+        // Save the auth info
+        Self::save_auth_info(&auth_info)?;
+        
+        debug!("Authentication completed successfully for user: {}", auth_info.username);
+        Ok(auth_info)
+    }
+
+    // Complete the authentication chain from MS token to Minecraft
+    async fn complete_auth_chain(ms_token: String, ms_refresh_token: String) -> Result<AuthInfo, Box<dyn Error>> {
         // Authenticate with Xbox Live
         debug!("Authenticating with Xbox Live");
         let xbox_response = Self::authenticate_with_xbox(&ms_token).await?;
@@ -210,7 +230,7 @@ impl MicrosoftAuth {
         debug!("Getting Minecraft profile");
         let profile = Self::get_minecraft_profile(&mc_response.access_token).await?;
         
-        // Create and save auth info
+        // Create auth info
         let expires_at = Utc::now() + Duration::seconds(mc_response.expires_in);
         let auth_info = AuthInfo {
             access_token: ms_token,
@@ -221,14 +241,9 @@ impl MicrosoftAuth {
             expires_at,
         };
         
-        Self::save_auth_info(&auth_info)?;
-        
-        debug!("Authentication completed successfully for user: {}", auth_info.username);
         Ok(auth_info)
     }
-
     
-impl MicrosoftAuth {
     // Wait for the redirect after user logs in
     async fn wait_for_redirect(csrf_state: CsrfToken) -> Result<String, Box<dyn Error>> {
         let expected_state = csrf_state.secret();
@@ -275,7 +290,7 @@ impl MicrosoftAuth {
                                 // Extract code
                                 if let Some((_, code)) = pairs.iter().find(|(k, _)| k == "code") {
                                     // Send success page
-                                    let success_response = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n<html><body><h1>Authentication Successful</h1><p>You can close this window and return to the application.</p></body></html>";
+                                    let success_response = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n<html><body><h1>Authentication Successful</h1><p>You can close this window and return to the application.</p><script>window.close();</script></body></html>";
                                     let _ = stream.write_all(success_response.as_bytes()).await;
                                     
                                     // Send the code through the channel
@@ -454,7 +469,6 @@ impl MicrosoftAuth {
         Ok(profile)
     }
 
-  impl MicrosoftAuth {
     // Refresh an existing token
     async fn refresh_token(refresh_token: &str) -> Result<AuthInfo, Box<dyn Error>> {
         debug!("Attempting to refresh Microsoft token");
@@ -476,34 +490,8 @@ impl MicrosoftAuth {
             .secret()
             .to_string();
         
-        // Authenticate with Xbox Live
-        debug!("Authenticating with Xbox Live using refreshed token");
-        let xbox_response = Self::authenticate_with_xbox(&ms_token).await?;
-        
-        // Get XSTS token
-        debug!("Getting XSTS token");
-        let xsts_response = Self::get_xsts_token(&xbox_response.token).await?;
-        
-        // Get Minecraft token
-        debug!("Getting Minecraft token");
-        let uhs = &xsts_response.display_claims.xui[0].uhs;
-        let xsts_token = &xsts_response.token;
-        let mc_response = Self::authenticate_with_minecraft(uhs, xsts_token).await?;
-        
-        // Get Minecraft profile
-        debug!("Getting Minecraft profile");
-        let profile = Self::get_minecraft_profile(&mc_response.access_token).await?;
-        
-        // Create and save auth info
-        let expires_at = Utc::now() + Duration::seconds(mc_response.expires_in);
-        let auth_info = AuthInfo {
-            access_token: ms_token,
-            refresh_token: ms_refresh_token,
-            mc_token: mc_response.access_token,
-            uuid: profile.id,
-            username: profile.name,
-            expires_at,
-        };
+        // Complete the authentication chain
+        let auth_info = Self::complete_auth_chain(ms_token, ms_refresh_token).await?;
         
         Self::save_auth_info(&auth_info)?;
         
@@ -511,56 +499,24 @@ impl MicrosoftAuth {
         Ok(auth_info)
     }
 
-    // Save authentication info securely
+    // Save authentication info
     fn save_auth_info(auth_info: &AuthInfo) -> Result<(), Box<dyn Error>> {
-        // Two approaches for token storage:
-        
-        // Option 1: Store in a file (less secure but simpler)
         let auth_dir = Self::get_auth_dir()?;
         let auth_file = auth_dir.join("auth.json");
         
         let json_data = serde_json::to_string(auth_info)?;
-        std::fs::write(auth_file, json_data)?;
+        fs::write(auth_file, json_data)?;
         
         debug!("Saved authentication info to file");
-        
-        // Option 2: Use system keyring (more secure but may not work on all systems)
-        #[cfg(feature = "use_keyring")]
-        {
-            if let Ok(keyring) = keyring::Entry::new("minecraft_launcher", &auth_info.username) {
-                let json_data = serde_json::to_string(auth_info)?;
-                if let Err(e) = keyring.set_password(&json_data) {
-                    warn!("Failed to store auth info in system keyring: {}", e);
-                    // Fall back to file storage if keyring fails
-                } else {
-                    debug!("Saved authentication info to system keyring");
-                }
-            }
-        }
-        
         Ok(())
     }
 
     // Load saved authentication info
     fn load_auth_info() -> Option<AuthInfo> {
-        // Try to load from keyring first (if enabled)
-        #[cfg(feature = "use_keyring")]
-        {
-            if let Ok(entries) = keyring::Entry::new_with_target("minecraft_launcher", "") {
-                if let Ok(json_data) = entries.get_password() {
-                    if let Ok(auth_info) = serde_json::from_str::<AuthInfo>(&json_data) {
-                        debug!("Loaded authentication info from system keyring");
-                        return Some(auth_info);
-                    }
-                }
-            }
-        }
-        
-        // Fall back to file storage
         if let Ok(auth_dir) = Self::get_auth_dir() {
             let auth_file = auth_dir.join("auth.json");
             if auth_file.exists() {
-                if let Ok(file_content) = std::fs::read_to_string(auth_file) {
+                if let Ok(file_content) = fs::read_to_string(auth_file) {
                     if let Ok(auth_info) = serde_json::from_str::<AuthInfo>(&file_content) {
                         debug!("Loaded authentication info from file");
                         return Some(auth_info);
@@ -575,25 +531,11 @@ impl MicrosoftAuth {
 
     // Get directory for storing auth data
     fn get_auth_dir() -> Result<PathBuf, Box<dyn Error>> {
-        let app_name = "wynncraft_overhaul_installer";
-        let base_dir = if cfg!(windows) {
-            if let Some(app_data) = std::env::var_os("APPDATA") {
-                PathBuf::from(app_data)
-            } else {
-                dirs::config_dir().ok_or("Could not find config directory")?
-            }
-        } else if cfg!(target_os = "macos") {
-            let mut dir = dirs::home_dir().ok_or("Could not find home directory")?;
-            dir.push("Library");
-            dir.push("Application Support");
-            dir
-        } else {
-            // Linux and others
-            dirs::config_dir().ok_or("Could not find config directory")?
-        };
+        let app_name = ".WC_OVHL";
+        let base_dir = crate::get_app_data();
         
         let auth_dir = base_dir.join(app_name).join("auth");
-        std::fs::create_dir_all(&auth_dir)?;
+        fs::create_dir_all(&auth_dir)?;
         
         Ok(auth_dir)
     }
@@ -602,24 +544,52 @@ impl MicrosoftAuth {
     pub fn logout() -> Result<(), Box<dyn Error>> {
         debug!("Logging out - removing stored authentication data");
         
-        // Remove file storage
         if let Ok(auth_dir) = Self::get_auth_dir() {
             let auth_file = auth_dir.join("auth.json");
             if auth_file.exists() {
-                std::fs::remove_file(auth_file)?;
-            }
-        }
-        
-        // Remove from keyring if enabled
-        #[cfg(feature = "use_keyring")]
-        {
-            if let Ok(entries) = keyring::Entry::new_with_target("minecraft_launcher", "") {
-                let _ = entries.delete_password();
+                fs::remove_file(auth_file)?;
             }
         }
         
         debug!("Logout successful");
         Ok(())
+    }
+
+    // Get version ID from profile
+    fn get_profile_version(profile_id: &str, minecraft_dir: &PathBuf) -> Result<String, Box<dyn Error>> {
+        let manifest_path = minecraft_dir.join(format!(".WC_OVHL/{}/manifest.json", profile_id));
+        
+        if !manifest_path.exists() {
+            return Err(Box::new(std::io::Error::new(
+                std::io::ErrorKind::NotFound,
+                format!("Manifest not found for profile {}", profile_id),
+            )));
+        }
+        
+        let manifest_content = fs::read_to_string(manifest_path)?;
+        let manifest: serde_json::Value = serde_json::from_str(&manifest_content)?;
+        
+        // Get Minecraft version and loader information
+        let minecraft_version = manifest["loader"]["minecraft_version"]
+            .as_str()
+            .ok_or("Missing minecraft_version in manifest")?;
+        
+        let loader_type = manifest["loader"]["type"]
+            .as_str()
+            .ok_or("Missing loader type in manifest")?;
+        
+        let loader_version = manifest["loader"]["version"]
+            .as_str()
+            .ok_or("Missing loader version in manifest")?;
+        
+        match loader_type {
+            "fabric" => Ok(format!("fabric-loader-{}-{}", loader_version, minecraft_version)),
+            "quilt" => Ok(format!("quilt-loader-{}-{}", loader_version, minecraft_version)),
+            _ => Err(Box::new(std::io::Error::new(
+                std::io::ErrorKind::Other, 
+                format!("Unsupported loader type: {}", loader_type)
+            ))),
+        }
     }
 
     // Launch Minecraft with authentication
@@ -633,57 +603,273 @@ impl MicrosoftAuth {
         let minecraft_dir = crate::launcher::config::get_minecraft_dir();
         let game_dir = minecraft_dir.join(format!(".WC_OVHL/{}", profile_id));
         
+        // Verify game directory exists
+        if !game_dir.exists() {
+            return Err(Box::new(std::io::Error::new(
+                std::io::ErrorKind::NotFound,
+                format!("Game directory not found: {:?}", game_dir),
+            )));
+        }
+        
         debug!("Game directory: {:?}", game_dir);
         
         // Get version ID from profile
         let version_id = Self::get_profile_version(profile_id, &minecraft_dir)?;
         debug!("Using version: {}", version_id);
         
-        // Create a batch file that will directly launch the game
-        let script_path = std::env::temp_dir().join(format!("launch_mc_{}.bat", profile_id));
+        // Get custom JVM args if any
+        let jvm_args = crate::launcher::get_jvm_args(profile_id)
+            .unwrap_or_else(|_| String::from("-Xmx2G -XX:+UnlockExperimentalVMOptions -XX:+UseG1GC -XX:G1NewSizePercent=20 -XX:G1ReservePercent=20 -XX:MaxGCPauseMillis=50 -XX:G1HeapRegionSize=32M"));
         
-        // Write a script that launches with auth
-        let batch_content = format!(
-            "@echo off\r\n\
-             echo Launching Minecraft...\r\n\
-             \r\n\
-             :: Set Java memory settings\r\n\
-             set MINECRAFT_JAVA_ARGS=-Xmx2G -XX:+UnlockExperimentalVMOptions -XX:+UseG1GC\r\n\
-             \r\n\
-             :: Launch Minecraft with authentication\r\n\
-             start \"Minecraft\" /B javaw.exe %MINECRAFT_JAVA_ARGS% -Djava.library.path=\"{}\\versions\\{}\\{}-natives\" -cp \"{}\\libraries\\*;{}\\versions\\{}\\{}.jar\" net.minecraft.client.main.Main --username \"{}\" --version {} --gameDir \"{}\" --assetsDir \"{}\\assets\" --assetIndex 1.20 --uuid {} --accessToken {} --clientId 00000000-0000-0000-0000-000000000000 --userType msa --versionType release\r\n\
-             \r\n\
-             :: Exit the batch file\r\n\
-             exit\r\n",
-            minecraft_dir.display(),
-            version_id,
-            version_id,
+        debug!("Using JVM args: {}", jvm_args);
+        
+        // Check if we're on Windows
+        if cfg!(target_os = "windows") {
+            // Find Java executable
+            let java_exec = Self::find_java_executable()?;
+            debug!("Using Java executable: {}", java_exec);
             
-            minecraft_dir.display(),
-            minecraft_dir.display(),
-            version_id,
-            version_id,
+            // Create a temporary batch file
+            let script_path = std::env::temp_dir().join(format!("launch_mc_{}.bat", profile_id));
             
-            auth_info.username,
-            version_id,
-            game_dir.display(),
-            minecraft_dir.display(),
-            auth_info.uuid,
-            auth_info.mc_token
-        );
+            // Determine assets index
+            let assets_index = Self::get_assets_index(minecraft_dir.join("versions").join(&version_id).join(format!("{}.json", version_id)))?;
+            debug!("Using assets index: {}", assets_index);
+            
+            // Write the batch file
+            let batch_content = format!(
+                "@echo off\r\n\
+                 echo Launching Minecraft {version_id}...\r\n\
+                 echo Username: {username}\r\n\
+                 echo Game Directory: {game_dir}\r\n\
+                 \r\n\
+                 \"{java_exec}\" {jvm_args} -Djava.library.path=\"{minecraft_dir}\\versions\\{version_id}\\{version_id}-natives\" -cp \"{minecraft_dir}\\libraries\\*;{minecraft_dir}\\versions\\{version_id}\\{version_id}.jar\" net.minecraft.client.main.Main --username \"{username}\" --version \"{version_id}\" --gameDir \"{game_dir}\" --assetsDir \"{minecraft_dir}\\assets\" --assetIndex {assets_index} --uuid {uuid} --accessToken {token} --clientId {client_id} --userType msa --versionType release\r\n",
+                username = auth_info.username,
+                uuid = auth_info.uuid,
+                token = auth_info.mc_token,
+                version_id = version_id,
+                game_dir = game_dir.display(),
+                minecraft_dir = minecraft_dir.display(),
+                java_exec = java_exec,
+                jvm_args = jvm_args,
+                assets_index = assets_index,
+                client_id = MS_CLIENT_ID
+            );
+            
+            // Write the batch file
+            fs::write(&script_path, batch_content)?;
+            debug!("Created launch script at {:?}", script_path);
+            
+            // Execute the batch file
+            debug!("Executing launch script");
+            Command::new("cmd.exe")
+                .arg("/C")
+                .arg("start")
+                .arg("Minecraft")
+                .arg("/B")
+                .arg(script_path)
+                .spawn()?;
+            
+            debug!("Minecraft launch command executed");
+            Ok(())
+        } else if cfg!(target_os = "linux") || cfg!(target_os = "macos") {
+            // Find Java executable for Unix-like systems
+            let java_exec = Self::find_java_executable()?;
+            debug!("Using Java executable: {}", java_exec);
+            
+            // Create a temporary shell script
+            let script_path = std::env::temp_dir().join(format!("launch_mc_{}.sh", profile_id));
+            
+            // Determine assets index
+            let assets_index = Self::get_assets_index(minecraft_dir.join("versions").join(&version_id).join(format!("{}.json", version_id)))?;
+            debug!("Using assets index: {}", assets_index);
+            
+            // Class path separator
+            let cp_separator = if cfg!(target_os = "windows") { ";" } else { ":" };
+            
+            // Write the shell script
+            let shell_content = format!(
+                "#!/bin/bash\n\
+                echo \"Launching Minecraft {version_id}...\"\n\
+                echo \"Username: {username}\"\n\
+                echo \"Game Directory: {game_dir}\"\n\
+                \n\
+                \"{java_exec}\" {jvm_args} \\\n\
+                -Djava.library.path=\"{minecraft_dir}/versions/{version_id}/{version_id}-natives\" \\\n\
+                -cp \"{minecraft_dir}/libraries/*{cp_separator}{minecraft_dir}/versions/{version_id}/{version_id}.jar\" \\\n\
+                net.minecraft.client.main.Main \\\n\
+                --username \"{username}\" \\\n\
+                --version \"{version_id}\" \\\n\
+                --gameDir \"{game_dir}\" \\\n\
+                --assetsDir \"{minecraft_dir}/assets\" \\\n\
+                --assetIndex {assets_index} \\\n\
+                --uuid {uuid} \\\n\
+                --accessToken {token} \\\n\
+                --clientId {client_id} \\\n\
+                --userType msa \\\n\
+                --versionType release\n",
+                username = auth_info.username,
+                uuid = auth_info.uuid,
+                token = auth_info.mc_token,
+                version_id = version_id,
+                game_dir = game_dir.display(),
+                minecraft_dir = minecraft_dir.display(),
+                java_exec = java_exec,
+                jvm_args = jvm_args,
+                assets_index = assets_index,
+                client_id = MS_CLIENT_ID,
+                cp_separator = cp_separator
+            );
+            
+            // Write and make the shell script executable
+            fs::write(&script_path, shell_content)?;
+            
+            // Set executable permission on Unix-like systems
+            #[cfg(any(target_os = "linux", target_os = "macos"))]
+            {
+                use std::os::unix::fs::PermissionsExt;
+                let mut perms = fs::metadata(&script_path)?.permissions();
+                perms.set_mode(0o755);
+                fs::set_permissions(&script_path, perms)?;
+            }
+            
+            debug!("Created launch script at {:?}", script_path);
+            
+            // Execute the shell script
+            debug!("Executing launch script");
+            if cfg!(target_os = "macos") {
+                Command::new("open")
+                    .arg("-a")
+                    .arg("Terminal")
+                    .arg(script_path)
+                    .spawn()?;
+            } else {
+                // Linux
+                Command::new("sh")
+                    .arg("-c")
+                    .arg(format!("x-terminal-emulator -e '{}'", script_path.display()))
+                    .spawn()?;
+            }
+            
+            debug!("Minecraft launch command executed");
+            Ok(())
+        } else {
+            Err(Box::new(std::io::Error::new(
+                std::io::ErrorKind::Other,
+                "Unsupported operating system",
+            )))
+        }
+    }
+    
+    // Find a suitable Java executable
+    fn find_java_executable() -> Result<String, Box<dyn Error>> {
+        debug!("Looking for suitable Java executable");
         
-        // Write the batch file
-        std::fs::write(&script_path, batch_content)?;
-        debug!("Created launch script at {:?}", script_path);
+        // First try using JAVA_HOME if set
+        if let Ok(java_home) = std::env::var("JAVA_HOME") {
+            let java_exe = if cfg!(windows) {
+                PathBuf::from(java_home).join("bin").join("javaw.exe")
+            } else {
+                PathBuf::from(java_home).join("bin").join("java")
+            };
+            
+            if java_exe.exists() {
+                debug!("Using Java from JAVA_HOME: {}", java_exe.display());
+                return Ok(java_exe.to_string_lossy().to_string());
+            }
+        }
         
-        // Execute the batch file
-        debug!("Executing launch script");
-        let status = std::process::Command::new("cmd.exe")
-            .arg("/C")
-            .arg("start")
-            .arg("/B") // Run without creating a new window
-            .arg(script_path.to_str().unwrap())
-            .spawn()?;
+        // Try common Java paths based on OS
+        if cfg!(windows) {
+            // Check for bundled Minecraft runtime
+            let minecraft_dir = crate::launcher::config::get_minecraft_dir();
+            let potential_paths = [
+                minecraft_dir.join("runtime").join("java-runtime-gamma").join("bin").join("javaw.exe"),
+                minecraft_dir.join("runtime").join("jre-x64").join("bin").join("javaw.exe"),
+                PathBuf::from("C:\\Program Files\\Java\\jre-1.8\\bin\\javaw.exe"),
+                PathBuf::from("C:\\Program Files (x86)\\Java\\jre-1.8\\bin\\javaw.exe"),
+                PathBuf::from("C:\\Program Files\\Java\\jre1.8.0_301\\bin\\javaw.exe"),
+                PathBuf::from("C:\\Program Files (x86)\\Java\\jre1.8.0_301\\bin\\javaw.exe"),
+                PathBuf::from("C:\\Program Files\\Java\\jre-latest\\bin\\javaw.exe"),
+                PathBuf::from("C:\\Program Files (x86)\\Java\\jre-latest\\bin\\javaw.exe"),
+            ];
+            
+            for path in potential_paths {
+                if path.exists() {
+                    debug!("Found Java at: {}", path.display());
+                    return Ok(path.to_string_lossy().to_string());
+                }
+            }
+            
+            // Try to get from system PATH
+            let output = Command::new("where")
+                .arg("javaw.exe")
+                .output()?;
+            
+            if output.status.success() {
+                let path = String::from_utf8_lossy(&output.stdout);
+                let first_line = path.lines().next().unwrap_or("");
+                if !first_line.is_empty() {
+                    debug!("Found Java in PATH: {}", first_line);
+                    return Ok(first_line.to_string());
+                }
+            }
+        } else {
+            // macOS and Linux
+            let potential_paths = [
+                "/usr/bin/java",
+                "/usr/local/bin/java",
+                "/opt/java/bin/java",
+                "/opt/homebrew/bin/java",
+            ];
+            
+            for path in potential_paths {
+                if PathBuf::from(path).exists() {
+                    debug!("Found Java at: {}", path);
+                    return Ok(path.to_string());
+                }
+            }
+            
+            // Try to get from system PATH
+            let output = Command::new("which")
+                .arg("java")
+                .output()?;
+            
+            if output.status.success() {
+                let path = String::from_utf8_lossy(&output.stdout);
+                let first_line = path.lines().next().unwrap_or("");
+                if !first_line.is_empty() {
+                    debug!("Found Java in PATH: {}", first_line);
+                    return Ok(first_line.to_string());
+                }
+            }
+        }
         
-        debug!("Minecraft
+        Err(Box::new(std::io::Error::new(
+            std::io::ErrorKind::NotFound,
+            "Could not find a suitable Java executable. Please make sure Java is installed.",
+        )))
+    }
+    
+    // Get the assets index from the version JSON
+    fn get_assets_index(version_json_path: PathBuf) -> Result<String, Box<dyn Error>> {
+        debug!("Getting assets index from: {}", version_json_path.display());
+        
+        if !version_json_path.exists() {
+            return Err(Box::new(std::io::Error::new(
+                std::io::ErrorKind::NotFound,
+                format!("Version JSON file not found: {}", version_json_path.display()),
+            )));
+        }
+        
+        let version_json = fs::read_to_string(version_json_path)?;
+        let version_data: serde_json::Value = serde_json::from_str(&version_json)?;
+        
+        let assets_index = version_data["assetIndex"]["id"]
+            .as_str()
+            .ok_or("Missing assetIndex.id in version JSON")?;
+        
+        debug!("Found assets index: {}", assets_index);
+        Ok(assets_index.to_string())
+    }
 }
