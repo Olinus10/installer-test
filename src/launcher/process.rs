@@ -22,12 +22,12 @@ impl fmt::Display for LauncherType {
     }
 }
 
-// Launch Minecraft with a specific profile using the system launcher
-pub fn launch_modpack_legacy(profile_id: &str) -> Result<(), String> {
+// Main function to launch Minecraft with a specific profile
+pub fn launch_modpack(profile_id: &str) -> Result<(), String> {
     // Get the current launcher type
     let launcher_type = get_current_launcher_type()?;
     
-    debug!("Launching modpack {} with {} launcher (legacy method)", profile_id, launcher_type);
+    debug!("Launching modpack {} with {} launcher", profile_id, launcher_type);
     debug!("Profile ID being used: {}", profile_id);
     
     match launcher_type {
