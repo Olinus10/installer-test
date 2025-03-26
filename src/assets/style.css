@@ -2890,7 +2890,27 @@ transform: scale(1.03);
 }
 
 
-/* Microsoft Authentication Styles */
+/* Play button style */
+.main-play-button {
+    background-image: linear-gradient(135deg, #0a5d23, #073C17);
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    border-radius: 8px;
+    padding: 16px 60px;
+    font-family: "HEADER_FONT";
+    font-size: 1.8rem;
+    color: #fce8f6;
+    cursor: pointer;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    position: relative;
+    overflow: hidden;
+    z-index: 1;
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4), 0 0 20px rgba(7, 60, 23, 0.3);
+    text-shadow: 0 0 5px rgba(255, 255, 255, 0.3);
+    animation: button-glow 3s infinite alternate;
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
 .main-play-button.authenticated {
     background-image: linear-gradient(135deg, #0f6229, #0a4d1e);
     border: 2px solid rgba(255, 255, 255, 0.3);
@@ -2905,52 +2925,7 @@ transform: scale(1.03);
     animation: ms-button-glow 3s infinite alternate;
 }
 
-.main-play-button.authenticated:hover {
-    background-image: linear-gradient(135deg, #128832, #0f6229);
-    border-color: rgba(255, 255, 255, 0.5);
-    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.5), 0 0 45px rgba(7, 60, 23, 1);
-}
-
-.main-play-button.needs-auth:hover {
-    background-image: linear-gradient(135deg, #4c70ba, #3b5998);
-    border-color: rgba(255, 255, 255, 0.4);
-    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.5), 0 0 45px rgba(59, 89, 152, 0.6);
-}
-
-/* Auth info text below the play button */
-.auth-info {
-    font-size: 0.85rem;
-    color: rgba(255, 255, 255, 0.8);
-    margin-top: 8px;
-    text-align: center;
-    font-style: italic;
-}
-
-/* Animation for authenticated button */
-@keyframes auth-button-glow {
-    0% {
-        box-shadow: 0 6px 15px rgba(0, 0, 0, 0.4), 0 0 20px rgba(7, 60, 23, 0.3);
-        text-shadow: 0 0 5px rgba(255, 255, 255, 0.3);
-    }
-    100% {
-        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.5), 0 0 40px rgba(7, 60, 23, 0.8);
-        text-shadow: 0 0 15px rgba(255, 255, 255, 0.6), 0 0 25px rgba(255, 255, 255, 0.3);
-    }
-}
-
-/* Animation for Microsoft login button */
-@keyframes ms-button-glow {
-    0% {
-        box-shadow: 0 6px 15px rgba(0, 0, 0, 0.4), 0 0 20px rgba(59, 89, 152, 0.3);
-        text-shadow: 0 0 5px rgba(255, 255, 255, 0.3);
-    }
-    100% {
-        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.5), 0 0 40px rgba(59, 89, 152, 0.6);
-        text-shadow: 0 0 15px rgba(255, 255, 255, 0.6), 0 0 25px rgba(255, 255, 255, 0.3);
-    }
-}
-
-/* Auth status indicator - visible when authenticated */
+/* Auth status indicator */
 .auth-status {
     display: inline-flex;
     align-items: center;
@@ -2972,6 +2947,34 @@ transform: scale(1.03);
     margin-right: 8px;
     box-shadow: 0 0 8px #4CAF50;
     animation: pulse 2s infinite;
+}
+
+/* Auth info text */
+.auth-info {
+    font-size: 0.85rem;
+    color: rgba(255, 255, 255, 0.8);
+    margin-top: 8px;
+    text-align: center;
+    font-style: italic;
+}
+
+/* Button animations */
+@keyframes auth-button-glow {
+    0% {
+        box-shadow: 0 6px 15px rgba(0, 0, 0, 0.4), 0 0 20px rgba(7, 60, 23, 0.3);
+    }
+    100% {
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.5), 0 0 40px rgba(7, 60, 23, 0.8);
+    }
+}
+
+@keyframes ms-button-glow {
+    0% {
+        box-shadow: 0 6px 15px rgba(0, 0, 0, 0.4), 0 0 20px rgba(59, 89, 152, 0.3);
+    }
+    100% {
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.5), 0 0 40px rgba(59, 89, 152, 0.6);
+    }
 }
 
 @keyframes pulse {
