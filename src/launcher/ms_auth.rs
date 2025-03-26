@@ -37,11 +37,6 @@ impl MicrosoftAuth {
         })
     }
     
-    // Clear any saved auth data
-    pub fn logout() -> Result<(), Box<dyn Error>> {
-        InnerMicrosoftAuth::logout()
-    }
-    
     // Check if the user is already authenticated
     pub fn is_authenticated() -> bool {
         // Create a runtime for the async code
