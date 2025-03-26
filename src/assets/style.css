@@ -2755,162 +2755,7 @@ transform: scale(1.03);
   margin-bottom: 5px !important;
 }
 
-/* Play button style */
-.main-play-button {
-    background-image: linear-gradient(135deg, #0a5d23, #073C17);
-    border: 2px solid rgba(255, 255, 255, 0.2);
-    border-radius: 8px;
-    padding: 16px 60px;
-    font-family: "HEADER_FONT";
-    font-size: 1.8rem;
-    color: #fce8f6;
-    cursor: pointer;
-    text-transform: uppercase;
-    letter-spacing: 2px;
-    position: relative;
-    overflow: hidden;
-    z-index: 1;
-    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4), 0 0 20px rgba(7, 60, 23, 0.3);
-    text-shadow: 0 0 5px rgba(255, 255, 255, 0.3);
-    animation: button-glow 3s infinite alternate;
-    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    margin-bottom: 15px;
-}
-
-.main-play-button:hover {
-    transform: translateY(-5px);
-    background-image: linear-gradient(135deg, #0f6229, #0a4d1e);
-    text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
-    border-color: rgba(255, 255, 255, 0.4);
-    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.5), 0 0 35px rgba(7, 60, 23, 0.9);
-}
-
-.play-button-container {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    width: 100%;
-    margin: 10px 0;
-    position: relative;
-    z-index: 10;
-}
-
-.home-pack-play-button {
-    display: inline-block;
-    background-image: linear-gradient(135deg, #0a5d23, #073C17);
-    padding: 8px 16px;
-    border-radius: 6px;
-    font-family: "REGULAR_FONT";
-    transition: all 0.3s ease;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
-    transform: translateY(5px);
-    opacity: 0.9;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    margin-top: 8px;
-    font-weight: bold;
-    color: #fce8f6;
-    cursor: pointer;
-}
-
-.home-pack-card:hover .home-pack-play-button {
-    background-image: linear-gradient(135deg, #0f6229, #0a4d1e);
-    transform: translateY(0) scale(1.05);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6), 0 0 15px rgba(7, 60, 23, 0.5);
-    opacity: 1;
-    border-color: rgba(255, 255, 255, 0.2);
-}
-
-/* Trending modpack play button styles */
-.home-pack-card.trending .home-pack-play-button {
-    background-image: linear-gradient(135deg, #0a5d23, #073C17);
-    color: #fff;
-    padding: 8px 20px;
-    font-size: 1rem;
-    transition: all 0.3s ease;
-    margin-top: 8px;
-    font-weight: bold;
-    border: 1px solid rgba(255, 255, 255, 0.5);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
-}
-
-.home-pack-card.trending:hover .home-pack-play-button {
-    background-image: linear-gradient(135deg, #0f6229, #0a4d1e);
-    transform: scale(1.1);
-    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.5), 0 0 15px rgba(7, 60, 23, 0.5);
-}
-
-/* Error notification for launch failures */
-.error-notification {
-    position: fixed;
-    top: 20px;
-    right: 20px;
-    background-color: rgba(217, 82, 72, 0.9);
-    border-radius: 8px;
-    padding: 15px 20px;
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.4);
-    z-index: 1000;
-    max-width: 400px;
-    animation: slide-in 0.3s ease-out forwards;
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-}
-
-.error-message {
-    font-family: "REGULAR_FONT";
-    font-size: 0.9rem;
-    color: #fff;
-    margin-right: 15px;
-}
-
-.error-close {
-    background: none;
-    border: none;
-    color: #fff;
-    font-size: 1.2rem;
-    cursor: pointer;
-    opacity: 0.8;
-    transition: opacity 0.2s ease;
-}
-
-.error-close:hover {
-    opacity: 1;
-}
-
-@keyframes slide-in {
-    from {
-        transform: translateX(100%);
-        opacity: 0;
-    }
-    to {
-        transform: translateX(0);
-        opacity: 1;
-    }
-}
-
-
-/* Play button style */
-.main-play-button {
-    background-image: linear-gradient(135deg, #0a5d23, #073C17);
-    border: 2px solid rgba(255, 255, 255, 0.2);
-    border-radius: 8px;
-    padding: 16px 60px;
-    font-family: "HEADER_FONT";
-    font-size: 1.8rem;
-    color: #fce8f6;
-    cursor: pointer;
-    text-transform: uppercase;
-    letter-spacing: 2px;
-    position: relative;
-    overflow: hidden;
-    z-index: 1;
-    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4), 0 0 20px rgba(7, 60, 23, 0.3);
-    text-shadow: 0 0 5px rgba(255, 255, 255, 0.3);
-    animation: button-glow 3s infinite alternate;
-    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-}
-
+/* Microsoft Authentication Styles */
 .main-play-button.authenticated {
     background-image: linear-gradient(135deg, #0f6229, #0a4d1e);
     border: 2px solid rgba(255, 255, 255, 0.3);
@@ -2925,7 +2770,52 @@ transform: scale(1.03);
     animation: ms-button-glow 3s infinite alternate;
 }
 
-/* Auth status indicator */
+.main-play-button.authenticated:hover {
+    background-image: linear-gradient(135deg, #128832, #0f6229);
+    border-color: rgba(255, 255, 255, 0.5);
+    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.5), 0 0 45px rgba(7, 60, 23, 1);
+}
+
+.main-play-button.needs-auth:hover {
+    background-image: linear-gradient(135deg, #4c70ba, #3b5998);
+    border-color: rgba(255, 255, 255, 0.4);
+    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.5), 0 0 45px rgba(59, 89, 152, 0.6);
+}
+
+/* Auth info text below the play button */
+.auth-info {
+    font-size: 0.85rem;
+    color: rgba(255, 255, 255, 0.8);
+    margin-top: 8px;
+    text-align: center;
+    font-style: italic;
+}
+
+/* Animation for authenticated button */
+@keyframes auth-button-glow {
+    0% {
+        box-shadow: 0 6px 15px rgba(0, 0, 0, 0.4), 0 0 20px rgba(7, 60, 23, 0.3);
+        text-shadow: 0 0 5px rgba(255, 255, 255, 0.3);
+    }
+    100% {
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.5), 0 0 40px rgba(7, 60, 23, 0.8);
+        text-shadow: 0 0 15px rgba(255, 255, 255, 0.6), 0 0 25px rgba(255, 255, 255, 0.3);
+    }
+}
+
+/* Animation for Microsoft login button */
+@keyframes ms-button-glow {
+    0% {
+        box-shadow: 0 6px 15px rgba(0, 0, 0, 0.4), 0 0 20px rgba(59, 89, 152, 0.3);
+        text-shadow: 0 0 5px rgba(255, 255, 255, 0.3);
+    }
+    100% {
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.5), 0 0 40px rgba(59, 89, 152, 0.6);
+        text-shadow: 0 0 15px rgba(255, 255, 255, 0.6), 0 0 25px rgba(255, 255, 255, 0.3);
+    }
+}
+
+/* Auth status indicator - visible when authenticated */
 .auth-status {
     display: inline-flex;
     align-items: center;
@@ -2947,34 +2837,6 @@ transform: scale(1.03);
     margin-right: 8px;
     box-shadow: 0 0 8px #4CAF50;
     animation: pulse 2s infinite;
-}
-
-/* Auth info text */
-.auth-info {
-    font-size: 0.85rem;
-    color: rgba(255, 255, 255, 0.8);
-    margin-top: 8px;
-    text-align: center;
-    font-style: italic;
-}
-
-/* Button animations */
-@keyframes auth-button-glow {
-    0% {
-        box-shadow: 0 6px 15px rgba(0, 0, 0, 0.4), 0 0 20px rgba(7, 60, 23, 0.3);
-    }
-    100% {
-        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.5), 0 0 40px rgba(7, 60, 23, 0.8);
-    }
-}
-
-@keyframes ms-button-glow {
-    0% {
-        box-shadow: 0 6px 15px rgba(0, 0, 0, 0.4), 0 0 20px rgba(59, 89, 152, 0.3);
-    }
-    100% {
-        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.5), 0 0 40px rgba(59, 89, 152, 0.6);
-    }
 }
 
 @keyframes pulse {
