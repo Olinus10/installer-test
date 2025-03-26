@@ -24,17 +24,16 @@ impl fmt::Display for LauncherType {
 
 // Main function to launch Minecraft with a specific profile
 pub fn launch_modpack(profile_id: &str) -> Result<(), String> {
-    // Get the current launcher type
-    let launcher_type = get_current_launcher_type()?;
-    
-    debug!("Launching modpack {} with {} launcher", profile_id, launcher_type);
-    debug!("Profile ID being used: {}", profile_id);
-    
-    match launcher_type {
-        LauncherType::Vanilla => launch_vanilla(profile_id),
-        LauncherType::MultiMC => launch_multimc(profile_id),
-        LauncherType::PrismLauncher => launch_prism(profile_id),
-        LauncherType::Custom(path) => launch_custom_multimc(profile_id, path),
+    // Instead of using the default launcher, use the Microsoft auth path
+    match crate::launcher::MicrosoftAuth::launch_minecraft(profile_id) {
+        Ok(_) => {
+            debug!("Successfully launched modpack: {}", profile_id);
+            Ok(())
+        },
+        Err(e) => {
+            error!("Failed to launch modpack: {}", e);
+            Err(format!("Failed to launch modpack: {}", e))
+        }
     }
 }
 
