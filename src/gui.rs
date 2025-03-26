@@ -60,13 +60,49 @@ pub fn PlayButton(
     disabled: bool,
     onclick: EventHandler<MouseEvent>,
 ) -> Element {
+    // Check the current authentication status
+    let auth_status = get_auth_status();
+    
+    // Get username if authenticated
+    let username_display = if auth_status == AuthStatus::Authenticated {
+        if let Some(username) = crate::launcher::MicrosoftAuth::get_username() {
+            Some(format!("Playing as {}", username))
+        } else {
+            None
+        }
+    } else {
+        None
+    };
+    
     rsx! {
         div { class: "play-button-container",
             button {
-                class: "main-play-button",
+                class: if auth_status == AuthStatus::Authenticated {
+                    "main-play-button authenticated"
+                } else {
+                    "main-play-button needs-auth"
+                },
                 disabled: disabled,
                 onclick: move |evt| onclick.call(evt),
-                "PLAY"
+                if auth_status == AuthStatus::Authenticated {
+                    "PLAY"
+                } else {
+                    "LOGIN WITH MICROSOFT"
+                }
+            }
+            
+            // Show authentication status if available
+            if let Some(username) = username_display {
+                div { class: "auth-status", "{username}" }
+            }
+            
+            // Help text based on auth status
+            div { class: "auth-info",
+                if auth_status == AuthStatus::Authenticated {
+                    "Click to launch Minecraft directly"
+                } else {
+                    "Microsoft account required to play"
+                }
             }
         }
     }
@@ -92,18 +128,47 @@ pub fn get_auth_status() -> AuthStatus {
 pub fn handle_play_click(uuid: String, error_signal: &Signal<Option<String>>) {
     debug!("Play button clicked for modpack: {}", uuid);
     
-    // Launch the modpack
-    std::thread::spawn(move || {
-        match crate::launcher::launch_modpack(&uuid) {
-            Ok(_) => {
-                debug!("Successfully launched modpack: {}", uuid);
-            },
-            Err(e) => {
-                error!("Failed to launch modpack: {}", e);
-                error_signal.set(Some(format!("Failed to launch modpack: {}", e)));
-            }
+    // Check authentication status
+    match get_auth_status() {
+        AuthStatus::Authenticated => {
+            // User is already authenticated, launch the game
+            std::thread::spawn(move || {
+                match crate::launcher::MicrosoftAuth::launch_minecraft(&uuid) {
+                    Ok(_) => {
+                        debug!("Successfully launched modpack: {}", uuid);
+                    },
+                    Err(e) => {
+                        error!("Failed to launch modpack: {}", e);
+                        error_signal.set(Some(format!("Failed to launch modpack: {}", e)));
+                    }
+                }
+            });
+        },
+        AuthStatus::NeedsAuth => {
+            // User needs to authenticate first
+            std::thread::spawn(move || {
+                match crate::launcher::MicrosoftAuth::authenticate() {
+                    Ok(_) => {
+                        debug!("Authentication successful, now launching modpack: {}", uuid);
+                        // After successful authentication, launch the game
+                        match crate::launcher::MicrosoftAuth::launch_minecraft(&uuid) {
+                            Ok(_) => {
+                                debug!("Successfully launched modpack after authentication: {}", uuid);
+                            },
+                            Err(e) => {
+                                error!("Failed to launch modpack after authentication: {}", e);
+                                error_signal.set(Some(format!("Failed to launch modpack: {}", e)));
+                            }
+                        }
+                    },
+                    Err(e) => {
+                        error!("Authentication failed: {}", e);
+                        error_signal.set(Some(format!("Microsoft authentication failed: {}", e)));
+                    }
+                }
+            });
         }
-    });
+    }
 }
 
 #[component]
@@ -1613,14 +1678,20 @@ fn Version(mut props: VersionProps) -> Element {
                     
                     // Add Play button only when installed
                     if *installed.read() {
-                        div { class: "play-button-container", style: "margin-top: 20px; text-align: center;" }
-                        PlayButton {
-    uuid: profile.manifest.uuid.clone(),
-    disabled: false,
-    auth_status: None,
-    onclick: move |_| { /* ... */ }
+    let uuid_clone = uuid.clone();
+    let mut err_clone = err.clone();
+    
+    rsx! {
+        PlayButton {
+            uuid: uuid_clone,
+            disabled: false,
+            onclick: move |_| {
+                // Use our enhanced handler
+                handle_play_click(uuid_clone.clone(), &err_clone);
+            }
+        }
+    }
 }
-                    }
                 }
             }
         }
