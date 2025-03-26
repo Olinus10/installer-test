@@ -1,10 +1,17 @@
 mod config;
 mod process;
-mod ms_auth;
 
-pub use config::{update_jvm_args, get_jvm_args, DEFAULT_JVM_ARGS, get_minecraft_dir};
-pub use process::launch_modpack_legacy;
-pub use ms_auth::MicrosoftAuth;
+pub use config::{update_jvm_args, get_jvm_args, DEFAULT_JVM_ARGS};
+pub use process::launch_modpack as launch_modpack_legacy;
+
+// Re-export the config function
+pub use config::get_minecraft_dir;
+
+// Launch a modpack using the legacy method
+pub fn launch_modpack(uuid: &str) -> Result<(), String> {
+    // Just use the legacy method for now
+    process::launch_modpack_legacy(uuid)
+}
 
 // Launch a modpack with the appropriate method
 pub async fn launch_modpack(uuid: &str) -> Result<(), String> {
