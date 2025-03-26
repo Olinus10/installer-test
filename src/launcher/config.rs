@@ -1,7 +1,7 @@
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::fs;
 use serde_json::{Value, json};
-use log::{error, debug};
+use log::debug;
 
 // Default optimized JVM args
 pub const DEFAULT_JVM_ARGS: &str = "-XX:+UseG1GC -XX:+UnlockExperimentalVMOptions -XX:G1NewSizePercent=20 -XX:G1ReservePercent=20 -XX:MaxGCPauseMillis=50 -XX:G1HeapRegionSize=32M -Xmx4G";
