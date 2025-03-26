@@ -54,61 +54,6 @@ fn BackgroundParticles() -> Element {
     }
 }
 
-#[component]
-pub fn PlayButton(
-    uuid: String,
-    disabled: bool,
-    onclick: EventHandler<MouseEvent>,
-) -> Element {
-    // Check the current authentication status
-    let auth_status = get_auth_status();
-    
-    // Get username if authenticated
-    let username_display = if auth_status == AuthStatus::Authenticated {
-        if let Some(username) = crate::launcher::MicrosoftAuth::get_username() {
-            Some(format!("Playing as {}", username))
-        } else {
-            None
-        }
-    } else {
-        None
-    };
-    
-    rsx! {
-        div { class: "play-button-container",
-            button {
-                class: if auth_status == AuthStatus::Authenticated {
-                    "main-play-button authenticated"
-                } else {
-                    "main-play-button needs-auth"
-                },
-                disabled: disabled,
-                onclick: move |evt| onclick.call(evt),
-                if auth_status == AuthStatus::Authenticated {
-                    "PLAY"
-                } else {
-                    "LOGIN WITH MICROSOFT"
-                }
-            }
-            
-            // Show authentication status if available
-            if let Some(username) = username_display {
-                div { class: "auth-status", "{username}" }
-            }
-            
-            // Help text based on auth status
-            div { class: "auth-info",
-                if auth_status == AuthStatus::Authenticated {
-                    "Click to launch Minecraft directly"
-                } else {
-                    "Microsoft account required to play"
-                }
-            }
-        }
-    }
-}
-
-
 #[derive(Debug, Clone, PartialEq)]
 pub enum AuthStatus {
     Authenticated,  // User already authenticated
@@ -167,6 +112,62 @@ pub fn handle_play_click(uuid: String, error_signal: &Signal<Option<String>>) {
                     }
                 }
             });
+        }
+    }
+}
+
+// Enhanced PlayButton component
+#[component]
+pub fn PlayButton(
+    uuid: String,
+    disabled: bool,
+    auth_status: Option<AuthStatus>,
+    onclick: EventHandler<MouseEvent>,
+) -> Element {
+    // Check the current authentication status if not provided
+    let status = auth_status.unwrap_or_else(get_auth_status);
+    
+    // Get username if authenticated
+    let username_display = if status == AuthStatus::Authenticated {
+        if let Some(username) = crate::launcher::MicrosoftAuth::get_username() {
+            Some(format!("Playing as {}", username))
+        } else {
+            None
+        }
+    } else {
+        None
+    };
+    
+    rsx! {
+        div { class: "play-button-container",
+            button {
+                class: if status == AuthStatus::Authenticated {
+                    "main-play-button authenticated"
+                } else {
+                    "main-play-button needs-auth"
+                },
+                disabled: disabled,
+                onclick: move |evt| onclick.call(evt),
+                if status == AuthStatus::Authenticated {
+                    "PLAY"
+                } else {
+                    "LOGIN WITH MICROSOFT"
+                }
+            }
+            
+            // Show authentication status if available
+            if let Some(username) = username_display {
+                div { class: "auth-status", "{username}" }
+            }
+            
+            // Help text based on auth status
+            div { class: "auth-info",
+                if status == AuthStatus::Authenticated {
+                    "Click to launch Minecraft directly"
+                } else {
+                    "Microsoft account required to play"
+                }
+            }
         }
     }
 }
@@ -453,28 +454,23 @@ fn HomePage(
                                             
                                             // Add Play button if installed
                                             if is_installed {
-                                                {
-                                                    let uuid_clone = uuid.clone();
-                                                    let mut err_clone = err.clone();
-                                                    
-                                                    rsx! {
-                                                        div { 
-                                                            class: "home-pack-play-button",
-                                                            onclick: move |evt| {
-                                                                evt.stop_propagation(); // Prevent navigation
-                                                                
-                                                                // Launch the modpack
-                                                                debug!("Launching modpack with UUID: {}", uuid_clone);
-                                                                match crate::launcher::launch_modpack(&uuid_clone) {
-                                                                    Ok(_) => debug!("Successfully launched modpack: {}", uuid_clone),
-                                                                    Err(e) => err_clone.set(Some(format!("Failed to launch modpack: {}", e)))
-                                                                }
-                                                            },
-                                                            "PLAY"
-                                                        }
-                                                    }
-                                                }
-                                            }
+    {
+        let uuid_clone = uuid.clone();
+        let mut err_clone = err.clone();
+        
+        rsx! {
+            PlayButton {
+                uuid: uuid_clone,
+                disabled: false,
+                auth_status: None,  // It will check automatically
+                onclick: move |_| {
+                    // Use our enhanced handler
+                    handle_play_click(uuid_clone.clone(), &err_clone);
+                }
+            }
+        }
+    }
+}
                                         }
                                     }
                                 }
@@ -1685,8 +1681,8 @@ fn Version(mut props: VersionProps) -> Element {
         PlayButton {
             uuid: uuid_clone,
             disabled: false,
+            auth_status: None,
             onclick: move |_| {
-                // Use our enhanced handler
                 handle_play_click(uuid_clone.clone(), &err_clone);
             }
         }
