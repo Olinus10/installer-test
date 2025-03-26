@@ -59,33 +59,14 @@ pub fn PlayButton(
     uuid: String,
     disabled: bool,
     onclick: EventHandler<MouseEvent>,
-    #[props(!optional)] auth_status: Option<AuthStatus>,
 ) -> Element {
-    let button_class = match auth_status {
-        Some(AuthStatus::Authenticated) => "main-play-button authenticated",
-        Some(AuthStatus::NeedsAuth) => "main-play-button needs-auth",
-        _ => "main-play-button",
-    };
-    
-    let button_text = match auth_status {
-        Some(AuthStatus::Authenticated) => "PLAY",
-        Some(AuthStatus::NeedsAuth) => "LOGIN & PLAY",
-        _ => "PLAY",
-    };
-    
     rsx! {
         div { class: "play-button-container",
             button {
-                class: button_class,
+                class: "main-play-button",
                 disabled: disabled,
                 onclick: move |evt| onclick.call(evt),
-                {button_text}
-            }
-            
-            if let Some(AuthStatus::Authenticated) = auth_status {
-                if let Some(username) = crate::launcher::MicrosoftAuth::get_username() {
-                    p { class: "auth-info", "Playing as {username}" }
-                }
+                "PLAY"
             }
         }
     }
