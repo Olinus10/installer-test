@@ -1614,10 +1614,11 @@ fn Version(mut props: VersionProps) -> Element {
                     if *installed.read() {
                         div { class: "play-button-container", style: "margin-top: 20px; text-align: center;" }
                         PlayButton {
-                            uuid: uuid.clone(),
-                            disabled: false,
-                            onclick: on_play
-                        }
+    uuid: profile.manifest.uuid.clone(),
+    disabled: false,
+    auth_status: None,
+    onclick: move |_| { /* ... */ }
+}
                     }
                 }
             }
