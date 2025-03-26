@@ -72,6 +72,7 @@ pub fn PlayButton(
     }
 }
 
+
 #[derive(Debug, Clone, PartialEq)]
 pub enum AuthStatus {
     Authenticated,  // User already authenticated
