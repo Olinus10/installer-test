@@ -4,7 +4,23 @@ mod process;
 pub use config::{update_jvm_args, get_jvm_args};
 pub use config::get_minecraft_dir;
 
-// Launch a modpack using the existing process implementation
+// Re-export MicrosoftAuth
+pub use crate::ms_auth::MicrosoftAuth;
+
+// Launch a modpack using MS auth or fallback to the existing process implementation
 pub fn launch_modpack(uuid: &str) -> Result<(), String> {
-    process::launch_modpack(uuid)
+    // First try Microsoft auth to launch directly
+    match MicrosoftAuth::launch_minecraft(uuid) {
+        Ok(_) => {
+            debug!("Successfully launched modpack via Microsoft auth: {}", uuid);
+            Ok(())
+        },
+        Err(e) => {
+            // Log the error
+            warn!("Microsoft auth launch failed, falling back to process launcher: {}", e);
+            
+            // Fallback to the existing launch process
+            process::launch_modpack(uuid)
+        }
+    }
 }
