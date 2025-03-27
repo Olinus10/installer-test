@@ -186,53 +186,6 @@ pub fn PlayButton(
     }
 }
 
-// Enhanced handler for play button clicks
-pub fn handle_play_click(uuid: String, error_signal: &Signal<Option<String>>) {
-    debug!("Play button clicked for modpack: {}", uuid);
-    
-    // Check authentication status
-    match get_auth_status() {
-        AuthStatus::Authenticated => {
-            // User is already authenticated, launch the game
-            std::thread::spawn(move || {
-                match crate::launcher::MicrosoftAuth::launch_minecraft(&uuid) {
-                    Ok(_) => {
-                        debug!("Successfully launched modpack: {}", uuid);
-                    },
-                    Err(e) => {
-                        error!("Failed to launch modpack: {}", e);
-                        error_signal.set(Some(format!("Failed to launch modpack: {}", e)));
-                    }
-                }
-            });
-        },
-        AuthStatus::NeedsAuth => {
-            // User needs to authenticate first
-            std::thread::spawn(move || {
-                match crate::launcher::MicrosoftAuth::authenticate() {
-                    Ok(_) => {
-                        debug!("Authentication successful, now launching modpack: {}", uuid);
-                        // After successful authentication, launch the game
-                        match crate::launcher::MicrosoftAuth::launch_minecraft(&uuid) {
-                            Ok(_) => {
-                                debug!("Successfully launched modpack after authentication: {}", uuid);
-                            },
-                            Err(e) => {
-                                error!("Failed to launch modpack after authentication: {}", e);
-                                error_signal.set(Some(format!("Failed to launch modpack: {}", e)));
-                            }
-                        }
-                    },
-                    Err(e) => {
-                        error!("Authentication failed: {}", e);
-                        error_signal.set(Some(format!("Microsoft authentication failed: {}", e)));
-                    }
-                }
-            });
-        }
-    }
-}
-
 #[component]
 fn ChangelogSection(changelog: Option<Changelog>) -> Element {
     if let Some(changelog_data) = changelog {
@@ -445,19 +398,22 @@ fn HomePage(
                                                 }
                                                 
                                                 // Add Play button if installed
-                                                if is_installed {
-                                                    {
-                                                        let uuid_clone = uuid.clone();
-                                                        let mut err_clone = err.clone();
-                                                        
-                                                        rsx! {
-                                                            PlayButton {
-    uuid: uuid_clone,
-    disabled: false,
-    auth_status: None,  // It will check automatically
-    onclick: move |_| {
-        // Use our enhanced handler
-        handle_play_click(uuid_clone.clone(), &err_clone);
+                                                if *installed.read() {
+    {
+        let uuid_str = uuid.clone();
+        let err_clone = err.clone(); // Remove mut unless needed
+        
+        rsx! {
+            PlayButton {
+                uuid: uuid_str.clone(),
+                disabled: false,
+                auth_status: None,
+                onclick: move |_| {
+                    let uuid_for_handler = uuid_str.clone();
+                    handle_play_click(uuid_for_handler, &err_clone);
+                }
+            }
+        }
     }
 }
                                                         }
@@ -509,19 +465,19 @@ fn HomePage(
                                             }
                                             
                                             // Add Play button if installed
-                                            if is_installed {
+                                            if *installed.read() {
     {
-        let uuid_clone = uuid.clone();
-        let mut err_clone = err.clone();
+        let uuid_str = uuid.clone();
+        let err_clone = err.clone(); // Remove mut unless needed
         
         rsx! {
             PlayButton {
-                uuid: uuid_clone,
+                uuid: uuid_str.clone(),
                 disabled: false,
-                auth_status: None,  // It will check automatically
+                auth_status: None,
                 onclick: move |_| {
-                    // Use our enhanced handler
-                    handle_play_click(uuid_clone.clone(), &err_clone);
+                    let uuid_for_handler = uuid_str.clone();
+                    handle_play_click(uuid_for_handler, &err_clone);
                 }
             }
         }
@@ -1734,14 +1690,17 @@ fn Version(mut props: VersionProps) -> Element {
     let mut err_clone = err.clone();
     
     rsx! {
-        PlayButton {
-            uuid: uuid_clone,
-            disabled: false,
-            auth_status: None,
-            onclick: move |_| {
-                handle_play_click(uuid_clone.clone(), &err_clone);
-            }
-        }
+        let uuid_str = uuid.clone(); // Clone outside
+PlayButton {
+    uuid: uuid_str.clone(), // Clone again here - pass by value
+    disabled: false,
+    auth_status: None,  
+    onclick: move |_| {
+        // Create another clone inside the closure
+        let uuid_for_handler = uuid_str.clone();
+        handle_play_click(uuid_for_handler, &err_clone);
+    }
+}
     }
 }
                 }
