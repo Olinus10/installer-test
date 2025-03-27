@@ -76,14 +76,14 @@ pub enum AuthStatus {
 
 // Helper function to check auth status of a profile
 pub fn get_auth_status() -> AuthStatus {
-    if crate::launcher::MicrosoftAuth::is_authenticated() {
+    if crate::launcher::microsoft_auth::MicrosoftAuth::is_authenticated() {
         AuthStatus::Authenticated
     } else {
         AuthStatus::NeedsAuth
     }
 }
 
-// Enhanced handler for play button clicks
+// Handle play button clicks
 pub fn handle_play_click(uuid: String, error_signal: &Signal<Option<String>>) {
     debug!("Play button clicked for modpack: {}", uuid);
     
@@ -92,7 +92,7 @@ pub fn handle_play_click(uuid: String, error_signal: &Signal<Option<String>>) {
         AuthStatus::Authenticated => {
             // User is already authenticated, launch the game
             std::thread::spawn(move || {
-                match crate::launcher::MicrosoftAuth::launch_minecraft(&uuid) {
+                match crate::launcher::microsoft_auth::MicrosoftAuth::launch_minecraft(&uuid) {
                     Ok(_) => {
                         debug!("Successfully launched modpack: {}", uuid);
                     },
@@ -106,11 +106,11 @@ pub fn handle_play_click(uuid: String, error_signal: &Signal<Option<String>>) {
         AuthStatus::NeedsAuth => {
             // User needs to authenticate first
             std::thread::spawn(move || {
-                match crate::launcher::MicrosoftAuth::authenticate() {
+                match crate::launcher::microsoft_auth::MicrosoftAuth::authenticate() {
                     Ok(_) => {
                         debug!("Authentication successful, now launching modpack: {}", uuid);
                         // After successful authentication, launch the game
-                        match crate::launcher::MicrosoftAuth::launch_minecraft(&uuid) {
+                        match crate::launcher::microsoft_auth::MicrosoftAuth::launch_minecraft(&uuid) {
                             Ok(_) => {
                                 debug!("Successfully launched modpack after authentication: {}", uuid);
                             },
@@ -130,7 +130,7 @@ pub fn handle_play_click(uuid: String, error_signal: &Signal<Option<String>>) {
     }
 }
 
-// Enhanced PlayButton component
+// PlayButton component
 #[component]
 pub fn PlayButton(
     uuid: String,
@@ -143,7 +143,7 @@ pub fn PlayButton(
     
     // Get username if authenticated
     let username_display = if status == AuthStatus::Authenticated {
-        if let Some(username) = crate::launcher::MicrosoftAuth::get_username() {
+        if let Some(username) = crate::launcher::microsoft_auth::MicrosoftAuth::get_username() {
             Some(format!("Playing as {}", username))
         } else {
             None
