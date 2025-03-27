@@ -1,3 +1,4 @@
+// Enhanced launcher module with direct Minecraft launching capability
 mod config;
 mod process;
 
