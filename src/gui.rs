@@ -399,22 +399,22 @@ fn HomePage(
                                                 
                                                 // Add Play button if installed
                                                 if *installed.read() {
-    {
-        let uuid_str = uuid.clone();
-        let err_clone = err.clone(); // Remove mut unless needed
-        
-        rsx! {
-            PlayButton {
-                uuid: uuid_str.clone(),
-                disabled: false,
-                auth_status: None,
-                onclick: move |_| {
-                    let uuid_for_handler = uuid_str.clone();
-                    handle_play_click(uuid_for_handler, &err_clone);
-                }
+{
+    let uuid_str = uuid.clone(); // Clone outside
+    let err_signal = err.clone();
+    
+    rsx! {
+        PlayButton {
+            uuid: uuid_str.clone(), // Clone again for component
+            disabled: false,
+            auth_status: None,
+            onclick: move |_| {
+                let uuid_for_handler = uuid_str.clone(); // Clone inside closure
+                handle_play_click(uuid_for_handler, &err_signal);
             }
         }
     }
+}
 }
                                                         }
                                                     }
@@ -1686,28 +1686,27 @@ fn Version(mut props: VersionProps) -> Element {
                     
                     // Add Play button only when installed
                     if *installed.read() {
-    let uuid_clone = uuid.clone();
-    let mut err_clone = err.clone();
+{
+    let uuid_for_button = uuid_clone.clone(); // Clone outside - do NOT use uuid_clone directly
+    let err_signal = err_clone.clone();
     
     rsx! {
-        let uuid_str = uuid.clone(); // Clone outside
-PlayButton {
-    uuid: uuid_str.clone(), // Clone again here - pass by value
-    disabled: false,
-    auth_status: None,  
-    onclick: move |_| {
-        // Create another clone inside the closure
-        let uuid_for_handler = uuid_str.clone();
-        handle_play_click(uuid_for_handler, &err_clone);
-    }
-}
+        PlayButton {
+            uuid: uuid_for_button.clone(), // Clone again for component
+            disabled: false,
+            auth_status: None,
+            onclick: move |_| {
+                let uuid_to_handler = uuid_for_button.clone(); // Clone inside closure
+                handle_play_click(uuid_to_handler, &err_signal);
+            }
+        }
     }
 }
                 }
             }
         }
     }
-}
+}}
 
 /// New header component with tabs - updated to display tab groups 1-3 in main row
 #[component]
@@ -2338,19 +2337,22 @@ pub(crate) fn app() -> Element {
                                         
                                         // Play button (only if installed)
                                         if is_installed {
-                                            div { class: "play-button-container", style: "margin-top: 15px;" }
-                                            button {
-                                                class: "main-play-button",
-                                                onclick: move |_| {
-                                                    let uuid_clone = uuid.clone();
-                                                    debug!("Launching modpack with UUID: {}", uuid_clone);
-                                                    match crate::launcher::launch_modpack(&uuid_clone) {
-                                                        Ok(_) => debug!("Successfully launched modpack: {}", uuid_clone),
-                                                        Err(e) => error_signal.set(Some(format!("Failed to launch modpack: {}", e)))
-                                                    }
-                                                },
-                                                "PLAY"
-                                            }
+                                            {
+    let uuid_for_button = uuid_clone.clone(); // Clone outside - do NOT use uuid_clone directly
+    let err_signal = err_clone.clone();
+    
+    rsx! {
+        PlayButton {
+            uuid: uuid_for_button.clone(), // Clone again for component
+            disabled: false,
+            auth_status: None,
+            onclick: move |_| {
+                let uuid_to_handler = uuid_for_button.clone(); // Clone inside closure
+                handle_play_click(uuid_to_handler, &err_signal);
+            }
+        }
+    }
+}
                                         }
                                     }
                                 }
