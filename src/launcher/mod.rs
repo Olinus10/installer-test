@@ -1,12 +1,13 @@
 // Enhanced launcher module with direct Minecraft launching capability
 mod config;
 mod process;
+use log::{debug, warn};
 
 pub use config::{update_jvm_args, get_jvm_args};
 pub use config::get_minecraft_dir;
 
 // Re-export MicrosoftAuth
-pub use crate::ms_auth::MicrosoftAuth;
+pub use crate::microsoft_auth::MicrosoftAuth;
 
 // Launch a modpack using MS auth or fallback to the existing process implementation
 pub fn launch_modpack(uuid: &str) -> Result<(), String> {
