@@ -54,6 +54,20 @@ fn BackgroundParticles() -> Element {
     }
 }
 
+#[component]
+fn ErrorNotification(message: String, on_close: EventHandler<MouseEvent>) -> Element {
+    rsx! {
+        div { class: "error-notification",
+            div { class: "error-message", "{message}" }
+            button { 
+                class: "error-close",
+                onclick: move |evt| on_close.call(evt),
+                "×"
+            }
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub enum AuthStatus {
     Authenticated,  // User already authenticated
@@ -437,20 +451,15 @@ fn HomePage(
                                                         let mut err_clone = err.clone();
                                                         
                                                         rsx! {
-                                                            div { 
-                                                                class: "home-pack-play-button",
-                                                                onclick: move |evt| {
-                                                                    evt.stop_propagation(); // Prevent navigation
-                                                                    
-                                                                    // Launch the modpack
-                                                                    debug!("Launching modpack with UUID: {}", uuid_clone);
-                                                                    match crate::launcher::launch_modpack(&uuid_clone) {
-                                                                        Ok(_) => debug!("Successfully launched modpack: {}", uuid_clone),
-                                                                        Err(e) => err_clone.set(Some(format!("Failed to launch modpack: {}", e)))
-                                                                    }
-                                                                },
-                                                                "PLAY"
-                                                            }
+                                                            PlayButton {
+    uuid: uuid_clone,
+    disabled: false,
+    auth_status: None,  // It will check automatically
+    onclick: move |_| {
+        // Use our enhanced handler
+        handle_play_click(uuid_clone.clone(), &err_clone);
+    }
+}
                                                         }
                                                     }
                                                 }
