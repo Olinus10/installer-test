@@ -41,13 +41,13 @@ use std::{
 };
 
 mod gui;
-mod launcher; // This already includes ms_auth within it
-mod microsoft_auth; // This is in the root src directory
+mod launcher;
+mod microsoft_auth_impl; // This is in the root src directory
 
 // Update your re-exports
 pub use launcher::{launch_modpack, update_jvm_args, get_jvm_args};
 // Re-export MicrosoftAuth for convenient access
-pub use microsoft_auth::MicrosoftAuth;
+pub use launcher::microsoft_auth::MicrosoftAuth;
 
 const CURRENT_MANIFEST_VERSION: i32 = 3;
 const GH_API: &str = "https://api.github.com/repos/";
