@@ -2,8 +2,8 @@ use tokio::runtime::Runtime;
 use log::{debug, error, info, warn};
 use std::error::Error;
 
-// Re-export the main authentication module
-pub use crate::ms_auth::MicrosoftAuth as InnerMicrosoftAuth;
+// Re-export the main authentication module from launcher
+pub use crate::launcher::ms_auth::InnerMicrosoftAuth;
 
 // Wrapper struct with user-friendly methods
 pub struct MicrosoftAuth;
