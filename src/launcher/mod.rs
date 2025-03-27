@@ -1,12 +1,15 @@
 // Enhanced launcher module with direct Minecraft launching capability
 mod config;
 mod process;
+pub mod ms_auth; // Make this public so it can be accessed from microsoft_auth.rs
+
+// Correct imports
+pub use config::{update_jvm_args, get_jvm_args};
+
+// Import log macros
 use log::{debug, warn};
 
-pub use config::{update_jvm_args, get_jvm_args};
-pub use config::get_minecraft_dir;
-
-// Re-export MicrosoftAuth
+// Use the main microsoft_auth wrapper
 pub use crate::microsoft_auth::MicrosoftAuth;
 
 // Launch a modpack using MS auth or fallback to the existing process implementation
