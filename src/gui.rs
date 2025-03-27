@@ -172,6 +172,53 @@ pub fn PlayButton(
     }
 }
 
+// Enhanced handler for play button clicks
+pub fn handle_play_click(uuid: String, error_signal: &Signal<Option<String>>) {
+    debug!("Play button clicked for modpack: {}", uuid);
+    
+    // Check authentication status
+    match get_auth_status() {
+        AuthStatus::Authenticated => {
+            // User is already authenticated, launch the game
+            std::thread::spawn(move || {
+                match crate::launcher::MicrosoftAuth::launch_minecraft(&uuid) {
+                    Ok(_) => {
+                        debug!("Successfully launched modpack: {}", uuid);
+                    },
+                    Err(e) => {
+                        error!("Failed to launch modpack: {}", e);
+                        error_signal.set(Some(format!("Failed to launch modpack: {}", e)));
+                    }
+                }
+            });
+        },
+        AuthStatus::NeedsAuth => {
+            // User needs to authenticate first
+            std::thread::spawn(move || {
+                match crate::launcher::MicrosoftAuth::authenticate() {
+                    Ok(_) => {
+                        debug!("Authentication successful, now launching modpack: {}", uuid);
+                        // After successful authentication, launch the game
+                        match crate::launcher::MicrosoftAuth::launch_minecraft(&uuid) {
+                            Ok(_) => {
+                                debug!("Successfully launched modpack after authentication: {}", uuid);
+                            },
+                            Err(e) => {
+                                error!("Failed to launch modpack after authentication: {}", e);
+                                error_signal.set(Some(format!("Failed to launch modpack: {}", e)));
+                            }
+                        }
+                    },
+                    Err(e) => {
+                        error!("Authentication failed: {}", e);
+                        error_signal.set(Some(format!("Microsoft authentication failed: {}", e)));
+                    }
+                }
+            });
+        }
+    }
+}
+
 #[component]
 fn ChangelogSection(changelog: Option<Changelog>) -> Element {
     if let Some(changelog_data) = changelog {
