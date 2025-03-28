@@ -245,65 +245,66 @@ impl MicrosoftAuth {
     }
     
     // Wait for the redirect after user logs in
-    async fn wait_for_redirect(csrf_state: CsrfToken) -> Result<String, Box<dyn Error>> {
-    let expected_state = csrf_state.secret().to_string();
-        
-        // Setup a TCP listener on localhost:8000
-        let listener = TcpListener::bind("127.0.0.1:8000").await?;
-        debug!("Listening for redirect on {}", REDIRECT_URL);
-        
-        // Create a channel to send the auth code when received
-        let (code_tx, code_rx) = tokio::sync::oneshot::channel();
-        let code_tx = Arc::new(Mutex::new(Some(code_tx)));
-        
-        // Accept connections in a loop
-        let handle = tokio::spawn(async move {
-            while let Ok((mut stream, _)) = listener.accept().await {
-                let code_tx = Arc::clone(&code_tx);
+async fn wait_for_redirect(csrf_state: CsrfToken) -> Result<String, Box<dyn Error>> {
+    let expected_state = csrf_state.secret().to_string(); // Convert to String
+    
+    // Setup a TCP listener on localhost:8000
+    let listener = TcpListener::bind("127.0.0.1:8000").await?;
+    debug!("Listening for redirect on {}", REDIRECT_URL);
+    
+    // Create a channel to send the auth code when received
+    let (code_tx, code_rx) = tokio::sync::oneshot::channel();
+    let code_tx = Arc::new(Mutex::new(Some(code_tx)));
+    
+    // Accept connections in a loop
+    let handle = tokio::spawn(async move {
+        while let Ok((mut stream, _)) = listener.accept().await {
+            let code_tx = Arc::clone(&code_tx);
+            let expected_state_clone = expected_state.clone(); // Clone for each iteration
+            
+            tokio::spawn(async move {
+                let mut buffer = [0; 1024];
                 
-                tokio::spawn(async move {
-                    let mut buffer = [0; 1024];
+                // Read the HTTP request
+                if let Ok(n) = stream.read(&mut buffer).await {
+                    let request = String::from_utf8_lossy(&buffer[..n]);
                     
-                    // Read the HTTP request
-                    if let Ok(n) = stream.read(&mut buffer).await {
-                        let request = String::from_utf8_lossy(&buffer[..n]);
+                    // Check if it's the redirect we're waiting for
+                    if request.starts_with("GET /callback") {
+                        let params = request.lines().next().unwrap_or("").split_whitespace().nth(1).unwrap_or("");
+                        let url = Url::parse(&format!("http://localhost{}", params)).ok();
                         
-                        // Check if it's the redirect we're waiting for
-                        if request.starts_with("GET /callback") {
-                            let params = request.lines().next().unwrap_or("").split_whitespace().nth(1).unwrap_or("");
-                            let url = Url::parse(&format!("http://localhost{}", params)).ok();
+                        if let Some(url) = url {
+                            let pairs: Vec<(String, String)> = url.query_pairs().map(|(k, v)| (k.to_string(), v.to_string())).collect();
                             
-                            if let Some(url) = url {
-                                let pairs: Vec<(String, String)> = url.query_pairs().map(|(k, v)| (k.to_string(), v.to_string())).collect();
+                            // Check if state matches
+                            let state_param = pairs.iter().find(|(k, _)| k == "state").map(|(_, v)| v.as_str());
+                            if state_param != Some(&expected_state_clone) { // Use the cloned value
+                                debug!("State mismatch in redirect: got {:?}, expected {}", state_param, expected_state_clone);
                                 
-                                // Check if state matches
-                                let state_param = pairs.iter().find(|(k, _)| k == "state").map(|(_, v)| v.as_str());
-                                if state_param != Some(&expected_state) {
-                                    debug!("State mismatch in redirect: got {:?}, expected {}", state_param, expected_state);
-                                    
-                                    // Send error page
-                                    let error_response = "HTTP/1.1 400 Bad Request\r\nContent-Type: text/html\r\n\r\n<html><body><h1>Authentication Error</h1><p>Invalid state parameter.</p></body></html>";
-                                    let _ = stream.write_all(error_response.as_bytes()).await;
-                                    return;
-                                }
+                                // Send error page
+                                let error_response = "HTTP/1.1 400 Bad Request\r\nContent-Type: text/html\r\n\r\n<html><body><h1>Authentication Error</h1><p>Invalid state parameter.</p></body></html>";
+                                let _ = stream.write_all(error_response.as_bytes()).await;
+                                return;
+                            }
+                            
+                            // Extract code
+                            if let Some((_, code)) = pairs.iter().find(|(k, _)| k == "code") {
+                                // Send success page
+                                let success_response = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n<html><body><h1>Authentication Successful</h1><p>You can close this window and return to the application.</p><script>window.close();</script></body></html>";
+                                let _ = stream.write_all(success_response.as_bytes()).await;
                                 
-                                // Extract code
-                                if let Some((_, code)) = pairs.iter().find(|(k, _)| k == "code") {
-                                    // Send success page
-                                    let success_response = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n<html><body><h1>Authentication Successful</h1><p>You can close this window and return to the application.</p><script>window.close();</script></body></html>";
-                                    let _ = stream.write_all(success_response.as_bytes()).await;
-                                    
-                                    // Send the code through the channel
-                                    if let Some(tx) = code_tx.lock().unwrap().take() {
-                                        let _ = tx.send(code.clone());
-                                    }
+                                // Send the code through the channel
+                                if let Some(tx) = code_tx.lock().unwrap().take() {
+                                    let _ = tx.send(code.clone());
                                 }
                             }
                         }
                     }
-                });
-            }
-        });
+                }
+            });
+        }
+    });
         
         // Wait for the code
         let code = tokio::select! {
