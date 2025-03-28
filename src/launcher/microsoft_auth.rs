@@ -1,5 +1,5 @@
 use tokio::runtime::Runtime;
-use log::{debug, error, info, warn};
+use log::{debug, error, info}; // Remove unused 'warn'
 use std::error::Error;
 
 // Re-export the main authentication module from root
