@@ -1929,160 +1929,160 @@ pub(crate) fn app() -> Element {
 
     // Effect to build pages map when branches are processed
     use_effect(move || {
-    if let Some(processed_branches) = packs.read().as_ref() {
-        debug!("Building pages map from {} processed branches", processed_branches.len());
-        
-        let mut new_pages = BTreeMap::<usize, TabInfo>::new();
-        for (tab_group, profile) in processed_branches {
-            let tab_title = profile.manifest.tab_title.clone().unwrap_or_else(|| profile.manifest.subtitle.clone());
-            let tab_color = profile.manifest.tab_color.clone().unwrap_or_else(|| String::from("#320625"));
-            let tab_background = profile.manifest.tab_background.clone().unwrap_or_else(|| {
-                String::from("https://raw.githubusercontent.com/Wynncraft-Overhaul/installer/master/src/assets/background_installer.png")
-            });
-            let settings_background = profile.manifest.settings_background.clone().unwrap_or_else(|| tab_background.clone());
+        if let Some(processed_branches) = packs.read().as_ref() {
+            debug!("Building pages map from {} processed branches", processed_branches.len());
             
-            // No longer including font fields
-            new_pages.entry(*tab_group).or_insert(TabInfo {
-                color: tab_color,
-                title: tab_title,
-                background: tab_background,
-                settings_background,
-                // Remove these fields
-                // primary_font,
-                // secondary_font,
-                modpacks: vec![profile.clone()],
-            });
+            let mut new_pages = BTreeMap::<usize, TabInfo>::new();
+            for (tab_group, profile) in processed_branches {
+                let tab_title = profile.manifest.tab_title.clone().unwrap_or_else(|| profile.manifest.subtitle.clone());
+                let tab_color = profile.manifest.tab_color.clone().unwrap_or_else(|| String::from("#320625"));
+                let tab_background = profile.manifest.tab_background.clone().unwrap_or_else(|| {
+                    String::from("https://raw.githubusercontent.com/Wynncraft-Overhaul/installer/master/src/assets/background_installer.png")
+                });
+                let settings_background = profile.manifest.settings_background.clone().unwrap_or_else(|| tab_background.clone());
+                
+                // No longer including font fields
+                new_pages.entry(*tab_group).or_insert(TabInfo {
+                    color: tab_color,
+                    title: tab_title,
+                    background: tab_background,
+                    settings_background,
+                    // Remove these fields
+                    // primary_font,
+                    // secondary_font,
+                    modpacks: vec![profile.clone()],
+                });
+            }
+            
+            pages.set(new_pages);
+            debug!("Updated pages map with {} tabs", pages().len());
         }
-        
-        pages.set(new_pages);
-        debug!("Updated pages map with {} tabs", pages().len());
-    }
-});
+    });
 
     let css_content = {
-    let default_color = "#320625".to_string();
-    let default_bg = "https://raw.githubusercontent.com/Wynncraft-Overhaul/installer/master/src/assets/background_installer.png".to_string();
-    
-    let bg_color = match pages().get(&page()) {
-        Some(x) => x.color.clone(),
-        None => default_color,
-    };
-    
-    let bg_image = match pages().get(&page()) {
-        Some(x) => {
-            if settings() {
-                x.settings_background.clone()
-            } else {
-                x.background.clone()
-            }
-        },
-        None => default_bg,
-    };
-    
-    // Use constants instead of TabInfo properties
-    debug!("Updating CSS with: color={}, bg_image={}", bg_color, bg_image);
+        let default_color = "#320625".to_string();
+        let default_bg = "https://raw.githubusercontent.com/Wynncraft-Overhaul/installer/master/src/assets/background_installer.png".to_string();
         
-    // Improved dropdown menu CSS with better hover behavior and font consistency
-    let dropdown_css = "
-    /* Dropdown styles */
-    .dropdown { 
-        position: relative; 
-        display: inline-block; 
-    }
-
-    /* Position the dropdown content */
-    .dropdown-content {
-        display: none;
-        position: absolute;
-        top: 100%;
-        left: 0;
-        background-color: rgba(0, 0, 0, 0.9);
-        min-width: 200px;
-        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.6);
-        z-index: 1000;
-        border-radius: 4px;
-        overflow: hidden;
-        margin-top: 5px;
-        max-height: 400px;
-        overflow-y: auto;
-        border: 1px solid rgba(255, 255, 255, 0.1);
-    }
-
-    /* Show dropdown on hover with increased target area */
-    .dropdown:hover .dropdown-content,
-    .dropdown-content:hover {
-        display: block;
-    }
-
-    /* Add a pseudo-element to create an invisible connection between the button and dropdown */
-    .dropdown::after {
-        content: '';
-        position: absolute;
-        height: 10px;
-        width: 100%;
-        left: 0;
-        top: 100%;
-        display: none;
-    }
-
-    .dropdown:hover::after {
-        display: block;
-    }
-
-    .dropdown-item {
-        display: block;
-        width: 100%;
-        padding: 10px 15px;
-        text-align: left;
-        background-color: transparent;
-        border: none;
-        /* Explicitly use the PRIMARY_FONT */
-        font-family: \\\"PRIMARY_FONT\\\";
-        font-size: 0.9rem;
-        color: #fce8f6;
-        cursor: pointer;
-        transition: background-color 0.2s ease;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-    }
-
-    .dropdown-item:last-child {
-        border-bottom: none;
-    }
-
-    .dropdown-item:hover {
-        background-color: rgba(50, 6, 37, 0.8);
-        border-color: rgba(255, 255, 255, 0.4);
-        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
-    }
-
-    .dropdown-item.active {
-        background-color: var(--bg-color);
-        border-color: #fce8f6;
-        box-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
-        color: #fff;
-    }
-
-    /* Fix for header-tabs to prevent dropdown from affecting it */
-    .header-tabs {
-        display: flex;
-        gap: 5px;
-        margin: 0 10px;
-        flex-grow: 1;
-        justify-content: center;
-        flex-wrap: wrap;
-        overflow-x: visible;
-        scrollbar-width: thin;
-        max-width: 70%;
-        position: relative;
-    }";
+        let bg_color = match pages().get(&page()) {
+            Some(x) => x.color.clone(),
+            None => default_color,
+        };
         
-    css
-        .replace("<BG_COLOR>", &bg_color)
-        .replace("<BG_IMAGE>", &bg_image)
-        .replace("<SECONDARY_FONT>", HEADER_FONT)
-        .replace("<PRIMARY_FONT>", REGULAR_FONT)
-        + "/* Font fixes applied */"
-};
+        let bg_image = match pages().get(&page()) {
+            Some(x) => {
+                if settings() {
+                    x.settings_background.clone()
+                } else {
+                    x.background.clone()
+                }
+            },
+            None => default_bg,
+        };
+        
+        // Use constants instead of TabInfo properties
+        debug!("Updating CSS with: color={}, bg_image={}", bg_color, bg_image);
+            
+        // Improved dropdown menu CSS with better hover behavior and font consistency
+        let _dropdown_css = "
+        /* Dropdown styles */
+        .dropdown { 
+            position: relative; 
+            display: inline-block; 
+        }
+
+        /* Position the dropdown content */
+        .dropdown-content {
+            display: none;
+            position: absolute;
+            top: 100%;
+            left: 0;
+            background-color: rgba(0, 0, 0, 0.9);
+            min-width: 200px;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.6);
+            z-index: 1000;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 5px;
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        /* Show dropdown on hover with increased target area */
+        .dropdown:hover .dropdown-content,
+        .dropdown-content:hover {
+            display: block;
+        }
+
+        /* Add a pseudo-element to create an invisible connection between the button and dropdown */
+        .dropdown::after {
+            content: '';
+            position: absolute;
+            height: 10px;
+            width: 100%;
+            left: 0;
+            top: 100%;
+            display: none;
+        }
+
+        .dropdown:hover::after {
+            display: block;
+        }
+
+        .dropdown-item {
+            display: block;
+            width: 100%;
+            padding: 10px 15px;
+            text-align: left;
+            background-color: transparent;
+            border: none;
+            /* Explicitly use the PRIMARY_FONT */
+            font-family: \\\"PRIMARY_FONT\\\";
+            font-size: 0.9rem;
+            color: #fce8f6;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .dropdown-item:last-child {
+            border-bottom: none;
+        }
+
+        .dropdown-item:hover {
+            background-color: rgba(50, 6, 37, 0.8);
+            border-color: rgba(255, 255, 255, 0.4);
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+        }
+
+        .dropdown-item.active {
+            background-color: var(--bg-color);
+            border-color: #fce8f6;
+            box-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
+            color: #fff;
+        }
+
+        /* Fix for header-tabs to prevent dropdown from affecting it */
+        .header-tabs {
+            display: flex;
+            gap: 5px;
+            margin: 0 10px;
+            flex-grow: 1;
+            justify-content: center;
+            flex-wrap: wrap;
+            overflow-x: visible;
+            scrollbar-width: thin;
+            max-width: 70%;
+            position: relative;
+        }";
+            
+        css
+            .replace("<BG_COLOR>", &bg_color)
+            .replace("<BG_IMAGE>", &bg_image)
+            .replace("<SECONDARY_FONT>", HEADER_FONT)
+            .replace("<PRIMARY_FONT>", REGULAR_FONT)
+            + "/* Font fixes applied */"
+    };
 
     let mut modal_context = use_context_provider(ModalContext::default);
     if let Some(e) = err() {
@@ -2151,144 +2151,190 @@ pub(crate) fn app() -> Element {
                     }
                 } else {
                     // DIAGNOSTIC CONTENT RENDERING SECTION
-
-                    
                     if current_page == HOME_PAGE {
-    debug!("RENDERING: HomePage");
-    rsx! {
-        HomePage {
-            pages,
-            page
-        }
-    }
-} else {
-    debug!("RENDERING: Content for page {}", current_page);
-    
-    // Get tab info without temporary references
-    let pages_map = pages();
-    
-    if let Some(tab_info) = pages_map.get(&current_page) {
-        debug!("FOUND tab group {} with {} modpacks", 
-               current_page, tab_info.modpacks.len());
-        
-        // CRITICAL FIX: Get all modpacks before rendering
-        let modpacks = tab_info.modpacks.clone();
-        debug!("Cloned {} modpacks for rendering", modpacks.len());
-        
-        // Log each modpack outside the RSX
-        for profile in &modpacks {
-            debug!("Preparing to render modpack: {}", profile.manifest.subtitle);
-        }
-        
-        // Create a separate credits signal for this rendering path
-        let mut credits_visible = use_signal(|| false);
-        let mut selected_profile = use_signal(|| modpacks.first().cloned());
-        let mut error_msg = use_signal(|| Option::<String>::None);
-        
-        // Directly return the RSX without unnecessary nesting
-        rsx! {
-            // First, conditionally render either the credits view or the normal content
-            if *credits_visible.read() {
-                // Render the Credits component with the selected profile
-                if let Some(profile) = selected_profile.read().clone() {
-                    Credits {
-                        manifest: profile.manifest.clone(),
-                        enabled: profile.enabled_features.clone(),
-                        credits: credits_visible
-                    }
-                }
-            } else {
-                // Error notification if any
-                if let Some(error) = error_msg() {
-                    div { class: "error-notification",
-                        div { class: "error-message", "{error}" }
-                        button { 
-                            class: "error-close",
-                            onclick: move |_| error_msg.set(None),
-                            "×"
+                        debug!("RENDERING: HomePage");
+                        rsx! {
+                            HomePage {
+                                pages,
+                                page
+                            }
                         }
-                    }
-                }
-                
-                // Render the normal modpack content
-                div { 
-                    class: "version-page-container",
-                    style: "display: block; width: 100%;",
-                    
-                    for (index, profile) in modpacks.iter().enumerate() {
-                        {
-                            let profile_clone = profile.clone();
-                            let is_installed = profile.installed;
-                            let uuid = profile.manifest.uuid.clone();
-                            let mut error_signal = error_msg.clone();
+                    } else {
+                        debug!("RENDERING: Content for page {}", current_page);
+                        
+                        // Get tab info without temporary references
+                        let pages_map = pages();
+                        
+                        if let Some(tab_info) = pages_map.get(&current_page) {
+                            debug!("FOUND tab group {} with {} modpacks", 
+                                current_page, tab_info.modpacks.len());
                             
+                            // CRITICAL FIX: Get all modpacks before rendering
+                            let modpacks = tab_info.modpacks.clone();
+                            debug!("Cloned {} modpacks for rendering", modpacks.len());
+                            
+                            // Log each modpack outside the RSX
+                            for profile in &modpacks {
+                                debug!("Preparing to render modpack: {}", profile.manifest.subtitle);
+                            }
+                            
+                            // Create a separate credits signal for this rendering path
+                            let mut credits_visible = use_signal(|| false);
+                            let mut selected_profile = use_signal(|| modpacks.first().cloned());
+                            let mut error_msg = use_signal(|| Option::<String>::None);
+                            
+                            // Directly return the RSX without unnecessary nesting
                             rsx! {
-                                div { 
-                                    class: "version-container",
-                                    
-                                    // Header section
-                                    div { class: "content-header",
-                                        h1 { "{profile.manifest.subtitle}" }
+                                // First, conditionally render either the credits view or the normal content
+                                if *credits_visible.read() {
+                                    // Render the Credits component with the selected profile
+                                    if let Some(profile) = selected_profile.read().clone() {
+                                        Credits {
+                                            manifest: profile.manifest.clone(),
+                                            enabled: profile.enabled_features.clone(),
+                                            credits: credits_visible
+                                        }
                                     }
-                                    
-                                    // Description section
-                                    div { class: "content-description",
-                                        dangerous_inner_html: "{profile.manifest.description}"
-                                    }
-
-                                    // Credits link - moved outside the description HTML
-                                    div { class: "credits-link-container", style: "text-align: center; margin: 15px 0;",
-                                        a {
-                                            class: "credits-button",
-                                            onclick: move |evt| {
-                                                // Set the selected profile and show credits
-                                                selected_profile.set(Some(profile_clone.clone()));
-                                                credits_visible.set(true);
-                                                evt.stop_propagation();
-                                            },
-                                            "VIEW CREDITS"
+                                } else {
+                                    // Error notification if any
+                                    if let Some(error) = error_msg() {
+                                        div { class: "error-notification",
+                                            div { class: "error-message", "{error}" }
+                                            button { 
+                                                class: "error-close",
+                                                onclick: move |_| error_msg.set(None),
+                                                "×"
+                                            }
                                         }
                                     }
                                     
-                                    // Features heading
-                                    h2 { class: "features-heading", "OPTIONAL FEATURES" }
-                                    
-                                    // MODIFIED SECTION: Expandable Features
-                                    div { class: "features-section",
-                                        {
-                                            // Filter features inside the RSX block
-                                            let visible_features: Vec<_> = profile.manifest.features.iter()
-                                                .filter(|f| !f.hidden)
-                                                .collect();
-                                            
-                                            // Calculate whether to show expand button
-                                            let first_row_count = 3;
-                                            let show_expand_button = visible_features.len() > first_row_count;
-                                            
-                                            // Using a unique signal for each profile's expanded state
-                                            let expanded_signal_id = format!("expanded-{}-{}", current_page, index);
-                                            let mut expanded_features = use_signal(|| false);
-                                            
-                                            rsx! {
-                                                div { class: "feature-cards-container",
-                                                    // Feature cards rendering (unchanged) 
-                                                    // ...
-                                                }
+                                    // Render the normal modpack content
+                                    div { 
+                                        class: "version-page-container",
+                                        style: "display: block; width: 100%;",
+                                        
+                                        for (index, profile) in modpacks.iter().enumerate() {
+                                            {
+                                                let profile_clone = profile.clone();
+                                                let is_installed = profile.installed;
+                                                let uuid = profile.manifest.uuid.clone();
+                                                let error_signal = error_msg.clone();
                                                 
-                                                // Only show expand button if needed
-                                                if show_expand_button {
-                                                    div { class: "features-expand-container",
-                                                        button {
-                                                            class: "features-expand-button",
-                                                            onclick: move |_| {
-                                                                let current_state = *expanded_features.read();
-                                                                expanded_features.set(!current_state);
-                                                                debug!("Toggled expanded features: {} for profile {}", !current_state, expanded_signal_id);
-                                                            },
-                                                            if *expanded_features.read() {
-                                                                "Collapse Features"
-                                                            } else {
-                                                                {format!("Show {} More Features", visible_features.len() - first_row_count)}
+                                                rsx! {
+                                                    div { 
+                                                        class: "version-container",
+                                                        
+                                                        // Header section
+                                                        div { class: "content-header",
+                                                            h1 { "{profile.manifest.subtitle}" }
+                                                        }
+                                                        
+                                                        // Description section
+                                                        div { class: "content-description",
+                                                            dangerous_inner_html: "{profile.manifest.description}"
+                                                        }
+
+                                                        // Credits link - moved outside the description HTML
+                                                        div { class: "credits-link-container", style: "text-align: center; margin: 15px 0;",
+                                                            a {
+                                                                class: "credits-button",
+                                                                onclick: move |evt| {
+                                                                    // Set the selected profile and show credits
+                                                                    selected_profile.set(Some(profile_clone.clone()));
+                                                                    credits_visible.set(true);
+                                                                    evt.stop_propagation();
+                                                                },
+                                                                "VIEW CREDITS"
+                                                            }
+                                                        }
+                                                        
+                                                        // Features heading
+                                                        h2 { class: "features-heading", "OPTIONAL FEATURES" }
+                                                        
+                                                        // MODIFIED SECTION: Expandable Features
+                                                        div { class: "features-section",
+                                                            {
+                                                                // Filter features inside the RSX block
+                                                                let visible_features: Vec<_> = profile.manifest.features.iter()
+                                                                    .filter(|f| !f.hidden)
+                                                                    .collect();
+                                                                
+                                                                // Calculate whether to show expand button
+                                                                let first_row_count = 3;
+                                                                let show_expand_button = visible_features.len() > first_row_count;
+                                                                
+                                                                // Using a unique signal for each profile's expanded state
+                                                                let expanded_signal_id = format!("expanded-{}-{}", current_page, index);
+                                                                let mut expanded_features = use_signal(|| false);
+                                                                
+                                                                rsx! {
+                                                                    div { class: "feature-cards-container",
+                                                                        // Feature cards rendering (unchanged) 
+                                                                        // ...
+                                                                    }
+                                                                    
+                                                                    // Only show expand button if needed
+                                                                    if show_expand_button {
+                                                                        div { class: "features-expand-container",
+                                                                            button {
+                                                                                class: "features-expand-button",
+                                                                                onclick: move |_| {
+                                                                                    let current_state = *expanded_features.read();
+                                                                                    expanded_features.set(!current_state);
+                                                                                    debug!("Toggled expanded features: {} for profile {}", !current_state, expanded_signal_id);
+                                                                                },
+                                                                                if *expanded_features.read() {
+                                                                                    "Collapse Features"
+                                                                                } else {
+                                                                                    {format!("Show {} More Features", visible_features.len() - first_row_count)}
+                                                                                }
+                                                                            }
+                                                                        }
+                                                                    }
+                                                                }
+                                                            }
+                                                        }
+                                                        
+                                                        // Install button and Play button in sequence
+                                                        div { 
+                                                            class: "buttons-container",
+                                                            style: "display: flex; flex-direction: column; align-items: center; margin-top: 20px;",
+                                                            
+                                                            // Install/Update/Modify button
+                                                            div { class: "install-button-container",
+                                                                div { class: "button-scale-wrapper",
+                                                                    button { 
+                                                                        class: "main-install-button",
+                                                                        // You can add proper install logic here if needed
+                                                                        if profile.installed && profile.update_available {
+                                                                            "Update"
+                                                                        } else if profile.installed {
+                                                                            "Modify"
+                                                                        } else {
+                                                                            "Install"
+                                                                        }
+                                                                    }
+                                                                }
+                                                            }
+                                                            
+                                                            // Play button (only if installed)
+                                                            if is_installed {
+                                                                {
+                                                                    let uuid_str = uuid.clone(); // Clone outside
+                                                                    let err_signal = error_signal.clone();
+                                                                    
+                                                                    rsx! {
+                                                                        PlayButton {
+                                                                            uuid: uuid_str.clone(), // Clone again for component
+                                                                            disabled: false,
+                                                                            auth_status: None,
+                                                                            onclick: move |_| {
+                                                                                let uuid_for_handler = uuid_str.clone(); // Clone inside closure
+                                                                                handle_play_click(uuid_for_handler, &err_signal);
+                                                                            }
+                                                                        }
+                                                                    }
+                                                                }
                                                             }
                                                         }
                                                     }
@@ -2296,59 +2342,16 @@ pub(crate) fn app() -> Element {
                                             }
                                         }
                                     }
-                                    
-                                    // Install button and Play button in sequence
-                                    div { 
-                                        class: "buttons-container",
-                                        style: "display: flex; flex-direction: column; align-items: center; margin-top: 20px;",
-                                        
-                                        // Install/Update/Modify button
-                                        div { class: "install-button-container",
-                                            div { class: "button-scale-wrapper",
-                                                button { 
-                                                    class: "main-install-button",
-                                                    // You can add proper install logic here if needed
-                                                    if profile.installed && profile.update_available {
-                                                        "Update"
-                                                    } else if profile.installed {
-                                                        "Modify"
-                                                    } else {
-                                                        "Install"
-                                                    }
-                                                }
-                                            }
-                                        }
-                                        
-                                        // Play button (only if installed)
-                                        if is_installed {
-                                            {
-    let uuid_for_button = uuid_clone.clone(); // Clone outside - do NOT use uuid_clone directly
-    let err_signal = err_clone.clone();
-    
-    rsx! {
-        PlayButton {
-            uuid: uuid_for_button.clone(), // Clone again for component
-            disabled: false,
-            auth_status: None,
-            onclick: move |_| {
-                let uuid_to_handler = uuid_for_button.clone(); // Clone inside closure
-                handle_play_click(uuid_to_handler, &err_signal);
-            }
-        }
-    }
-}
-                                        }
-                                    }
                                 }
                             }
+                        } else {
+                            debug!("NO TAB INFO found for page {}", current_page);
+                            rsx! { div { "No modpack information found for this tab." } }
                         }
                     }
                 }
             }
         }
-    } else {
-        debug!("NO TAB INFO found for page {}", current_page);
-        rsx! { div { "No modpack information found for this tab." } }
     }
 }
-}}}}}}
+}
