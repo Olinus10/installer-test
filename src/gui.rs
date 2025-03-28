@@ -87,6 +87,15 @@ pub fn get_auth_status() -> AuthStatus {
 pub fn handle_play_click(uuid: String, error_signal: &Signal<Option<String>>) {
     debug!("Play button clicked for modpack: {}", uuid);
     
+    // Clone error signal value before moving into thread
+    let set_error = {
+        let mut error_signal = error_signal.clone();
+        move |error_msg: String| {
+            error!("Error in play click handler: {}", error_msg);
+            error_signal.set(Some(error_msg));
+        }
+    };
+    
     // Check authentication status
     match get_auth_status() {
         AuthStatus::Authenticated => {
@@ -98,7 +107,7 @@ pub fn handle_play_click(uuid: String, error_signal: &Signal<Option<String>>) {
                     },
                     Err(e) => {
                         error!("Failed to launch modpack: {}", e);
-                        error_signal.set(Some(format!("Failed to launch modpack: {}", e)));
+                        set_error(format!("Failed to launch modpack: {}", e));
                     }
                 }
             });
@@ -116,13 +125,13 @@ pub fn handle_play_click(uuid: String, error_signal: &Signal<Option<String>>) {
                             },
                             Err(e) => {
                                 error!("Failed to launch modpack after authentication: {}", e);
-                                error_signal.set(Some(format!("Failed to launch modpack: {}", e)));
+                                set_error(format!("Failed to launch modpack: {}", e));
                             }
                         }
                     },
                     Err(e) => {
                         error!("Authentication failed: {}", e);
-                        error_signal.set(Some(format!("Microsoft authentication failed: {}", e)));
+                        set_error(format!("Microsoft authentication failed: {}", e));
                     }
                 }
             });
