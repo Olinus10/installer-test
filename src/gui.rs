@@ -5,7 +5,7 @@ use log::{error, debug};
 use modal::ModalContext;
 use modal::Modal; 
 use crate::{get_app_data, get_installed_packs, get_launcher, uninstall, InstallerProfile, Launcher, PackName, Changelog,launcher::launch_modpack};
-
+use std::sync::mpsc;
 mod modal;
 
 const HEADER_FONT: &str = "\"HEADER_FONT\"";
@@ -75,69 +75,68 @@ pub enum AuthStatus {
 }
 
 // Helper function to check auth status of a profile
-pub fn get_auth_status() -> AuthStatus {
-    if crate::launcher::microsoft_auth::MicrosoftAuth::is_authenticated() {
-        AuthStatus::Authenticated
-    } else {
-        AuthStatus::NeedsAuth
-    }
-}
-
-// Handle play button clicks
 pub fn handle_play_click(uuid: String, error_signal: &Signal<Option<String>>) {
     debug!("Play button clicked for modpack: {}", uuid);
     
-    // Clone error signal value before moving into thread
-    let set_error = {
-        let mut error_signal = error_signal.clone();
-        move |error_msg: String| {
-            error!("Error in play click handler: {}", error_msg);
-            error_signal.set(Some(error_msg));
-        }
-    };
+    // Create a channel to communicate back to the main thread
+    let (error_tx, error_rx) = mpsc::channel::<String>();
+    
+    // Clone error_signal before moving to thread
+    let mut error_signal_clone = error_signal.clone();
     
     // Check authentication status
     match get_auth_status() {
         AuthStatus::Authenticated => {
             // User is already authenticated, launch the game
+            let uuid_clone = uuid.clone();
             std::thread::spawn(move || {
-                match crate::launcher::microsoft_auth::MicrosoftAuth::launch_minecraft(&uuid) {
+                match crate::launcher::microsoft_auth::MicrosoftAuth::launch_minecraft(&uuid_clone) {
                     Ok(_) => {
-                        debug!("Successfully launched modpack: {}", uuid);
+                        debug!("Successfully launched modpack: {}", uuid_clone);
                     },
                     Err(e) => {
                         error!("Failed to launch modpack: {}", e);
-                        set_error(format!("Failed to launch modpack: {}", e));
+                        let _ = error_tx.send(format!("Failed to launch modpack: {}", e));
                     }
                 }
             });
         },
         AuthStatus::NeedsAuth => {
             // User needs to authenticate first
+            let uuid_clone = uuid.clone();
+            let error_tx_clone = error_tx.clone();
             std::thread::spawn(move || {
                 match crate::launcher::microsoft_auth::MicrosoftAuth::authenticate() {
                     Ok(_) => {
-                        debug!("Authentication successful, now launching modpack: {}", uuid);
+                        debug!("Authentication successful, now launching modpack: {}", uuid_clone);
                         // After successful authentication, launch the game
-                        match crate::launcher::microsoft_auth::MicrosoftAuth::launch_minecraft(&uuid) {
+                        match crate::launcher::microsoft_auth::MicrosoftAuth::launch_minecraft(&uuid_clone) {
                             Ok(_) => {
-                                debug!("Successfully launched modpack after authentication: {}", uuid);
+                                debug!("Successfully launched modpack after authentication: {}", uuid_clone);
                             },
                             Err(e) => {
                                 error!("Failed to launch modpack after authentication: {}", e);
-                                set_error(format!("Failed to launch modpack: {}", e));
+                                let _ = error_tx_clone.send(format!("Failed to launch modpack: {}", e));
                             }
                         }
                     },
                     Err(e) => {
                         error!("Authentication failed: {}", e);
-                        set_error(format!("Microsoft authentication failed: {}", e));
+                        let _ = error_tx.send(format!("Microsoft authentication failed: {}", e));
                     }
                 }
             });
         }
     }
+    
+    // Create a task to check for errors from the background thread
+    spawn(async move {
+        if let Ok(error_message) = error_rx.recv() {
+            error_signal_clone.set(Some(error_message));
+        }
+    });
 }
+
 
 // PlayButton component
 #[component]
