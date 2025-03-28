@@ -246,7 +246,7 @@ impl MicrosoftAuth {
     
     // Wait for the redirect after user logs in
     async fn wait_for_redirect(csrf_state: CsrfToken) -> Result<String, Box<dyn Error>> {
-        let expected_state = csrf_state.secret();
+    let expected_state = csrf_state.secret().to_string();
         
         // Setup a TCP listener on localhost:8000
         let listener = TcpListener::bind("127.0.0.1:8000").await?;
@@ -278,7 +278,7 @@ impl MicrosoftAuth {
                                 
                                 // Check if state matches
                                 let state_param = pairs.iter().find(|(k, _)| k == "state").map(|(_, v)| v.as_str());
-                                if state_param != Some(expected_state) {
+                                if state_param != Some(&expected_state) {
                                     debug!("State mismatch in redirect: got {:?}, expected {}", state_param, expected_state);
                                     
                                     // Send error page
@@ -470,7 +470,7 @@ impl MicrosoftAuth {
     }
 
     // Refresh an existing token
-    async fn refresh_token(refresh_token: &str) -> Result<AuthInfo, Box<dyn Error>> {
+    pub async fn refresh_token(refresh_token: &str) -> Result<AuthInfo, Box<dyn Error>> {
         debug!("Attempting to refresh Microsoft token");
         
         let client = Self::create_client();
@@ -512,7 +512,7 @@ impl MicrosoftAuth {
     }
 
     // Load saved authentication info
-    fn load_auth_info() -> Option<AuthInfo> {
+    pub fn load_auth_info() -> Option<AuthInfo> {
         if let Ok(auth_dir) = Self::get_auth_dir() {
             let auth_file = auth_dir.join("auth.json");
             if auth_file.exists() {
