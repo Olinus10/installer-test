@@ -43,11 +43,11 @@ use std::{
 mod gui;
 mod launcher;
 mod microsoft_auth_impl; // This is in the root src directory
+
 mod installation;
 mod accounts;
 mod preset;
 mod universal;
-
 
 // Update your re-exports
 pub use launcher::{launch_modpack, update_jvm_args, get_jvm_args};
@@ -57,7 +57,7 @@ pub use launcher::microsoft_auth::MicrosoftAuth;
 pub use installation::{Installation, get_active_installation, load_all_installations};
 pub use accounts::{StoredAccount, get_active_account, get_all_accounts, authenticate, is_authenticated};
 pub use preset::{Preset, load_presets};
-pub use universal::{UniversalManifest, load_universal_manifest}
+pub use universal::{UniversalManifest, load_universal_manifest};
 
 const CURRENT_MANIFEST_VERSION: i32 = 3;
 const GH_API: &str = "https://api.github.com/repos/";
