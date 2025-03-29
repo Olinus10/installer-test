@@ -13,14 +13,6 @@ static INITIALIZATION_COMPLETE: AtomicBool = AtomicBool::new(false);
 
 impl MicrosoftAuth {
 
-pub fn mark_initialization_complete() {
-    INITIALIZATION_COMPLETE.store(true, Ordering::SeqCst);
-}
-
-fn is_initialization_complete() -> bool {
-    INITIALIZATION_COMPLETE.load(Ordering::SeqCst)
-}
-
     
     // Launch Minecraft with Microsoft authentication
     pub fn launch_minecraft(profile_id: &str) -> Result<(), Box<dyn Error>> {
@@ -98,7 +90,6 @@ pub fn mark_initialization_complete() {
 fn is_initialization_complete() -> bool {
     INITIALIZATION_COMPLETE.load(Ordering::SeqCst)
 }
-
 
     
     // Get the currently authenticated username (if any)
