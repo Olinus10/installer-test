@@ -4,8 +4,13 @@ use dioxus::prelude::*;
 use log::{error, debug};
 use modal::ModalContext;
 use modal::Modal; 
-use crate::{get_app_data, get_installed_packs, get_launcher, uninstall, InstallerProfile, Launcher, PackName, Changelog,launcher::launch_modpack};
 use std::sync::mpsc;
+
+use crate::{get_app_data, get_installed_packs, get_launcher, uninstall, InstallerProfile, Launcher, PackName, Changelog,launcher::launch_modpack};
+use crate::{Installation, Preset, UniversalManifest};
+use crate::preset;
+use crate::{get_active_account, get_all_accounts, authenticate, is_authenticated};
+
 mod modal;
 
 const HEADER_FONT: &str = "\"HEADER_FONT\"";
@@ -168,15 +173,6 @@ pub fn PlayButton(
 ) -> Element {
     // Check the current authentication status if not provided
     let status = auth_status.unwrap_or_else(get_auth_status);
-
-
-let filtered_modpacks = if modpacks.len() > 10 {
-    debug!("Warning: Large number of modpacks ({}), limiting display to first 10", modpacks.len());
-    modpacks.iter().take(10).cloned().collect::<Vec<_>>()
-} else {
-    modpacks.clone()
-};
-
     
     // Get username if authenticated
     let username_display = if status == AuthStatus::Authenticated {
@@ -1025,7 +1021,7 @@ fn AccountsPage() -> Element {
                         for account in accounts {
                             // Skip active account
                             if active_account.as_ref().map_or(false, |active| active.id == account.id) {
-                                continue;
+                                {continue}
                             }
                             
                             div { class: "account-list-item",
@@ -1244,7 +1240,7 @@ fn InstallationDetailsPage(installation_id: String) -> Element {
                     disabled: *is_installing.read(),
                     auth_status: None, // Will auto-detect
                     onclick: move |_| {
-                        let installation_clone = installation.clone();
+                        let mut installation_clone = installation.clone();
                         spawn(async move {
                             match installation_clone.launch() {
                                 Ok(_) => {},
@@ -1263,7 +1259,7 @@ fn InstallationDetailsPage(installation_id: String) -> Element {
                         disabled: *is_installing.read(),
                         onclick: move |_| {
                             is_installing.set(true);
-                            let installation_clone = installation.clone();
+                            let mut installation_clone = installation.clone();
                             let http_client = crate::CachedHttpClient::new();
                             
                             spawn(async move {
@@ -2966,9 +2962,9 @@ pub(crate) fn app() -> Element {
                     if current_page == HOME_PAGE {
                         debug!("RENDERING: HomePage");
                         rsx! {
-                            HomePage {
-                                pages,
-                                page
+                            NewHomePage {
+                installations: installations,
+                error_signal: err
                             }
                         }
                     } else {
