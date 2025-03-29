@@ -1,6 +1,7 @@
 use tokio::runtime::Runtime;
 use log::{debug, error, info}; // Remove unused 'warn'
 use std::error::Error;
+use std::sync::atomic::{AtomicBool, Ordering};
 
 // Re-export the main authentication module from root
 pub use crate::microsoft_auth_impl::MicrosoftAuth as InnerMicrosoftAuth;
@@ -8,7 +9,19 @@ pub use crate::microsoft_auth_impl::MicrosoftAuth as InnerMicrosoftAuth;
 // Wrapper struct with user-friendly methods
 pub struct MicrosoftAuth;
 
+static INITIALIZATION_COMPLETE: AtomicBool = AtomicBool::new(false);
+
 impl MicrosoftAuth {
+
+pub fn mark_initialization_complete() {
+    INITIALIZATION_COMPLETE.store(true, Ordering::SeqCst);
+}
+
+fn is_initialization_complete() -> bool {
+    INITIALIZATION_COMPLETE.load(Ordering::SeqCst)
+}
+
+    
     // Launch Minecraft with Microsoft authentication
     pub fn launch_minecraft(profile_id: &str) -> Result<(), Box<dyn Error>> {
         // Create a runtime for the async code
@@ -40,10 +53,10 @@ impl MicrosoftAuth {
     // Check if the user is already authenticated
     pub fn is_authenticated() -> bool {
     // Add safety check
-    if !is_initialization_complete() {
-        debug!("Auth check skipped during initialization");
-        return false;
-    }
+if !INITIALIZATION_COMPLETE.load(Ordering::SeqCst) {
+    debug!("Auth check skipped during initialization");
+    return false;
+}
         // Create a runtime for the async code
         if let Ok(rt) = Runtime::new() {
             rt.block_on(async {
