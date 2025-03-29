@@ -8,9 +8,21 @@
       "description": "Optimized for maximum FPS with minimal visual changes",
       "author": "Wynncraft Overhaul Team",
       "icon": "performance_icon.png",
-      "enabled_features": ["optifine", "sodium", "starlight", "entity_culling", "dynamic_fps"],
+      "enabled_features": [
+        "default", 
+        "sodium", 
+        "lithium", 
+        "starlight", 
+        "entity_culling", 
+        "dynamic_fps",
+        "ferrite_core",
+        "lazydfu",
+        "memoryleakfix"
+      ],
       "recommended_memory": 2048,
-      "recommended_java_args": "-XX:+UseG1GC -XX:+ParallelRefProcEnabled"
+      "recommended_java_args": "-XX:+UseG1GC -XX:+ParallelRefProcEnabled -XX:MaxGCPauseMillis=200 -XX:+UnlockExperimentalVMOptions -XX:+DisableExplicitGC -XX:+AlwaysPreTouch -XX:G1HeapWastePercent=5 -XX:G1MixedGCCountTarget=4",
+      "category": "performance",
+      "trending": true
     },
     {
       "id": "visual",
@@ -18,9 +30,24 @@
       "description": "Beautiful graphics with shaders and texture improvements",
       "author": "Wynncraft Overhaul Team",
       "icon": "visual_icon.png",
-      "enabled_features": ["complementary_shaders", "better_foliage", "sound_physics", "dynamic_lights"],
+      "enabled_features": [
+        "default",
+        "sodium", 
+        "iris",
+        "complementary_shaders", 
+        "better_foliage", 
+        "sound_physics", 
+        "dynamic_lights",
+        "presence_footsteps",
+        "visual_overhaul",
+        "falling_leaves",
+        "enhanced_weather"
+      ],
       "recommended_memory": 4096,
-      "recommended_java_args": "-XX:+UseG1GC -XX:G1HeapRegionSize=32M"
+      "recommended_java_args": "-XX:+UseG1GC -XX:G1HeapRegionSize=32M -XX:+UnlockExperimentalVMOptions -XX:+ParallelRefProcEnabled -XX:MaxGCPauseMillis=200",
+      "category": "visual",
+      "background": "https://raw.githubusercontent.com/Olinus10/installer-test/master/src/assets/visual_bg.jpg",
+      "color": "#386578"
     },
     {
       "id": "balanced",
@@ -28,9 +55,70 @@
       "description": "Good performance with improved visuals",
       "author": "Wynncraft Overhaul Team",
       "icon": "balanced_icon.png",
-      "enabled_features": ["sodium", "lithium", "enhanced_visuals_lite", "better_caves"],
+      "enabled_features": [
+        "default",
+        "sodium", 
+        "lithium",
+        "enhanced_visuals_lite", 
+        "better_caves",
+        "iris",
+        "simple_shaders",
+        "ferrite_core",
+        "memoryleakfix",
+        "better_animations"
+      ],
       "recommended_memory": 3072,
-      "recommended_java_args": "-XX:+UseG1GC -XX:MaxGCPauseMillis=200"
+      "recommended_java_args": "-XX:+UseG1GC -XX:MaxGCPauseMillis=200 -XX:+UnlockExperimentalVMOptions -XX:+AlwaysPreTouch",
+      "category": "balanced",
+      "background": "https://raw.githubusercontent.com/Olinus10/installer-test/master/src/assets/balanced_bg.jpg",
+      "color": "#4a6b3d"
+    },
+    {
+      "id": "vanilla_plus",
+      "name": "Vanilla+",
+      "description": "Minimal changes focused on quality-of-life improvements",
+      "author": "Wynncraft Overhaul Team",
+      "icon": "vanilla_plus_icon.png",
+      "enabled_features": [
+        "default",
+        "sodium",
+        "inventory_profiles",
+        "mouse_wheelie",
+        "appleskin",
+        "better_ping_display",
+        "better_f3",
+        "lazy_language_loader",
+        "memoryleakfix"
+      ],
+      "recommended_memory": 2048,
+      "recommended_java_args": "-XX:+UseG1GC -XX:MaxGCPauseMillis=200",
+      "category": "minimal"
+    },
+    {
+      "id": "wynncraft_enhanced",
+      "name": "Wynncraft Enhanced",
+      "description": "Specialized improvements for the Wynncraft experience",
+      "author": "Wynncraft Overhaul Team",
+      "icon": "wynncraft_enhanced_icon.png",
+      "enabled_features": [
+        "default",
+        "sodium",
+        "iris",
+        "wynntils",
+        "helpful_resource_packs",
+        "better_quest_tracking",
+        "wynncraft_textures",
+        "minimap_api",
+        "quest_helper",
+        "ferrite_core",
+        "memoryleakfix"
+      ],
+      "recommended_memory": 3072,
+      "recommended_java_args": "-XX:+UseG1GC -XX:MaxGCPauseMillis=200 -XX:+UnlockExperimentalVMOptions -XX:+ParallelRefProcEnabled",
+      "category": "gameplay",
+      "trending": true,
+      "background": "https://raw.githubusercontent.com/Olinus10/installer-test/master/src/assets/wynncraft_bg.jpg",
+      "color": "#7d4036"
     }
   ]
 }
