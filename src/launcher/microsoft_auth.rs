@@ -39,6 +39,11 @@ impl MicrosoftAuth {
     
     // Check if the user is already authenticated
     pub fn is_authenticated() -> bool {
+    // Add safety check
+    if !is_initialization_complete() {
+        debug!("Auth check skipped during initialization");
+        return false;
+    }
         // Create a runtime for the async code
         if let Ok(rt) = Runtime::new() {
             rt.block_on(async {
@@ -70,6 +75,18 @@ impl MicrosoftAuth {
             false
         }
     }
+
+static INITIALIZATION_COMPLETE: AtomicBool = AtomicBool::new(false);
+
+pub fn mark_initialization_complete() {
+    INITIALIZATION_COMPLETE.store(true, Ordering::SeqCst);
+}
+
+fn is_initialization_complete() -> bool {
+    INITIALIZATION_COMPLETE.load(Ordering::SeqCst)
+}
+
+
     
     // Get the currently authenticated username (if any)
     pub fn get_username() -> Option<String> {
