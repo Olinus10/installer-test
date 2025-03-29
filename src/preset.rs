@@ -1,10 +1,9 @@
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 use log::{debug, error};
-// Fix StatusCode import
-use crate::isahc::http::StatusCode;
-// Add AsyncReadResponseExt trait import
-use crate::isahc::AsyncReadResponseExt;
+
+use isahc::http::StatusCode;
+use isahc::AsyncReadResponseExt;
 
 use crate::CachedHttpClient;
 
@@ -88,9 +87,9 @@ pub async fn load_presets(http_client: &CachedHttpClient, url: Option<&str>) -> 
         return Err(format!("Failed to fetch presets: HTTP {}", response.status()));
     }
     
-    // Use the text method and convert to String right away
+    // Get text as String to avoid the unsized str error
     let presets_json = match response.text().await {
-        Ok(text) => text,
+        Ok(text_string) => text_string, // text() returns a String, not a &str
         Err(e) => {
             error!("Failed to read presets response: {}", e);
             return Err(format!("Failed to read presets response: {}", e));
