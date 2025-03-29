@@ -275,28 +275,40 @@ impl AccountManager {
     }
     
     // Add a new account
-    pub fn add_account(&mut self, auth_info: &AuthInfo) -> Result<String, String> {
-        if !self.loaded {
-            self.load_accounts()?;
-        }
+        let existing_account_index = self.accounts.iter().position(|a| a.username == auth_info.username);
+    
+    if let Some(index) = existing_account_index {
+        // Update existing account
+        let account = &mut self.accounts[index];
+        account.update_from_auth_info(auth_info);
+        account.last_used = Utc::now();
         
-        // Check if account already exists by username
-        for account in &mut self.accounts {
-            if account.username == auth_info.username {
-                // Update existing account
-                account.update_from_auth_info(auth_info);
-                account.last_used = Utc::now();
-                
-                // Make this the active account
-                self.active_account_id = Some(account.id.clone());
-                
-                // Save changes
-                self.save_accounts()?;
-                
-                info!("Updated existing account: {}", account.username);
-                return Ok(account.id.clone());
-            }
-        }
+        // Make this the active account
+        self.active_account_id = Some(account.id.clone());
+        
+        // Save changes
+        self.save_accounts()?;
+        
+        info!("Updated existing account: {}", account.username);
+        return Ok(account.id.clone());
+    }
+    
+    // Create a new account
+    let account = StoredAccount::from_auth_info(auth_info);
+    let account_id = account.id.clone();
+    
+    // Add to accounts list
+    self.accounts.push(account);
+    
+    // Make this the active account
+    self.active_account_id = Some(account_id.clone());
+    
+    // Save changes
+    self.save_accounts()?;
+    
+    info!("Added new account: {}", auth_info.username);
+    Ok(account_id)
+}
         
         // Create a new account
         let account = StoredAccount::from_auth_info(auth_info);
