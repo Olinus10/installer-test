@@ -1,9 +1,14 @@
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 use log::{debug, error};
-use isahc::StatusCode;
+// Fix StatusCode import
+use crate::isahc::http::StatusCode;
+// Add AsyncReadResponseExt trait import
+use crate::isahc::AsyncReadResponseExt;
 
-use crate::{CachedHttpClient, Author};
+use crate::CachedHttpClient;
+use crate::Author;
+
 
 // Structure for a mod/component in the universal manifest
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
@@ -62,7 +67,7 @@ pub async fn load_universal_manifest(http_client: &CachedHttpClient, url: Option
     let universal_url = url.unwrap_or(DEFAULT_UNIVERSAL_URL);
     debug!("Loading universal manifest from: {}", universal_url);
     
-    let response = match http_client.get_async(universal_url).await {
+    let mut response = match http_client.get_async(universal_url).await {
         Ok(resp) => resp,
         Err(e) => {
             error!("Failed to fetch universal manifest: {}", e);
@@ -75,6 +80,7 @@ pub async fn load_universal_manifest(http_client: &CachedHttpClient, url: Option
         return Err(format!("Failed to fetch universal manifest: HTTP {}", response.status()));
     }
     
+    // Use the text method and convert to String right away
     let universal_json = match response.text().await {
         Ok(text) => text,
         Err(e) => {
