@@ -1,0 +1,36 @@
+{
+  "version": "1.0",
+  "last_updated": "2025-03-29T12:00:00Z",
+  "presets": [
+    {
+      "id": "performance",
+      "name": "Performance Focus",
+      "description": "Optimized for maximum FPS with minimal visual changes",
+      "author": "Wynncraft Overhaul Team",
+      "icon": "performance_icon.png",
+      "enabled_features": ["optifine", "sodium", "starlight", "entity_culling", "dynamic_fps"],
+      "recommended_memory": 2048,
+      "recommended_java_args": "-XX:+UseG1GC -XX:+ParallelRefProcEnabled"
+    },
+    {
+      "id": "visual",
+      "name": "Visual Enhancement",
+      "description": "Beautiful graphics with shaders and texture improvements",
+      "author": "Wynncraft Overhaul Team",
+      "icon": "visual_icon.png",
+      "enabled_features": ["complementary_shaders", "better_foliage", "sound_physics", "dynamic_lights"],
+      "recommended_memory": 4096,
+      "recommended_java_args": "-XX:+UseG1GC -XX:G1HeapRegionSize=32M"
+    },
+    {
+      "id": "balanced",
+      "name": "Balanced Experience",
+      "description": "Good performance with improved visuals",
+      "author": "Wynncraft Overhaul Team",
+      "icon": "balanced_icon.png",
+      "enabled_features": ["sodium", "lithium", "enhanced_visuals_lite", "better_caves"],
+      "recommended_memory": 3072,
+      "recommended_java_args": "-XX:+UseG1GC -XX:MaxGCPauseMillis=200"
+    }
+  ]
+}
