@@ -212,7 +212,7 @@ impl Installation {
     
     // Launch the installation
     pub fn launch(&mut self) -> Result<(), String> {
-        info!("Launching installation '{}'", self.name);
+    info!("Launching installation '{}'", self.name);
         
         // Check if Microsoft auth is needed
         if crate::launcher::microsoft_auth::MicrosoftAuth::is_authenticated() {
@@ -368,7 +368,9 @@ pub fn set_active_installation(id: &str) -> Result<(), String> {
     index.active_installation = Some(id.to_string());
     index.last_active = Some(Utc::now());
     
+    // Convert io::Error to String
     save_installations_index(&index)
+        .map_err(|e| format!("Failed to save installations index: {}", e))
 }
 
 // Load installations index
