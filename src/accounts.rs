@@ -1,10 +1,4 @@
-use chrono::{DateTime, Duration, Utc}
-
-// Get the accounts directory
-fn get_accounts_dir() -> PathBuf {
-    let app_data = crate::get_app_data();
-    app_data.join(".WC_OVHL/accounts")
-};
+use chrono::{DateTime, Duration, Utc};
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::io;
@@ -12,24 +6,29 @@ use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 use log::{debug, error, info, warn};
 use tokio::runtime::Runtime;
-use once_cell::sync::Lazy;
-use uuid::Uuid;
+use std::sync::atomic::{AtomicBool, Ordering};
+
+// Get the accounts directory
+fn get_accounts_dir() -> PathBuf {
+    let app_data = crate::get_app_data();
+    app_data.join(".WC_OVHL/accounts")
+};
+
 
 use crate::launcher::microsoft_auth::InnerMicrosoftAuth;
-use crate::launcher::microsoft_auth::AuthInfo;
+use crate::microsoft_auth_impl::AuthInfo;
 
-// Global instance of account manager
-static ACCOUNT_MANAGER: Lazy<Mutex<AccountManager>> = Lazy::new(|| {
-    Mutex::new(AccountManager::new())
-});
+lazy_static::lazy_static! {
+    static ref ACCOUNT_MANAGER: Mutex<AccountManager> = Mutex::new(AccountManager::new());
+}
 
 // Initialize the account manager (call on app startup)
 pub fn initialize_accounts() -> Result<(), String> {
     let mut manager = ACCOUNT_MANAGER.lock().unwrap();
     manager.load_accounts()?;
     
-    // Mark initialization as complete
-    crate::launcher::microsoft_auth::mark_initialization_complete();
+    // Mark initialization as complete - fix the reference
+    crate::launcher::microsoft_auth::MicrosoftAuth::mark_initialization_complete();
     
     Ok(())
 }
@@ -430,10 +429,10 @@ impl AccountManager {
     
     // Sign out the active account
     pub fn sign_out(&mut self) -> Result<(), String> {
-        if let Some(id) = &self.active_account_id {
-            self.remove_account(id)?;
-        }
-        
-        Ok(())
+    if let Some(id) = self.active_account_id.clone() {
+        // Clone the ID first to avoid the borrow conflict
+        self.remove_account(&id)?;
     }
-}
+    
+    Ok(())
+}}
