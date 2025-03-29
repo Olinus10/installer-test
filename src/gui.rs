@@ -76,6 +76,11 @@ pub enum AuthStatus {
 
 // Helper function to check auth status of a profile
 pub fn get_auth_status() -> AuthStatus {
+    // Only check authentication if UI is fully loaded
+    if !app_fully_initialized() {
+        return AuthStatus::NeedsAuth; // Default to needing auth during initialization
+    }
+    
     if crate::launcher::microsoft_auth::MicrosoftAuth::is_authenticated() {
         AuthStatus::Authenticated
     } else {
