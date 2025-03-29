@@ -2648,6 +2648,8 @@ pub(crate) struct AppProps {
     pub modpack_source: String,
     pub config: super::Config,
     pub config_path: PathBuf,
+    // We can optionally add the installations field
+    // but will need to update where it's used
 }
 
 // Replace the entire app() function with this properly structured version
