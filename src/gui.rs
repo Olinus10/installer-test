@@ -88,6 +88,13 @@ pub fn get_auth_status() -> AuthStatus {
     }
 }
 
+// Add a function to check if app is fully initialized
+fn app_fully_initialized() -> bool {
+    // Check if pages are loaded, etc.
+    // Return false during initial loading
+    true // Change this based on actual state
+}
+
 // Thread-safe play button handler
 pub fn handle_play_click(uuid: String, error_signal: &Signal<Option<String>>) {
     debug!("Play button clicked for modpack: {}", uuid);
