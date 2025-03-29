@@ -1,10 +1,9 @@
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 use log::{debug, error};
-// Fix StatusCode import
-use crate::isahc::http::StatusCode;
-// Add AsyncReadResponseExt trait import
-use crate::isahc::AsyncReadResponseExt;
+
+use isahc::http::StatusCode;
+use isahc::AsyncReadResponseExt;
 
 use crate::CachedHttpClient;
 use crate::Author;
