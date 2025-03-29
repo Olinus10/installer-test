@@ -43,11 +43,21 @@ use std::{
 mod gui;
 mod launcher;
 mod microsoft_auth_impl; // This is in the root src directory
+mod installation;
+mod accounts;
+mod preset;
+mod universal;
+
 
 // Update your re-exports
 pub use launcher::{launch_modpack, update_jvm_args, get_jvm_args};
 // Re-export MicrosoftAuth for convenient access
 pub use launcher::microsoft_auth::MicrosoftAuth;
+
+pub use installation::{Installation, get_active_installation, load_all_installations};
+pub use accounts::{StoredAccount, get_active_account, get_all_accounts, authenticate, is_authenticated};
+pub use preset::{Preset, load_presets};
+pub use universal::{UniversalManifest, load_universal_manifest}
 
 const CURRENT_MANIFEST_VERSION: i32 = 3;
 const GH_API: &str = "https://api.github.com/repos/";
@@ -1760,6 +1770,12 @@ fn main() {
     .expect("Failed to parse branches!");
     let config_path = get_app_data().join(".WC_OVHL/config.json");
     let config: Config;
+
+if let Err(e) = accounts::initialize_accounts() {
+        error!("Failed to initialize accounts system: {}", e);
+    }
+
+    
     if config_path.exists() {
         config = serde_json::from_slice(&fs::read(&config_path).expect("Failed to read config!"))
             .expect("Failed to load config!");
@@ -1772,13 +1788,13 @@ fn main() {
             .expect("Failed to write config!");
     }
     info!("Running installer with config: {config:#?}");
-    LaunchBuilder::desktop().with_cfg(
-    DioxusConfig::new().with_window(
+   LaunchBuilder::desktop().with_cfg(
+        DioxusConfig::new().with_window(
             WindowBuilder::new()
                 .with_resizable(true)
-                .with_title("Majestic Overhaul Installer")
-                .with_inner_size(LogicalSize::new(1280, 720)) // Updated to 720p standard
-                .with_min_inner_size(LogicalSize::new(960, 540)) // Add minimum size constraint
+                .with_title("Majestic Overhaul Launcher")
+                .with_inner_size(LogicalSize::new(1280, 720))
+                .with_min_inner_size(LogicalSize::new(960, 540))
         ).with_icon(
             Icon::from_rgba(icon.to_rgba8().to_vec(), icon.width(), icon.height()).unwrap(),
         ).with_data_directory(
@@ -1789,6 +1805,8 @@ fn main() {
         modpack_source: String::from(REPO),
         config,
         config_path,
+        // Add new properties for installations and presets
+        installations: installation::load_all_installations().unwrap_or_default(),
     }).launch(gui::app);
 }
 
