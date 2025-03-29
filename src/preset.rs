@@ -1,7 +1,10 @@
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 use log::{debug, error};
-use isahc::StatusCode;
+// Fix StatusCode import
+use crate::isahc::http::StatusCode;
+// Add AsyncReadResponseExt trait import
+use crate::isahc::AsyncReadResponseExt;
 
 use crate::CachedHttpClient;
 
@@ -72,7 +75,7 @@ pub async fn load_presets(http_client: &CachedHttpClient, url: Option<&str>) -> 
     let presets_url = url.unwrap_or(DEFAULT_PRESETS_URL);
     debug!("Loading presets from: {}", presets_url);
     
-    let response = match http_client.get_async(presets_url).await {
+    let mut response = match http_client.get_async(presets_url).await {
         Ok(resp) => resp,
         Err(e) => {
             error!("Failed to fetch presets: {}", e);
@@ -85,6 +88,7 @@ pub async fn load_presets(http_client: &CachedHttpClient, url: Option<&str>) -> 
         return Err(format!("Failed to fetch presets: HTTP {}", response.status()));
     }
     
+    // Use the text method and convert to String right away
     let presets_json = match response.text().await {
         Ok(text) => text,
         Err(e) => {
