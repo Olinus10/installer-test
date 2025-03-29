@@ -168,6 +168,15 @@ pub fn PlayButton(
 ) -> Element {
     // Check the current authentication status if not provided
     let status = auth_status.unwrap_or_else(get_auth_status);
+
+
+let filtered_modpacks = if modpacks.len() > 10 {
+    debug!("Warning: Large number of modpacks ({}), limiting display to first 10", modpacks.len());
+    modpacks.iter().take(10).cloned().collect::<Vec<_>>()
+} else {
+    modpacks.clone()
+};
+
     
     // Get username if authenticated
     let username_display = if status == AuthStatus::Authenticated {
