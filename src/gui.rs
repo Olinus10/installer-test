@@ -339,185 +339,733 @@ fn Footer() -> Element {
 
 // Home Page component with redundancy removed
 #[component]
-fn HomePage(
-    pages: Signal<BTreeMap<usize, TabInfo>>,
-    page: Signal<usize>
+fn NewHomePage(
+    installations: Signal<Vec<Installation>>,
+    error_signal: Signal<Option<String>>,
 ) -> Element {
-    debug!("HomePage component rendering with {} tabs", pages().len());
+    let has_installations = !installations().is_empty();
+    let latest_installation = installations().first().cloned();
     
-    // Get the changelog from the first modpack profile we can find
-    let changelog = pages().values().next().and_then(|tab_info| {
-        tab_info.modpacks.first().and_then(|profile| profile.changelog.clone())
-    });
+    // State for creation dialog
+    let mut show_creation_dialog = use_signal(|| false);
     
-    // Error signal for modpack launching
-    let mut err = use_signal(|| Option::<String>::None);
+    // Authentication status check
+    let auth_status = get_auth_status();
+    let username = if auth_status == AuthStatus::Authenticated {
+        crate::launcher::microsoft_auth::MicrosoftAuth::get_username()
+    } else {
+        None
+    };
     
     rsx! {
-        if let Some(error) = err() {
-            div { class: "error-notification",
-                div { class: "error-message", "{error}" }
-                button { 
-                    class: "error-close",
-                    onclick: move |_| err.set(None),
-                    "×"
+        div { class: "home-container",
+            if has_installations {
+                // Welcome header with username if available
+                div { class: "welcome-header",
+                    if let Some(name) = username {
+                        h1 { "Welcome back, {name}!" }
+                    } else {
+                        h1 { "Welcome back!" }
+                    }
+                }
+                
+                // Statistics display
+                StatisticsDisplay {}
+                
+                // Section divider
+                div { class: "section-divider with-title", 
+                    span { class: "divider-title", "YOUR INSTALLATIONS" }
+                }
+                
+                // Play button for latest installation
+                if let Some(installation) = latest_installation {
+                    div { class: "main-play-container",
+                        PlayButton {
+                            uuid: installation.id.clone(),
+                            disabled: false,
+                            auth_status: Some(auth_status),
+                            onclick: move |_| {
+                                let installation_id = installation.id.clone();
+                                handle_play_click(installation_id, &error_signal);
+                            }
+                        }
+                    }
+                }
+                
+                // List of all installations
+                div { class: "installations-grid",
+                    for installation in installations() {
+                        InstallationCard { 
+                            installation: installation.clone(),
+                            onclick: move |id| {
+                                // Navigate to installation page
+                                // This will depend on your navigation system
+                            }
+                        }
+                    }
+                    
+                    // "Create new" card
+                    div { class: "installation-card new-installation",
+                        div { class: "installation-card-content", 
+                            div { class: "installation-card-icon", "+" }
+                            h3 { "Create New Installation" }
+                            
+                            button { 
+                                class: "create-button",
+                                onclick: move |_| {
+                                    show_creation_dialog.set(true);
+                                },
+                                "Start"
+                            }
+                        }
+                    }
+                }
+            } else {
+                // First-time user experience
+                div { class: "welcome-container",
+                    h1 { "Welcome to Wynncraft Overhaul" }
+                    p { "Get started by creating your first custom installation." }
+                    
+                    button {
+                        class: "main-install-button",
+                        onclick: move |_| {
+                            show_creation_dialog.set(true);
+                        },
+                        "Create Installation"
+                    }
+                }
+            }
+            
+            // Creation dialog
+            if *show_creation_dialog.read() {
+                InstallationCreationWizard {
+                    onclose: move |_| {
+                        show_creation_dialog.set(false);
+                    },
+                    oncreate: move |new_installation| {
+                        // Add the new installation and refresh
+                        installations.with_mut(|list| {
+                            list.insert(0, new_installation);
+                        });
+                        show_creation_dialog.set(false);
+                    }
                 }
             }
         }
-        
-        div { class: "home-container",
-            // Add Statistics Display
-            StatisticsDisplay {}
+    }
+}
+// Special value for home page
+const HOME_PAGE: usize = usize::MAX;
+
+
+#[derive(PartialEq, Props, Clone)]
+struct InstallationCardProps {
+    installation: Installation,
+    onclick: EventHandler<String>,
+}
+
+#[component]
+fn InstallationCard(props: InstallationCardProps) -> Element {
+    let installation = props.installation.clone();
+    
+    // Format last played date
+    let last_played = installation.last_launch.map(|dt| {
+        // Format date as readable string
+        dt.format("%B %d, %Y").to_string()
+    });
+    
+    rsx! {
+        div { 
+            class: "installation-card",
+            onclick: move |_| {
+                props.onclick.call(installation.id.clone());
+            },
             
-            // Add a section divider with title
-            div { class: "section-divider with-title", 
-                span { class: "divider-title", "FEATURED MODPACKS" }
+            div { class: "installation-card-header",
+                h3 { "{installation.name}" }
+                
+                if installation.update_available {
+                    span { class: "update-badge", "Update Available" }
+                }
             }
             
-            div { class: "home-grid",
-                for (index, info) in pages() {
-                    for modpack in &info.modpacks {
-                        {
-                            let modpack_subtitle = modpack.manifest.subtitle.clone();
-                            let tab_title = info.title.clone(); 
-                            let tab_index = index; 
-                            
-                            // Get metadata for enhanced card presentation
-                            let category = modpack.manifest.category.clone().unwrap_or_else(|| "Gameplay".to_string());
-                            let is_trending = modpack.manifest.trend.unwrap_or(false);
-                            let is_updated = modpack.update_available;
-                            let is_new = modpack.manifest.is_new.unwrap_or(false);
-                            let description = modpack.manifest.short_description.clone();
-                            let is_installed = modpack.installed;
-                            let uuid = modpack.manifest.uuid.clone();
-                            
-                            rsx! {
-                                // Create a wrapper div for trending modpacks
-                                if is_trending {
-                                    div { 
-                                        class: "trending-card-wrapper",
+            div { class: "installation-card-details",
+                div { class: "detail-item",
+                    span { class: "detail-label", "Minecraft:" }
+                    span { class: "detail-value", "{installation.minecraft_version}" }
+                }
+                
+                div { class: "detail-item",
+                    span { class: "detail-label", "Loader:" }
+                    span { class: "detail-value", "{installation.loader_type} {installation.loader_version}" }
+                }
+                
+                div { class: "detail-item",
+                    span { class: "detail-label", "Last Played:" }
+                    span { class: "detail-value",
+                        if let Some(last) = last_played {
+                            {last}
+                        } else {
+                            {"Never"}
+                        }
+                    }
+                }
+            }
+            
+            div { class: "installation-card-actions",
+                button { 
+                    class: "play-button",
+                    "Play"
+                }
+                
+                button { 
+                    class: "settings-button",
+                    "Settings"
+                }
+            }
+        }
+    }
+}
+
+#[derive(PartialEq, Props, Clone)]
+struct InstallationCreationWizardProps {
+    onclose: EventHandler<()>,
+    oncreate: EventHandler<Installation>,
+}
+
+#[component]
+fn InstallationCreationWizard(props: InstallationCreationWizardProps) -> Element {
+    // State for wizard
+    let mut current_step = use_signal(|| 0);
+    let mut name = use_signal(|| "My Wynncraft Installation".to_string());
+    let mut selected_preset_id = use_signal(|| Option::<String>::None);
+    let mut minecraft_version = use_signal(|| "1.20.4".to_string());
+    let mut loader_type = use_signal(|| "fabric".to_string());
+    let mut memory_allocation = use_signal(|| 3072);
+    
+    // Resource for presets
+    let presets: Resource<Vec<Preset>> = use_resource(move || async {
+        match crate::preset::load_presets(&crate::CachedHttpClient::new(), None).await {
+            Ok(presets) => presets,
+            Err(_) => Vec::new(),
+        }
+    });
+    
+    // Resource for universal manifest
+    let universal_manifest: Resource<Option<UniversalManifest>> = use_resource(move || async {
+        match crate::universal::load_universal_manifest(&crate::CachedHttpClient::new(), None).await {
+            Ok(manifest) => Some(manifest),
+            Err(_) => None,
+        }
+    });
+    
+    // Step titles for progress display
+    let step_titles = vec![
+        "Basic Info", 
+        "Select Preset", 
+        "Performance",
+        "Review"
+    ];
+    
+    // Function to create the installation
+    let create_installation = move || {
+        // Find the selected preset
+        let preset = if let Some(preset_id) = &*selected_preset_id.read() {
+            if let Some(presets) = presets.read() {
+                preset::find_preset_by_id(presets, preset_id)
+            } else {
+                None
+            }
+        } else {
+            None
+        };
+        
+        // Get the loader version from the universal manifest
+        let loader_version = if let Some(manifest) = universal_manifest.read().as_ref() {
+            manifest.loader.version.clone()
+        } else {
+            "0.15.3".to_string() // Default loader version
+        };
+        
+        // Create the installation
+        if let Some(preset) = preset {
+            let installation = Installation::new_from_preset(
+                name.read().clone(),
+                &preset,
+                minecraft_version.read().clone(),
+                loader_type.read().clone(),
+                loader_version,
+                "vanilla".to_string(), // Default to vanilla launcher
+                "1.0.0".to_string(),   // Default universal version
+            );
+            
+            // Register the installation
+            if let Err(e) = crate::installation::register_installation(&installation) {
+                error!("Failed to register installation: {}", e);
+                // Continue anyway - we'll return the installation
+            }
+            
+            // Save the installation
+            if let Err(e) = installation.save() {
+                error!("Failed to save installation: {}", e);
+                // Continue anyway
+            }
+            
+            // Return the new installation
+            props.oncreate.call(installation);
+        } else {
+            // Create custom installation without preset
+            let installation = Installation::new_custom(
+                name.read().clone(),
+                minecraft_version.read().clone(),
+                loader_type.read().clone(),
+                loader_version,
+                "vanilla".to_string(),
+                "1.0.0".to_string(),
+            );
+            
+            // Register and save the installation
+            if let Err(e) = crate::installation::register_installation(&installation) {
+                error!("Failed to register installation: {}", e);
+            }
+            
+            if let Err(e) = installation.save() {
+                error!("Failed to save installation: {}", e);
+            }
+            
+            props.oncreate.call(installation);
+        }
+    };
+    
+    rsx! {
+        div { class: "wizard-overlay",
+            div { class: "wizard-container",
+                // Wizard header
+                div { class: "wizard-header",
+                    h2 { "Create New Installation" }
+                    
+                    // Progress steps
+                    div { class: "wizard-progress",
+                        for (index, title) in step_titles.iter().enumerate() {
+                            div { 
+                                class: if index == *current_step.read() {
+                                    "wizard-step active"
+                                } else if index < *current_step.read() {
+                                    "wizard-step completed"
+                                } else {
+                                    "wizard-step"
+                                },
+                                
+                                div { class: "step-number", "{index + 1}" }
+                                div { class: "step-title", "{title}" }
+                            }
+                        }
+                    }
+                }
+                
+                // Wizard content - different for each step
+                div { class: "wizard-content",
+                    match *current_step.read() {
+                        0 => rsx! {
+                            // Step 1: Basic Info
+                            div { class: "wizard-step-content",
+                                h3 { "Give your installation a name" }
+                                
+                                div { class: "form-group",
+                                    label { for: "installation-name", "Installation Name:" }
+                                    input {
+                                        id: "installation-name",
+                                        r#type: "text",
+                                        value: "{name}",
+                                        oninput: move |evt| {
+                                            name.set(evt.value.clone());
+                                        }
+                                    }
+                                }
+                                
+                                div { class: "form-group",
+                                    label { for: "minecraft-version", "Minecraft Version:" }
+                                    select {
+                                        id: "minecraft-version",
+                                        value: "{minecraft_version}",
+                                        onchange: move |evt| {
+                                            minecraft_version.set(evt.value.clone());
+                                        },
                                         
-                                        // Add the crown outside the card but in the wrapper
-                                        div { class: "trending-crown" }
+                                        option { value: "1.20.4", "1.20.4" }
+                                        option { value: "1.19.4", "1.19.4" }
+                                        option { value: "1.18.2", "1.18.2" }
+                                    }
+                                }
+                                
+                                div { class: "form-group",
+                                    label { for: "loader-type", "Mod Loader:" }
+                                    select {
+                                        id: "loader-type",
+                                        value: "{loader_type}",
+                                        onchange: move |evt| {
+                                            loader_type.set(evt.value.clone());
+                                        },
                                         
-                                        div { 
-                                            class: "home-pack-card trending",
-                                            style: "background-image: url('{info.background}'); background-color: {info.color};",
-                                            "data-category": "{category}",
-                                            
-                                            // Category badge
-                                            div { class: "category-badge {category.to_lowercase()}", "{category}" }
-                                            
-                                            // Add trending badge
-                                            div { class: "trending-badge", "Popular" }
-                                            
-                                            div { class: "home-pack-info",
-                                                h2 { class: "home-pack-title", "{modpack_subtitle}" }
-                                                
-                                                // Description (hidden until hover)
-                                                if let Some(desc) = &description {
-                                                    div { class: "home-pack-description", "{desc}" }
-                                                }
-                                                
-                                                div { 
-                                                    class: "home-pack-button",
-                                                    onclick: move |_| {
-                                                        let old_page = page();
-                                                        debug!("HOME CLICK: Changing page from {} to {} ({}) - HOME_PAGE={}", 
-                                                            old_page, tab_index, tab_title, HOME_PAGE);
-                                                        
-                                                        page.write().clone_from(&tab_index);
-                                                        
-                                                        let new_page = page();
-                                                        debug!("HOME CLICK RESULT: Page is now {}", new_page);
-                                                    },
-                                                    "View Modpack" 
-                                                }
-                                                
-                                                // Add Play button if installed
-                                                if is_installed {
-                                                    {
-                                                        let uuid_str = uuid.clone(); // Clone outside
-                                                        let err_signal = err.clone();
-                                                        
-                                                        rsx! {
-                                                            PlayButton {
-                                                                uuid: uuid_str.clone(), // Clone again for component
-                                                                disabled: false,
-                                                                auth_status: None,
-                                                                onclick: move |_| {
-                                                                    let uuid_for_handler = uuid_str.clone(); // Clone inside closure
-                                                                    handle_play_click(uuid_for_handler, &err_signal);
-                                                                }
+                                        option { value: "fabric", "Fabric" }
+                                        option { value: "quilt", "Quilt" }
+                                    }
+                                }
+                            }
+                        },
+                        1 => rsx! {
+                            // Step 2: Select Preset
+                            div { class: "wizard-step-content",
+                                h3 { "Choose a preset configuration" }
+                                p { "Presets determine which mods are enabled by default." }
+                                
+                                if let Some(presets_list) = presets.read() {
+                                    if presets_list.is_empty() {
+                                        div { class: "loading-message", "Loading presets..." }
+                                    } else {
+                                        div { class: "presets-grid",
+                                            for preset in presets_list {
+                                                {
+                                                    let preset_id = preset.id.clone();
+                                                    let is_selected = selected_preset_id.read().as_ref().map_or(false, |id| id == &preset_id);
+                                                    
+                                                    rsx! {
+                                                        div { 
+                                                            class: if is_selected {
+                                                                "preset-card selected"
+                                                            } else {
+                                                                "preset-card"
+                                                            },
+                                                            onclick: move |_| {
+                                                                selected_preset_id.set(Some(preset_id.clone()));
+                                                            },
+                                                            
+                                                            h4 { "{preset.name}" }
+                                                            p { "{preset.description}" }
+                                                            
+                                                            if let Some(author) = &preset.author {
+                                                                div { class: "preset-author", "By: {author}" }
                                                             }
                                                         }
+                                                    }
+                                                }
+                                            }
+                                            
+                                            // Custom preset option
+                                            div { 
+                                                class: if selected_preset_id.read().is_none() {
+                                                    "preset-card selected"
+                                                } else {
+                                                    "preset-card"
+                                                },
+                                                onclick: move |_| {
+                                                    selected_preset_id.set(None);
+                                                },
+                                                
+                                                h4 { "Custom Configuration" }
+                                                p { "Start with a minimal setup and customize everything yourself." }
+                                            }
+                                        }
+                                    }
+                                } else {
+                                    div { class: "loading-message", "Loading presets..." }
+                                }
+                            }
+                        },
+                        2 => rsx! {
+                            // Step 3: Performance Settings
+                            div { class: "wizard-step-content",
+                                h3 { "Performance Settings" }
+                                p { "Configure memory allocation and other performance settings." }
+                                
+                                div { class: "form-group",
+                                    label { for: "memory-allocation", 
+                                        "Memory Allocation: {memory_allocation} MB"
+                                    }
+                                    input {
+                                        id: "memory-allocation",
+                                        r#type: "range",
+                                        min: "1024",
+                                        max: "8192",
+                                        step: "512",
+                                        value: "{memory_allocation}",
+                                        oninput: move |evt| {
+                                            if let Ok(value) = evt.value.parse::<i32>() {
+                                                memory_allocation.set(value);
+                                            }
+                                        }
+                                    }
+                                    div { class: "memory-markers",
+                                        span { "1 GB" }
+                                        span { "4 GB" }
+                                        span { "8 GB" }
+                                    }
+                                }
+                                
+                                // Show preset recommended settings if applicable
+                                if let Some(preset_id) = &*selected_preset_id.read() {
+                                    if let Some(presets_list) = presets.read() {
+                                        if let Some(preset) = preset::find_preset_by_id(presets_list, preset_id) {
+                                            if let Some(rec_memory) = preset.recommended_memory {
+                                                div { class: "recommended-setting",
+                                                    "Recommended memory for this preset: {rec_memory} MB"
+                                                    
+                                                    button {
+                                                        class: "apply-recommended-button",
+                                                        onclick: move |_| {
+                                                            memory_allocation.set(rec_memory);
+                                                        },
+                                                        "Apply"
                                                     }
                                                 }
                                             }
                                         }
                                     }
-                                } else {
-                                    // Regular non-trending card
-                                    div { 
-                                        class: "home-pack-card",
-                                        style: "background-image: url('{info.background}'); background-color: {info.color};",
-                                        "data-category": "{category}",
-                                        "data-new": "{is_new}",
-                                        "data-updated": "{is_updated}",
-                                        
-                                        // Category badge
-                                        div { class: "category-badge {category.to_lowercase()}", "{category}" }
-                                        
-                                        // NEW/UPDATED ribbon if applicable
-                                        if is_new {
-                                            div { class: "new-ribbon", "NEW" }
-                                        } else if is_updated {
-                                            div { class: "updated-ribbon", "UPDATED" }
-                                        }
-                                        
-                                        div { class: "home-pack-info",
-                                            h2 { class: "home-pack-title", "{modpack_subtitle}" }
-                                            
-                                            // Description (hidden until hover)
-                                            if let Some(desc) = &description {
-                                                div { class: "home-pack-description", "{desc}" }
-                                            }
-                                            
-                                            div { 
-                                                class: "home-pack-button",
-                                                onclick: move |_| {
-                                                    let old_page = page();
-                                                    debug!("HOME CLICK: Changing page from {} to {} ({}) - HOME_PAGE={}", 
-                                                        old_page, tab_index, tab_title, HOME_PAGE);
-                                                    
-                                                    page.write().clone_from(&tab_index);
-                                                    
-                                                    let new_page = page();
-                                                    debug!("HOME CLICK RESULT: Page is now {}", new_page);
-                                                },
-                                                "View Modpack" 
-                                            }
-                                            
-                                            // Add Play button if installed
-                                            if is_installed {
-                                                {
-                                                    let uuid_str = uuid.clone();
-                                                    let err_signal = err.clone();
-                                                    
-                                                    rsx! {
-                                                        PlayButton {
-                                                            uuid: uuid_str.clone(),
-                                                            disabled: false,
-                                                            auth_status: None,
-                                                            onclick: move |_| {
-                                                                let uuid_for_handler = uuid_str.clone();
-                                                                handle_play_click(uuid_for_handler, &err_signal);
-                                                            }
-                                                        }
+                                }
+                            }
+                        },
+                        3 => rsx! {
+                            // Step 4: Review
+                            div { class: "wizard-step-content",
+                                h3 { "Review Your Installation" }
+                                
+                                div { class: "review-container",
+                                    div { class: "review-item",
+                                        div { class: "review-label", "Name:" }
+                                        div { class: "review-value", "{name}" }
+                                    }
+                                    
+                                    div { class: "review-item",
+                                        div { class: "review-label", "Minecraft Version:" }
+                                        div { class: "review-value", "{minecraft_version}" }
+                                    }
+                                    
+                                    div { class: "review-item",
+                                        div { class: "review-label", "Mod Loader:" }
+                                        div { class: "review-value", "{loader_type}" }
+                                    }
+                                    
+                                    div { class: "review-item",
+                                        div { class: "review-label", "Preset:" }
+                                        div { class: "review-value", 
+                                            if let Some(preset_id) = &*selected_preset_id.read() {
+                                                if let Some(presets_list) = presets.read() {
+                                                    if let Some(preset) = preset::find_preset_by_id(presets_list, preset_id) {
+                                                        preset.name
+                                                    } else {
+                                                        "Custom Configuration".to_string()
                                                     }
+                                                } else {
+                                                    "Custom Configuration".to_string()
+                                                }
+                                            } else {
+                                                "Custom Configuration".to_string()
+                                            }
+                                        }
+                                    }
+                                    
+                                    div { class: "review-item",
+                                        div { class: "review-label", "Memory Allocation:" }
+                                        div { class: "review-value", "{memory_allocation} MB" }
+                                    }
+                                }
+                                
+                                div { class: "summary-message",
+                                    "Your installation will be created with these settings. You can modify them later in the installation settings."
+                                }
+                            }
+                        },
+                        _ => rsx! {
+                            div { "Unknown step" }
+                        }
+                    }
+                }
+                
+                // Wizard footer with navigation buttons
+                div { class: "wizard-footer",
+                    button {
+                        class: "cancel-button",
+                        onclick: move |_| {
+                            props.onclose.call(());
+                        },
+                        "Cancel"
+                    }
+                    
+                    div { class: "navigation-buttons",
+                        if *current_step.read() > 0 {
+                            button {
+                                class: "back-button",
+                                onclick: move |_| {
+                                    current_step.with_mut(|step| {
+                                        if *step > 0 {
+                                            *step -= 1;
+                                        }
+                                    });
+                                },
+                                "Back"
+                            }
+                        }
+                        
+                        button {
+                            class: if *current_step.read() == step_titles.len() - 1 {
+                                "next-button create-button"
+                            } else {
+                                "next-button"
+                            },
+                            onclick: move |_| {
+                                if *current_step.read() < step_titles.len() - 1 {
+                                    current_step.with_mut(|step| {
+                                        *step += 1;
+                                    });
+                                } else {
+                                    // Final step - create the installation
+                                    create_installation();
+                                }
+                            },
+                            
+                            if *current_step.read() == step_titles.len() - 1 {
+                                "Create Installation"
+                            } else {
+                                "Next"
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+// Account management components
+#[component]
+fn AccountsPage() -> Element {
+    let accounts = get_all_accounts();
+    let active_account = get_active_account();
+    let mut show_login_dialog = use_signal(|| false);
+    let mut error_message = use_signal(|| Option::<String>::None);
+    
+    rsx! {
+        div { class: "accounts-container",
+            h1 { "Account Management" }
+            
+            // Display error if any
+            if let Some(error) = &*error_message.read() {
+                div { class: "error-notification",
+                    div { class: "error-message", "{error}" }
+                    button { 
+                        class: "error-close",
+                        onclick: move |_| error_message.set(None),
+                        "×"
+                    }
+                }
+            }
+            
+            // Current active account
+            div { class: "active-account-section",
+                h2 { "Current Account" }
+                
+                if let Some(account) = active_account {
+                    div { class: "active-account-card",
+                        img {
+                            class: "minecraft-avatar",
+                            src: "https://minotar.net/avatar/{account.username}/100.png",
+                            alt: "Minecraft Avatar"
+                        }
+                        
+                        div { class: "account-info",
+                            h3 { "{account.username}" }
+                            
+                            if let Some(name) = account.display_name {
+                                p { class: "display-name", "{name}" }
+                            }
+                            
+                            p { class: "minecraft-uuid", "UUID: {account.uuid}" }
+                            
+                            if let Some(last_login) = account.last_login {
+                                p { class: "last-login", "Last login: {last_login.format(\"%B %d, %Y\")}" }
+                            }
+                        }
+                        
+                        button {
+                            class: "sign-out-button",
+                            onclick: move |_| {
+                                match sign_out() {
+                                    Ok(_) => {
+                                        // Refresh the page to show updated account status
+                                    },
+                                    Err(e) => {
+                                        error_message.set(Some(e));
+                                    }
+                                }
+                            },
+                            "Sign Out"
+                        }
+                    }
+                } else {
+                    div { class: "no-account-message",
+                        p { "You are not currently signed in to any Microsoft account." }
+                        
+                        button {
+                            class: "sign-in-button",
+                            onclick: move |_| {
+                                show_login_dialog.set(true);
+                            },
+                            "Sign In with Microsoft"
+                        }
+                    }
+                }
+            }
+            
+            // Other accounts
+            if accounts.len() > 1 {
+                div { class: "other-accounts-section",
+                    h2 { "Other Accounts" }
+                    
+                    div { class: "accounts-list",
+                        for account in accounts {
+                            // Skip active account
+                            if active_account.as_ref().map_or(false, |active| active.id == account.id) {
+                                continue;
+                            }
+                            
+                            div { class: "account-list-item",
+                                img {
+                                    class: "minecraft-avatar-small",
+                                    src: "https://minotar.net/avatar/{account.username}/50.png",
+                                    alt: "Minecraft Avatar"
+                                }
+                                
+                                div { class: "account-list-info",
+                                    p { class: "account-username", "{account.username}" }
+                                    
+                                    if let Some(name) = account.display_name {
+                                        p { class: "account-display-name", "{name}" }
+                                    }
+                                }
+                                
+                                div { class: "account-actions",
+                                    button {
+                                        class: "switch-account-button",
+                                        onclick: move |_| {
+                                            let account_id = account.id.clone();
+                                            match switch_account(&account_id) {
+                                                Ok(_) => {
+                                                    // Refresh the page
+                                                },
+                                                Err(e) => {
+                                                    error_message.set(Some(e));
                                                 }
                                             }
-                                        }
+                                        },
+                                        "Switch"
+                                    }
+                                    
+                                    button {
+                                        class: "remove-account-button",
+                                        onclick: move |_| {
+                                            // Remove account logic
+                                        },
+                                        "Remove"
                                     }
                                 }
                             }
@@ -526,19 +1074,246 @@ fn HomePage(
                 }
             }
             
-            // Add Changelog Section
-            ChangelogSection { changelog: changelog }
-            
-            // Add a section divider
-            div { class: "section-divider animated" }
+            // Login dialog
+            if *show_login_dialog.read() {
+                LoginDialog {
+                    onclose: move |_| {
+                        show_login_dialog.set(false);
+                    },
+                    onlogin: move |result| {
+                        match result {
+                            Ok(_) => {
+                                show_login_dialog.set(false);
+                                // Refresh the page
+                            },
+                            Err(e) => {
+                                error_message.set(Some(e));
+                                show_login_dialog.set(false);
+                            }
+                        }
+                    }
+                }
+            }
         }
-        
-        // Add Footer
-        Footer {}
     }
 }
-// Special value for home page
-const HOME_PAGE: usize = usize::MAX;
+
+#[derive(PartialEq, Props, Clone)]
+struct LoginDialogProps {
+    onclose: EventHandler<()>,
+    onlogin: EventHandler<Result<(), String>>,
+}
+
+#[component]
+fn LoginDialog(props: LoginDialogProps) -> Element {
+    let mut is_logging_in = use_signal(|| false);
+    
+    // Login function that handles authentication
+    let handle_login = move || {
+        is_logging_in.set(true);
+        
+        // Spawn an async task for authentication
+        spawn(async move {
+            match authenticate().await {
+                Ok(_) => {
+                    props.onlogin.call(Ok(()));
+                },
+                Err(e) => {
+                    props.onlogin.call(Err(e));
+                }
+            }
+        });
+    };
+    
+    rsx! {
+        div { class: "login-dialog-overlay",
+            div { class: "login-dialog",
+                div { class: "login-dialog-header", 
+                    h2 { "Sign in with Microsoft" }
+                    
+                    if !*is_logging_in.read() {
+                        button {
+                            class: "close-button",
+                            onclick: move |_| {
+                                props.onclose.call(());
+                            },
+                            "×"
+                        }
+                    }
+                }
+                
+                div { class: "login-dialog-content",
+                    if *is_logging_in.read() {
+                        div { class: "login-progress",
+                            div { class: "login-spinner" }
+                            p { "Waiting for Microsoft authentication..." }
+                            p { class: "login-hint", "A browser window should have opened. Please complete the login process there." }
+                        }
+                    } else {
+                        div { class: "login-info",
+                            p { "You'll be redirected to Microsoft to sign in to your account. This allows Majestic Overhaul to:" }
+                            
+                            ul { class: "login-permissions",
+                                li { "Verify your Minecraft ownership" }
+                                li { "Launch Minecraft with your account" }
+                                li { "Read your Minecraft username and UUID" }
+                            }
+                            
+                            p { class: "login-note", "Your Microsoft password is never seen or stored by Majestic Overhaul." }
+                            
+                            button {
+                                class: "microsoft-login-button",
+                                onclick: move |_| {
+                                    handle_login();
+                                },
+                                
+                                // Microsoft logo (simplified)
+                                svg {
+                                    class: "ms-logo",
+                                    xmlns: "http://www.w3.org/2000/svg",
+                                    width: "24",
+                                    height: "24",
+                                    view_box: "0 0 24 24",
+                                    fill: "currentColor",
+                                    
+                                    rect { x: "3", y: "3", width: "8", height: "8", fill: "#f25022" }
+                                    rect { x: "13", y: "3", width: "8", height: "8", fill: "#7fba00" }
+                                    rect { x: "3", y: "13", width: "8", height: "8", fill: "#00a4ef" }
+                                    rect { x: "13", y: "13", width: "8", height: "8", fill: "#ffb900" }
+                                }
+                                
+                                span { "Continue with Microsoft" }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+// Installation management page
+#[component]
+fn InstallationDetailsPage(installation_id: String) -> Element {
+    // Load the installation
+    let installation = match crate::installation::load_installation(&installation_id) {
+        Ok(installation) => installation,
+        Err(_) => {
+            // If installation can't be loaded, show an error
+            return rsx! {
+                div { class: "error-container",
+                    h2 { "Installation Not Found" }
+                    p { "The requested installation could not be found." }
+                    
+                    button {
+                        class: "back-button",
+                        onclick: move |_| {
+                            // Navigate back to home
+                        },
+                        "Back to Home"
+                    }
+                }
+            };
+        }
+    };
+    
+    // Installation status signals
+    let mut is_installing = use_signal(|| false);
+    let mut installation_error = use_signal(|| Option::<String>::None);
+    
+    // State for modification tracking
+    let mut has_changes = use_signal(|| false);
+    
+    rsx! {
+        div { class: "installation-details-container",
+            // Header with installation name and version
+            div { class: "installation-header",
+                h1 { "{installation.name}" }
+                span { class: "minecraft-version", "Minecraft {installation.minecraft_version}" }
+                
+                if installation.update_available {
+                    span { class: "update-badge", "Update Available" }
+                }
+            }
+            
+            // Main actions
+            div { class: "installation-actions",
+                // Play button with authentication check
+                PlayButton {
+                    uuid: installation.id.clone(),
+                    disabled: *is_installing.read(),
+                    auth_status: None, // Will auto-detect
+                    onclick: move |_| {
+                        let installation_clone = installation.clone();
+                        spawn(async move {
+                            match installation_clone.launch() {
+                                Ok(_) => {},
+                                Err(e) => {
+                                    installation_error.set(Some(e));
+                                }
+                            }
+                        });
+                    }
+                }
+                
+                // Install/Update button if needed
+                if !installation.installed || installation.update_available || *has_changes.read() {
+                    button {
+                        class: "install-update-button",
+                        disabled: *is_installing.read(),
+                        onclick: move |_| {
+                            is_installing.set(true);
+                            let installation_clone = installation.clone();
+                            let http_client = crate::CachedHttpClient::new();
+                            
+                            spawn(async move {
+                                match installation_clone.install_or_update(&http_client).await {
+                                    Ok(_) => {
+                                        has_changes.set(false);
+                                    },
+                                    Err(e) => {
+                                        installation_error.set(Some(e));
+                                    }
+                                }
+                                is_installing.set(false);
+                            });
+                        },
+                        
+                        if !installation.installed {
+                            "Install"
+                        } else if installation.update_available {
+                            "Update"
+                        } else {
+                            "Apply Changes"
+                        }
+                    }
+                }
+            }
+            
+            // Error display
+            if let Some(error) = &*installation_error.read() {
+                div { class: "error-notification",
+                    div { class: "error-message", "{error}" }
+                    button { 
+                        class: "error-close",
+                        onclick: move |_| installation_error.set(None),
+                        "×"
+                    }
+                }
+            }
+            
+            // Installation details in tabs
+            div { class: "installation-tabs",
+                // Tab headers
+                // ...
+                
+                // Tab content would go here
+                // Features list, performance settings, etc.
+            }
+        }
+    }
+}
+
 
 #[component]
 fn StatisticsDisplay() -> Element {
