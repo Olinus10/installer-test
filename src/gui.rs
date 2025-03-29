@@ -75,6 +75,15 @@ pub enum AuthStatus {
 }
 
 // Helper function to check auth status of a profile
+pub fn get_auth_status() -> AuthStatus {
+    if crate::launcher::microsoft_auth::MicrosoftAuth::is_authenticated() {
+        AuthStatus::Authenticated
+    } else {
+        AuthStatus::NeedsAuth
+    }
+}
+
+// Thread-safe play button handler
 pub fn handle_play_click(uuid: String, error_signal: &Signal<Option<String>>) {
     debug!("Play button clicked for modpack: {}", uuid);
     
@@ -136,7 +145,6 @@ pub fn handle_play_click(uuid: String, error_signal: &Signal<Option<String>>) {
         }
     });
 }
-
 
 // PlayButton component
 #[component]
