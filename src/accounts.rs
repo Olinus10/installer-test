@@ -8,6 +8,7 @@ use log::{debug, error, info, warn};
 use tokio::runtime::Runtime;
 use std::sync::atomic::{AtomicBool, Ordering};
 use uuid::Uuid;
+use dioxus::prelude::{component, rsx, Element, use_signal};
 
 // Get the accounts directory
 fn get_accounts_dir() -> PathBuf {
@@ -251,6 +252,13 @@ impl AccountManager {
 }
 
 // Fix the continue inside closure issue by refactoring the AccountsPage component
+
+#[cfg(feature = "web")]
+use dioxus::prelude::*;
+
+#[cfg(not(feature = "web"))]
+use dioxus::prelude::*;
+
 #[component]
 fn AccountsPage() -> Element {
     let accounts = get_all_accounts();
