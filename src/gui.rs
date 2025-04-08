@@ -61,7 +61,10 @@ fn BackgroundParticles() -> Element {
 }
 
 #[component]
-fn ErrorNotification(message: String, on_close: EventHandler<MouseEvent>) -> Element {
+fn ErrorNotification(
+    message: String,
+    on_close: EventHandler<MouseEvent>,
+) -> Element {
     rsx! {
         div { class: "error-notification",
             div { class: "error-message", "{message}" }
@@ -80,25 +83,144 @@ pub enum AuthStatus {
     NeedsAuth,      // User needs to authenticate first
 }
 
-// Helper function to check auth status of a profile
+// Helper function to check auth status
 pub fn get_auth_status() -> AuthStatus {
     // Only check authentication if UI is fully loaded
     if !app_fully_initialized() {
         return AuthStatus::NeedsAuth; // Default to needing auth during initialization
     }
     
-    if crate::launcher::microsoft_auth::MicrosoftAuth::is_authenticated() {
+    if crate::is_authenticated() {
         AuthStatus::Authenticated
     } else {
         AuthStatus::NeedsAuth
     }
 }
 
-// Add a function to check if app is fully initialized
+// Global flag to track initialization
+static INITIALIZATION_COMPLETE: AtomicBool = AtomicBool::new(false);
+
+// Function to check if app is fully initialized
 fn app_fully_initialized() -> bool {
-    // Check if pages are loaded, etc.
-    // Return false during initial loading
-    true // Change this based on actual state checking
+    INITIALIZATION_COMPLETE.load(Ordering::SeqCst)
+}
+
+// Updated main function to initialize the app correctly
+fn main() {
+    // Initialize logger
+    fs::create_dir_all(get_app_data().join(".WC_OVHL/")).expect("Failed to create config dir!");
+    CombinedLogger::init(vec![
+        TermLogger::new(
+            LevelFilter::Debug,
+            simplelog::ConfigBuilder::new().add_filter_ignore_str("isahc::handler").build(),
+            TerminalMode::Mixed,
+            ColorChoice::Auto,
+        ),
+        WriteLogger::new(
+            LevelFilter::Info,
+            LogConfig::default(),
+            File::create(get_app_data().join(".WC_OVHL/installer.log")).unwrap(),
+        ),
+    ])
+    .unwrap();
+
+    // Set panic hook for error reporting
+    panic::set_hook(Box::new(|info| {
+        let payload = if let Some(string) = info.payload().downcast_ref::<String>() {
+            string.to_string()
+        } else if let Some(str) = info.payload().downcast_ref::<&'static str>() {
+            str.to_string()
+        } else {
+            format!("{:?}", info.payload())
+        };
+        let backtrace = Backtrace::force_capture();
+        error!("The installer panicked! This is a bug.\n{info:#?}\nPayload: {payload}\nBacktrace: {backtrace}");
+    }));
+
+    // Log initialization info
+    info!("Installer version: {}", env!("CARGO_PKG_VERSION"));
+    let platform_info = PlatformInfo::new().expect("Unable to determine platform info");
+    debug!("System information:\n\tSysname: {}\n\tRelease: {}\n\tVersion: {}\n\tArchitecture: {}\n\tOsname: {}",
+        platform_info.sysname().to_string_lossy(), 
+        platform_info.release().to_string_lossy(), 
+        platform_info.version().to_string_lossy(), 
+        platform_info.machine().to_string_lossy(), 
+        platform_info.osname().to_string_lossy()
+    );
+
+    // Workaround for NVIDIA driver issues on Linux
+    #[cfg(target_os = "linux")]
+    {
+        if std::path::Path::new("/dev/dri").exists() {
+            std::env::set_var("WEBKIT_DISABLE_DMABUF_RENDERER", "1");
+            warn!("Disabled hardware acceleration as a workaround for NVIDIA driver issues")
+        }
+    }
+
+    // Load icon
+    let icon = image::load_from_memory(include_bytes!("assets/icon.png")).unwrap();
+    
+    // Load branches
+    let branches: Vec<GithubBranch> = serde_json::from_str(
+        build_http_client()
+            .get(GH_API.to_owned() + REPO + "branches")
+            .expect("Failed to retrieve branches!")
+            .text()
+            .unwrap()
+            .as_str(),
+    )
+    .expect("Failed to parse branches!");
+
+    // Load configuration
+    let config_path = get_app_data().join(".WC_OVHL/config.json");
+    let config: Config;
+
+    // Initialize accounts system
+    if let Err(e) = accounts::initialize_accounts() {
+        error!("Failed to initialize accounts system: {}", e);
+    }
+
+    // Load or create config
+    if config_path.exists() {
+        config = serde_json::from_slice(&fs::read(&config_path).expect("Failed to read config!"))
+            .expect("Failed to load config!");
+    } else {
+        config = Config {
+            launcher: String::from("vanilla"),
+            first_launch: Some(true),
+        };
+        fs::write(&config_path, serde_json::to_vec(&config).unwrap())
+            .expect("Failed to write config!");
+    }
+    
+    info!("Running installer with config: {config:#?}");
+    
+    // Load all installations (or empty vector if error)
+    let installations = installation::load_all_installations().unwrap_or_default();
+    
+    // Mark initialization as complete
+    INITIALIZATION_COMPLETE.store(true, Ordering::SeqCst);
+    
+    // Launch the UI
+    LaunchBuilder::desktop().with_cfg(
+        DioxusConfig::new().with_window(
+            WindowBuilder::new()
+                .with_resizable(true)
+                .with_title("Majestic Overhaul Launcher")
+                .with_inner_size(LogicalSize::new(1280, 720))
+                .with_min_inner_size(LogicalSize::new(960, 540))
+        ).with_icon(
+            Icon::from_rgba(icon.to_rgba8().to_vec(), icon.width(), icon.height()).unwrap(),
+        ).with_data_directory(
+            env::temp_dir().join(".WC_OVHL")
+        ).with_menu(None)
+    ).with_context(gui::AppProps {
+        branches,
+        modpack_source: String::from(REPO),
+        config,
+        config_path,
+        installations,
+    }).launch(gui::app);
 }
 
 // Play button handler
@@ -109,7 +231,7 @@ pub fn handle_play_click(uuid: String, error_signal: &Signal<Option<String>>) {
     let (error_tx, error_rx) = mpsc::channel::<String>();
     
     // Clone error_signal before moving to thread
-    let mut error_signal_clone = error_signal.clone();
+    let error_signal_clone = error_signal.clone();
     
     // Check authentication status
     match get_auth_status() {
@@ -162,62 +284,6 @@ pub fn handle_play_click(uuid: String, error_signal: &Signal<Option<String>>) {
             error_signal_clone.set(Some(error_message));
         }
     });
-}
-
-// PlayButton component
-#[component]
-pub fn PlayButton(
-    uuid: String,
-    disabled: bool,
-    auth_status: Option<AuthStatus>,
-    onclick: EventHandler<MouseEvent>,
-) -> Element {
-    // Check the current authentication status if not provided
-    let status = auth_status.unwrap_or_else(get_auth_status);
-    
-    // Get username if authenticated
-    let username_display = if status == AuthStatus::Authenticated {
-        if let Some(username) = crate::launcher::microsoft_auth::MicrosoftAuth::get_username() {
-            Some(format!("Playing as {}", username))
-        } else {
-            None
-        }
-    } else {
-        None
-    };
-    
-    rsx! {
-        div { class: "play-button-container",
-            button {
-                class: if status == AuthStatus::Authenticated {
-                    "main-play-button authenticated"
-                } else {
-                    "main-play-button needs-auth"
-                },
-                disabled: disabled,
-                onclick: move |evt| onclick.call(evt),
-                if status == AuthStatus::Authenticated {
-                    "PLAY"
-                } else {
-                    "LOGIN WITH MICROSOFT"
-                }
-            }
-            
-            // Show authentication status if available
-            if let Some(username) = username_display {
-                div { class: "auth-status", "{username}" }
-            }
-            
-            // Help text based on auth status
-            div { class: "auth-info",
-                if status == AuthStatus::Authenticated {
-                    "Click to launch Minecraft directly"
-                } else {
-                    "Microsoft account required to play"
-                }
-            }
-        }
-    }
 }
 
 #[component]
@@ -344,7 +410,7 @@ pub fn NewHomePage(
     let latest_installation = installations().first().cloned();
     
     // State for creation dialog
-    let mut show_creation_dialog = use_signal(|| false);
+    let show_creation_dialog = use_signal(|| false);
     
     // Authentication status check
     let auth_status = crate::gui::get_auth_status();
@@ -450,6 +516,16 @@ pub fn NewHomePage(
                     }
                 }
             }
+            
+            // Display error notification if any
+            if let Some(error) = error_signal() {
+                ErrorNotification {
+                    message: error,
+                    on_close: move |_| {
+                        error_signal.set(None);
+                    }
+                }
+            }
         }
     }
 }
@@ -464,20 +540,24 @@ struct InstallationCardProps {
 }
 
 #[component]
-fn InstallationCard(props: InstallationCardProps) -> Element {
-    let installation = props.installation.clone();
-    
+fn InstallationCard(
+    installation: Installation,
+    onclick: EventHandler<String>,
+) -> Element {
     // Format last played date
     let last_played = installation.last_launch.map(|dt| {
         // Format date as readable string
         dt.format("%B %d, %Y").to_string()
     });
     
+    // Clone the ID outside the event handler to avoid borrowing issues
+    let installation_id = installation.id.clone();
+    
     rsx! {
         div { 
             class: "installation-card",
             onclick: move |_| {
-                props.onclick.call(installation.id.clone());
+                onclick.call(installation_id.clone());
             },
             
             div { class: "installation-card-header",
@@ -521,6 +601,27 @@ fn InstallationCard(props: InstallationCardProps) -> Element {
                     class: "settings-button",
                     "Settings"
                 }
+            }
+        }
+    }
+}
+
+// Statistics display component
+#[component]
+fn StatisticsDisplay() -> Element {
+    rsx! {
+        div { class: "stats-container",
+            div { class: "stat-item",
+                span { class: "stat-value", "200+" }
+                span { class: "stat-label", "FPS" }
+            }
+            div { class: "stat-item",
+                span { class: "stat-value", "100+" }
+                span { class: "stat-label", "MODS" }
+            }
+            div { class: "stat-item",
+                span { class: "stat-value", "20K+" }
+                span { class: "stat-label", "DOWNLOADS" }
             }
         }
     }
@@ -1214,20 +1315,23 @@ pub struct LoginDialogProps {
 
 #[component]
 pub fn LoginDialog(props: LoginDialogProps) -> Element {
-    let mut is_logging_in = use_signal(|| false);
+    let is_logging_in = use_signal(|| false);
     
     // Login function that handles authentication
     let handle_login = move || {
         is_logging_in.set(true);
         
+        // Clone the props to move into the async task
+        let onlogin_handler = props.onlogin.clone();
+        
         // Spawn an async task for authentication
         spawn(async move {
             match crate::authenticate().await {
                 Ok(_) => {
-                    props.onlogin.call(Ok(()));
+                    onlogin_handler.call(Ok(()));
                 },
                 Err(e) => {
-                    props.onlogin.call(Err(e));
+                    onlogin_handler.call(Err(e));
                 }
             }
         });
@@ -1304,36 +1408,45 @@ pub fn LoginDialog(props: LoginDialogProps) -> Element {
 #[component]
 pub fn InstallationDetailsPage(installation_id: String) -> Element {
     // Load the installation
-    let installation = match crate::installation::load_installation(&installation_id) {
-        Ok(installation) => installation,
-        Err(_) => {
-            // If installation can't be loaded, show an error
-            return rsx! {
-                div { class: "error-container",
-                    h2 { "Installation Not Found" }
-                    p { "The requested installation could not be found." }
-                    
-                    button {
-                        class: "back-button",
-                        onclick: move |_| {
-                            // Navigate back to home
-                            // This would depend on your navigation system
-                        },
-                        "Back to Home"
-                    }
-                }
-            };
-        }
-    };
-    
+    let installation_result = use_memo(move || {
+        crate::installation::load_installation(&installation_id)
+    });
+
     // Installation status signals
-    let mut is_installing = use_signal(|| false);
-    let mut installation_error = use_signal(|| Option::<String>::None);
+    let is_installing = use_signal(|| false);
+    let installation_error = use_signal(|| Option::<String>::None);
+    
+    // Handle installation not found
+    if let Err(e) = &*installation_result.read() {
+        return rsx! {
+            div { class: "error-container",
+                h2 { "Installation Not Found" }
+                p { "The requested installation could not be found." }
+                p { "Error: {e}" }
+                
+                button {
+                    class: "back-button",
+                    onclick: move |_| {
+                        // Navigate back to home
+                        // This would depend on your navigation system
+                    },
+                    "Back to Home"
+                }
+            }
+        };
+    }
+    
+    // Unwrap installation from result (safe because we checked for errors)
+    let installation = installation_result.read().as_ref().unwrap().clone();
     
     // State for modification tracking
-    let mut has_changes = use_signal(|| false);
-    let mut enabled_features = use_signal(|| installation.enabled_features.clone());
+    let has_changes = use_signal(|| false);
+    let enabled_features = use_signal(|| installation.enabled_features.clone());
     
+    // Clone necessary values for event handlers
+    let installation_id_for_launch = installation.id.clone();
+    let installation_error_signal = installation_error.clone();
+
     rsx! {
         div { class: "installation-details-container",
             // Header with installation name and version
@@ -1383,7 +1496,8 @@ pub fn InstallationDetailsPage(installation_id: String) -> Element {
                         h2 { "Features" }
                         p { "Enable or disable optional features for this installation." }
                         
-                        // Features would be listed here, similar to this:
+                        // Features list - This would be populated with actual features
+                        // from your universal manifest for this installation
                         div { class: "features-list",
                             // This is a placeholder - in the actual implementation
                             // you would loop through the features from your universal manifest
@@ -1394,7 +1508,7 @@ pub fn InstallationDetailsPage(installation_id: String) -> Element {
                                         input {
                                             r#type: "checkbox",
                                             checked: true,
-                                            onchange: move |evt| {
+                                            onchange: move |_| {
                                                 // Update enabled_features
                                                 has_changes.set(true);
                                             }
@@ -1403,6 +1517,41 @@ pub fn InstallationDetailsPage(installation_id: String) -> Element {
                                     }
                                 }
                                 p { "This is an example feature description." }
+                            }
+                            
+                            // Add more example features
+                            div { class: "feature-item",
+                                div { class: "feature-header",
+                                    h3 { "Performance Mods" }
+                                    label { class: "toggle-switch",
+                                        input {
+                                            r#type: "checkbox",
+                                            checked: true,
+                                            onchange: move |_| {
+                                                has_changes.set(true);
+                                            }
+                                        }
+                                        span { class: "toggle-slider" }
+                                    }
+                                }
+                                p { "Improves game performance with optimization mods." }
+                            }
+                            
+                            div { class: "feature-item",
+                                div { class: "feature-header",
+                                    h3 { "Visual Enhancements" }
+                                    label { class: "toggle-switch",
+                                        input {
+                                            r#type: "checkbox",
+                                            checked: false,
+                                            onchange: move |_| {
+                                                has_changes.set(true);
+                                            }
+                                        }
+                                        span { class: "toggle-slider" }
+                                    }
+                                }
+                                p { "Adds shaders and visual improvements for better graphics." }
                             }
                         }
                     }
@@ -1413,13 +1562,11 @@ pub fn InstallationDetailsPage(installation_id: String) -> Element {
             div { class: "installation-actions",
                 // Play button with authentication check
                 PlayButton {
-                    uuid: installation.id.clone(),
+                    uuid: installation_id_for_launch,
                     disabled: *is_installing.read(),
                     auth_status: None, // Will auto-detect
                     onclick: move |_| {
-                        let installation_id = installation.id.clone();
-                        let error_signal = installation_error.clone();
-                        crate::gui::handle_play_click(installation_id, &error_signal);
+                        handle_play_click(installation_id_for_launch.clone(), &installation_error_signal);
                     }
                 }
                 
@@ -1439,6 +1586,7 @@ pub fn InstallationDetailsPage(installation_id: String) -> Element {
                             }
                             
                             let http_client = crate::CachedHttpClient::new();
+                            let installation_error_clone = installation_error.clone();
                             
                             spawn(async move {
                                 match installation_clone.install_or_update(&http_client).await {
@@ -1446,7 +1594,7 @@ pub fn InstallationDetailsPage(installation_id: String) -> Element {
                                         has_changes.set(false);
                                     },
                                     Err(e) => {
-                                        installation_error.set(Some(e));
+                                        installation_error_clone.set(Some(e));
                                     }
                                 }
                                 is_installing.set(false);
@@ -1473,27 +1621,6 @@ pub fn InstallationDetailsPage(installation_id: String) -> Element {
                     },
                     "Delete Installation"
                 }
-            }
-        }
-    }
-}
-
-
-#[component]
-fn StatisticsDisplay() -> Element {
-    rsx! {
-        div { class: "stats-container",
-            div { class: "stat-item",
-                span { class: "stat-value", "200+" }
-                span { class: "stat-label", "FPS" }
-            }
-            div { class: "stat-item",
-                span { class: "stat-value", "100+" }
-                span { class: "stat-label", "MODS" }
-            }
-            div { class: "stat-item",
-                span { class: "stat-value", "20K+" }
-                span { class: "stat-label", "DOWNLOADS" }
             }
         }
     }
@@ -2792,26 +2919,24 @@ fn AppHeader(
                 
                 // Legacy tabs (1, 2, 3) if needed
                 if !has_installations {
-                    {
-                        main_tab_indices.iter().enumerate().map(|(i, &index)| {
-                            let title = main_tab_titles[i].clone();
-                            rsx!(
-                                button {
-                                    class: if page() == index && current_installation_id().is_none() { 
-                                        "header-tab-button active" 
-                                    } else { 
-                                        "header-tab-button" 
-                                    },
-                                    onclick: move |_| {
-                                        debug!("TAB CLICK: Changing page from {} to {}", page(), index);
-                                        current_installation_id.set(None);
-                                        page.write().clone_from(&index);
-                                        debug!("TAB CLICK RESULT: Page is now {}", page());
-                                    },
-                                    "{title}"
-                                }
-                            )
-                        })
+                    for (i, &index) in main_tab_indices.iter().enumerate() {
+                        let title = main_tab_titles[i].clone();
+                        rsx!(
+                            button {
+                                class: if page() == index && current_installation_id().is_none() { 
+                                    "header-tab-button active" 
+                                } else { 
+                                    "header-tab-button" 
+                                },
+                                onclick: move |_| {
+                                    debug!("TAB CLICK: Changing page from {} to {}", page(), index);
+                                    current_installation_id.set(None);
+                                    page.set(index);
+                                    debug!("TAB CLICK RESULT: Page is now {}", page());
+                                },
+                                "{title}"
+                            }
+                        )
                     }
                 }
                 
@@ -2836,8 +2961,8 @@ fn AppHeader(
                         }
                         div { 
                             class: "dropdown-content",
-                            {
-                                dropdown_installations.iter().map(|installation| {
+                            for installation in &dropdown_installations {
+                                {
                                     let id = installation.id.clone();
                                     let name = installation.name.clone();
                                     let is_active = current_installation_id().as_ref().map_or(false, |current_id| current_id == &id);
@@ -2857,7 +2982,7 @@ fn AppHeader(
                                             "{name}"
                                         }
                                     )
-                                })
+                                }
                             }
                         }
                     }
@@ -2877,8 +3002,8 @@ fn AppHeader(
                         }
                         div { 
                             class: "dropdown-content",
-                            {
-                                dropdown_tab_indices.iter().enumerate().map(|(i, &index)| {
+                            for (i, &index) in dropdown_tab_indices.iter().enumerate() {
+                                {
                                     let title = dropdown_tab_titles[i].clone();
                                     rsx!(
                                         button {
@@ -2895,7 +3020,7 @@ fn AppHeader(
                                             "{title}"
                                         }
                                     )
-                                })
+                                }
                             }
                         }
                     }
@@ -2937,33 +3062,23 @@ pub(crate) struct AppProps {
     pub modpack_source: String,
     pub config: super::Config,
     pub config_path: PathBuf,
-    // We can optionally add the installations field
-    // but will need to update where it's used
+    pub installations: Vec<Installation>, // Add this field to fix the error
 }
 
-// Replace the entire app() function with this properly structured version
-
+// Update the app() function to properly use the fixed AppProps structure
 pub(crate) fn app() -> Element {
     let props = use_context::<AppProps>();
     let css = include_str!("assets/style.css");
     let branches = props.branches.clone();
     let config = use_signal(|| props.config);
     let settings = use_signal(|| false);
-    let mut err: Signal<Option<String>> = use_signal(|| None);
+    let err: Signal<Option<String>> = use_signal(|| None);
     let page = use_signal(|| HOME_PAGE);  // Initially set to HOME_PAGE
-    let mut pages = use_signal(BTreeMap::<usize, TabInfo>::new);
-    let mut current_installation_id = use_signal(|| Option::<String>::None);
+    let pages = use_signal(BTreeMap::<usize, TabInfo>::new);
+    let current_installation_id = use_signal(|| Option::<String>::None);
 
-    // Load installations
-    let installations = use_signal(|| {
-        match crate::installation::load_all_installations() {
-            Ok(list) => list,
-            Err(e) => {
-                error!("Failed to load installations: {}", e);
-                Vec::new()
-            }
-        }
-    });
+    // Load installations from props, and use a signal to track them
+    let installations = use_signal(|| props.installations.clone());
 
     // Initialize accounts system
     if let Err(e) = crate::accounts::initialize_accounts() {
@@ -2975,7 +3090,7 @@ pub(crate) fn app() -> Element {
 
     // Check for updates for installations
     spawn({
-        let mut installations_signal = installations.clone();
+        let installations_signal = installations.clone();
         async move {
             // Check each installation for updates
             let http_client = crate::CachedHttpClient::new();
@@ -3059,9 +3174,6 @@ pub(crate) fn app() -> Element {
                     title: tab_title,
                     background: tab_background,
                     settings_background,
-                    // Remove these fields
-                    // primary_font,
-                    // secondary_font,
                     modpacks: vec![profile.clone()],
                 });
             }
@@ -3093,101 +3205,7 @@ pub(crate) fn app() -> Element {
         
         // Use constants instead of TabInfo properties
         debug!("Updating CSS with: color={}, bg_image={}", bg_color, bg_image);
-            
-        // Improved dropdown menu CSS with better hover behavior and font consistency
-        let _dropdown_css = "
-        /* Dropdown styles */
-        .dropdown { 
-            position: relative; 
-            display: inline-block; 
-        }
-
-        /* Position the dropdown content */
-        .dropdown-content {
-            display: none;
-            position: absolute;
-            top: 100%;
-            left: 0;
-            background-color: rgba(0, 0, 0, 0.9);
-            min-width: 200px;
-            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.6);
-            z-index: 1000;
-            border-radius: 4px;
-            overflow: hidden;
-            margin-top: 5px;
-            max-height: 400px;
-            overflow-y: auto;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        /* Show dropdown on hover with increased target area */
-        .dropdown:hover .dropdown-content,
-        .dropdown-content:hover {
-            display: block;
-        }
-
-        /* Add a pseudo-element to create an invisible connection between the button and dropdown */
-        .dropdown::after {
-            content: '';
-            position: absolute;
-            height: 10px;
-            width: 100%;
-            left: 0;
-            top: 100%;
-            display: none;
-        }
-
-        .dropdown:hover::after {
-            display: block;
-        }
-
-        .dropdown-item {
-            display: block;
-            width: 100%;
-            padding: 10px 15px;
-            text-align: left;
-            background-color: transparent;
-            border: none;
-            /* Explicitly use the PRIMARY_FONT */
-            font-family: \\\"PRIMARY_FONT\\\";
-            font-size: 0.9rem;
-            color: #fce8f6;
-            cursor: pointer;
-            transition: background-color 0.2s ease;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-        }
-
-        .dropdown-item:last-child {
-            border-bottom: none;
-        }
-
-        .dropdown-item:hover {
-            background-color: rgba(50, 6, 37, 0.8);
-            border-color: rgba(255, 255, 255, 0.4);
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
-        }
-
-        .dropdown-item.active {
-            background-color: var(--bg-color);
-            border-color: #fce8f6;
-            box-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
-            color: #fff;
-        }
-
-        /* Fix for header-tabs to prevent dropdown from affecting it */
-        .header-tabs {
-            display: flex;
-            gap: 5px;
-            margin: 0 10px;
-            flex-grow: 1;
-            justify-content: center;
-            flex-wrap: wrap;
-            overflow-x: visible;
-            scrollbar-width: thin;
-            max-width: 70%;
-            position: relative;
-        }";
-            
+        
         css
             .replace("<BG_COLOR>", &bg_color)
             .replace("<BG_IMAGE>", &bg_image)
@@ -3227,7 +3245,9 @@ pub(crate) fn app() -> Element {
                         page,
                         pages,
                         settings,
-                        logo_url
+                        logo_url,
+                        installations,
+                        current_installation_id,
                     }
                 }
             } else {
@@ -3267,8 +3287,8 @@ pub(crate) fn app() -> Element {
                         debug!("RENDERING: HomePage");
                         rsx! {
                             NewHomePage {
-                installations: installations,
-                error_signal: err
+                                installations: installations,
+                                error_signal: err
                             }
                         }
                     } else {
@@ -3291,9 +3311,9 @@ pub(crate) fn app() -> Element {
                             }
                             
                             // Create a separate credits signal for this rendering path
-                            let mut credits_visible = use_signal(|| false);
-                            let mut selected_profile = use_signal(|| modpacks.first().cloned());
-                            let mut error_msg = use_signal(|| Option::<String>::None);
+                            let credits_visible = use_signal(|| false);
+                            let selected_profile = use_signal(|| modpacks.first().cloned());
+                            let error_msg = use_signal(|| Option::<String>::None);
                             
                             // Directly return the RSX without unnecessary nesting
                             rsx! {
@@ -3377,28 +3397,121 @@ pub(crate) fn app() -> Element {
                                                                 
                                                                 // Using a unique signal for each profile's expanded state
                                                                 let expanded_signal_id = format!("expanded-{}-{}", current_page, index);
-                                                                let mut expanded_features = use_signal(|| false);
+                                                                let expanded_features = use_signal(|| false);
                                                                 
                                                                 rsx! {
                                                                     div { class: "feature-cards-container",
-                                                                        // Feature cards rendering (unchanged) 
-                                                                        // ...
+                                                                        // Feature cards rendering (first row)
+                                                                        for feature in visible_features.iter().take(first_row_count) {
+                                                                            {
+                                                                                let feature_clone = feature.clone();
+                                                                                let is_enabled = profile.enabled_features.contains(&feature.id);
+                                                                                
+                                                                                rsx! {
+                                                                                    div { 
+                                                                                        class: if is_enabled { 
+                                                                                            "feature-card feature-enabled" 
+                                                                                        } else { 
+                                                                                            "feature-card feature-disabled" 
+                                                                                        },
+                                                                                        
+                                                                                        // Feature header
+                                                                                        div { class: "feature-card-header",
+                                                                                            h3 { class: "feature-card-title", "{feature.name}" }
+                                                                                            
+                                                                                            // Toggle button
+                                                                                            label {
+                                                                                                class: if is_enabled { 
+                                                                                                    "feature-toggle-button enabled" 
+                                                                                                } else { 
+                                                                                                    "feature-toggle-button disabled" 
+                                                                                                },
+                                                                                                
+                                                                                                input {
+                                                                                                    r#type: "checkbox",
+                                                                                                    checked: is_enabled,
+                                                                                                    onchange: move |_| {
+                                                                                                        // This would toggle the feature
+                                                                                                        // In a real implementation
+                                                                                                    }
+                                                                                                }
+                                                                                                
+                                                                                                if is_enabled { "ON" } else { "OFF" }
+                                                                                            }
+                                                                                        }
+                                                                                        
+                                                                                        // Feature description
+                                                                                        if let Some(description) = &feature.description {
+                                                                                            div { class: "feature-card-description", "{description}" }
+                                                                                        }
+                                                                                    }
+                                                                                }
+                                                                            }
+                                                                        }
+                                                                        
+                                                                        // Additional features (when expanded)
+                                                                        if *expanded_features.read() {
+                                                                            for feature in visible_features.iter().skip(first_row_count) {
+                                                                                {
+                                                                                    let feature_clone = feature.clone();
+                                                                                    let is_enabled = profile.enabled_features.contains(&feature.id);
+                                                                                    
+                                                                                    rsx! {
+                                                                                        div { 
+                                                                                            class: if is_enabled { 
+                                                                                                "feature-card feature-enabled" 
+                                                                                            } else { 
+                                                                                                "feature-card feature-disabled" 
+                                                                                            },
+                                                                                            
+                                                                                            // Feature header
+                                                                                            div { class: "feature-card-header",
+                                                                                                h3 { class: "feature-card-title", "{feature.name}" }
+                                                                                                
+                                                                                                // Toggle button
+                                                                                                label {
+                                                                                                    class: if is_enabled { 
+                                                                                                        "feature-toggle-button enabled" 
+                                                                                                    } else { 
+                                                                                                        "feature-toggle-button disabled" 
+                                                                                                    },
+                                                                                                    
+                                                                                                    input {
+                                                                                                        r#type: "checkbox",
+                                                                                                        checked: is_enabled,
+                                                                                                        onchange: move |_| {
+                                                                                                            // This would toggle the feature
+                                                                                                            // In a real implementation
+                                                                                                        }
+                                                                                                    }
+                                                                                                    
+                                                                                                    if is_enabled { "ON" } else { "OFF" }
+                                                                                                }
+                                                                                            }
+                                                                                            
+                                                                                            // Feature description
+                                                                                            if let Some(description) = &feature.description {
+                                                                                                div { class: "feature-card-description", "{description}" }
+                                                                                            }
+                                                                                        }
+                                                                                    }
+                                                                                }
+                                                                            }
+                                                                        }
                                                                     }
                                                                     
-                                                                    // Only show expand button if needed
+                                                                    // Show expand button if needed
                                                                     if show_expand_button {
                                                                         div { class: "features-expand-container",
                                                                             button {
                                                                                 class: "features-expand-button",
                                                                                 onclick: move |_| {
-                                                                                    let current_state = *expanded_features.read();
-                                                                                    expanded_features.set(!current_state);
-                                                                                    debug!("Toggled expanded features: {} for profile {}", !current_state, expanded_signal_id);
+                                                                                    expanded_features.set(!expanded_features.read().clone());
                                                                                 },
                                                                                 if *expanded_features.read() {
                                                                                     "Collapse Features"
                                                                                 } else {
-                                                                                    {format!("Show {} More Features", visible_features.len() - first_row_count)}
+                                                                                    "Show More Features"
                                                                                 }
                                                                             }
                                                                         }
@@ -3431,20 +3544,12 @@ pub(crate) fn app() -> Element {
                                                             
                                                             // Play button (only if installed)
                                                             if is_installed {
-                                                                {
-                                                                    let uuid_str = uuid.clone(); // Clone outside
-                                                                    let err_signal = error_signal.clone();
-                                                                    
-                                                                    rsx! {
-                                                                        PlayButton {
-                                                                            uuid: uuid_str.clone(), // Clone again for component
-                                                                            disabled: false,
-                                                                            auth_status: None,
-                                                                            onclick: move |_| {
-                                                                                let uuid_for_handler = uuid_str.clone(); // Clone inside closure
-                                                                                handle_play_click(uuid_for_handler, &err_signal);
-                                                                            }
-                                                                        }
+                                                                PlayButton {
+                                                                    uuid: uuid.clone(),
+                                                                    disabled: false,
+                                                                    auth_status: None,
+                                                                    onclick: move |_| {
+                                                                        handle_play_click(uuid.clone(), &error_signal);
                                                                     }
                                                                 }
                                                             }
@@ -3462,6 +3567,11 @@ pub(crate) fn app() -> Element {
                         }
                     }
                 }
+            }
+            
+            // Add footer if not on settings page
+            if !settings() {
+                Footer {}
             }
         }
     }
