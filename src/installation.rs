@@ -10,6 +10,13 @@ use uuid::Uuid;
 use crate::{CachedHttpClient, InstallerProfile, launcher};
 use crate::preset::Preset;
 
+#[derive(Debug, Deserialize, Serialize, Default, Clone)]
+pub struct InstallationsIndex {
+    pub installations: Vec<String>,  // List of installation IDs
+    pub active_installation: Option<String>, // Currently selected installation
+    pub last_active: Option<DateTime<Utc>>,
+}
+
 // Structure for managing an installation
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
 pub struct Installation {
