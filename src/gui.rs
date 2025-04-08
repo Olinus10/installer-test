@@ -280,7 +280,7 @@ pub fn handle_play_click(uuid: String, error_signal: &Signal<Option<String>>) {
     let (error_tx, error_rx) = mpsc::channel::<String>();
     
     // Clone error_signal before moving to thread
-    let error_signal_clone = error_signal.clone();
+    let mut error_signal_clone = error_signal.clone();
     
     // Check authentication status
     match get_auth_status() {
@@ -459,7 +459,7 @@ pub fn NewHomePage(
     let latest_installation = installations().first().cloned();
     
     // State for creation dialog
-    let show_creation_dialog = use_signal(|| false);
+    let mut show_creation_dialog = use_signal(|| false);
     
     // Authentication status check
     let auth_status = crate::gui::get_auth_status();
@@ -1354,8 +1354,8 @@ pub fn InstallationDetailsPage(installation_id: String) -> Element {
     });
 
     // Installation status signals
-    let is_installing = use_signal(|| false);
-    let installation_error = use_signal(|| Option::<String>::None);
+    let mut is_installing = use_signal(|| false);
+    let mut installation_error = use_signal(|| Option::<String>::None);
     
     // Handle installation not found
     if let Err(e) = &*installation_result.read() {
@@ -1381,7 +1381,7 @@ pub fn InstallationDetailsPage(installation_id: String) -> Element {
     let installation = installation_result.read().as_ref().unwrap().clone();
     
     // State for modification tracking
-    let has_changes = use_signal(|| false);
+    let mut has_changes = use_signal(|| false);
     let enabled_features = use_signal(|| installation.enabled_features.clone());
     
     // Clone necessary values for event handlers
@@ -1527,7 +1527,7 @@ pub fn InstallationDetailsPage(installation_id: String) -> Element {
                             }
                             
                             let http_client = crate::CachedHttpClient::new();
-                            let installation_error_clone = installation_error.clone();
+                            let mut installation_error_clone = installation_error.clone();
                             
                             spawn(async move {
                                 match installation_clone.install_or_update(&http_client).await {
@@ -3013,9 +3013,9 @@ pub(crate) fn app() -> Element {
     let branches = props.branches.clone();
     let config = use_signal(|| props.config);
     let settings = use_signal(|| false);
-    let err: Signal<Option<String>> = use_signal(|| None);
+    let mut err: Signal<Option<String>> = use_signal(|| None);
     let page = use_signal(|| HOME_PAGE);  // Initially set to HOME_PAGE
-    let pages = use_signal(BTreeMap::<usize, TabInfo>::new);
+    let mut pages = use_signal(BTreeMap::<usize, TabInfo>::new);
     let current_installation_id = use_signal(|| Option::<String>::None);
 
     // Load installations from props, and use a signal to track them
@@ -3031,7 +3031,7 @@ pub(crate) fn app() -> Element {
 
     // Check for updates for installations
     spawn({
-        let installations_signal = installations.clone();
+        let mut installations_signal = installations.clone();
         async move {
             // Check each installation for updates
             let http_client = crate::CachedHttpClient::new();
@@ -3252,9 +3252,9 @@ pub(crate) fn app() -> Element {
                             }
                             
                             // Create a separate credits signal for this rendering path
-                            let credits_visible = use_signal(|| false);
-                            let selected_profile = use_signal(|| modpacks.first().cloned());
-                            let error_msg = use_signal(|| Option::<String>::None);
+                            let mut credits_visible = use_signal(|| false);
+                            let mut selected_profile = use_signal(|| modpacks.first().cloned());
+                            let mut error_msg = use_signal(|| Option::<String>::None);
                             
                             // Directly return the RSX without unnecessary nesting
                             rsx! {
@@ -3338,7 +3338,7 @@ pub(crate) fn app() -> Element {
                                                                 
                                                                 // Using a unique signal for each profile's expanded state
                                                                 let expanded_signal_id = format!("expanded-{}-{}", current_page, index);
-                                                                let expanded_features = use_signal(|| false);
+                                                                let mut expanded_features = use_signal(|| false);
                                                                 
                                                                 rsx! {
                                                                     div { class: "feature-cards-container",
