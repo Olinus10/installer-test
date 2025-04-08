@@ -97,7 +97,7 @@ pub fn get_auth_status() -> AuthStatus {
 fn app_fully_initialized() -> bool {
     // Check if pages are loaded, etc.
     // Return false during initial loading
-    true // Change this based on actual state
+    true // Change this based on actual state checking
 }
 
 // Thread-safe play button handler
@@ -1103,13 +1103,13 @@ fn AccountsPage() -> Element {
 }
 
 #[derive(PartialEq, Props, Clone)]
-struct LoginDialogProps {
-    onclose: EventHandler<()>,
-    onlogin: EventHandler<Result<(), String>>,
+pub struct LoginDialogProps {
+    pub onclose: EventHandler<()>,
+    pub onlogin: EventHandler<Result<(), String>>,
 }
 
 #[component]
-fn LoginDialog(props: LoginDialogProps) -> Element {
+pub fn LoginDialog(props: LoginDialogProps) -> Element {
     let mut is_logging_in = use_signal(|| false);
     
     // Login function that handles authentication
@@ -1118,7 +1118,7 @@ fn LoginDialog(props: LoginDialogProps) -> Element {
         
         // Spawn an async task for authentication
         spawn(async move {
-            match authenticate().await {
+            match crate::authenticate().await {
                 Ok(_) => {
                     props.onlogin.call(Ok(()));
                 },
