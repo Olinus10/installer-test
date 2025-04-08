@@ -1,5 +1,5 @@
 use tokio::runtime::Runtime;
-use log::{debug, error, info}; // Remove unused 'warn'
+use log::{debug, error, info}; 
 use std::error::Error;
 use std::sync::atomic::{AtomicBool, Ordering};
 
@@ -9,11 +9,10 @@ pub use crate::microsoft_auth_impl::MicrosoftAuth as InnerMicrosoftAuth;
 // Wrapper struct with user-friendly methods
 pub struct MicrosoftAuth;
 
+// Only define this once
 static INITIALIZATION_COMPLETE: AtomicBool = AtomicBool::new(false);
 
 impl MicrosoftAuth {
-
-    
     // Launch Minecraft with Microsoft authentication
     pub fn launch_minecraft(profile_id: &str) -> Result<(), Box<dyn Error>> {
         // Create a runtime for the async code
@@ -44,11 +43,12 @@ impl MicrosoftAuth {
     
     // Check if the user is already authenticated
     pub fn is_authenticated() -> bool {
-    // Add safety check
-if !INITIALIZATION_COMPLETE.load(Ordering::SeqCst) {
-    debug!("Auth check skipped during initialization");
-    return false;
-}
+        // Add safety check
+        if !INITIALIZATION_COMPLETE.load(Ordering::SeqCst) {
+            debug!("Auth check skipped during initialization");
+            return false;
+        }
+        
         // Create a runtime for the async code
         if let Ok(rt) = Runtime::new() {
             rt.block_on(async {
@@ -81,14 +81,15 @@ if !INITIALIZATION_COMPLETE.load(Ordering::SeqCst) {
         }
     }
 
-pub fn mark_initialization_complete() {
-    INITIALIZATION_COMPLETE.store(true, Ordering::SeqCst);
-}
+    // Mark initialization as complete
+    pub fn mark_initialization_complete() {
+        INITIALIZATION_COMPLETE.store(true, Ordering::SeqCst);
+    }
 
-fn is_initialization_complete() -> bool {
-    INITIALIZATION_COMPLETE.load(Ordering::SeqCst)
-}
-
+    // Check if initialization is complete
+    pub fn is_initialization_complete() -> bool {
+        INITIALIZATION_COMPLETE.load(Ordering::SeqCst)
+    }
     
     // Get the currently authenticated username (if any)
     pub fn get_username() -> Option<String> {
