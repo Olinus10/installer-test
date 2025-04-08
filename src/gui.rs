@@ -10,6 +10,7 @@ use crate::{get_app_data, get_installed_packs, get_launcher, uninstall, Installe
 use crate::{Installation, Preset, UniversalManifest};
 use crate::preset;
 use crate::{get_active_account, get_all_accounts, authenticate, is_authenticated};
+use crate::accounts::{sign_out, switch_account};
 
 mod modal;
 
@@ -678,7 +679,7 @@ pub fn InstallationCreationWizard(props: InstallationCreationWizardProps) -> Ele
                                 h3 { "Name your installation" }
                                 
                                 div { class: "form-group",
-                                    label { for: "installation-name", "Installation Name:" }
+                                    label { r#for: "installation-name", "Installation Name:" }
                                     input {
                                         id: "installation-name",
                                         r#type: "text",
@@ -718,7 +719,7 @@ pub fn InstallationCreationWizard(props: InstallationCreationWizardProps) -> Ele
                                 p { "Configure memory allocation and other performance settings." }
                                 
                                 div { class: "form-group",
-                                    label { for: "memory-allocation", 
+                                    label { r#for: "memory-allocation",  
                                         "Memory Allocation: {memory_allocation} MB"
                                     }
                                     input {
@@ -793,7 +794,7 @@ pub fn InstallationCreationWizard(props: InstallationCreationWizardProps) -> Ele
                                             if let Some(preset_id) = &*selected_preset_id.read() {
                                                 if let Some(presets_list) = presets.read() {
                                                     if let Some(preset) = preset::find_preset_by_id(presets_list, preset_id) {
-                                                        preset.name
+                                                        {preset.name}
                                                     } else {
                                                         "Custom Configuration".to_string()
                                                     }
@@ -883,7 +884,7 @@ pub fn InstallationCreationWizard(props: InstallationCreationWizardProps) -> Ele
                                 p { "Configure memory allocation and other performance settings." }
                                 
                                 div { class: "form-group",
-                                    label { for: "memory-allocation", 
+                                    label { r#for: "memory-allocation",
                                         "Memory Allocation: {memory_allocation} MB"
                                     }
                                     input {
@@ -958,7 +959,7 @@ pub fn InstallationCreationWizard(props: InstallationCreationWizardProps) -> Ele
                                             if let Some(preset_id) = &*selected_preset_id.read() {
                                                 if let Some(presets_list) = presets.read() {
                                                     if let Some(preset) = preset::find_preset_by_id(presets_list, preset_id) {
-                                                        preset.name
+                                                        {preset.name}
                                                     } else {
                                                         "Custom Configuration".to_string()
                                                     }
