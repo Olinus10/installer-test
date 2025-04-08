@@ -672,85 +672,85 @@ pub fn InstallationCreationWizard(props: InstallationCreationWizardProps) -> Ele
     
     // Function to create the installation
     let create_installation = move || {
-        // Get the universal manifest for Minecraft version and loader information
-        let manifest_opt = universal_manifest.read().as_ref().cloned();
+    // Get the universal manifest for Minecraft version and loader information
+    if let Some(manifest) = universal_manifest.read().as_ref() {
+        // Now we have direct access to the manifest fields
+        // Use Minecraft version and loader info from universal manifest
+        let minecraft_version = manifest.minecraft_version.clone();
+        let loader_type = manifest.loader.r#type.clone();
+        let loader_version = manifest.loader.version.clone();
         
-        if let Some(manifest) = manifest_opt {
-            // Use Minecraft version and loader info from universal manifest
-            let minecraft_version = manifest.minecraft_version.clone();
-            let loader_type = manifest.loader.r#type.clone();
-            let loader_version = manifest.loader.version.clone();
-            
-            // Find the selected preset
-            let preset = if let Some(preset_id) = &*selected_preset_id.read() {
-                if let Some(presets_vec) = presets.read().as_ref() {
-                    preset::find_preset_by_id(presets_vec, preset_id)
-                } else {
-                    None
-                }
+        // Find the selected preset
+        let preset = if let Some(preset_id) = &*selected_preset_id.read() {
+            if let Some(presets_list) = presets.read().as_ref() {
+                preset::find_preset_by_id(presets_list, preset_id)
             } else {
                 None
-            };
-            
-            // Create the installation
-            if let Some(preset) = preset {
-                let installation = Installation::new_from_preset(
-                    name.read().clone(),
-                    &preset,
-                    minecraft_version,
-                    loader_type,
-                    loader_version,
-                    "vanilla".to_string(), // Default to vanilla launcher
-                    manifest.version.clone(),
-                );
-                
-                // Register the installation
-                if let Err(e) = crate::installation::register_installation(&installation) {
-                    error!("Failed to register installation: {}", e);
-                    // Continue anyway - we'll return the installation
-                }
-                
-                // Save the installation with memory allocation
-                let mut installation_copy = installation.clone();
-                installation_copy.memory_allocation = *memory_allocation.read();
-                if let Err(e) = installation_copy.save() {
-                    error!("Failed to save installation: {}", e);
-                    // Continue anyway
-                }
-                
-                // Return the new installation
-                props.oncreate.call(installation_copy);
-            } else {
-                // Create custom installation without preset but still using universal manifest settings
-                let installation = Installation::new_custom(
-                    name.read().clone(),
-                    minecraft_version,
-                    loader_type,
-                    loader_version,
-                    "vanilla".to_string(),
-                    manifest.version.clone(),
-                );
-                
-                // Register and save the installation with memory allocation
-                let mut installation_copy = installation.clone();
-                installation_copy.memory_allocation = *memory_allocation.read();
-                if let Err(e) = crate::installation::register_installation(&installation_copy) {
-                    error!("Failed to register installation: {}", e);
-                }
-                
-                if let Err(e) = installation_copy.save() {
-                    error!("Failed to save installation: {}", e);
-                }
-                
-                props.oncreate.call(installation_copy);
             }
         } else {
-            // If we couldn't get the universal manifest, show an error
-            error!("Failed to load universal manifest");
-            // Could set an error state here to show to the user
+            None
+        };
+        
+        // Create the installation
+        if let Some(preset) = preset {
+            let installation = Installation::new_from_preset(
+                name.read().clone(),
+                &preset,
+                minecraft_version,
+                loader_type,
+                loader_version,
+                "vanilla".to_string(), // Default to vanilla launcher
+                manifest.version.clone(),
+            );
+            
+            // Register the installation
+            if let Err(e) = crate::installation::register_installation(&installation) {
+                error!("Failed to register installation: {}", e);
+                // Continue anyway - we'll return the installation
+            }
+            
+            // Save the installation with memory allocation
+            let mut installation_copy = installation.clone();
+            installation_copy.memory_allocation = *memory_allocation.read();
+            if let Err(e) = installation_copy.save() {
+                error!("Failed to save installation: {}", e);
+                // Continue anyway
+            }
+            
+            // Return the new installation
+            props.oncreate.call(installation_copy);
+        } else {
+            // Create custom installation without preset but still using universal manifest settings
+            let installation = Installation::new_custom(
+                name.read().clone(),
+                minecraft_version,
+                loader_type,
+                loader_version,
+                "vanilla".to_string(),
+                manifest.version.clone(),
+            );
+            
+            // Register and save the installation with memory allocation
+            let mut installation_copy = installation.clone();
+            installation_copy.memory_allocation = *memory_allocation.read();
+            if let Err(e) = crate::installation::register_installation(&installation_copy) {
+                error!("Failed to register installation: {}", e);
+            }
+            
+            if let Err(e) = installation_copy.save() {
+                error!("Failed to save installation: {}", e);
+            }
+            
+            props.oncreate.call(installation_copy);
         }
-    };
+    } else {
+        // If we couldn't get the universal manifest, show an error
+        error!("Failed to load universal manifest");
+        // Could set an error state here to show to the user
+    }
+};
 
+    
     rsx! {
         div { class: "wizard-overlay",
             div { class: "wizard-container",
@@ -799,24 +799,25 @@ pub fn InstallationCreationWizard(props: InstallationCreationWizardProps) -> Ele
                                 
                                 // Display Minecraft version and loader from universal manifest
                                 if let Some(manifest) = universal_manifest.read().as_ref() {
-                                    div { class: "manifest-info",
-                                        div { class: "info-item",
-                                            span { class: "info-label", "Minecraft Version:" }
-                                            span { class: "info-value", "{manifest.minecraft_version}" }
-                                        }
-                                        
-                                        div { class: "info-item",
-                                            span { class: "info-label", "Mod Loader:" }
-                                            span { class: "info-value", "{manifest.loader.r#type} {manifest.loader.version}" }
-                                        }
-                                        
-                                        p { class: "info-note", 
-                                            "These settings are determined by the modpack requirements and cannot be changed."
-                                        }
-                                    }
-                                } else {
-                                    div { class: "loading-message", "Loading modpack information..." }
-                                }
+    div { class: "manifest-info",
+        div { class: "info-item",
+            span { class: "info-label", "Minecraft Version:" }
+            span { class: "info-value", "{manifest.minecraft_version}" }
+        }
+        
+        div { class: "info-item",
+            span { class: "info-label", "Mod Loader:" }
+            span { class: "info-value", "{manifest.loader.r#type} {manifest.loader.version}" }
+        }
+        
+        p { class: "info-note", 
+            "These settings are determined by the modpack requirements and cannot be changed."
+        }
+    }
+} else {
+    div { class: "loading-message", "Loading modpack information..." }
+}
+
                             }
                         },
                         1 => rsx! {
@@ -943,16 +944,16 @@ pub fn InstallationCreationWizard(props: InstallationCreationWizardProps) -> Ele
                                     
                                     // Display Minecraft version and loader from universal manifest
                                     if let Some(manifest) = universal_manifest.read().as_ref() {
-                                        div { class: "review-item",
-                                            div { class: "review-label", "Minecraft Version:" }
-                                            div { class: "review-value", "{manifest.minecraft_version}" }
-                                        }
-                                        
-                                        div { class: "review-item",
-                                            div { class: "review-label", "Mod Loader:" }
-                                            div { class: "review-value", "{manifest.loader.r#type} {manifest.loader.version}" }
-                                        }
-                                    }
+    div { class: "review-item",
+        div { class: "review-label", "Minecraft Version:" }
+        div { class: "review-value", "{manifest.minecraft_version}" }
+    }
+    
+    div { class: "review-item",
+        div { class: "review-label", "Mod Loader:" }
+        div { class: "review-value", "{manifest.loader.r#type} {manifest.loader.version}" }
+    }
+}
                                     
                                     div { class: "review-item",
                                         div { class: "review-label", "Preset:" }
@@ -1047,11 +1048,18 @@ pub fn InstallationCreationWizard(props: InstallationCreationWizardProps) -> Ele
 
 // Account management components
 #[component]
+
+#[component]
 fn AccountsPage() -> Element {
     let accounts = get_all_accounts();
     let active_account = get_active_account();
     let mut show_login_dialog = use_signal(|| false);
     let mut error_message = use_signal(|| Option::<String>::None);
+    
+    // Generate account items for the list, skipping active account
+    let other_accounts = accounts.iter()
+        .filter(|account| !active_account.as_ref().map_or(false, |active| active.id == account.id))
+        .collect::<Vec<_>>();
     
     rsx! {
         div { class: "accounts-container",
@@ -1125,18 +1133,13 @@ fn AccountsPage() -> Element {
                 }
             }
             
-            // Other accounts
-            if accounts.len() > 1 {
+            // Other accounts section - now using the filtered list instead of checking inside the loop
+            if !other_accounts.is_empty() {
                 div { class: "other-accounts-section",
                     h2 { "Other Accounts" }
                     
                     div { class: "accounts-list",
-                        for account in accounts {
-                            // Skip active account
-                            if active_account.as_ref().map_or(false, |active| active.id == account.id) {
-                                {continue}
-                            }
-                            
+                        for account in other_accounts {
                             div { class: "account-list-item",
                                 img {
                                     class: "minecraft-avatar-small",
@@ -1147,7 +1150,7 @@ fn AccountsPage() -> Element {
                                 div { class: "account-list-info",
                                     p { class: "account-username", "{account.username}" }
                                     
-                                    if let Some(name) = account.display_name {
+                                    if let Some(name) = &account.display_name {
                                         p { class: "account-display-name", "{name}" }
                                     }
                                 }
@@ -1215,9 +1218,9 @@ pub struct LoginDialogProps {
 
 #[component]
 pub fn LoginDialog(props: LoginDialogProps) -> Element {
-    let is_logging_in = use_signal(|| false);
+    let mut is_logging_in = use_signal(|| false);
     
-    // Login function that handles authentication
+    // Login function that handles authentication - make sure it's mutable
     let handle_login = move || {
         is_logging_in.set(true);
         
@@ -1275,9 +1278,8 @@ pub fn LoginDialog(props: LoginDialogProps) -> Element {
                             
                             button {
                                 class: "microsoft-login-button",
-                                onclick: move |_| {
-                                    handle_login();
-                                },
+                                // No need to pass `onclick: move |_|` for this fix
+                                onclick: |_| handle_login(),
                                 
                                 // Microsoft logo (simplified)
                                 svg {
