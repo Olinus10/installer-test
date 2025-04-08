@@ -156,77 +156,51 @@ pub struct AccountManager {
 }
 
 impl AccountManager {
-    // Create a new account manager
-    pub fn new() -> Self {
-        let accounts_dir = get_accounts_dir();
-        Self {
-            accounts_dir,
-            accounts: Vec::new(),
-            active_account_id: None,
-            index: AccountsIndex::default(),
-            loaded: false,
+    // Add a new account
+    pub fn add_account(&mut self, auth_info: &AuthInfo) -> Result<String, String> {
+        if !self.loaded {
+            self.load_accounts()?;
         }
+        
+        let existing_account_index = self.accounts.iter().position(|a| a.username == auth_info.username);
+        
+        if let Some(index) = existing_account_index {
+            // Update existing account
+            let account = &mut self.accounts[index];
+            account.update_from_auth_info(auth_info);
+            account.last_used = Utc::now();
+            
+            // Save a copy of the account ID
+            let account_id = account.id.clone();
+            
+            // Make this the active account
+            self.active_account_id = Some(account_id.clone());
+            
+            // Save changes
+            self.save_accounts()?;
+            
+            info!("Updated existing account: {}", account.username);
+            return Ok(account_id);
+        }
+        
+        // Create a new account
+        let account = StoredAccount::from_auth_info(auth_info);
+        let account_id = account.id.clone();
+        
+        // Add to accounts list
+        self.accounts.push(account);
+        
+        // Make this the active account
+        self.active_account_id = Some(account_id.clone());
+        
+        // Save changes
+        self.save_accounts()?;
+        
+        info!("Added new account: {}", auth_info.username);
+        Ok(account_id)
     }
     
-    // Load accounts from disk
-    pub fn load_accounts(&mut self) -> Result<(), String> {
-        if self.loaded {
-            return Ok(());
-        }
-        
-        debug!("Loading accounts from {}", self.accounts_dir.display());
-        
-        // Create accounts directory if it doesn't exist
-        if !self.accounts_dir.exists() {
-            if let Err(e) = fs::create_dir_all(&self.accounts_dir) {
-                return Err(format!("Failed to create accounts directory: {}", e));
-            }
-        }
-        
-        // Load index
-        let index_path = self.accounts_dir.join("index.json");
-        self.index = if index_path.exists() {
-            match fs::read_to_string(&index_path) {
-                Ok(json) => match serde_json::from_str(&json) {
-                    Ok(index) => index,
-                    Err(e) => {
-                        warn!("Failed to parse accounts index: {}", e);
-                        AccountsIndex::default()
-                    }
-                },
-                Err(e) => {
-                    warn!("Failed to read accounts index: {}", e);
-                    AccountsIndex::default()
-                }
-            }
-        } else {
-            AccountsIndex::default()
-        };
-        
-        // Load each account
-        for id in &self.index.accounts {
-            let account_path = self.accounts_dir.join(format!("{}.json", id));
-            if account_path.exists() {
-                match fs::read_to_string(&account_path) {
-                    Ok(json) => match serde_json::from_str(&json) {
-                        Ok(account) => self.accounts.push(account),
-                        Err(e) => warn!("Failed to parse account {}: {}", id, e),
-                    },
-                    Err(e) => warn!("Failed to read account {}: {}", id, e),
-                }
-            }
-        }
-        
-        // Set active account
-        self.active_account_id = self.index.active_account.clone();
-        
-        debug!("Loaded {} accounts", self.accounts.len());
-        self.loaded = true;
-        
-        Ok(())
-    }
-    
-    // Save accounts to disk
+    // Fix the save_accounts method to create a properly formatted AccountsIndex
     pub fn save_accounts(&self) -> Result<(), String> {
         if !self.loaded {
             return Err("Account manager not initialized".to_string());
@@ -252,13 +226,14 @@ impl AccountManager {
             }
         }
         
-        // Update and save index
-        let mut index = AccountsIndex {
+        // Create the index (not mutable to fix compiler error)
+        let index = AccountsIndex {
             accounts: self.accounts.iter().map(|a| a.id.clone()).collect(),
             active_account: self.active_account_id.clone(),
             last_active: Some(Utc::now()),
         };
         
+        // Write the index
         let index_path = self.accounts_dir.join("index.json");
         let json = match serde_json::to_string_pretty(&index) {
             Ok(json) => json,
@@ -273,167 +248,166 @@ impl AccountManager {
         
         Ok(())
     }
+}
+
+// Fix the continue inside closure issue by refactoring the AccountsPage component
+#[component]
+fn AccountsPage() -> Element {
+    let accounts = get_all_accounts();
+    let active_account = get_active_account();
+    let show_login_dialog = use_signal(|| false);
+    let error_message = use_signal(|| Option::<String>::None);
     
-    // Add a new account
-    pub fn add_account(&mut self, auth_info: &AuthInfo) -> Result<String, String> {
-        if !self.loaded {
-            self.load_accounts()?;
-        }
-        
-        let existing_account_index = self.accounts.iter().position(|a| a.username == auth_info.username);
-        
-        if let Some(index) = existing_account_index {
-            // Update existing account
-            let account = &mut self.accounts[index];
-            account.update_from_auth_info(auth_info);
-            account.last_used = Utc::now();
+    // Generate account items for the list, skipping active account
+    let other_accounts = accounts.iter()
+        .filter(|account| !active_account.as_ref().map_or(false, |active| active.id == account.id))
+        .collect::<Vec<_>>();
+    
+    rsx! {
+        div { class: "accounts-container",
+            h1 { "Account Management" }
             
-            // Make this the active account
-            self.active_account_id = Some(account.id.clone());
+            // Display error if any
+            if let Some(error) = &*error_message.read() {
+                div { class: "error-notification",
+                    div { class: "error-message", "{error}" }
+                    button { 
+                        class: "error-close",
+                        onclick: move |_| error_message.set(None),
+                        "×"
+                    }
+                }
+            }
             
-            // Save changes
-            self.save_accounts()?;
+            // Current active account
+            div { class: "active-account-section",
+                h2 { "Current Account" }
+                
+                if let Some(account) = active_account {
+                    div { class: "active-account-card",
+                        img {
+                            class: "minecraft-avatar",
+                            src: "https://minotar.net/avatar/{account.username}/100.png",
+                            alt: "Minecraft Avatar"
+                        }
+                        
+                        div { class: "account-info",
+                            h3 { "{account.username}" }
+                            
+                            if let Some(name) = account.display_name {
+                                p { class: "display-name", "{name}" }
+                            }
+                            
+                            p { class: "minecraft-uuid", "UUID: {account.uuid}" }
+                            
+                            if let Some(last_login) = account.last_login {
+                                p { class: "last-login", "Last login: {last_login.format(\"%B %d, %Y\")}" }
+                            }
+                        }
+                        
+                        button {
+                            class: "sign-out-button",
+                            onclick: move |_| {
+                                match sign_out() {
+                                    Ok(_) => {
+                                        // Refresh the page to show updated account status
+                                    },
+                                    Err(e) => {
+                                        error_message.set(Some(e));
+                                    }
+                                }
+                            },
+                            "Sign Out"
+                        }
+                    }
+                } else {
+                    div { class: "no-account-message",
+                        p { "You are not currently signed in to any Microsoft account." }
+                        
+                        button {
+                            class: "sign-in-button",
+                            onclick: move |_| {
+                                show_login_dialog.set(true);
+                            },
+                            "Sign In with Microsoft"
+                        }
+                    }
+                }
+            }
             
-            info!("Updated existing account: {}", account.username);
-            return Ok(account.id.clone());
-        }
-        
-        // Create a new account
-        let account = StoredAccount::from_auth_info(auth_info);
-        let account_id = account.id.clone();
-        
-        // Add to accounts list
-        self.accounts.push(account);
-        
-        // Make this the active account
-        self.active_account_id = Some(account_id.clone());
-        
-        // Save changes
-        self.save_accounts()?;
-        
-        info!("Added new account: {}", auth_info.username);
-        Ok(account_id)
-    }
-    
-    // Get account by ID
-    pub fn get_account(&self, id: &str) -> Option<&StoredAccount> {
-        self.accounts.iter().find(|a| a.id == id)
-    }
-    
-    // Get account by username
-    pub fn get_account_by_username(&self, username: &str) -> Option<&StoredAccount> {
-        self.accounts.iter().find(|a| a.username == username)
-    }
-    
-    // Get active account
-    pub fn get_active_account(&self) -> Option<&StoredAccount> {
-        if let Some(id) = &self.active_account_id {
-            self.get_account(id)
-        } else {
-            None
-        }
-    }
-    
-    // Set active account
-    pub fn set_active_account(&mut self, id: &str) -> Result<(), String> {
-        if !self.loaded {
-            self.load_accounts()?;
-        }
-        
-        // Verify account exists
-        if self.get_account(id).is_none() {
-            return Err(format!("Account {} not found", id));
-        }
-        
-        self.active_account_id = Some(id.to_string());
-        self.save_accounts()?;
-        
-        info!("Set active account to {}", id);
-        Ok(())
-    }
-    
-    // Remove an account
-    pub fn remove_account(&mut self, id: &str) -> Result<(), String> {
-        if !self.loaded {
-            self.load_accounts()?;
-        }
-        
-        // Remove from accounts list
-        let initial_count = self.accounts.len();
-        self.accounts.retain(|a| a.id != id);
-        
-        if self.accounts.len() == initial_count {
-            return Err(format!("Account {} not found", id));
-        }
-        
-        // If this was the active account, clear that
-        if let Some(active_id) = &self.active_account_id {
-            if active_id == id {
-                self.active_account_id = self.accounts.first().map(|a| a.id.clone());
+            // Other accounts
+            if other_accounts.len() > 0 {
+                div { class: "other-accounts-section",
+                    h2 { "Other Accounts" }
+                    
+                    div { class: "accounts-list",
+                        for account in other_accounts {
+                            div { class: "account-list-item",
+                                img {
+                                    class: "minecraft-avatar-small",
+                                    src: "https://minotar.net/avatar/{account.username}/50.png",
+                                    alt: "Minecraft Avatar"
+                                }
+                                
+                                div { class: "account-list-info",
+                                    p { class: "account-username", "{account.username}" }
+                                    
+                                    if let Some(name) = &account.display_name {
+                                        p { class: "account-display-name", "{name}" }
+                                    }
+                                }
+                                
+                                div { class: "account-actions",
+                                    button {
+                                        class: "switch-account-button",
+                                        onclick: move |_| {
+                                            let account_id = account.id.clone();
+                                            match switch_account(&account_id) {
+                                                Ok(_) => {
+                                                    // Refresh the page
+                                                },
+                                                Err(e) => {
+                                                    error_message.set(Some(e));
+                                                }
+                                            }
+                                        },
+                                        "Switch"
+                                    }
+                                    
+                                    button {
+                                        class: "remove-account-button",
+                                        onclick: move |_| {
+                                            // Remove account logic
+                                        },
+                                        "Remove"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            
+            // Login dialog
+            if *show_login_dialog.read() {
+                LoginDialog {
+                    onclose: move |_| {
+                        show_login_dialog.set(false);
+                    },
+                    onlogin: move |result| {
+                        match result {
+                            Ok(_) => {
+                                show_login_dialog.set(false);
+                                // Refresh the page
+                            },
+                            Err(e) => {
+                                error_message.set(Some(e));
+                                show_login_dialog.set(false);
+                            }
+                        }
+                    }
+                }
             }
         }
-        
-        // Delete account file
-        let account_path = self.accounts_dir.join(format!("{}.json", id));
-        if account_path.exists() {
-            if let Err(e) = fs::remove_file(&account_path) {
-                warn!("Failed to remove account file {}: {}", id, e);
-                // Continue anyway
-            }
-        }
-        
-        // Save changes
-        self.save_accounts()?;
-        
-        info!("Removed account {}", id);
-        Ok(())
-    }
-    
-    // Get all accounts
-    pub fn get_all_accounts(&self) -> &[StoredAccount] {
-        &self.accounts
-    }
-    
-    // Authenticate with Microsoft
-    pub async fn authenticate(&mut self) -> Result<StoredAccount, Box<dyn std::error::Error>> {
-        // Trigger Microsoft authentication flow
-        let auth_info = InnerMicrosoftAuth::authenticate().await?;
-        
-        // Add or update account
-        let account_id = self.add_account(&auth_info)?;
-        
-        // Get and return the account
-        match self.get_account(&account_id) {
-            Some(account) => Ok(account.clone()),
-            None => Err("Account not found after authentication".into()),
-        }
-    }
-    
-    // Refresh active account token
-    pub async fn refresh_active_account(&mut self) -> Result<AuthInfo, Box<dyn std::error::Error>> {
-        if let Some(account) = self.get_active_account() {
-            // Clone refresh token to avoid borrow checker issues
-            let refresh_token = account.refresh_token.clone();
-            
-            // Refresh the token
-            let auth_info = InnerMicrosoftAuth::refresh_token(&refresh_token).await?;
-            
-            // Update the account with new token info
-            self.add_account(&auth_info)?;
-            
-            Ok(auth_info)
-        } else {
-            Err("No active account to refresh".into())
-        }
-    }
-    
-    // Sign out the active account
-    pub fn sign_out(&mut self) -> Result<(), String> {
-        if let Some(id) = self.active_account_id.clone() {
-            // Clone the ID first to avoid the borrow conflict
-            self.remove_account(&id)?;
-        }
-        
-        Ok(())
     }
 }
