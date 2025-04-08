@@ -16,15 +16,9 @@ use modal::Modal;
 use std::sync::mpsc;
 use log::{debug, error, info, warn};
 use platform_info::UNameAPI;
-use crate::{
-    GithubBranch, 
-    build_http_client, 
-    GH_API, 
-    REPO, 
-    Config
-};
 use isahc::ReadResponseExt;
 
+use crate::{GithubBranch, build_http_client, GH_API, REPO, Config};
 use crate::{get_app_data, get_installed_packs, get_launcher, uninstall, InstallerProfile, Launcher, PackName, Changelog,launcher::launch_modpack};
 use crate::{Installation, Preset, UniversalManifest};
 use crate::preset;
@@ -844,11 +838,11 @@ let loader_version = manifest.as_ref().map(|m| m.loader.version.clone()).unwrap_
                                 
                                 // Display Minecraft version and loader from universal manifest
                                 if let Some(manifest) = universal_manifest.read().as_ref() {
-    div { class: "manifest-info",
-        div { class: "info-item",
-            span { class: "info-label", "Minecraft Version:" }
-            span { class: "info-value", "{manifest.minecraft_version}" }
-        }
+    div { class: "info-item",
+        span { class: "info-label", "Minecraft Version:" }
+        span { class: "info-value", "{manifest.minecraft_version.clone()}" }
+    }
+}
         
         div { class: "info-item",
             span { class: "info-label", "Mod Loader:" }
