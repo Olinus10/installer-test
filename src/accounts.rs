@@ -11,7 +11,7 @@ use uuid::Uuid;
 use dioxus::prelude::{component, rsx, Element, use_signal};
 
 // Get the accounts directory
-fn get_accounts_dir() -> PathBuf {
+pub fn get_accounts_dir() -> PathBuf {
     let app_data = crate::get_app_data();
     app_data.join(".WC_OVHL/accounts")
 }
