@@ -18,6 +18,9 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v3
 
+    - name: Install sccache
+      run: cargo install sccache
+
     # Cache sccache
     - name: Cache sccache
       uses: actions/cache@v3
