@@ -7,17 +7,22 @@ use std::env;
 use platform_info::{PlatformInfo, PlatformInfoAPI};
 use simplelog::{CombinedLogger, TermLogger, WriteLogger, LevelFilter, TerminalMode, ColorChoice, Config as LogConfig};
 use std::fs::File;
-use dioxus::desktop::{Config as DioxusConfig, WindowBuilder, LogicalSize, Icon};
+use dioxus::desktop::{Config as DioxusConfig, WindowBuilder, LogicalSize};
+use dioxus::desktop::tao::window::Icon;
 use std::{collections::BTreeMap, path::PathBuf};
 use base64::{Engine, engine::general_purpose::URL_SAFE_NO_PAD};
-use dioxus::prelude::*;
-use log::{error, debug};
 use modal::ModalContext;
 use modal::Modal; 
 use std::sync::mpsc;
-use log::info;
-use platform_info::UNameAPI;
 use log::{debug, error, info, warn};
+use platform_info::UNameAPI;
+use crate::{
+    GithubBranch, 
+    build_http_client, 
+    GH_API, 
+    REPO, 
+    Config
+};
 
 use crate::{get_app_data, get_installed_packs, get_launcher, uninstall, InstallerProfile, Launcher, PackName, Changelog,launcher::launch_modpack};
 use crate::{Installation, Preset, UniversalManifest};
@@ -713,9 +718,9 @@ pub fn InstallationCreationWizard(props: InstallationCreationWizardProps) -> Ele
     // Get the universal manifest for Minecraft version and loader information
     if let Some(manifest) = universal_manifest.read().as_ref() {
     // Now you can access fields like manifest.minecraft_version safely
-    let minecraft_version = manifest.minecraft_version.clone();
-        let loader_type = manifest.loader.r#type.clone();
-        let loader_version = manifest.loader.version.clone();
+    let minecraft_version = manifest.as_ref().map(|m| m.minecraft_version.clone()).unwrap_or_default();
+let loader_type = manifest.as_ref().map(|m| m.loader.r#type.clone()).unwrap_or_default();
+let loader_version = manifest.as_ref().map(|m| m.loader.version.clone()).unwrap_or_default();
         
         // Find the selected preset
         let preset = if let Some(preset_id) = &*selected_preset_id.read() {
@@ -1503,7 +1508,7 @@ pub fn InstallationDetailsPage(installation_id: String) -> Element {
             div { class: "installation-actions",
                 // Play button with authentication check
                 PlayButton {
-                    uuid: installation_id_for_launch,
+                    uuid: installation_id_for_launch.clone(),
                     disabled: *is_installing.read(),
                     auth_status: None, // Will auto-detect
                     onclick: move |_| {
@@ -3447,7 +3452,8 @@ pub(crate) fn app() -> Element {
                                                                             button {
                                                                                 class: "features-expand-button",
                                                                                 onclick: move |_| {
-                                                                                    expanded_features.set(!expanded_features.read().clone());
+                                                                                    let current_value = *expanded_features.read();
+expanded_features.set(!current_value);
                                                                                 },
                                                                                 if *expanded_features.read() {
                                                                                     "Collapse Features"
