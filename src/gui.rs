@@ -139,7 +139,62 @@ pub fn handle_play_click(uuid: String, error_signal: &Signal<Option<String>>) {
                         match crate::launcher::microsoft_auth::MicrosoftAuth::launch_minecraft(&uuid_clone) {
                             Ok(_) => {
                                 debug!("Successfully launched modpack after authentication: {}", uuid_clone);
+                            _ => rsx! {
+                            div { "Unknown step" }
+                        }
+                    }
+                }
+                
+                // Wizard footer with navigation buttons
+                div { class: "wizard-footer",
+                    button {
+                        class: "cancel-button",
+                        onclick: move |_| {
+                            props.onclose.call(());
+                        },
+                        "Cancel"
+                    }
+                    
+                    div { class: "navigation-buttons",
+                        if *current_step.read() > 0 {
+                            button {
+                                class: "back-button",
+                                onclick: move |_| {
+                                    current_step.with_mut(|step| {
+                                        if *step > 0 {
+                                            *step -= 1;
+                                        }
+                                    });
+                                },
+                                "Back"
+                            }
+                        }
+                        
+                        button {
+                            class: if *current_step.read() == step_titles.len() - 1 {
+                                "next-button create-button"
+                            } else {
+                                "next-button"
                             },
+                            onclick: move |_| {
+                                if *current_step.read() < step_titles.len() - 1 {
+                                    current_step.with_mut(|step| {
+                                        *step += 1;
+                                    });
+                                } else {
+                                    // Final step - create the installation
+                                    create_installation();
+                                }
+                            },
+                            
+                            if *current_step.read() == step_titles.len() - 1 {
+                                "Create Installation"
+                            } else {
+                                "Next"
+                            }
+                        }
+                    }
+                }
                             Err(e) => {
                                 error!("Failed to launch modpack after authentication: {}", e);
                                 let _ = error_tx_clone.send(format!("Failed to launch modpack: {}", e));
@@ -295,16 +350,16 @@ fn Footer() -> Element {
                         
                         // Discord logo (simplified SVG as inline content)
                         svg {
-    class: "discord-logo",
-    xmlns: "http://www.w3.org/2000/svg",
-    width: "24",
-    height: "24",
-    view_box: "0 0 24 24",  // Changed viewBox to view_box
-    fill: "currentColor",
-    
-    path {
-        d: "M19.54 0c1.356 0 2.46 1.104 2.46 2.472v21.528l-2.58-2.28-1.452-1.344-1.536-1.428.636 2.22h-13.608c-1.356 0-2.46-1.104-2.46-2.472v-16.224c0-1.368 1.104-2.472 2.46-2.472h16.08zm-4.632 15.672c2.652-.084 3.672-1.824 3.672-1.824 0-3.864-1.728-6.996-1.728-6.996-1.728-1.296-3.372-1.26-3.372-1.26l-.168.192c2.04.624 2.988 1.524 2.988 1.524-1.248-.684-2.472-1.02-3.612-1.152-.864-.096-1.692-.072-2.424.024l-.204.024c-.42.036-1.44.192-2.724.756-.444.204-.708.348-.708.348s.996-.948 3.156-1.572l-.12-.144s-1.644-.036-3.372 1.26c0 0-1.728 3.132-1.728 6.996 0 0 1.008 1.74 3.66 1.824 0 0 .444-.54.804-.996-1.524-.456-2.1-1.416-2.1-1.416l.336.204.048.036.047.027.014.006.047.027c.3.168.6.3.876.408.492.192 1.08.384 1.764.516.9.168 1.956.228 3.108.012.564-.096 1.14-.264 1.74-.516.42-.156.888-.384 1.38-.708 0 0-.6.984-2.172 1.428.36.456.792.972.792.972zm-5.58-5.604c-.684 0-1.224.6-1.224 1.332 0 .732.552 1.332 1.224 1.332.684 0 1.224-.6 1.224-1.332.012-.732-.54-1.332-1.224-1.332zm4.38 0c-.684 0-1.224.6-1.224 1.332 0 .732.552 1.332 1.224 1.332.684 0 1.224-.6 1.224-1.332 0-.732-.54-1.332-1.224-1.332z"
-    }
+                            class: "discord-logo",
+                            xmlns: "http://www.w3.org/2000/svg",
+                            width: "24",
+                            height: "24",
+                            view_box: "0 0 24 24",
+                            fill: "currentColor",
+                            
+                            path {
+                                d: "M19.54 0c1.356 0 2.46 1.104 2.46 2.472v21.528l-2.58-2.28-1.452-1.344-1.536-1.428.636 2.22h-13.608c-1.356 0-2.46-1.104-2.46-2.472v-16.224c0-1.368 1.104-2.472 2.46-2.472h16.08zm-4.632 15.672c2.652-.084 3.672-1.824 3.672-1.824 0-3.864-1.728-6.996-1.728-6.996-1.728-1.296-3.372-1.26-3.372-1.26l-.168.192c2.04.624 2.988 1.524 2.988 1.524-1.248-.684-2.472-1.02-3.612-1.152-.864-.096-1.692-.072-2.424.024l-.204.024c-.42.036-1.44.192-2.724.756-.444.204-.708.348-.708.348s.996-.948 3.156-1.572l-.12-.144s-1.644-.036-3.372 1.26c0 0-1.728 3.132-1.728 6.996 0 0 1.008 1.74 3.66 1.824 0 0 .444-.54.804-.996-1.524-.456-2.1-1.416-2.1-1.416l.336.204.048.036.047.027.014.006.047.027c.3.168.6.3.876.408.492.192 1.08.384 1.764.516.9.168 1.956.228 3.108.012.564-.096 1.14-.264 1.74-.516.42-.156.888-.384 1.38-.708 0 0-.6.984-2.172 1.428.36.456.792.972.792.972zm-5.58-5.604c-.684 0-1.224.6-1.224 1.332 0 .732.552 1.332 1.224 1.332.684 0 1.224-.6 1.224-1.332.012-.732-.54-1.332-1.224-1.332zm4.38 0c-.684 0-1.224.6-1.224 1.332 0 .732.552 1.332 1.224 1.332.684 0 1.224-.6 1.224-1.332 0-.732-.54-1.332-1.224-1.332z"
+                            }
                         }
                         
                         span { "Join our Discord" }
@@ -488,16 +543,16 @@ fn InstallationCard(props: InstallationCardProps) -> Element {
             }
             
             div { class: "installation-card-details",
-    div { class: "detail-item",
-        span { class: "detail-label", "Minecraft:" }
-        span { class: "detail-value", "{installation.minecraft_version}" }
-    }
-    
-    div { class: "detail-item",
-        span { class: "detail-label", "Loader:" }
-        span { class: "detail-value", "{installation.loader_type} {installation.loader_version}" }
-    }
+                div { class: "detail-item",
+                    span { class: "detail-label", "Minecraft:" }
+                    span { class: "detail-value", "{installation.minecraft_version}" }
+                }
                 
+                div { class: "detail-item",
+                    span { class: "detail-label", "Loader:" }
+                    span { class: "detail-value", "{installation.loader_type} {installation.loader_version}" }
+                }
+                                
                 div { class: "detail-item",
                     span { class: "detail-label", "Last Played:" }
                     span { class: "detail-value",
@@ -525,12 +580,7 @@ fn InstallationCard(props: InstallationCardProps) -> Element {
     }
 }
 
-#[derive(PartialEq, Props, Clone)]
-struct InstallationCreationWizardProps {
-    onclose: EventHandler<()>,
-    oncreate: EventHandler<Installation>,
-}
-
+// Fixed: Combined and unified this struct to remove duplication
 #[derive(PartialEq, Props, Clone)]
 pub struct InstallationCreationWizardProps {
     pub onclose: EventHandler<()>,
@@ -576,7 +626,7 @@ pub fn InstallationCreationWizard(props: InstallationCreationWizardProps) -> Ele
         
         if let Some(manifest) = manifest {
             // Use Minecraft version and loader info from universal manifest
-            let minecraft_version = manifest.minecraft.version.clone();
+            let minecraft_version = manifest.minecraft_version.clone();
             let loader_type = manifest.loader.r#type.clone();
             let loader_version = manifest.loader.version.clone();
             
@@ -699,7 +749,7 @@ pub fn InstallationCreationWizard(props: InstallationCreationWizardProps) -> Ele
                                     div { class: "manifest-info",
                                         div { class: "info-item",
                                             span { class: "info-label", "Minecraft Version:" }
-                                            span { class: "info-value", "{manifest.minecraft.version}" }
+                                            span { class: "info-value", "{manifest.minecraft_version}" }
                                         }
                                         
                                         div { class: "info-item",
@@ -713,6 +763,112 @@ pub fn InstallationCreationWizard(props: InstallationCreationWizardProps) -> Ele
                                     }
                                 } else {
                                     div { class: "loading-message", "Loading modpack information..." }
+                                }
+                            }
+                        },
+                        2 => rsx! {
+                            // Step 3: Performance Settings
+                            div { class: "wizard-step-content",
+                                h3 { "Performance Settings" }
+                                p { "Configure memory allocation and other performance settings." }
+                                
+                                div { class: "form-group",
+                                    label { for: "memory-allocation", 
+                                        "Memory Allocation: {memory_allocation} MB"
+                                    }
+                                    input {
+                                        id: "memory-allocation",
+                                        r#type: "range",
+                                        min: "1024",
+                                        max: "8192",
+                                        step: "512",
+                                        value: "{memory_allocation}",
+                                        oninput: move |evt| {
+                                            if let Ok(value) = evt.value.parse::<i32>() {
+                                                memory_allocation.set(value);
+                                            }
+                                        }
+                                    }
+                                    div { class: "memory-markers",
+                                        span { "1 GB" }
+                                        span { "4 GB" }
+                                        span { "8 GB" }
+                                    }
+                                }
+                                
+                                // Show preset recommended settings if applicable
+                                if let Some(preset_id) = &*selected_preset_id.read() {
+                                    if let Some(presets_list) = presets.read() {
+                                        if let Some(preset) = preset::find_preset_by_id(presets_list, preset_id) {
+                                            if let Some(rec_memory) = preset.recommended_memory {
+                                                div { class: "recommended-setting",
+                                                    "Recommended memory for this preset: {rec_memory} MB"
+                                                    
+                                                    button {
+                                                        class: "apply-recommended-button",
+                                                        onclick: move |_| {
+                                                            memory_allocation.set(rec_memory);
+                                                        },
+                                                        "Apply"
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        3 => rsx! {
+                            // Step 4: Review
+                            div { class: "wizard-step-content",
+                                h3 { "Review Your Installation" }
+                                
+                                div { class: "review-container",
+                                    div { class: "review-item",
+                                        div { class: "review-label", "Name:" }
+                                        div { class: "review-value", "{name}" }
+                                    }
+                                    
+                                    // Display Minecraft version and loader from universal manifest
+                                    if let Some(manifest) = universal_manifest.read().as_ref() {
+                                        div { class: "review-item",
+                                            div { class: "review-label", "Minecraft Version:" }
+                                            div { class: "review-value", "{manifest.minecraft_version}" }
+                                        }
+                                        
+                                        div { class: "review-item",
+                                            div { class: "review-label", "Mod Loader:" }
+                                            div { class: "review-value", "{manifest.loader.r#type} {manifest.loader.version}" }
+                                        }
+                                    }
+                                    
+                                    div { class: "review-item",
+                                        div { class: "review-label", "Preset:" }
+                                        div { class: "review-value", 
+                                            if let Some(preset_id) = &*selected_preset_id.read() {
+                                                if let Some(presets_list) = presets.read() {
+                                                    if let Some(preset) = preset::find_preset_by_id(presets_list, preset_id) {
+                                                        preset.name
+                                                    } else {
+                                                        "Custom Configuration".to_string()
+                                                    }
+                                                } else {
+                                                    "Custom Configuration".to_string()
+                                                }
+                                            } else {
+                                                "Custom Configuration".to_string()
+                                            }
+                                        }
+                                    }
+                                    
+                                    div { class: "review-item",
+                                        div { class: "review-label", "Memory Allocation:" }
+                                        div { class: "review-value", "{memory_allocation} MB" }
+                                    }
+                                }
+                                
+                                div { class: "summary-message",
+                                    "Your installation will be created with these settings. You can modify which mods are enabled later in the installation settings."
                                 }
                             }
                         },
