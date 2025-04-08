@@ -27,7 +27,7 @@ pub fn initialize_accounts() -> Result<(), String> {
     let mut manager = ACCOUNT_MANAGER.lock().unwrap();
     manager.load_accounts()?;
     
-    // Mark initialization as complete - fix the reference
+    // Mark initialization as complete
     crate::launcher::microsoft_auth::MicrosoftAuth::mark_initialization_complete();
     
     Ok(())
