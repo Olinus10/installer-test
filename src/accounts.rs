@@ -157,97 +157,139 @@ pub struct AccountManager {
 }
 
 impl AccountManager {
-    // Add a new account
-    pub fn add_account(&mut self, auth_info: &AuthInfo) -> Result<String, String> {
-        if !self.loaded {
-            self.load_accounts()?;
+    // Add a new method
+    pub fn new() -> Self {
+        let accounts_dir = get_accounts_dir();
+        Self {
+            accounts_dir,
+            accounts: Vec::new(),
+            active_account_id: None,
+            index: AccountsIndex::default(),
+            loaded: false,
         }
-        
-        let existing_account_index = self.accounts.iter().position(|a| a.username == auth_info.username);
-        
-        if let Some(index) = existing_account_index {
-            // Update existing account
-            let account = &mut self.accounts[index];
-            account.update_from_auth_info(auth_info);
-            account.last_used = Utc::now();
-            
-            // Save a copy of the account ID
-            let account_id = account.id.clone();
-            
-            // Make this the active account
-            self.active_account_id = Some(account_id.clone());
-            
-            // Save changes
-            self.save_accounts()?;
-            
-            info!("Updated existing account: {}", account.username);
-            return Ok(account_id);
-        }
-        
-        // Create a new account
-        let account = StoredAccount::from_auth_info(auth_info);
-        let account_id = account.id.clone();
-        
-        // Add to accounts list
-        self.accounts.push(account);
-        
-        // Make this the active account
-        self.active_account_id = Some(account_id.clone());
-        
-        // Save changes
-        self.save_accounts()?;
-        
-        info!("Added new account: {}", auth_info.username);
-        Ok(account_id)
     }
     
-    // Fix the save_accounts method to create a properly formatted AccountsIndex
-    pub fn save_accounts(&self) -> Result<(), String> {
-        if !self.loaded {
-            return Err("Account manager not initialized".to_string());
+    // Add missing methods
+    pub fn load_accounts(&mut self) -> Result<(), String> {
+        if self.loaded {
+            return Ok(());
         }
+        
+        debug!("Loading accounts from {}", self.accounts_dir.display());
         
         // Create accounts directory if it doesn't exist
         if !self.accounts_dir.exists() {
-            if let Err(e) = fs::create_dir_all(&self.accounts_dir) {
+            if let Err(e) = std::fs::create_dir_all(&self.accounts_dir) {
                 return Err(format!("Failed to create accounts directory: {}", e));
             }
         }
         
-        // Save each account
-        for account in &self.accounts {
-            let account_path = self.accounts_dir.join(format!("{}.json", account.id));
-            let json = match serde_json::to_string_pretty(account) {
-                Ok(json) => json,
-                Err(e) => return Err(format!("Failed to serialize account {}: {}", account.id, e)),
-            };
-            
-            if let Err(e) = fs::write(&account_path, json) {
-                return Err(format!("Failed to write account {}: {}", account.id, e));
+        // Load index
+        let index_path = self.accounts_dir.join("index.json");
+        self.index = if index_path.exists() {
+            match std::fs::read_to_string(&index_path) {
+                Ok(json) => match serde_json::from_str(&json) {
+                    Ok(index) => index,
+                    Err(e) => {
+                        warn!("Failed to parse accounts index: {}", e);
+                        AccountsIndex::default()
+                    }
+                },
+                Err(e) => {
+                    warn!("Failed to read accounts index: {}", e);
+                    AccountsIndex::default()
+                }
+            }
+        } else {
+            AccountsIndex::default()
+        };
+        
+        // Load each account
+        for id in &self.index.accounts {
+            let account_path = self.accounts_dir.join(format!("{}.json", id));
+            if account_path.exists() {
+                match std::fs::read_to_string(&account_path) {
+                    Ok(json) => match serde_json::from_str(&json) {
+                        Ok(account) => self.accounts.push(account),
+                        Err(e) => warn!("Failed to parse account {}: {}", id, e),
+                    },
+                    Err(e) => warn!("Failed to read account {}: {}", id, e),
+                }
             }
         }
         
-        // Create the index (not mutable to fix compiler error)
-        let index = AccountsIndex {
-            accounts: self.accounts.iter().map(|a| a.id.clone()).collect(),
-            active_account: self.active_account_id.clone(),
-            last_active: Some(Utc::now()),
-        };
+        // Set active account
+        self.active_account_id = self.index.active_account.clone();
         
-        // Write the index
-        let index_path = self.accounts_dir.join("index.json");
-        let json = match serde_json::to_string_pretty(&index) {
-            Ok(json) => json,
-            Err(e) => return Err(format!("Failed to serialize accounts index: {}", e)),
-        };
-        
-        if let Err(e) = fs::write(&index_path, json) {
-            return Err(format!("Failed to write accounts index: {}", e));
-        }
-        
-        debug!("Saved {} accounts", self.accounts.len());
+        debug!("Loaded {} accounts", self.accounts.len());
+        self.loaded = true;
         
         Ok(())
+    }
+    
+    // Add get_active_account implementation
+    pub fn get_active_account(&self) -> Option<&StoredAccount> {
+        if let Some(id) = &self.active_account_id {
+            self.accounts.iter().find(|a| &a.id == id)
+        } else {
+            None
+        }
+    }
+    
+    // Add get_all_accounts implementation
+    pub fn get_all_accounts(&self) -> &[StoredAccount] {
+        &self.accounts
+    }
+    
+    // Add set_active_account implementation
+    pub fn set_active_account(&mut self, id: &str) -> Result<(), String> {
+        if !self.loaded {
+            self.load_accounts()?;
+        }
+        
+        // Verify account exists
+        if self.accounts.iter().find(|a| a.id == id).is_none() {
+            return Err(format!("Account {} not found", id));
+        }
+        
+        self.active_account_id = Some(id.to_string());
+        self.index.active_account = Some(id.to_string());
+        self.save_accounts()?;
+        
+        info!("Set active account to {}", id);
+        Ok(())
+    }
+    
+    // Add sign_out implementation
+    pub fn sign_out(&mut self) -> Result<(), String> {
+        if !self.loaded {
+            self.load_accounts()?;
+        }
+        
+        self.active_account_id = None;
+        self.index.active_account = None;
+        self.save_accounts()?;
+        
+        Ok(())
+    }
+    
+    // Fix authenticate method to be async
+    pub async fn authenticate(&mut self) -> Result<StoredAccount, Box<dyn std::error::Error>> {
+        if !self.loaded {
+            self.load_accounts()?;
+        }
+        
+        // Trigger Microsoft authentication flow
+        let auth_info = InnerMicrosoftAuth::authenticate().await?;
+        
+        // Add or update account
+        let account_id = self.add_account(&auth_info)?;
+        
+        // Get and return the account
+        match self.accounts.iter().find(|a| a.id == account_id).cloned() {
+            Some(account) => Ok(account),
+            None => Err("Account not found after authentication".into()),
+        }
     }
 }
 
