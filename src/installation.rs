@@ -17,6 +17,42 @@ pub struct InstallationsIndex {
     pub last_active: Option<DateTime<Utc>>,
 }
 
+pub fn get_installations_dir() -> PathBuf {
+    let app_data = crate::get_app_data();
+    app_data.join(".WC_OVHL/installations")
+}
+
+// Function to load all installations
+pub fn load_all_installations() -> Result<Vec<Installation>, String> {
+    let index = load_installations_index()
+        .map_err(|e| format!("Failed to load installations index: {}", e))?;
+    
+    let mut installations = Vec::new();
+    
+    for id in &index.installations {
+        match load_installation(id) {
+            Ok(installation) => installations.push(installation),
+            Err(e) => debug!("Failed to load installation {}: {}", id, e),
+        }
+    }
+    
+    // Sort by last used date (newest first)
+    installations.sort_by(|a, b| b.last_used.cmp(&a.last_used));
+    
+    Ok(installations)
+}
+
+pub fn get_active_installation() -> Result<Installation, String> {
+    let index = load_installations_index()
+        .map_err(|e| format!("Failed to load installations index: {}", e))?;
+    
+    if let Some(active_id) = index.active_installation {
+        load_installation(&active_id)
+    } else {
+        Err("No active installation found".into())
+    }
+}
+
 // Structure for managing an installation
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
 pub struct Installation {
