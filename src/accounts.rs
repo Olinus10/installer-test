@@ -259,30 +259,32 @@ impl AccountManager {
     
     // FIX 7: Add this method to add or update an account
     pub fn add_account(&mut self, auth_info: &AuthInfo) -> Result<String, String> {
-        if !self.loaded {
-            self.load_accounts()?;
-        }
-        
-        let existing_account_index = self.accounts.iter().position(|a| a.username == auth_info.username);
-        
-        if let Some(index) = existing_account_index {
-            // Update existing account
+    if !self.loaded {
+        self.load_accounts()?;
+    }
+    
+    let existing_account_index = self.accounts.iter().position(|a| a.username == auth_info.username);
+    
+    if let Some(index) = existing_account_index {
+        // Update existing account
+        {
             let account = &mut self.accounts[index];
             account.update_from_auth_info(auth_info);
             account.last_used = Utc::now();
-            
-            // Save a copy of the account ID
-            let account_id = account.id.clone();
-            
-            // Make this the active account
-            self.active_account_id = Some(account_id.clone());
-            
-            // Save changes
-            self.save_accounts()?;
-            
-            info!("Updated existing account: {}", account.username);
-            return Ok(account_id);
-        }
+        } // Mutable borrow ends here
+        
+        // Get the account ID after the mutable borrow is released
+        let account_id = self.accounts[index].id.clone();
+        
+        // Make this the active account
+        self.active_account_id = Some(account_id.clone());
+        
+        // Save changes
+        self.save_accounts()?;
+        
+        info!("Updated existing account: {}", self.accounts[index].username);
+        return Ok(account_id);
+    }
         
         // Create a new account
         let account = StoredAccount::from_auth_info(auth_info);
