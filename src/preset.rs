@@ -4,7 +4,6 @@ use log::{debug, error};
 
 use isahc::http::StatusCode;
 use isahc::AsyncReadResponseExt;
-
 use crate::CachedHttpClient;
 
 // Structure defining a single preset configuration
