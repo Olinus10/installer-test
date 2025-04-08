@@ -130,10 +130,10 @@ impl StoredAccount {
 
 // Structure for accounts index file
 #[derive(Debug, Deserialize, Serialize)]
-struct AccountsIndex {
-    accounts: Vec<String>,  // List of account IDs
-    active_account: Option<String>, // Currently selected account
-    last_active: Option<DateTime<Utc>>,
+pub struct AccountsIndex {
+    pub accounts: Vec<String>,  // List of account IDs
+    pub active_account: Option<String>, // Currently selected account
+    pub last_active: Option<DateTime<Utc>>,
 }
 
 impl Default for AccountsIndex {
