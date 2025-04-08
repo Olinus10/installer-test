@@ -18,6 +18,7 @@ pub fn get_accounts_dir() -> PathBuf {
 
 use crate::launcher::microsoft_auth::InnerMicrosoftAuth;
 use crate::microsoft_auth_impl::AuthInfo;
+use crate::gui::LoginDialog;
 
 lazy_static::lazy_static! {
     static ref ACCOUNT_MANAGER: Mutex<AccountManager> = Mutex::new(AccountManager::new());
@@ -157,7 +158,7 @@ pub struct AccountManager {
 }
 
 impl AccountManager {
-    // Add a new method
+    // Create a new AccountManager
     pub fn new() -> Self {
         let accounts_dir = get_accounts_dir();
         Self {
@@ -169,7 +170,7 @@ impl AccountManager {
         }
     }
     
-    // Add missing methods
+    // Load accounts from disk
     pub fn load_accounts(&mut self) -> Result<(), String> {
         if self.loaded {
             return Ok(());
@@ -227,7 +228,100 @@ impl AccountManager {
         Ok(())
     }
     
-    // Add get_active_account implementation
+    // FIX 7: Add this method to add or update an account
+    pub fn add_account(&mut self, auth_info: &AuthInfo) -> Result<String, String> {
+        if !self.loaded {
+            self.load_accounts()?;
+        }
+        
+        let existing_account_index = self.accounts.iter().position(|a| a.username == auth_info.username);
+        
+        if let Some(index) = existing_account_index {
+            // Update existing account
+            let account = &mut self.accounts[index];
+            account.update_from_auth_info(auth_info);
+            account.last_used = Utc::now();
+            
+            // Save a copy of the account ID
+            let account_id = account.id.clone();
+            
+            // Make this the active account
+            self.active_account_id = Some(account_id.clone());
+            
+            // Save changes
+            self.save_accounts()?;
+            
+            info!("Updated existing account: {}", account.username);
+            return Ok(account_id);
+        }
+        
+        // Create a new account
+        let account = StoredAccount::from_auth_info(auth_info);
+        let account_id = account.id.clone();
+        
+        // Add to accounts list
+        self.accounts.push(account);
+        
+        // Make this the active account
+        self.active_account_id = Some(account_id.clone());
+        
+        // Save changes
+        self.save_accounts()?;
+        
+        info!("Added new account: {}", auth_info.username);
+        Ok(account_id)
+    }
+    
+    // FIX 8: Add this method to save accounts to disk
+    pub fn save_accounts(&self) -> Result<(), String> {
+        if !self.loaded {
+            return Err("Account manager not initialized".to_string());
+        }
+        
+        // Create accounts directory if it doesn't exist
+        if !self.accounts_dir.exists() {
+            if let Err(e) = std::fs::create_dir_all(&self.accounts_dir) {
+                return Err(format!("Failed to create accounts directory: {}", e));
+            }
+        }
+        
+        // Save each account
+        for account in &self.accounts {
+            let account_path = self.accounts_dir.join(format!("{}.json", account.id));
+            let json = match serde_json::to_string_pretty(account) {
+                Ok(json) => json,
+                Err(e) => return Err(format!("Failed to serialize account {}: {}", account.id, e)),
+            };
+            
+            if let Err(e) = std::fs::write(&account_path, json) {
+                return Err(format!("Failed to write account {}: {}", account.id, e));
+            }
+        }
+        
+        // Create the index
+        let index = AccountsIndex {
+            accounts: self.accounts.iter().map(|a| a.id.clone()).collect(),
+            active_account: self.active_account_id.clone(),
+            last_active: Some(Utc::now()),
+        };
+        
+        // Write the index
+        let index_path = self.accounts_dir.join("index.json");
+        let json = match serde_json::to_string_pretty(&index) {
+            Ok(json) => json,
+            Err(e) => return Err(format!("Failed to serialize accounts index: {}", e)),
+        };
+        
+        if let Err(e) = std::fs::write(&index_path, json) {
+            return Err(format!("Failed to write accounts index: {}", e));
+        }
+        
+        debug!("Saved {} accounts", self.accounts.len());
+        
+        Ok(())
+    }
+    
+    // Get active account implementation
     pub fn get_active_account(&self) -> Option<&StoredAccount> {
         if let Some(id) = &self.active_account_id {
             self.accounts.iter().find(|a| &a.id == id)
@@ -236,12 +330,12 @@ impl AccountManager {
         }
     }
     
-    // Add get_all_accounts implementation
+    // Get all accounts implementation
     pub fn get_all_accounts(&self) -> &[StoredAccount] {
         &self.accounts
     }
     
-    // Add set_active_account implementation
+    // Set active account implementation
     pub fn set_active_account(&mut self, id: &str) -> Result<(), String> {
         if !self.loaded {
             self.load_accounts()?;
@@ -260,7 +354,7 @@ impl AccountManager {
         Ok(())
     }
     
-    // Add sign_out implementation
+    // Sign out implementation
     pub fn sign_out(&mut self) -> Result<(), String> {
         if !self.loaded {
             self.load_accounts()?;
@@ -273,7 +367,7 @@ impl AccountManager {
         Ok(())
     }
     
-    // Fix authenticate method to be async
+    // Authenticate implementation
     pub async fn authenticate(&mut self) -> Result<StoredAccount, Box<dyn std::error::Error>> {
         if !self.loaded {
             self.load_accounts()?;
