@@ -1097,7 +1097,7 @@ fn AccountsPage() -> Element {
     let mut error_message = use_signal(|| Option::<String>::None);
     
     // Generate account items for the list, skipping active account
-    let other_accounts = accounts.iter()
+    let other_accounts = accounts_vec.iter()
         .filter(|account| !active_account.as_ref().map_or(false, |active| active.id == account.id))
         .collect::<Vec<_>>();
     
