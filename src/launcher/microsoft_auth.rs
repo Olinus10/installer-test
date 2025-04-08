@@ -81,8 +81,6 @@ if !INITIALIZATION_COMPLETE.load(Ordering::SeqCst) {
         }
     }
 
-static INITIALIZATION_COMPLETE: AtomicBool = AtomicBool::new(false);
-
 pub fn mark_initialization_complete() {
     INITIALIZATION_COMPLETE.store(true, Ordering::SeqCst);
 }
