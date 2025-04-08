@@ -714,34 +714,34 @@ pub fn InstallationCreationWizard(props: InstallationCreationWizardProps) -> Ele
     // Function to create the installation
 let create_installation = move || {
     // Get the universal manifest for Minecraft version and loader information
-    if let Some(manifest_data) = universal_manifest.read().as_ref().cloned() {
-        // Now you can access fields like manifest.minecraft_version safely
-        let minecraft_version = manifest_data.minecraft_version.clone();
-        let loader_type = manifest_data.loader.r#type.clone();
-        let loader_version = manifest_data.loader.version.clone();
-            
-            // Find the selected preset
-            let preset = if let Some(preset_id) = &*selected_preset_id.read() {
-                if let Some(presets_list) = presets.read().as_ref() {
-                    preset::find_preset_by_id(presets_list, preset_id)
-                } else {
-                    None
-                }
+   if let Some(manifest_data) = universal_manifest.read().as_ref() {
+    // Direct access is fine since manifest_data is already the unwrapped value
+    let minecraft_version = manifest_data.minecraft_version.clone();
+    let loader_type = manifest_data.loader.r#type.clone();
+    let loader_version = manifest_data.loader.version.clone();
+        
+        // Find the selected preset
+        let preset = if let Some(preset_id) = &*selected_preset_id.read() {
+            if let Some(presets_list) = presets.read().as_ref() {
+                preset::find_preset_by_id(presets_list, preset_id)
             } else {
                 None
-            };
-            
-            // Create the installation
-            if let Some(preset) = preset {
-                let installation = Installation::new_from_preset(
-                    name.read().clone(),
-                    &preset,
-                    minecraft_version,
-                    loader_type,
-                    loader_version,
-                    "vanilla".to_string(), // Default to vanilla launcher
-                    manifest.version.clone(),
-                );
+            }
+        } else {
+            None
+        };
+        
+        // Create the installation
+        if let Some(preset) = preset {
+            let installation = Installation::new_from_preset(
+                name.read().clone(),
+                &preset,
+                minecraft_version,
+                loader_type,
+                loader_version,
+                "vanilla".to_string(), // Default to vanilla launcher
+                manifest_data.version.clone(),  // Use manifest_data here instead of manifest
+            );
                 
                 // Register the installation
                 if let Err(e) = crate::installation::register_installation(&installation) {
@@ -760,16 +760,15 @@ let create_installation = move || {
                 // Return the new installation
                 props.oncreate.call(installation_copy);
             } else {
-                // Create custom installation without preset but still using universal manifest settings
-                let installation = Installation::new_custom(
-                    name.read().clone(),
-                    minecraft_version,
-                    loader_type,
-                    loader_version,
-                    "vanilla".to_string(),
-                    manifest.version.clone(),
-                );
-                
+            // Create custom installation without preset but still using universal manifest settings
+            let installation = Installation::new_custom(
+                name.read().clone(),
+                minecraft_version,
+                loader_type,
+                loader_version,
+                "vanilla".to_string(),
+                manifest_data.version.clone(),  // Use manifest_data here instead of manifest
+            );
                 // Register and save the installation with memory allocation
                 let mut installation_copy = installation.clone();
                 installation_copy.memory_allocation = *memory_allocation.read();
@@ -784,11 +783,10 @@ let create_installation = move || {
                 props.oncreate.call(installation_copy);
             }
         } else {
-            // If we couldn't get the universal manifest, show an error
-            error!("Failed to load universal manifest");
-            // Could set an error state here to show to the user
-        }
-    };
+        // If we couldn't get the universal manifest, show an error
+        error!("Failed to load universal manifest");
+    }
+};
     
     rsx! {
         div { class: "wizard-overlay",
@@ -837,7 +835,7 @@ let create_installation = move || {
                                 }
                                 
                                 // Display Minecraft version and loader from universal manifest
-                                if let Some(manifest_data) = universal_manifest.read().as_ref().cloned() {
+                                if let Some(manifest_data) = universal_manifest.read().as_ref() {
     div { class: "manifest-info",
         div { class: "info-item",
             span { class: "info-label", "Minecraft Version:" }
@@ -981,7 +979,7 @@ let create_installation = move || {
                                     }
                                     
                                     // Display Minecraft version and loader from universal manifest
-                                    if let Some(manifest_data) = universal_manifest.read().as_ref().cloned() {
+                                    if let Some(manifest_data) = universal_manifest.read().as_ref() {
                                         div { class: "review-item",
                                             div { class: "review-label", "Minecraft Version:" }
                                             div { class: "review-value", "{manifest.minecraft_version.clone()}" }
@@ -1090,14 +1088,15 @@ let create_installation = move || {
 #[component]
 fn AccountsPage() -> Element {
 let accounts = get_all_accounts();
-let active_account_id = active_account.as_ref().map(|acc| acc.id.clone()); 
-    let active_account = get_active_account();
+let active_account = get_active_account();
+let active_id = active_account.as_ref().map(|acc| &acc.id);
     let mut show_login_dialog = use_signal(|| false);
     let mut error_message = use_signal(|| Option::<String>::None);
     
     // Generate account items for the list, skipping active account
 let other_accounts = accounts.iter()
-    .filter(|account| !active_account_id.as_ref().map_or(false, |id| id == &account.id))
+    .filter(|account| !active_id.as_ref().map_or(false, |id| *id == &account.id))
+    .cloned()  // Clone each account to avoid borrowing
     .collect::<Vec<_>>();
     
     rsx! {
