@@ -1198,7 +1198,7 @@ pub fn LoginDialog(props: LoginDialogProps) -> Element {
 
 // Installation management page
 #[component]
-fn InstallationDetailsPage(installation_id: String) -> Element {
+pub fn InstallationDetailsPage(installation_id: String) -> Element {
     // Load the installation
     let installation = match crate::installation::load_installation(&installation_id) {
         Ok(installation) => installation,
@@ -1213,6 +1213,7 @@ fn InstallationDetailsPage(installation_id: String) -> Element {
                         class: "back-button",
                         onclick: move |_| {
                             // Navigate back to home
+                            // This would depend on your navigation system
                         },
                         "Back to Home"
                     }
@@ -1227,6 +1228,7 @@ fn InstallationDetailsPage(installation_id: String) -> Element {
     
     // State for modification tracking
     let mut has_changes = use_signal(|| false);
+    let mut enabled_features = use_signal(|| installation.enabled_features.clone());
     
     rsx! {
         div { class: "installation-details-container",
@@ -1240,6 +1242,69 @@ fn InstallationDetailsPage(installation_id: String) -> Element {
                 }
             }
             
+            // Error display
+            if let Some(error) = &*installation_error.read() {
+                div { class: "error-notification",
+                    div { class: "error-message", "{error}" }
+                    button { 
+                        class: "error-close",
+                        onclick: move |_| installation_error.set(None),
+                        "×"
+                    }
+                }
+            }
+            
+            // Main content in tabbed interface
+            div { class: "installation-content",
+                // Tabs navigation
+                div { class: "installation-tabs",
+                    button { 
+                        class: "tab-button active", 
+                        "Features"
+                    }
+                    button { 
+                        class: "tab-button", 
+                        "Performance"
+                    }
+                    button { 
+                        class: "tab-button", 
+                        "Settings"
+                    }
+                }
+                
+                // Tab content - Features tab (active by default)
+                div { class: "tab-content",
+                    // Features section
+                    div { class: "features-section",
+                        h2 { "Features" }
+                        p { "Enable or disable optional features for this installation." }
+                        
+                        // Features would be listed here, similar to this:
+                        div { class: "features-list",
+                            // This is a placeholder - in the actual implementation
+                            // you would loop through the features from your universal manifest
+                            div { class: "feature-item",
+                                div { class: "feature-header",
+                                    h3 { "Example Feature" }
+                                    label { class: "toggle-switch",
+                                        input {
+                                            r#type: "checkbox",
+                                            checked: true,
+                                            onchange: move |evt| {
+                                                // Update enabled_features
+                                                has_changes.set(true);
+                                            }
+                                        }
+                                        span { class: "toggle-slider" }
+                                    }
+                                }
+                                p { "This is an example feature description." }
+                            }
+                        }
+                    }
+                }
+            }
+            
             // Main actions
             div { class: "installation-actions",
                 // Play button with authentication check
@@ -1248,15 +1313,9 @@ fn InstallationDetailsPage(installation_id: String) -> Element {
                     disabled: *is_installing.read(),
                     auth_status: None, // Will auto-detect
                     onclick: move |_| {
-                        let mut installation_clone = installation.clone();
-                        spawn(async move {
-                            match installation_clone.launch() {
-                                Ok(_) => {},
-                                Err(e) => {
-                                    installation_error.set(Some(e));
-                                }
-                            }
-                        });
+                        let installation_id = installation.id.clone();
+                        let error_signal = installation_error.clone();
+                        crate::gui::handle_play_click(installation_id, &error_signal);
                     }
                 }
                 
@@ -1268,6 +1327,13 @@ fn InstallationDetailsPage(installation_id: String) -> Element {
                         onclick: move |_| {
                             is_installing.set(true);
                             let mut installation_clone = installation.clone();
+                            
+                            // Update features if they've changed
+                            if *has_changes.read() {
+                                installation_clone.enabled_features = enabled_features.read().clone();
+                                installation_clone.modified = true;
+                            }
+                            
                             let http_client = crate::CachedHttpClient::new();
                             
                             spawn(async move {
@@ -1292,27 +1358,17 @@ fn InstallationDetailsPage(installation_id: String) -> Element {
                         }
                     }
                 }
-            }
-            
-            // Error display
-            if let Some(error) = &*installation_error.read() {
-                div { class: "error-notification",
-                    div { class: "error-message", "{error}" }
-                    button { 
-                        class: "error-close",
-                        onclick: move |_| installation_error.set(None),
-                        "×"
-                    }
-                }
-            }
-            
-            // Installation details in tabs
-            div { class: "installation-tabs",
-                // Tab headers
-                // ...
                 
-                // Tab content would go here
-                // Features list, performance settings, etc.
+                // Delete installation button
+                button {
+                    class: "delete-installation-button",
+                    disabled: *is_installing.read(),
+                    onclick: move |_| {
+                        // Show confirmation dialog before deleting
+                        // This would use your modal system
+                    },
+                    "Delete Installation"
+                }
             }
         }
     }
