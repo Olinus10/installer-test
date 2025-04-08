@@ -488,15 +488,15 @@ fn InstallationCard(props: InstallationCardProps) -> Element {
             }
             
             div { class: "installation-card-details",
-                div { class: "detail-item",
-                    span { class: "detail-label", "Minecraft:" }
-                    span { class: "detail-value", "{installation.minecraft_version}" }
-                }
-                
-                div { class: "detail-item",
-                    span { class: "detail-label", "Loader:" }
-                    span { class: "detail-value", "{installation.loader_type} {installation.loader_version}" }
-                }
+    div { class: "detail-item",
+        span { class: "detail-label", "Minecraft:" }
+        span { class: "detail-value", "{installation.minecraft_version}" }
+    }
+    
+    div { class: "detail-item",
+        span { class: "detail-label", "Loader:" }
+        span { class: "detail-value", "{installation.loader_type} {installation.loader_version}" }
+    }
                 
                 div { class: "detail-item",
                     span { class: "detail-label", "Last Played:" }
@@ -543,8 +543,6 @@ pub fn InstallationCreationWizard(props: InstallationCreationWizardProps) -> Ele
     let mut current_step = use_signal(|| 0);
     let mut name = use_signal(|| "My Wynncraft Installation".to_string());
     let mut selected_preset_id = use_signal(|| Option::<String>::None);
-    let mut minecraft_version = use_signal(|| "1.20.4".to_string());
-    let mut loader_type = use_signal(|| "fabric".to_string());
     let mut memory_allocation = use_signal(|| 3072);
     
     // Resource for presets
@@ -555,7 +553,7 @@ pub fn InstallationCreationWizard(props: InstallationCreationWizardProps) -> Ele
         }
     });
     
-    // Resource for universal manifest
+    // Resource for universal manifest - this will determine Minecraft version and loader
     let universal_manifest: Resource<Option<UniversalManifest>> = use_resource(move || async {
         match crate::universal::load_universal_manifest(&crate::CachedHttpClient::new(), None).await {
             Ok(manifest) => Some(manifest),
@@ -563,9 +561,9 @@ pub fn InstallationCreationWizard(props: InstallationCreationWizardProps) -> Ele
         }
     });
     
-    // Step titles for progress display
+    // Step titles for progress display - removed the "Basic Info" step since it's simplified
     let step_titles = vec![
-        "Basic Info", 
+        "Installation Name", 
         "Select Preset", 
         "Performance",
         "Review"
@@ -573,71 +571,80 @@ pub fn InstallationCreationWizard(props: InstallationCreationWizardProps) -> Ele
     
     // Function to create the installation
     let create_installation = move || {
-        // Find the selected preset
-        let preset = if let Some(preset_id) = &*selected_preset_id.read() {
-            if let Some(presets) = presets.read() {
-                preset::find_preset_by_id(presets, preset_id)
+        // Get the universal manifest for Minecraft version and loader information
+        let manifest = universal_manifest.read().as_ref().cloned();
+        
+        if let Some(manifest) = manifest {
+            // Use Minecraft version and loader info from universal manifest
+            let minecraft_version = manifest.minecraft.version.clone();
+            let loader_type = manifest.loader.r#type.clone();
+            let loader_version = manifest.loader.version.clone();
+            
+            // Find the selected preset
+            let preset = if let Some(preset_id) = &*selected_preset_id.read() {
+                if let Some(presets) = presets.read() {
+                    preset::find_preset_by_id(presets, preset_id)
+                } else {
+                    None
+                }
             } else {
                 None
+            };
+            
+            // Create the installation
+            if let Some(preset) = preset {
+                let installation = Installation::new_from_preset(
+                    name.read().clone(),
+                    &preset,
+                    minecraft_version,
+                    loader_type,
+                    loader_version,
+                    "vanilla".to_string(), // Default to vanilla launcher
+                    manifest.version.clone(),
+                );
+                
+                // Register the installation
+                if let Err(e) = crate::installation::register_installation(&installation) {
+                    error!("Failed to register installation: {}", e);
+                    // Continue anyway - we'll return the installation
+                }
+                
+                // Save the installation with memory allocation
+                installation.memory_allocation = *memory_allocation.read();
+                if let Err(e) = installation.save() {
+                    error!("Failed to save installation: {}", e);
+                    // Continue anyway
+                }
+                
+                // Return the new installation
+                props.oncreate.call(installation);
+            } else {
+                // Create custom installation without preset but still using universal manifest settings
+                let installation = Installation::new_custom(
+                    name.read().clone(),
+                    minecraft_version,
+                    loader_type,
+                    loader_version,
+                    "vanilla".to_string(),
+                    manifest.version.clone(),
+                );
+                
+                // Register and save the installation with memory allocation
+                installation.memory_allocation = *memory_allocation.read();
+                if let Err(e) = crate::installation::register_installation(&installation) {
+                    error!("Failed to register installation: {}", e);
+                }
+                
+                if let Err(e) = installation.save() {
+                    error!("Failed to save installation: {}", e);
+                }
+                
+                props.oncreate.call(installation);
             }
         } else {
-            None
-        };
-        
-        // Get the loader version from the universal manifest
-        let loader_version = if let Some(manifest) = universal_manifest.read().as_ref() {
-            manifest.loader.version.clone()
-        } else {
-            "0.15.3".to_string() // Default loader version
-        };
-        
-        // Create the installation
-        if let Some(preset) = preset {
-            let installation = Installation::new_from_preset(
-                name.read().clone(),
-                &preset,
-                minecraft_version.read().clone(),
-                loader_type.read().clone(),
-                loader_version,
-                "vanilla".to_string(), // Default to vanilla launcher
-                "1.0.0".to_string(),   // Default universal version
-            );
-            
-            // Register the installation
-            if let Err(e) = crate::installation::register_installation(&installation) {
-                error!("Failed to register installation: {}", e);
-                // Continue anyway - we'll return the installation
-            }
-            
-            // Save the installation
-            if let Err(e) = installation.save() {
-                error!("Failed to save installation: {}", e);
-                // Continue anyway
-            }
-            
-            // Return the new installation
-            props.oncreate.call(installation);
-        } else {
-            // Create custom installation without preset
-            let installation = Installation::new_custom(
-                name.read().clone(),
-                minecraft_version.read().clone(),
-                loader_type.read().clone(),
-                loader_version,
-                "vanilla".to_string(),
-                "1.0.0".to_string(),
-            );
-            
-            // Register and save the installation
-            if let Err(e) = crate::installation::register_installation(&installation) {
-                error!("Failed to register installation: {}", e);
-            }
-            
-            if let Err(e) = installation.save() {
-                error!("Failed to save installation: {}", e);
-            }
-            
-            props.oncreate.call(installation);
+            // If we couldn't get the universal manifest, show an error
+            error!("Failed to load universal manifest");
+            // Could set an error state here to show to the user
         }
     };
     
@@ -671,9 +678,9 @@ pub fn InstallationCreationWizard(props: InstallationCreationWizardProps) -> Ele
                 div { class: "wizard-content",
                     match *current_step.read() {
                         0 => rsx! {
-                            // Step 1: Basic Info
+                            // Step 1: Installation Name (simplified)
                             div { class: "wizard-step-content",
-                                h3 { "Give your installation a name" }
+                                h3 { "Name your installation" }
                                 
                                 div { class: "form-group",
                                     label { for: "installation-name", "Installation Name:" }
@@ -687,33 +694,25 @@ pub fn InstallationCreationWizard(props: InstallationCreationWizardProps) -> Ele
                                     }
                                 }
                                 
-                                div { class: "form-group",
-                                    label { for: "minecraft-version", "Minecraft Version:" }
-                                    select {
-                                        id: "minecraft-version",
-                                        value: "{minecraft_version}",
-                                        onchange: move |evt| {
-                                            minecraft_version.set(evt.value.clone());
-                                        },
+                                // Display Minecraft version and loader from universal manifest
+                                if let Some(manifest) = universal_manifest.read().as_ref() {
+                                    div { class: "manifest-info",
+                                        div { class: "info-item",
+                                            span { class: "info-label", "Minecraft Version:" }
+                                            span { class: "info-value", "{manifest.minecraft.version}" }
+                                        }
                                         
-                                        option { value: "1.20.4", "1.20.4" }
-                                        option { value: "1.19.4", "1.19.4" }
-                                        option { value: "1.18.2", "1.18.2" }
-                                    }
-                                }
-                                
-                                div { class: "form-group",
-                                    label { for: "loader-type", "Mod Loader:" }
-                                    select {
-                                        id: "loader-type",
-                                        value: "{loader_type}",
-                                        onchange: move |evt| {
-                                            loader_type.set(evt.value.clone());
-                                        },
+                                        div { class: "info-item",
+                                            span { class: "info-label", "Mod Loader:" }
+                                            span { class: "info-value", "{manifest.loader.r#type} {manifest.loader.version}" }
+                                        }
                                         
-                                        option { value: "fabric", "Fabric" }
-                                        option { value: "quilt", "Quilt" }
+                                        p { class: "info-note", 
+                                            "These settings are determined by the modpack requirements and cannot be changed."
+                                        }
                                     }
+                                } else {
+                                    div { class: "loading-message", "Loading modpack information..." }
                                 }
                             }
                         },
@@ -839,14 +838,17 @@ pub fn InstallationCreationWizard(props: InstallationCreationWizardProps) -> Ele
                                         div { class: "review-value", "{name}" }
                                     }
                                     
-                                    div { class: "review-item",
-                                        div { class: "review-label", "Minecraft Version:" }
-                                        div { class: "review-value", "{minecraft_version}" }
-                                    }
-                                    
-                                    div { class: "review-item",
-                                        div { class: "review-label", "Mod Loader:" }
-                                        div { class: "review-value", "{loader_type}" }
+                                    // Display Minecraft version and loader from universal manifest
+                                    if let Some(manifest) = universal_manifest.read().as_ref() {
+                                        div { class: "review-item",
+                                            div { class: "review-label", "Minecraft Version:" }
+                                            div { class: "review-value", "{manifest.minecraft.version}" }
+                                        }
+                                        
+                                        div { class: "review-item",
+                                            div { class: "review-label", "Mod Loader:" }
+                                            div { class: "review-value", "{manifest.loader.r#type} {manifest.loader.version}" }
+                                        }
                                     }
                                     
                                     div { class: "review-item",
@@ -875,7 +877,7 @@ pub fn InstallationCreationWizard(props: InstallationCreationWizardProps) -> Ele
                                 }
                                 
                                 div { class: "summary-message",
-                                    "Your installation will be created with these settings. You can modify them later in the installation settings."
+                                    "Your installation will be created with these settings. You can modify which mods are enabled later in the installation settings."
                                 }
                             }
                         },
