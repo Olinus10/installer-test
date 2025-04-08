@@ -712,9 +712,8 @@ pub fn InstallationCreationWizard(props: InstallationCreationWizardProps) -> Ele
     let create_installation = move || {
     // Get the universal manifest for Minecraft version and loader information
     if let Some(manifest) = universal_manifest.read().as_ref() {
-        // Now we have direct access to the manifest fields
-        // Use Minecraft version and loader info from universal manifest
-        let minecraft_version = manifest.minecraft_version.clone();
+    // Now you can access fields like manifest.minecraft_version safely
+    let minecraft_version = manifest.minecraft_version.clone();
         let loader_type = manifest.loader.r#type.clone();
         let loader_version = manifest.loader.version.clone();
         
@@ -1259,7 +1258,8 @@ pub fn LoginDialog(props: LoginDialogProps) -> Element {
     let mut is_logging_in = use_signal(|| false);
     
     // Login function that handles authentication - make sure it's mutable
-    let handle_login = move || {
+    let handle_login = use_memo(|| {
+    move |_| {
         is_logging_in.set(true);
         
         // Clone the props to move into the async task
@@ -1276,8 +1276,9 @@ pub fn LoginDialog(props: LoginDialogProps) -> Element {
                 }
             }
         });
-    };
-    
+    }
+});
+
     rsx! {
         div { class: "login-dialog-overlay",
             div { class: "login-dialog",
