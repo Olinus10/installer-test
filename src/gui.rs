@@ -532,13 +532,6 @@ pub fn NewHomePage(
 // Special value for home page
 const HOME_PAGE: usize = usize::MAX;
 
-
-#[derive(PartialEq, Props, Clone)]
-struct InstallationCardProps {
-    installation: Installation,
-    onclick: EventHandler<String>,
-}
-
 #[component]
 fn InstallationCard(
     installation: Installation,
