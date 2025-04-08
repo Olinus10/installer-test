@@ -2570,13 +2570,12 @@ fn AppHeader(
     page: Signal<usize>, 
     pages: Signal<BTreeMap<usize, TabInfo>>,
     settings: Signal<bool>,
-    logo_url: Option<String>
+    logo_url: Option<String>,
+    installations: Signal<Vec<Installation>>,
+    current_installation_id: Signal<Option<String>>,
 ) -> Element {
     // Debug what tabs we have available
     debug!("AppHeader: rendering with {} tabs", pages().len());
-    for (index, info) in pages().iter() {
-        debug!("  Tab {}: title={}", index, info.title);
-    }
     
     // We need to collect the info we need from pages() into local structures
     // to avoid lifetime issues
@@ -2596,8 +2595,24 @@ fn AppHeader(
         }
     }
     
-    let has_dropdown = !dropdown_tab_indices.is_empty();
-    let any_dropdown_active = dropdown_tab_indices.iter().any(|idx| page() == *idx);
+    // Check if we have any installations
+    let has_installations = !installations().is_empty();
+    
+    // Number of installation tabs to show directly (if more, put in dropdown)
+    let max_installation_tabs = 3;
+    
+    // Prepare installation tabs
+    let direct_installations = installations().iter().take(max_installation_tabs).cloned().collect::<Vec<_>>();
+    let dropdown_installations = if installations().len() > max_installation_tabs {
+        installations().iter().skip(max_installation_tabs).cloned().collect::<Vec<_>>()
+    } else {
+        Vec::new()
+    };
+    
+    let has_legacy_dropdown = !dropdown_tab_indices.is_empty();
+    let any_legacy_dropdown_active = dropdown_tab_indices.iter().any(|idx| page() == *idx);
+    
+    let has_installations_dropdown = !dropdown_installations.is_empty();
   
     rsx!(
         header { class: "app-header",
@@ -2609,6 +2624,7 @@ fn AppHeader(
                     alt: "Logo",
                     onclick: move |_| {
                         page.set(HOME_PAGE);
+                        current_installation_id.set(None);
                         debug!("Navigating to home page via logo");
                     },
                     style: "cursor: pointer;"
@@ -2619,49 +2635,136 @@ fn AppHeader(
                 class: "app-title", 
                 onclick: move |_| {
                     page.set(HOME_PAGE);
+                    current_installation_id.set(None);
                     debug!("Navigating to home page via title");
                 },
                 style: "cursor: pointer;",
-                "OVERHAUL INSTALLER" 
+                "MAJESTIC OVERHAUL" 
             }
             
-            // Tabs from pages - show only if we have pages
+            // Tabs from pages and installations
             div { class: "header-tabs",
                 // Home tab
                 button {
-                    class: if page() == HOME_PAGE { "header-tab-button active" } else { "header-tab-button" },
+                    class: if page() == HOME_PAGE && current_installation_id().is_none() { 
+                        "header-tab-button active" 
+                    } else { 
+                        "header-tab-button" 
+                    },
                     onclick: move |_| {
                         page.set(HOME_PAGE);
+                        current_installation_id.set(None);
                         debug!("Navigating to home page via tab");
                     },
                     "Home"
                 }
-
-                // Main tabs (1, 2, 3)
-                {
-                    main_tab_indices.iter().enumerate().map(|(i, &index)| {
-                        let title = main_tab_titles[i].clone();
-                        rsx!(
-                            button {
-                                class: if page() == index { "header-tab-button active" } else { "header-tab-button" },
-                                onclick: move |_| {
-                                    debug!("TAB CLICK: Changing page from {} to {}", page(), index);
-                                    // CRITICAL FIX: Use write() for more direct access
-                                    page.write().clone_from(&index);
-                                    debug!("TAB CLICK RESULT: Page is now {}", page());
-                                },
-                                "{title}"
-                            }
-                        )
-                    })
+                
+                // Installation tabs (first max_installation_tabs)
+                if has_installations {
+                    for installation in &direct_installations {
+                        {
+                            let id = installation.id.clone();
+                            let name = installation.name.clone();
+                            let is_active = current_installation_id().as_ref().map_or(false, |current_id| current_id == &id);
+                            
+                            rsx!(
+                                button {
+                                    class: if is_active { 
+                                        "header-tab-button active" 
+                                    } else { 
+                                        "header-tab-button" 
+                                    },
+                                    onclick: move |_| {
+                                        current_installation_id.set(Some(id.clone()));
+                                        page.set(HOME_PAGE); // Use HOME_PAGE value with installation ID set
+                                        debug!("Navigating to installation: {}", id);
+                                    },
+                                    "{name}"
+                                }
+                            )
+                        }
+                    }
                 }
                 
-                // Dropdown for remaining tabs - placed outside the flow to avoid affecting scrolling
-                if has_dropdown {
+                // Legacy tabs (1, 2, 3) if needed
+                if !has_installations {
+                    {
+                        main_tab_indices.iter().enumerate().map(|(i, &index)| {
+                            let title = main_tab_titles[i].clone();
+                            rsx!(
+                                button {
+                                    class: if page() == index && current_installation_id().is_none() { 
+                                        "header-tab-button active" 
+                                    } else { 
+                                        "header-tab-button" 
+                                    },
+                                    onclick: move |_| {
+                                        debug!("TAB CLICK: Changing page from {} to {}", page(), index);
+                                        current_installation_id.set(None);
+                                        page.write().clone_from(&index);
+                                        debug!("TAB CLICK RESULT: Page is now {}", page());
+                                    },
+                                    "{title}"
+                                }
+                            )
+                        })
+                    }
+                }
+                
+                // Create new installation button
+                button {
+                    class: "header-tab-button new-installation-tab",
+                    onclick: move |_| {
+                        // This will show the installation creation wizard
+                        // You'll need to implement this logic
+                        debug!("Show installation creation wizard");
+                    },
+                    "+"
+                }
+                
+                // Dropdown for remaining installations
+                if has_installations_dropdown {
                     div { 
                         class: "dropdown",
                         button {
-                            class: if any_dropdown_active { 
+                            class: "header-tab-button", 
+                            "More Installations ▼"
+                        }
+                        div { 
+                            class: "dropdown-content",
+                            {
+                                dropdown_installations.iter().map(|installation| {
+                                    let id = installation.id.clone();
+                                    let name = installation.name.clone();
+                                    let is_active = current_installation_id().as_ref().map_or(false, |current_id| current_id == &id);
+                                    
+                                    rsx!(
+                                        button {
+                                            class: if is_active { 
+                                                "dropdown-item active" 
+                                            } else { 
+                                                "dropdown-item" 
+                                            },
+                                            onclick: move |_| {
+                                                current_installation_id.set(Some(id.clone()));
+                                                page.set(HOME_PAGE);
+                                                debug!("Switching to installation: {}", id);
+                                            },
+                                            "{name}"
+                                        }
+                                    )
+                                })
+                            }
+                        }
+                    }
+                }
+                
+                // Dropdown for legacy tabs
+                if has_legacy_dropdown {
+                    div { 
+                        class: "dropdown",
+                        button {
+                            class: if any_legacy_dropdown_active { 
                                 "header-tab-button active" 
                             } else { 
                                 "header-tab-button" 
@@ -2675,10 +2778,15 @@ fn AppHeader(
                                     let title = dropdown_tab_titles[i].clone();
                                     rsx!(
                                         button {
-                                            class: if page() == index { "dropdown-item active" } else { "dropdown-item" },
+                                            class: if page() == index { 
+                                                "dropdown-item active" 
+                                            } else { 
+                                                "dropdown-item" 
+                                            },
                                             onclick: move |_| {
+                                                current_installation_id.set(None);
                                                 page.set(index);
-                                                debug!("Switching to dropdown tab {}: {}", index, title);
+                                                debug!("Switching to legacy tab {}: {}", index, title);
                                             },
                                             "{title}"
                                         }
@@ -2687,9 +2795,22 @@ fn AppHeader(
                             }
                         }
                     }
-                } else if pages().is_empty() {
-                    // If no tabs, show a message for debugging purposes
-                    span { style: "color: #888; font-style: italic;", "Loading tabs..." }
+                }
+                
+                // Account button
+                button {
+                    class: "header-tab-button account-button",
+                    onclick: move |_| {
+                        // This would navigate to the accounts page
+                        debug!("Navigate to accounts page");
+                    },
+                    
+                    // Show different icon based on auth status
+                    if crate::is_authenticated() {
+                        "👤"
+                    } else {
+                        "👤"
+                    }
                 }
             }
             
@@ -2727,29 +2848,42 @@ pub(crate) fn app() -> Element {
     let mut err: Signal<Option<String>> = use_signal(|| None);
     let page = use_signal(|| HOME_PAGE);  // Initially set to HOME_PAGE
     let mut pages = use_signal(BTreeMap::<usize, TabInfo>::new);
-    
+    let mut current_installation_id = use_signal(|| Option::<String>::None);
 
-    // DIAGNOSTIC: Print branches available
-    debug!("DIAGNOSTIC: Available branches: {}", branches.len());
-    for branch in &branches {
-        debug!("  - Branch: {}", branch.name);
+    // Load installations
+    let installations = use_signal(|| {
+        match crate::installation::load_all_installations() {
+            Ok(list) => list,
+            Err(e) => {
+                error!("Failed to load installations: {}", e);
+                Vec::new()
+            }
+        }
+    });
+
+    // Initialize accounts system
+    if let Err(e) = crate::accounts::initialize_accounts() {
+        error!("Failed to initialize accounts system: {}", e);
     }
 
-    // DIAGNOSTIC: Add direct modification of the page signal to verify reactivity
-    use_effect(move || {
-        debug!("DIAGNOSTIC: Current page value: {}", page());
-        debug!("DIAGNOSTIC: HOME_PAGE value: {}", HOME_PAGE);
+    // Initialize authentication flag
+    crate::launcher::microsoft_auth::MicrosoftAuth::mark_initialization_complete();
 
-        // Debug the pages map
-        debug!("DIAGNOSTIC: Pages map contains {} entries", pages().len());
-        for (key, info) in pages().iter() {
-            debug!("  - Tab group {}: {} with {} modpacks", 
-                   key, info.title, info.modpacks.len());
-            
-            // List modpacks in each tab group
-            for (i, profile) in info.modpacks.iter().enumerate() {
-                debug!("    * Modpack {}: {}", i, profile.manifest.subtitle);
-            }
+    // Check for updates for installations
+    spawn({
+        let mut installations_signal = installations.clone();
+        async move {
+            // Check each installation for updates
+            let http_client = crate::CachedHttpClient::new();
+
+            installations_signal.with_mut(|list| {
+                for installation in list.iter_mut() {
+                    // Check for updates logic here
+                    // This would need to be implemented
+                    // For now, we'll just set update_available to false
+                    installation.update_available = false;
+                }
+            });
         }
     });
 
