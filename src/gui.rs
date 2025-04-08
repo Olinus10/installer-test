@@ -16,6 +16,8 @@ use modal::ModalContext;
 use modal::Modal; 
 use std::sync::mpsc;
 use log::info;
+use platform_info::UNameAPI;
+use log::{debug, error, info, warn};
 
 use crate::{get_app_data, get_installed_packs, get_launcher, uninstall, InstallerProfile, Launcher, PackName, Changelog,launcher::launch_modpack};
 use crate::{Installation, Preset, UniversalManifest};
@@ -35,6 +37,42 @@ struct TabInfo {
     background: String,
     settings_background: String,
     modpacks: Vec<InstallerProfile>,
+}
+
+#[component]
+fn PlayButton(
+    uuid: String,
+    disabled: bool,
+    auth_status: Option<AuthStatus>,
+    onclick: EventHandler<MouseEvent>,
+) -> Element {
+    // Determine the auth status
+    let status = auth_status.unwrap_or_else(|| crate::gui::get_auth_status());
+    
+    // Determine button class based on auth status
+    let button_class = match status {
+        AuthStatus::Authenticated => "main-play-button authenticated",
+        AuthStatus::NeedsAuth => "main-play-button needs-auth",
+    };
+    
+    rsx! {
+        div { class: "play-button-container",
+            button {
+                class: button_class,
+                disabled: disabled,
+                onclick: move |evt| onclick.call(evt),
+                
+                "PLAY"
+            }
+            
+            // Show authentication message if needed
+            if status == AuthStatus::NeedsAuth {
+                div { class: "auth-info", 
+                    "You'll need to sign in with Microsoft"
+                }
+            }
+        }
+    }
 }
 
 #[component]
