@@ -712,13 +712,13 @@ pub fn InstallationCreationWizard(props: InstallationCreationWizardProps) -> Ele
     ];
     
     // Function to create the installation
-    let create_installation = move || {
-        // Get the universal manifest for Minecraft version and loader information
-        if let Some(manifest) = universal_manifest.read().as_ref() {
-            // Now you can access fields like manifest.minecraft_version safely
-            let minecraft_version = manifest.minecraft_version.clone();
-            let loader_type = manifest.loader.r#type.clone();
-            let loader_version = manifest.loader.version.clone();
+let create_installation = move || {
+    // Get the universal manifest for Minecraft version and loader information
+    if let Some(manifest_data) = universal_manifest.read().as_ref().cloned() {
+        // Now you can access fields like manifest.minecraft_version safely
+        let minecraft_version = manifest_data.minecraft_version.clone();
+        let loader_type = manifest_data.loader.r#type.clone();
+        let loader_version = manifest_data.loader.version.clone();
             
             // Find the selected preset
             let preset = if let Some(preset_id) = &*selected_preset_id.read() {
@@ -837,25 +837,25 @@ pub fn InstallationCreationWizard(props: InstallationCreationWizardProps) -> Ele
                                 }
                                 
                                 // Display Minecraft version and loader from universal manifest
-                                if let Some(manifest) = universal_manifest.read().as_ref() {
-                                    div { class: "manifest-info",
-                                        div { class: "info-item",
-                                            span { class: "info-label", "Minecraft Version:" }
-                                            span { class: "info-value", "{manifest.minecraft_version.clone()}" }
-                                        }
-                                        
-                                        div { class: "info-item",
-                                            span { class: "info-label", "Mod Loader:" }
-                                            span { class: "info-value", "{manifest.loader.r#type.clone()} {manifest.loader.version.clone()}" }
-                                        }
-                                        
-                                        p { class: "info-note", 
-                                            "These settings are determined by the modpack requirements and cannot be changed."
-                                        }
-                                    }
-                                } else {
-                                    div { class: "loading-message", "Loading modpack information..." }
-                                }
+                                if let Some(manifest_data) = universal_manifest.read().as_ref().cloned() {
+    div { class: "manifest-info",
+        div { class: "info-item",
+            span { class: "info-label", "Minecraft Version:" }
+            span { class: "info-value", "{manifest_data.minecraft_version}" }
+        }
+        
+        div { class: "info-item",
+            span { class: "info-label", "Mod Loader:" }
+            span { class: "info-value", "{manifest_data.loader.r#type} {manifest_data.loader.version}" }
+        }
+        
+        p { class: "info-note", 
+            "These settings are determined by the modpack requirements and cannot be changed."
+        }
+    }
+} else {
+    div { class: "loading-message", "Loading modpack information..." }
+}
                             }
                         },
                         1 => rsx! {
@@ -981,7 +981,7 @@ pub fn InstallationCreationWizard(props: InstallationCreationWizardProps) -> Ele
                                     }
                                     
                                     // Display Minecraft version and loader from universal manifest
-                                    if let Some(manifest) = universal_manifest.read().as_ref() {
+                                    if let Some(manifest_data) = universal_manifest.read().as_ref().cloned() {
                                         div { class: "review-item",
                                             div { class: "review-label", "Minecraft Version:" }
                                             div { class: "review-value", "{manifest.minecraft_version.clone()}" }
@@ -1089,16 +1089,16 @@ pub fn InstallationCreationWizard(props: InstallationCreationWizardProps) -> Ele
 
 #[component]
 fn AccountsPage() -> Element {
-    let accounts = get_all_accounts();
-    let accounts_vec = accounts.clone();
+let accounts = get_all_accounts();
+let active_account_id = active_account.as_ref().map(|acc| acc.id.clone()); 
     let active_account = get_active_account();
     let mut show_login_dialog = use_signal(|| false);
     let mut error_message = use_signal(|| Option::<String>::None);
     
     // Generate account items for the list, skipping active account
-    let other_accounts = accounts_vec.iter()
-        .filter(|account| !active_account.as_ref().map_or(false, |active| active.id == account.id))
-        .collect::<Vec<_>>();
+let other_accounts = accounts.iter()
+    .filter(|account| !active_account_id.as_ref().map_or(false, |id| id == &account.id))
+    .collect::<Vec<_>>();
     
     rsx! {
         div { class: "accounts-container",
@@ -2858,7 +2858,8 @@ fn AppHeader(
                 // Legacy tabs (1, 2, 3) if needed
                 if !has_installations {
                     for (i, &index) in main_tab_indices.iter().enumerate() {
-                        let title = main_tab_titles[i].clone();
+    {
+        let title = main_tab_titles[i].clone();
                         rsx!(
                             button {
                                 class: if page() == index && current_installation_id().is_none() { 
@@ -2875,6 +2876,7 @@ fn AppHeader(
                                 "{title}"
                             }
                         )
+                    }
                     }
                 }
                 
