@@ -7,41 +7,52 @@ on:
     branches: [ "master" ]
 
 env:
-  SCCACHE_GHA_ENABLED: "true"
   RUSTC_WRAPPER: "sccache"
   CARGO_TERM_COLOR: always
 
 jobs:
   build:
-  
-    strategy:
-      matrix:
-        os: [windows-2022]
-    runs-on: ${{ matrix.os }}
+    runs-on: windows-2022
 
     steps:
-    - uses: actions/checkout@v3
-    - name: Run sccache-cache
-      uses: mozilla-actions/sccache-action@v0.0.3
-    - name: install dependencies
-      if: ${{ matrix.os == 'ubuntu-22.04' }}
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y gcc pkg-config libglib2.0-dev libgtk-3-dev libssl-dev libjavascriptcoregtk-4.1-dev libsoup-3.0-dev libwebkit2gtk-4.1-dev libxdo-dev
-    - name: Build
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    # Cache sccache
+    - name: Cache sccache
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.cache/sccache
+        key: sccache-windows-${{ hashFiles('**/Cargo.lock') }}
+        restore-keys: |
+          sccache-windows-
+
+    # Cache Cargo registry
+    - name: Cache cargo registry
+      uses: actions/cache@v3
+      with:
+        path: ~/.cargo/registry
+        key: cargo-registry-windows-${{ hashFiles('**/Cargo.lock') }}
+        restore-keys: |
+          cargo-registry-windows-
+
+    # Cache Cargo git index
+    - name: Cache cargo index
+      uses: actions/cache@v3
+      with:
+        path: ~/.cargo/git
+        key: cargo-git-windows-${{ hashFiles('**/Cargo.lock') }}
+        restore-keys: |
+          cargo-git-windows-
+
+    # Build the project
+    - name: Build project
       run: cargo build --verbose --release
-    - name: Strip debug info
-      if: ${{ matrix.os == 'ubuntu-22.04' }}
-      run: strip target/release/wynncraft-overhaul-installer
-    - name: capture build artifacts windows
-      if: ${{ matrix.os == 'windows-2022' }}
+
+    # Upload the resulting .exe
+    - name: Upload Windows executable
       uses: actions/upload-artifact@v4
       with:
-        name: ${{ matrix.os }}
+        name: wynncraft-installer
         path: target/release/wynncraft-overhaul-installer.exe
-    - name: capture build artifacts
-      if: ${{ matrix.os != 'windows-2022' }}
-      uses: actions/upload-artifact@v4
-      with:
-        name: ${{ matrix.os }}
-        path: target/release/wynncraft-overhaul-installer
