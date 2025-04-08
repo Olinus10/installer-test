@@ -329,12 +329,12 @@ pub fn load_installation(id: &str) -> Result<Installation, String> {
 impl AccountManager {
     // Add a new method
     pub fn new() -> Self {
-        let accounts_dir = get_accounts_dir();
+        let accounts_dir = crate::accounts::get_accounts_dir();
         Self {
             accounts_dir,
             accounts: Vec::new(),
             active_account_id: None,
-            index: AccountsIndex::default(),
+            index: crate::accounts::AccountsIndex::default(),
             loaded: false,
         }
     }
