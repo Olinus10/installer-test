@@ -1,3 +1,13 @@
+use dioxus::prelude::*;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::fs;
+use std::panic;
+use std::backtrace::Backtrace;
+use std::env;
+use platform_info::{PlatformInfo, PlatformInfoAPI};
+use simplelog::{CombinedLogger, TermLogger, WriteLogger, LevelFilter, TerminalMode, ColorChoice, Config as LogConfig};
+use std::fs::File;
+use dioxus::desktop::{Config as DioxusConfig, WindowBuilder, LogicalSize, Icon};
 use std::{collections::BTreeMap, path::PathBuf};
 use base64::{Engine, engine::general_purpose::URL_SAFE_NO_PAD};
 use dioxus::prelude::*;
@@ -12,7 +22,6 @@ use crate::{Installation, Preset, UniversalManifest};
 use crate::preset;
 use crate::{get_active_account, get_all_accounts, authenticate, is_authenticated};
 use crate::accounts::{sign_out, switch_account};
-use crate::info;
 
 mod modal;
 
