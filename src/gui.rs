@@ -702,7 +702,7 @@ pub fn InstallationCreationWizard(props: InstallationCreationWizardProps) -> Ele
         }
     });
     
-    // Step titles for progress display - removed the "Basic Info" step since it's simplified
+    // Step titles for progress display
     let step_titles = vec![
         "Installation Name", 
         "Select Preset", 
@@ -712,83 +712,82 @@ pub fn InstallationCreationWizard(props: InstallationCreationWizardProps) -> Ele
     
     // Function to create the installation
     let create_installation = move || {
-    // Get the universal manifest for Minecraft version and loader information
-    if let Some(manifest) = universal_manifest.read().as_ref() {
-    // Now you can access fields like manifest.minecraft_version safely
-    let minecraft_version = manifest.as_ref().map(|m| m.minecraft_version.clone()).unwrap_or_default();
-let loader_type = manifest.as_ref().map(|m| m.loader.r#type.clone()).unwrap_or_default();
-let loader_version = manifest.as_ref().map(|m| m.loader.version.clone()).unwrap_or_default();
-        
-        // Find the selected preset
-        let preset = if let Some(preset_id) = &*selected_preset_id.read() {
-            if let Some(presets_list) = presets.read().as_ref() {
-                preset::find_preset_by_id(presets_list, preset_id)
+        // Get the universal manifest for Minecraft version and loader information
+        if let Some(manifest) = universal_manifest.read().as_ref() {
+            // Now you can access fields like manifest.minecraft_version safely
+            let minecraft_version = manifest.minecraft_version.clone();
+            let loader_type = manifest.loader.r#type.clone();
+            let loader_version = manifest.loader.version.clone();
+            
+            // Find the selected preset
+            let preset = if let Some(preset_id) = &*selected_preset_id.read() {
+                if let Some(presets_list) = presets.read().as_ref() {
+                    preset::find_preset_by_id(presets_list, preset_id)
+                } else {
+                    None
+                }
             } else {
                 None
+            };
+            
+            // Create the installation
+            if let Some(preset) = preset {
+                let installation = Installation::new_from_preset(
+                    name.read().clone(),
+                    &preset,
+                    minecraft_version,
+                    loader_type,
+                    loader_version,
+                    "vanilla".to_string(), // Default to vanilla launcher
+                    manifest.version.clone(),
+                );
+                
+                // Register the installation
+                if let Err(e) = crate::installation::register_installation(&installation) {
+                    error!("Failed to register installation: {}", e);
+                    // Continue anyway - we'll return the installation
+                }
+                
+                // Save the installation with memory allocation
+                let mut installation_copy = installation.clone();
+                installation_copy.memory_allocation = *memory_allocation.read();
+                if let Err(e) = installation_copy.save() {
+                    error!("Failed to save installation: {}", e);
+                    // Continue anyway
+                }
+                
+                // Return the new installation
+                props.oncreate.call(installation_copy);
+            } else {
+                // Create custom installation without preset but still using universal manifest settings
+                let installation = Installation::new_custom(
+                    name.read().clone(),
+                    minecraft_version,
+                    loader_type,
+                    loader_version,
+                    "vanilla".to_string(),
+                    manifest.version.clone(),
+                );
+                
+                // Register and save the installation with memory allocation
+                let mut installation_copy = installation.clone();
+                installation_copy.memory_allocation = *memory_allocation.read();
+                if let Err(e) = crate::installation::register_installation(&installation_copy) {
+                    error!("Failed to register installation: {}", e);
+                }
+                
+                if let Err(e) = installation_copy.save() {
+                    error!("Failed to save installation: {}", e);
+                }
+                
+                props.oncreate.call(installation_copy);
             }
         } else {
-            None
-        };
-        
-        // Create the installation
-        if let Some(preset) = preset {
-            let installation = Installation::new_from_preset(
-                name.read().clone(),
-                &preset,
-                minecraft_version,
-                loader_type,
-                loader_version,
-                "vanilla".to_string(), // Default to vanilla launcher
-                manifest.as_ref().map_or_else(|| String::from("unknown"), |m| m.version.clone()),
-            );
-            
-            // Register the installation
-            if let Err(e) = crate::installation::register_installation(&installation) {
-                error!("Failed to register installation: {}", e);
-                // Continue anyway - we'll return the installation
-            }
-            
-            // Save the installation with memory allocation
-            let mut installation_copy = installation.clone();
-            installation_copy.memory_allocation = *memory_allocation.read();
-            if let Err(e) = installation_copy.save() {
-                error!("Failed to save installation: {}", e);
-                // Continue anyway
-            }
-            
-            // Return the new installation
-            props.oncreate.call(installation_copy);
-        } else {
-            // Create custom installation without preset but still using universal manifest settings
-            let installation = Installation::new_custom(
-                name.read().clone(),
-                minecraft_version,
-                loader_type,
-                loader_version,
-                "vanilla".to_string(),
-                manifest.as_ref().map_or_else(|| String::from("unknown"), |m| m.version.clone()),
-            );
-            
-            // Register and save the installation with memory allocation
-            let mut installation_copy = installation.clone();
-            installation_copy.memory_allocation = *memory_allocation.read();
-            if let Err(e) = crate::installation::register_installation(&installation_copy) {
-                error!("Failed to register installation: {}", e);
-            }
-            
-            if let Err(e) = installation_copy.save() {
-                error!("Failed to save installation: {}", e);
-            }
-            
-            props.oncreate.call(installation_copy);
+            // If we couldn't get the universal manifest, show an error
+            error!("Failed to load universal manifest");
+            // Could set an error state here to show to the user
         }
-    } else {
-        // If we couldn't get the universal manifest, show an error
-        error!("Failed to load universal manifest");
-        // Could set an error state here to show to the user
-    }
-};
-
+    };
     
     rsx! {
         div { class: "wizard-overlay",
@@ -838,25 +837,24 @@ let loader_version = manifest.as_ref().map(|m| m.loader.version.clone()).unwrap_
                                 
                                 // Display Minecraft version and loader from universal manifest
                                 if let Some(manifest) = universal_manifest.read().as_ref() {
-    div { class: "info-item",
-        span { class: "info-label", "Minecraft Version:" }
-        span { class: "info-value", "{manifest.minecraft_version.clone()}" }
-    }
-}
-        
-        div { class: "info-item",
-            span { class: "info-label", "Mod Loader:" }
-            span { class: "info-value", "{manifest.loader.r#type} {manifest.loader.version}" }
-        }
-        
-        p { class: "info-note", 
-            "These settings are determined by the modpack requirements and cannot be changed."
-        }
-    }
-} else {
-    div { class: "loading-message", "Loading modpack information..." }
-}
-
+                                    div { class: "manifest-info",
+                                        div { class: "info-item",
+                                            span { class: "info-label", "Minecraft Version:" }
+                                            span { class: "info-value", "{manifest.minecraft_version.clone()}" }
+                                        }
+                                        
+                                        div { class: "info-item",
+                                            span { class: "info-label", "Mod Loader:" }
+                                            span { class: "info-value", "{manifest.loader.r#type.clone()} {manifest.loader.version.clone()}" }
+                                        }
+                                        
+                                        p { class: "info-note", 
+                                            "These settings are determined by the modpack requirements and cannot be changed."
+                                        }
+                                    }
+                                } else {
+                                    div { class: "loading-message", "Loading modpack information..." }
+                                }
                             }
                         },
                         1 => rsx! {
@@ -983,16 +981,16 @@ let loader_version = manifest.as_ref().map(|m| m.loader.version.clone()).unwrap_
                                     
                                     // Display Minecraft version and loader from universal manifest
                                     if let Some(manifest) = universal_manifest.read().as_ref() {
-    div { class: "review-item",
-        div { class: "review-label", "Minecraft Version:" }
-        div { class: "review-value", "{manifest.minecraft_version}" }
-    }
-    
-    div { class: "review-item",
-        div { class: "review-label", "Mod Loader:" }
-        div { class: "review-value", "{manifest.loader.r#type} {manifest.loader.version}" }
-    }
-}
+                                        div { class: "review-item",
+                                            div { class: "review-label", "Minecraft Version:" }
+                                            div { class: "review-value", "{manifest.minecraft_version.clone()}" }
+                                        }
+                                        
+                                        div { class: "review-item",
+                                            div { class: "review-label", "Mod Loader:" }
+                                            div { class: "review-value", "{manifest.loader.r#type.clone()} {manifest.loader.version.clone()}" }
+                                        }
+                                    }
                                     
                                     div { class: "review-item",
                                         div { class: "review-label", "Preset:" }
@@ -1000,7 +998,7 @@ let loader_version = manifest.as_ref().map(|m| m.loader.version.clone()).unwrap_
                                             if let Some(preset_id) = &*selected_preset_id.read() {
                                                 if let Some(presets_list) = presets.read().as_ref() {
                                                     if let Some(preset) = preset::find_preset_by_id(presets_list, preset_id) {
-                                                        {preset.name}
+                                                        {preset.name.clone()}
                                                     } else {
                                                         {"Custom Configuration"}
                                                     }
