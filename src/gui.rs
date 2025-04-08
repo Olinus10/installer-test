@@ -654,13 +654,7 @@ pub fn InstallationCreationWizard(props: InstallationCreationWizardProps) -> Ele
                             div { 
                                 class: if index == *current_step.read() {
                                     "wizard-step active"
-                                }
-                    }
-                }
-            }
-        }
-    }
-} else if index < *current_step.read() {
+                                } else if index < *current_step.read() {
                                     "wizard-step completed"
                                 } else {
                                     "wizard-step"
@@ -939,6 +933,12 @@ pub fn InstallationCreationWizard(props: InstallationCreationWizardProps) -> Ele
                                 "Next"
                             }
                         }
+                    }
+                }
+            }
+        }
+    }
+}
 
 // Account management components
 #[component]
