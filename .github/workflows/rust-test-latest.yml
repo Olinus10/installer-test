@@ -13,7 +13,6 @@ env:
 jobs:
   build:
     runs-on: windows-2022
-
     steps:
     - name: Checkout repository
       uses: actions/checkout@v3
@@ -21,7 +20,6 @@ jobs:
     - name: Install sccache
       run: cargo install sccache
 
-    # Cache sccache
     - name: Cache sccache
       uses: actions/cache@v3
       with:
@@ -31,7 +29,6 @@ jobs:
         restore-keys: |
           sccache-windows-
 
-    # Cache Cargo registry
     - name: Cache cargo registry
       uses: actions/cache@v3
       with:
@@ -40,7 +37,6 @@ jobs:
         restore-keys: |
           cargo-registry-windows-
 
-    # Cache Cargo git index
     - name: Cache cargo index
       uses: actions/cache@v3
       with:
@@ -49,11 +45,12 @@ jobs:
         restore-keys: |
           cargo-git-windows-
 
-    # Build the project
     - name: Build project
       run: cargo build --verbose --release
+      env:
+        RUSTC_WRAPPER: sccache
+        CARGO_TERM_COLOR: always
 
-    # Upload the resulting .exe
     - name: Upload Windows executable
       uses: actions/upload-artifact@v4
       with:
