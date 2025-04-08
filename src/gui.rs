@@ -1262,28 +1262,6 @@ pub struct LoginDialogProps {
 pub fn LoginDialog(props: LoginDialogProps) -> Element {
     let mut is_logging_in = use_signal(|| false);
     
-    // Login function that handles authentication - make sure it's mutable
-    let handle_login = use_memo(|| {
-    move |_| {
-        is_logging_in.set(true);
-        
-        // Clone the props to move into the async task
-        let onlogin_handler = props.onlogin.clone();
-        
-        // Spawn an async task for authentication
-        spawn(async move {
-            match crate::authenticate().await {
-                Ok(_) => {
-                    onlogin_handler.call(Ok(()));
-                },
-                Err(e) => {
-                    onlogin_handler.call(Err(e));
-                }
-            }
-        });
-    }
-});
-
     rsx! {
         div { class: "login-dialog-overlay",
             div { class: "login-dialog",
@@ -1322,8 +1300,25 @@ pub fn LoginDialog(props: LoginDialogProps) -> Element {
                             
                             button {
                                 class: "microsoft-login-button",
-                                // No need to pass `onclick: move |_|` for this fix
-                                onclick: |_| handle_login(),
+                                onclick: move |_| {
+                                    // Set loading state
+                                    is_logging_in.set(true);
+                                    
+                                    // Clone the handler to move into the async task
+                                    let onlogin_handler = props.onlogin.clone();
+                                    
+                                    // Spawn async task for authentication
+                                    spawn(async move {
+                                        match crate::authenticate().await {
+                                            Ok(_) => {
+                                                onlogin_handler.call(Ok(()));
+                                            },
+                                            Err(e) => {
+                                                onlogin_handler.call(Err(e));
+                                            }
+                                        }
+                                    });
+                                },
                                 
                                 // Microsoft logo (simplified)
                                 svg {
