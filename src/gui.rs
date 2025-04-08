@@ -100,7 +100,7 @@ fn app_fully_initialized() -> bool {
     true // Change this based on actual state checking
 }
 
-// Thread-safe play button handler
+// Play button handler
 pub fn handle_play_click(uuid: String, error_signal: &Signal<Option<String>>) {
     debug!("Play button clicked for modpack: {}", uuid);
     
@@ -139,62 +139,7 @@ pub fn handle_play_click(uuid: String, error_signal: &Signal<Option<String>>) {
                         match crate::launcher::microsoft_auth::MicrosoftAuth::launch_minecraft(&uuid_clone) {
                             Ok(_) => {
                                 debug!("Successfully launched modpack after authentication: {}", uuid_clone);
-                            _ => rsx! {
-                            div { "Unknown step" }
-                        }
-                    }
-                }
-                
-                // Wizard footer with navigation buttons
-                div { class: "wizard-footer",
-                    button {
-                        class: "cancel-button",
-                        onclick: move |_| {
-                            props.onclose.call(());
-                        },
-                        "Cancel"
-                    }
-                    
-                    div { class: "navigation-buttons",
-                        if *current_step.read() > 0 {
-                            button {
-                                class: "back-button",
-                                onclick: move |_| {
-                                    current_step.with_mut(|step| {
-                                        if *step > 0 {
-                                            *step -= 1;
-                                        }
-                                    });
-                                },
-                                "Back"
-                            }
-                        }
-                        
-                        button {
-                            class: if *current_step.read() == step_titles.len() - 1 {
-                                "next-button create-button"
-                            } else {
-                                "next-button"
                             },
-                            onclick: move |_| {
-                                if *current_step.read() < step_titles.len() - 1 {
-                                    current_step.with_mut(|step| {
-                                        *step += 1;
-                                    });
-                                } else {
-                                    // Final step - create the installation
-                                    create_installation();
-                                }
-                            },
-                            
-                            if *current_step.read() == step_titles.len() - 1 {
-                                "Create Installation"
-                            } else {
-                                "Next"
-                            }
-                        }
-                    }
-                }
                             Err(e) => {
                                 error!("Failed to launch modpack after authentication: {}", e);
                                 let _ = error_tx_clone.send(format!("Failed to launch modpack: {}", e));
