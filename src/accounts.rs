@@ -428,16 +428,17 @@ use dioxus::prelude::*;
 
 #[component]
 fn AccountsPage() -> Element {
-    let accounts = get_all_accounts();
-    let accounts_vec = accounts.clone();
-    let active_account = get_active_account();
+let accounts = get_all_accounts();
+let active_account = get_active_account();
+let active_id = active_account.as_ref().map(|acc| &acc.id);
     let mut show_login_dialog = use_signal(|| false);
     let mut error_message = use_signal(|| Option::<String>::None);
     
     // Generate account items for the list, skipping active account
-    let other_accounts = accounts_vec.iter()
-        .filter(|account| !active_account.as_ref().map_or(false, |active| active.id == account.id))
-        .collect::<Vec<_>>();
+let other_accounts = accounts.iter()
+    .filter(|account| !active_id.as_ref().map_or(false, |id| *id == &account.id))
+    .cloned()  // Clone each account to avoid borrowing
+    .collect::<Vec<_>>();
     
     rsx! {
         div { class: "accounts-container",
