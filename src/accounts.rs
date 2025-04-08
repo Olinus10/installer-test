@@ -312,8 +312,8 @@ impl AccountManager {
         self.save_accounts()?;
         
         info!("Added new account: {}", auth_info.username);
-    Ok(account_id)
-}
+        Ok(account_id)
+    }
         
         // Create a new account
         let account = StoredAccount::from_auth_info(auth_info);
