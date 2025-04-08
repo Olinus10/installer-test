@@ -209,6 +209,90 @@ impl Installation {
         
         Ok(())
     }
+
+        // Add to_installer_profile method right before or after install_or_update method
+    pub fn to_installer_profile(&self, http_client: &CachedHttpClient) -> InstallerProfile {
+        // Construct a launcher instance based on the launcher_type
+        let launcher = match self.launcher_type.as_str() {
+            "vanilla" => Some(Launcher::Vanilla(crate::get_app_data())),
+            "multimc" => {
+                if let Ok(path) = crate::get_multimc_folder("MultiMC") {
+                    Some(Launcher::MultiMC(path))
+                } else {
+                    None
+                }
+            },
+            "prism" => {
+                if let Ok(path) = crate::get_multimc_folder("PrismLauncher") {
+                    Some(Launcher::MultiMC(path))
+                } else {
+                    None
+                }
+            },
+            custom if custom.starts_with("custom-") => {
+                let path = PathBuf::from(custom.trim_start_matches("custom-"));
+                if path.exists() {
+                    Some(Launcher::MultiMC(path))
+                } else {
+                    None
+                }
+            },
+            _ => None,
+        };
+        
+        // Return a basic installer profile
+        InstallerProfile {
+            manifest: crate::Manifest {
+                manifest_version: crate::CURRENT_MANIFEST_VERSION,
+                modpack_version: self.universal_version.clone(),
+                name: self.name.clone(),
+                subtitle: self.name.clone(),
+                tab_group: None,
+                tab_title: None,
+                tab_color: None,
+                tab_background: None,
+                tab_primary_font: None,
+                tab_secondary_font: None,
+                settings_background: None,
+                popup_title: None,
+                popup_contents: None,
+                description: String::new(),
+                icon: false,
+                uuid: self.id.clone(),
+                loader: crate::Loader {
+                    r#type: self.loader_type.clone(),
+                    version: self.loader_version.clone(),
+                    minecraft_version: self.minecraft_version.clone(),
+                },
+                mods: Vec::new(),
+                shaderpacks: Vec::new(),
+                resourcepacks: Vec::new(),
+                remote_include: None,
+                include: Vec::new(),
+                features: Vec::new(),
+                trend: None,
+                enabled_features: self.enabled_features.clone(),
+                included_files: None,
+                source: None,
+                installer_path: None,
+                max_mem: Some(self.memory_allocation),
+                min_mem: None,
+                java_args: Some(self.java_args.clone()),
+                category: None,
+                is_new: None,
+                short_description: None,
+            },
+            http_client: http_client.clone(),
+            installed: self.installed,
+            update_available: self.update_available,
+            modpack_source: String::new(),
+            modpack_branch: String::new(),
+            enabled_features: self.enabled_features.clone(),
+            launcher,
+            local_manifest: None,
+            changelog: None,
+        }
+    }
     
     // Install or update the installation - async fix
     pub async fn install_or_update(&mut self, http_client: &CachedHttpClient) -> Result<(), String> {
