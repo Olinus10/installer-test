@@ -325,7 +325,7 @@ impl AccountManager {
         
         info!("Added new account: {}", auth_info.username);
         Ok(account_id)
-    }
+    
     
     // Get account by ID
     pub fn get_account(&self, id: &str) -> Option<&StoredAccount> {
