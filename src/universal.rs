@@ -62,41 +62,41 @@ pub struct UniversalManifest {
 const DEFAULT_UNIVERSAL_URL: &str = "https://raw.githubusercontent.com/Olinus10/installer-test/master/src/data/universal.json";
 
 // Load the universal manifest from a URL
-pub async fn load_universal_manifest(http_client: &CachedHttpClient, url: Option<&str>) -> Result<UniversalManifest, String> {
-    let universal_url = url.unwrap_or(DEFAULT_UNIVERSAL_URL);
-    debug!("Loading universal manifest from: {}", universal_url);
+pub async fn load_universal_manifest(http_client: &CachedHttpClient, url: Option<&str>) -> Result<Vec<Preset>, String> {
+    let presets_url = url.unwrap_or(DEFAULT_PRESETS_URL);
+    debug!("Loading presets from: {}", presets_url);
     
-    let mut response = match http_client.get_async(universal_url).await {
+    let mut response = match http_client.get_async(presets_url).await {
         Ok(resp) => resp,
         Err(e) => {
-            error!("Failed to fetch universal manifest: {}", e);
-            return Err(format!("Failed to fetch universal manifest: {}", e));
+            error!("Failed to fetch presets: {}", e);
+            return Err(format!("Failed to fetch presets: {}", e));
         }
     };
     
     if response.status() != StatusCode::OK {
-        error!("Failed to fetch universal manifest: HTTP {}", response.status());
-        return Err(format!("Failed to fetch universal manifest: HTTP {}", response.status()));
+        error!("Failed to fetch presets: HTTP {}", response.status());
+        return Err(format!("Failed to fetch presets: HTTP {}", response.status()));
     }
     
-    // Use the text method and convert to String right away
-    let universal_json = match response.text().await {
-        Ok(text) => text,
+    // Get text as String to avoid the unsized str error
+    let presets_json = match response.text().await {
+        Ok(text_string) => text_string, // text() returns a String, not a &str
         Err(e) => {
-            error!("Failed to read universal manifest response: {}", e);
-            return Err(format!("Failed to read universal manifest response: {}", e));
+            error!("Failed to read presets response: {}", e);
+            return Err(format!("Failed to read presets response: {}", e));
         }
     };
     
-    // Parse the manifest
-    match serde_json::from_str::<UniversalManifest>(&universal_json) {
-        Ok(manifest) => {
-            debug!("Successfully loaded universal manifest with {} mods", manifest.mods.len());
-            Ok(manifest)
+    // Parse the outer structure
+    match serde_json::from_str::<PresetsContainer>(&presets_json) {
+        Ok(container) => {
+            debug!("Successfully loaded {} presets", container.presets.len());
+            Ok(container.presets)
         },
         Err(e) => {
-            error!("Failed to parse universal manifest: {}", e);
-            Err(format!("Failed to parse universal manifest: {}", e))
+            error!("Failed to parse presets JSON: {}", e);
+            Err(format!("Failed to parse presets JSON: {}", e))
         }
     }
 }
