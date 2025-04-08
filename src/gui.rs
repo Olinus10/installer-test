@@ -5,12 +5,14 @@ use log::{error, debug};
 use modal::ModalContext;
 use modal::Modal; 
 use std::sync::mpsc;
+use log::info;
 
 use crate::{get_app_data, get_installed_packs, get_launcher, uninstall, InstallerProfile, Launcher, PackName, Changelog,launcher::launch_modpack};
 use crate::{Installation, Preset, UniversalManifest};
 use crate::preset;
 use crate::{get_active_account, get_all_accounts, authenticate, is_authenticated};
 use crate::accounts::{sign_out, switch_account};
+use crate::info;
 
 mod modal;
 
