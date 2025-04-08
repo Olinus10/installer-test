@@ -274,7 +274,7 @@ impl AccountManager {
         Ok(())
     }
     
-    // Add a new account - Fixed implementation
+    // Add a new account
     pub fn add_account(&mut self, auth_info: &AuthInfo) -> Result<String, String> {
         if !self.loaded {
             self.load_accounts()?;
@@ -314,23 +314,6 @@ impl AccountManager {
         info!("Added new account: {}", auth_info.username);
         Ok(account_id)
     }
-        
-        // Create a new account
-        let account = StoredAccount::from_auth_info(auth_info);
-        let account_id = account.id.clone();
-        
-        // Add to accounts list
-        self.accounts.push(account);
-        
-        // Make this the active account
-        self.active_account_id = Some(account_id.clone());
-        
-        // Save changes
-        self.save_accounts()?;
-        
-        info!("Added new account: {}", auth_info.username);
-        Ok(account_id)
-    
     
     // Get account by ID
     pub fn get_account(&self, id: &str) -> Option<&StoredAccount> {
@@ -446,10 +429,11 @@ impl AccountManager {
     
     // Sign out the active account
     pub fn sign_out(&mut self) -> Result<(), String> {
-    if let Some(id) = self.active_account_id.clone() {
-        // Clone the ID first to avoid the borrow conflict
-        self.remove_account(&id)?;
+        if let Some(id) = self.active_account_id.clone() {
+            // Clone the ID first to avoid the borrow conflict
+            self.remove_account(&id)?;
+        }
+        
+        Ok(())
     }
-    
-    Ok(())
 }
