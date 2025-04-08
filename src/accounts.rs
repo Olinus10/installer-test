@@ -169,6 +169,35 @@ impl AccountManager {
             loaded: false,
         }
     }
+
+    pub fn get_account(&self, id: &str) -> Option<&StoredAccount> {
+    self.accounts.iter().find(|a| &a.id == id)
+    }
+
+    pub fn remove_account(&mut self, id: &str) -> Result<(), String> {
+    // Find the account index
+    let index = match self.accounts.iter().position(|acc| acc.id == id) {
+        Some(idx) => idx,
+        None => return Err(format!("Account {} not found", id)),
+    };
+    
+    // Remove from accounts list
+    self.accounts.remove(index);
+    
+    // Remove from index
+    self.index.accounts.retain(|account_id| account_id != id);
+    
+    // Clear active account if it was the one removed
+    if self.active_account_id.as_ref().map_or(false, |active_id| active_id == id) {
+        self.active_account_id = None;
+        self.index.active_account = None;
+    }
+    
+    // Save changes
+    self.save_accounts()?;
+    
+    Ok(())
+}
     
     // Load accounts from disk
     pub fn load_accounts(&mut self) -> Result<(), String> {
@@ -398,13 +427,13 @@ use dioxus::prelude::*;
 #[component]
 fn AccountsPage() -> Element {
     let accounts = get_all_accounts();
-    let accounts_vec = accounts.clone(); // Create a clone
+    let accounts_vec = accounts.clone();
     let active_account = get_active_account();
     let mut show_login_dialog = use_signal(|| false);
     let mut error_message = use_signal(|| Option::<String>::None);
     
     // Generate account items for the list, skipping active account
-    let other_accounts = accounts_vec.iter() // Use the clone
+    let other_accounts = accounts_vec.iter()
         .filter(|account| !active_account.as_ref().map_or(false, |active| active.id == account.id))
         .collect::<Vec<_>>();
     
