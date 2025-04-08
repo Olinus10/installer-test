@@ -3608,3 +3608,117 @@ transform: scale(1.03);
         grid-template-columns: 1fr;
     }
 }
+
+.login-dialog-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    backdrop-filter: blur(5px);
+}
+
+.login-dialog {
+    background-color: rgba(0, 0, 0, 0.8);
+    border-radius: 12px;
+    width: 90%;
+    max-width: 500px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    overflow: hidden;
+}
+
+.login-dialog-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 20px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.login-dialog-header h2 {
+    font-family: "HEADER_FONT";
+    margin: 0;
+}
+
+.login-dialog-content {
+    padding: 30px;
+}
+
+.login-info p {
+    margin-top: 0;
+    margin-bottom: 20px;
+}
+
+.login-permissions {
+    margin-bottom: 20px;
+    padding-left: 20px;
+}
+
+.login-permissions li {
+    margin-bottom: 8px;
+}
+
+.login-note {
+    font-style: italic;
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 0.9rem;
+}
+
+.microsoft-login-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    padding: 12px;
+    background-color: #2f2f2f;
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    font-size: 1rem;
+    font-family: "REGULAR_FONT";
+    margin-top: 20px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.microsoft-login-button:hover {
+    background-color: #3b3b3b;
+    transform: translateY(-2px);
+}
+
+.ms-logo {
+    margin-right: 10px;
+}
+
+.login-progress {
+    text-align: center;
+}
+
+.login-spinner {
+    width: 60px;
+    height: 60px;
+    border: 4px solid rgba(255, 255, 255, 0.2);
+    border-top-color: #fff;
+    border-radius: 50%;
+    margin: 0 auto 20px auto;
+    animation: spin 1s linear infinite;
+}
+
+.login-hint {
+    font-size: 0.9rem;
+    color: rgba(255, 255, 255, 0.7);
+    font-style: italic;
+    margin-top: 20px;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
