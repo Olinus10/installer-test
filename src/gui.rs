@@ -335,7 +335,7 @@ fn Footer() -> Element {
 
 // Home Page component with redundancy removed
 #[component]
-fn NewHomePage(
+pub fn NewHomePage(
     installations: Signal<Vec<Installation>>,
     error_signal: Signal<Option<String>>,
 ) -> Element {
@@ -346,8 +346,8 @@ fn NewHomePage(
     let mut show_creation_dialog = use_signal(|| false);
     
     // Authentication status check
-    let auth_status = get_auth_status();
-    let username = if auth_status == AuthStatus::Authenticated {
+    let auth_status = crate::gui::get_auth_status();
+    let username = if auth_status == crate::gui::AuthStatus::Authenticated {
         crate::launcher::microsoft_auth::MicrosoftAuth::get_username()
     } else {
         None
@@ -382,7 +382,7 @@ fn NewHomePage(
                             auth_status: Some(auth_status),
                             onclick: move |_| {
                                 let installation_id = installation.id.clone();
-                                handle_play_click(installation_id, &error_signal);
+                                crate::gui::handle_play_click(installation_id, &error_signal);
                             }
                         }
                     }
@@ -396,6 +396,8 @@ fn NewHomePage(
                             onclick: move |id| {
                                 // Navigate to installation page
                                 // This will depend on your navigation system
+                                debug!("Clicked installation: {}", id);
+                                // Use context or props here to handle navigation
                             }
                         }
                     }
@@ -529,8 +531,14 @@ struct InstallationCreationWizardProps {
     oncreate: EventHandler<Installation>,
 }
 
+#[derive(PartialEq, Props, Clone)]
+pub struct InstallationCreationWizardProps {
+    pub onclose: EventHandler<()>,
+    pub oncreate: EventHandler<Installation>,
+}
+
 #[component]
-fn InstallationCreationWizard(props: InstallationCreationWizardProps) -> Element {
+pub fn InstallationCreationWizard(props: InstallationCreationWizardProps) -> Element {
     // State for wizard
     let mut current_step = use_signal(|| 0);
     let mut name = use_signal(|| "My Wynncraft Installation".to_string());
@@ -646,7 +654,13 @@ fn InstallationCreationWizard(props: InstallationCreationWizardProps) -> Element
                             div { 
                                 class: if index == *current_step.read() {
                                     "wizard-step active"
-                                } else if index < *current_step.read() {
+                                }
+                    }
+                }
+            }
+        }
+    }
+} else if index < *current_step.read() {
                                     "wizard-step completed"
                                 } else {
                                     "wizard-step"
@@ -925,12 +939,6 @@ fn InstallationCreationWizard(props: InstallationCreationWizardProps) -> Element
                                 "Next"
                             }
                         }
-                    }
-                }
-            }
-        }
-    }
-}
 
 // Account management components
 #[component]
