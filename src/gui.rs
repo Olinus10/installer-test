@@ -643,7 +643,7 @@ pub fn InstallationCreationWizard(props: InstallationCreationWizardProps) -> Ele
     let mut memory_allocation = use_signal(|| 3072);
     
     // Resource for presets
-    let presets: Resource<Vec<Preset>> = use_resource(move || async {
+    let presets = use_resource(move || async {
         match crate::preset::load_presets(&crate::CachedHttpClient::new(), None).await {
             Ok(presets) => presets,
             Err(_) => Vec::new(),
@@ -651,7 +651,7 @@ pub fn InstallationCreationWizard(props: InstallationCreationWizardProps) -> Ele
     });
     
     // Resource for universal manifest - this will determine Minecraft version and loader
-    let universal_manifest: Resource<Option<UniversalManifest>> = use_resource(move || async {
+    let universal_manifest = use_resource(move || async {
         match crate::universal::load_universal_manifest(&crate::CachedHttpClient::new(), None).await {
             Ok(manifest) => Some(manifest),
             Err(_) => None,
@@ -669,9 +669,9 @@ pub fn InstallationCreationWizard(props: InstallationCreationWizardProps) -> Ele
     // Function to create the installation
     let create_installation = move || {
         // Get the universal manifest for Minecraft version and loader information
-        let manifest = universal_manifest.read().as_ref().cloned();
+        let manifest_opt = universal_manifest.read().as_ref().cloned();
         
-        if let Some(manifest) = manifest {
+        if let Some(manifest) = manifest_opt {
             // Use Minecraft version and loader info from universal manifest
             let minecraft_version = manifest.minecraft_version.clone();
             let loader_type = manifest.loader.r#type.clone();
@@ -679,8 +679,8 @@ pub fn InstallationCreationWizard(props: InstallationCreationWizardProps) -> Ele
             
             // Find the selected preset
             let preset = if let Some(preset_id) = &*selected_preset_id.read() {
-                if let Some(presets) = presets.read() {
-                    preset::find_preset_by_id(presets, preset_id)
+                if let Some(presets_vec) = presets.read().as_ref() {
+                    preset::find_preset_by_id(presets_vec, preset_id)
                 } else {
                     None
                 }
@@ -707,14 +707,15 @@ pub fn InstallationCreationWizard(props: InstallationCreationWizardProps) -> Ele
                 }
                 
                 // Save the installation with memory allocation
-                installation.memory_allocation = *memory_allocation.read();
-                if let Err(e) = installation.save() {
+                let mut installation_copy = installation.clone();
+                installation_copy.memory_allocation = *memory_allocation.read();
+                if let Err(e) = installation_copy.save() {
                     error!("Failed to save installation: {}", e);
                     // Continue anyway
                 }
                 
                 // Return the new installation
-                props.oncreate.call(installation);
+                props.oncreate.call(installation_copy);
             } else {
                 // Create custom installation without preset but still using universal manifest settings
                 let installation = Installation::new_custom(
@@ -727,16 +728,17 @@ pub fn InstallationCreationWizard(props: InstallationCreationWizardProps) -> Ele
                 );
                 
                 // Register and save the installation with memory allocation
-                installation.memory_allocation = *memory_allocation.read();
-                if let Err(e) = crate::installation::register_installation(&installation) {
+                let mut installation_copy = installation.clone();
+                installation_copy.memory_allocation = *memory_allocation.read();
+                if let Err(e) = crate::installation::register_installation(&installation_copy) {
                     error!("Failed to register installation: {}", e);
                 }
                 
-                if let Err(e) = installation.save() {
+                if let Err(e) = installation_copy.save() {
                     error!("Failed to save installation: {}", e);
                 }
                 
-                props.oncreate.call(installation);
+                props.oncreate.call(installation_copy);
             }
         } else {
             // If we couldn't get the universal manifest, show an error
@@ -744,7 +746,7 @@ pub fn InstallationCreationWizard(props: InstallationCreationWizardProps) -> Ele
             // Could set an error state here to show to the user
         }
     };
-    
+
     rsx! {
         div { class: "wizard-overlay",
             div { class: "wizard-container",
@@ -786,7 +788,7 @@ pub fn InstallationCreationWizard(props: InstallationCreationWizardProps) -> Ele
                                         r#type: "text",
                                         value: "{name}",
                                         oninput: move |evt| {
-                                            name.set(evt.value.clone());
+                                            name.set(evt.value().clone());
                                         }
                                     }
                                 }
@@ -813,119 +815,13 @@ pub fn InstallationCreationWizard(props: InstallationCreationWizardProps) -> Ele
                                 }
                             }
                         },
-                        2 => rsx! {
-                            // Step 3: Performance Settings
-                            div { class: "wizard-step-content",
-                                h3 { "Performance Settings" }
-                                p { "Configure memory allocation and other performance settings." }
-                                
-                                div { class: "form-group",
-                                    label { r#for: "memory-allocation",  
-                                        "Memory Allocation: {memory_allocation} MB"
-                                    }
-                                    input {
-                                        id: "memory-allocation",
-                                        r#type: "range",
-                                        min: "1024",
-                                        max: "8192",
-                                        step: "512",
-                                        value: "{memory_allocation}",
-                                        oninput: move |evt| {
-                                            if let Ok(value) = evt.value.parse::<i32>() {
-                                                memory_allocation.set(value);
-                                            }
-                                        }
-                                    }
-                                    div { class: "memory-markers",
-                                        span { "1 GB" }
-                                        span { "4 GB" }
-                                        span { "8 GB" }
-                                    }
-                                }
-                                
-                                // Show preset recommended settings if applicable
-                                if let Some(preset_id) = &*selected_preset_id.read() {
-                                    if let Some(presets_list) = presets.read() {
-                                        if let Some(preset) = preset::find_preset_by_id(presets_list, preset_id) {
-                                            if let Some(rec_memory) = preset.recommended_memory {
-                                                div { class: "recommended-setting",
-                                                    "Recommended memory for this preset: {rec_memory} MB"
-                                                    
-                                                    button {
-                                                        class: "apply-recommended-button",
-                                                        onclick: move |_| {
-                                                            memory_allocation.set(rec_memory);
-                                                        },
-                                                        "Apply"
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        },
-                        3 => rsx! {
-                            // Step 4: Review
-                            div { class: "wizard-step-content",
-                                h3 { "Review Your Installation" }
-                                
-                                div { class: "review-container",
-                                    div { class: "review-item",
-                                        div { class: "review-label", "Name:" }
-                                        div { class: "review-value", "{name}" }
-                                    }
-                                    
-                                    // Display Minecraft version and loader from universal manifest
-                                    if let Some(manifest) = universal_manifest.read().as_ref() {
-                                        div { class: "review-item",
-                                            div { class: "review-label", "Minecraft Version:" }
-                                            div { class: "review-value", "{manifest.minecraft_version}" }
-                                        }
-                                        
-                                        div { class: "review-item",
-                                            div { class: "review-label", "Mod Loader:" }
-                                            div { class: "review-value", "{manifest.loader.r#type} {manifest.loader.version}" }
-                                        }
-                                    }
-                                    
-                                    div { class: "review-item",
-                                        div { class: "review-label", "Preset:" }
-                                        div { class: "review-value", 
-                                            if let Some(preset_id) = &*selected_preset_id.read() {
-                                                if let Some(presets_list) = presets.read() {
-                                                    if let Some(preset) = preset::find_preset_by_id(presets_list, preset_id) {
-                                                        {preset.name}
-                                                    } else {
-                                                        "Custom Configuration".to_string()
-                                                    }
-                                                } else {
-                                                    "Custom Configuration".to_string()
-                                                }
-                                            } else {
-                                                "Custom Configuration".to_string()
-                                            }
-                                        }
-                                    }
-                                    
-                                    div { class: "review-item",
-                                        div { class: "review-label", "Memory Allocation:" }
-                                        div { class: "review-value", "{memory_allocation} MB" }
-                                    }
-                                }
-                                
-                                div { class: "summary-message",
-                                    "Your installation will be created with these settings. You can modify which mods are enabled later in the installation settings."
-                                }
-                            }
-                        },
                         1 => rsx! {
                             // Step 2: Select Preset
                             div { class: "wizard-step-content",
                                 h3 { "Choose a preset configuration" }
                                 p { "Presets determine which mods are enabled by default." }
                                 
-                                if let Some(presets_list) = presets.read() {
+                                if let Some(presets_list) = presets.read().as_ref() {
                                     if presets_list.is_empty() {
                                         div { class: "loading-message", "Loading presets..." }
                                     } else {
@@ -996,7 +892,7 @@ pub fn InstallationCreationWizard(props: InstallationCreationWizardProps) -> Ele
                                         step: "512",
                                         value: "{memory_allocation}",
                                         oninput: move |evt| {
-                                            if let Ok(value) = evt.value.parse::<i32>() {
+                                            if let Ok(value) = evt.value().parse::<i32>() {
                                                 memory_allocation.set(value);
                                             }
                                         }
@@ -1010,7 +906,7 @@ pub fn InstallationCreationWizard(props: InstallationCreationWizardProps) -> Ele
                                 
                                 // Show preset recommended settings if applicable
                                 if let Some(preset_id) = &*selected_preset_id.read() {
-                                    if let Some(presets_list) = presets.read() {
+                                    if let Some(presets_list) = presets.read().as_ref() {
                                         if let Some(preset) = preset::find_preset_by_id(presets_list, preset_id) {
                                             if let Some(rec_memory) = preset.recommended_memory {
                                                 div { class: "recommended-setting",
@@ -1045,7 +941,7 @@ pub fn InstallationCreationWizard(props: InstallationCreationWizardProps) -> Ele
                                     if let Some(manifest) = universal_manifest.read().as_ref() {
                                         div { class: "review-item",
                                             div { class: "review-label", "Minecraft Version:" }
-                                            div { class: "review-value", "{manifest.minecraft.version}" }
+                                            div { class: "review-value", "{manifest.minecraft_version}" }
                                         }
                                         
                                         div { class: "review-item",
@@ -1058,17 +954,17 @@ pub fn InstallationCreationWizard(props: InstallationCreationWizardProps) -> Ele
                                         div { class: "review-label", "Preset:" }
                                         div { class: "review-value", 
                                             if let Some(preset_id) = &*selected_preset_id.read() {
-                                                if let Some(presets_list) = presets.read() {
+                                                if let Some(presets_list) = presets.read().as_ref() {
                                                     if let Some(preset) = preset::find_preset_by_id(presets_list, preset_id) {
                                                         {preset.name}
                                                     } else {
-                                                        "Custom Configuration".to_string()
+                                                        {"Custom Configuration"}
                                                     }
                                                 } else {
-                                                    "Custom Configuration".to_string()
+                                                    {"Custom Configuration"}
                                                 }
                                             } else {
-                                                "Custom Configuration".to_string()
+                                                {"Custom Configuration"}
                                             }
                                         }
                                     }
