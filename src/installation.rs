@@ -2,13 +2,15 @@ use serde::{Deserialize, Serialize};
 use std::fs;
 use std::io;
 use std::path::{Path, PathBuf};
-use log::{debug, error, info};
+use log::{debug, error, info, warn};
 use chrono::{DateTime, Utc};
 use std::collections::HashMap;
 use uuid::Uuid;
 
 use crate::{CachedHttpClient, InstallerProfile, launcher};
 use crate::preset::Preset;
+use crate::Launcher;
+use crate::accounts::{AccountManager, AccountsIndex, StoredAccount};
 
 #[derive(Debug, Deserialize, Serialize, Default, Clone)]
 pub struct InstallationsIndex {
