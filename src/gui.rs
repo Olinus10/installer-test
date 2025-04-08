@@ -23,12 +23,15 @@ use crate::{
     REPO, 
     Config
 };
+use isahc::ReadResponseExt;
 
 use crate::{get_app_data, get_installed_packs, get_launcher, uninstall, InstallerProfile, Launcher, PackName, Changelog,launcher::launch_modpack};
 use crate::{Installation, Preset, UniversalManifest};
 use crate::preset;
 use crate::{get_active_account, get_all_accounts, authenticate, is_authenticated};
 use crate::accounts::{sign_out, switch_account};
+use crate::accounts;
+use crate::installation;
 
 mod modal;
 
@@ -268,13 +271,13 @@ fn main() {
         ).with_data_directory(
             env::temp_dir().join(".WC_OVHL")
         ).with_menu(None)
-    ).with_context(gui::AppProps {
+    ).with_context(AppProps {
         branches,
         modpack_source: String::from(REPO),
         config,
         config_path,
         installations,
-    }).launch(gui::app);
+    }).launch(app);
 }
 
 // Play button handler
@@ -742,7 +745,7 @@ let loader_version = manifest.as_ref().map(|m| m.loader.version.clone()).unwrap_
                 loader_type,
                 loader_version,
                 "vanilla".to_string(), // Default to vanilla launcher
-                manifest.version.clone(),
+                manifest.as_ref().map_or_else(|| String::from("unknown"), |m| m.version.clone()),
             );
             
             // Register the installation
@@ -769,7 +772,7 @@ let loader_version = manifest.as_ref().map(|m| m.loader.version.clone()).unwrap_
                 loader_type,
                 loader_version,
                 "vanilla".to_string(),
-                manifest.version.clone(),
+                manifest.as_ref().map_or_else(|| String::from("unknown"), |m| m.version.clone()),
             );
             
             // Register and save the installation with memory allocation
@@ -1094,6 +1097,7 @@ let loader_version = manifest.as_ref().map(|m| m.loader.version.clone()).unwrap_
 #[component]
 fn AccountsPage() -> Element {
     let accounts = get_all_accounts();
+    let accounts_vec = accounts.clone();
     let active_account = get_active_account();
     let mut show_login_dialog = use_signal(|| false);
     let mut error_message = use_signal(|| Option::<String>::None);
