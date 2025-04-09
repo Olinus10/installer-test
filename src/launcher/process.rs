@@ -66,55 +66,10 @@ fn get_current_launcher_type() -> Result<LauncherType, String> {
 
 // Launch vanilla Minecraft with the specified profile
 fn launch_vanilla(profile_id: &str) -> Result<(), String> {
-    debug!("Setting up debug launcher for profile {}", profile_id);
+    debug!("Launching vanilla Minecraft for profile {}", profile_id);
     
-    // Build the complete game directory path
-    let minecraft_dir = crate::launcher::config::get_minecraft_dir();
-    let game_dir = minecraft_dir.join(format!(".WC_OVHL/{}", profile_id));
-    
-    debug!("Game directory: {:?}", game_dir);
-    
-    // Create a debug batch file
-    let script_path = std::env::temp_dir().join(format!("debug_minecraft_{}.bat", profile_id));
-    
-    // This batch file will:
-    // 1. Show detailed debug information
-    // 2. Keep the window open to display errors
-    // 3. Try to update the launcher profiles
-    // 4. Launch the Minecraft launcher
-    let batch_content = format!(
-        "@echo off\r\n\
-         echo ===== MINECRAFT DEBUG LAUNCHER =====\r\n\
-         echo Profile ID: {}\r\n\
-         echo Game directory: {}\r\n\
-         echo Minecraft directory: {}\r\n\
-         echo ===================================\r\n\
-         \r\n\
-         echo Checking Java availability...\r\n\
-         where java >nul 2>nul\r\n\
-         if %ERRORLEVEL% NEQ 0 (\r\n\
-             echo Java not found in PATH! Will try to use Minecraft bundled Java.\r\n\
-         ) else (\r\n\
-             echo Java found in PATH.\r\n\
-             java -version\r\n\
-         )\r\n\
-         \r\n\
-         echo Updating profile as most recently used...\r\n\
-         \r\n\
-         echo Launching Minecraft launcher...\r\n\
-         start \"\" \"C:\\Program Files (x86)\\Minecraft Launcher\\MinecraftLauncher.exe\"\r\n\
-         \r\n\
-         echo The launcher has been started.\r\n\
-         echo Your profile '{}' should be selected.\r\n\
-         echo Just click the PLAY button in the launcher to start the game.\r\n\
-         echo.\r\n\
-         echo Press any key to close this window...\r\n\
-         pause > nul\r\n",
-        profile_id,
-        game_dir.display(),
-        minecraft_dir.display(),
-        profile_id
-    );
+    // Get Minecraft directory
+    let minecraft_dir = crate::get_minecraft_folder();
     
     // Update the launcher profiles to make this the default
     let profiles_path = minecraft_dir.join("launcher_profiles.json");
@@ -135,43 +90,48 @@ fn launch_vanilla(profile_id: &str) -> Result<(), String> {
                 }
                 
                 // Set as the selected profile
-                if let Some(launcher_version) = profiles_json.get_mut("launcherVersion") {
-                    if let Some(launcher_obj) = launcher_version.as_object_mut() {
-                        launcher_obj.insert("selectedProfileId".to_string(), 
-                                        serde_json::Value::String(profile_id.to_string()));
+                if let Some(obj) = profiles_json.as_object_mut() {
+                    if let Some(selected_profile) = obj.get_mut("selectedProfileId") {
+                        *selected_profile = serde_json::Value::String(profile_id.to_string());
                         debug!("Set profile {} as selected", profile_id);
+                    } else {
+                        obj.insert(
+                            "selectedProfileId".to_string(),
+                            serde_json::Value::String(profile_id.to_string()),
+                        );
+                        debug!("Added selectedProfileId with profile {}", profile_id);
                     }
                 }
                 
                 // Write back the updated profiles
                 if let Ok(updated_json) = serde_json::to_string_pretty(&profiles_json) {
-                    let _ = std::fs::write(&profiles_path, updated_json);
+                    if let Err(e) = std::fs::write(&profiles_path, updated_json) {
+                        debug!("Failed to write updated profiles: {}", e);
+                    }
                 }
             }
         }
     }
     
-    // Write the batch file
-    match std::fs::write(&script_path, batch_content) {
-        Ok(_) => debug!("Created debug launcher script at {:?}", script_path),
-        Err(e) => return Err(format!("Failed to create debug launcher script: {}", e))
-    }
+    // Launch the Minecraft launcher
+    let launcher_path = if cfg!(target_os = "windows") {
+        "C:\\Program Files (x86)\\Minecraft Launcher\\MinecraftLauncher.exe"
+    } else if cfg!(target_os = "macos") {
+        "/Applications/Minecraft.app/Contents/MacOS/launcher"
+    } else {
+        "/usr/bin/minecraft-launcher"
+    };
     
-    // Execute the batch file
-    debug!("Running debug launcher script");
-    match Command::new("cmd.exe")
-        .arg("/C")
-        .arg("start")
-        .arg(script_path.to_str().unwrap())
-        .spawn() 
-    {
+    debug!("Launching Minecraft launcher at: {}", launcher_path);
+    
+    match Command::new(launcher_path).spawn() {
         Ok(_) => {
-            debug!("Debug launcher script executed successfully");
+            debug!("Minecraft launcher started successfully");
             Ok(())
         },
         Err(e) => {
-            error!("Failed to execute debug launcher script: {}", e);
-            Err(format!("Failed to execute debug launcher script: {}", e))
+            error!("Failed to start Minecraft launcher: {}", e);
+            Err(format!("Failed to start Minecraft launcher: {}. Please launch Minecraft manually and select the profile '{}'", e, profile_id))
         }
     }
 }
@@ -192,19 +152,11 @@ fn launch_multimc(profile_id: &str) -> Result<(), String> {
     debug!("Launching MultiMC with instance {}", profile_id);
     debug!("MultiMC executable path: {:?}", executable);
     
-    // Try to determine if the instance exists
-    let instance_dir = multimc_path.join("instances").join(profile_id);
-    if !instance_dir.exists() {
-        debug!("Warning: Instance directory does not exist: {:?}", instance_dir);
-    }
-    
     // Launch MultiMC with the instance
     let command = Command::new(&executable)
-        .arg("--launch").arg(profile_id) // Try different launch syntax
+        .arg("--launch").arg(profile_id)
         .spawn();
         
-    debug!("Command attempted: {:?} --launch {}", executable, profile_id);
-    
     match command {
         Ok(_) => {
             debug!("MultiMC launched successfully with instance: {}", profile_id);
@@ -234,7 +186,7 @@ fn launch_prism(profile_id: &str) -> Result<(), String> {
     
     // Launch Prism with the instance
     match Command::new(executable)
-        .arg("-l") // Launch instance directly
+        .arg("-l")
         .arg(profile_id)
         .spawn() {
             Ok(_) => {
@@ -290,7 +242,7 @@ fn launch_custom_multimc(profile_id: &str, path: String) -> Result<(), String> {
     
     // Launch with the instance
     match Command::new(executable)
-        .arg("-l") // Launch instance directly
+        .arg("-l")
         .arg(profile_id)
         .spawn() {
             Ok(_) => {
