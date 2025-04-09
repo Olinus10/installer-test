@@ -46,33 +46,16 @@ struct TabInfo {
 fn PlayButton(
     uuid: String,
     disabled: bool,
-    auth_status: Option<AuthStatus>,
     onclick: EventHandler<MouseEvent>,
-) -> Element {
-    // Determine the auth status
-    let status = auth_status.unwrap_or_else(|| crate::gui::get_auth_status());
-    
-    // Determine button class based on auth status
-    let button_class = match status {
-        AuthStatus::Authenticated => "main-play-button authenticated",
-        AuthStatus::NeedsAuth => "main-play-button needs-auth",
-    };
-    
+) -> Element {    
     rsx! {
         div { class: "play-button-container",
             button {
-                class: button_class,
+                class: "main-play-button",
                 disabled: disabled,
                 onclick: move |evt| onclick.call(evt),
                 
                 "PLAY"
-            }
-            
-            // Show authentication message if needed
-            if status == AuthStatus::NeedsAuth {
-                div { class: "auth-info", 
-                    "You'll need to sign in with Microsoft"
-                }
             }
         }
     }
@@ -129,33 +112,6 @@ fn ErrorNotification(
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
-pub enum AuthStatus {
-    Authenticated,  // User already authenticated
-    NeedsAuth,      // User needs to authenticate first
-}
-
-// Helper function to check auth status
-pub fn get_auth_status() -> AuthStatus {
-    // Only check authentication if UI is fully loaded
-    if !app_fully_initialized() {
-        return AuthStatus::NeedsAuth; // Default to needing auth during initialization
-    }
-    
-    if crate::is_authenticated() {
-        AuthStatus::Authenticated
-    } else {
-        AuthStatus::NeedsAuth
-    }
-}
-
-// Global flag to track initialization
-static INITIALIZATION_COMPLETE: AtomicBool = AtomicBool::new(false);
-
-// Function to check if app is fully initialized
-fn app_fully_initialized() -> bool {
-    INITIALIZATION_COMPLETE.load(Ordering::SeqCst)
-}
 
 // Updated main function to initialize the app correctly
 fn main() {
@@ -285,50 +241,19 @@ pub fn handle_play_click(uuid: String, error_signal: &Signal<Option<String>>) {
     // Clone error_signal before moving to thread
     let mut error_signal_clone = error_signal.clone();
     
-    // Check authentication status
-    match get_auth_status() {
-        AuthStatus::Authenticated => {
-            // User is already authenticated, launch the game
-            let uuid_clone = uuid.clone();
-            std::thread::spawn(move || {
-                match crate::launcher::microsoft_auth::MicrosoftAuth::launch_minecraft(&uuid_clone) {
-                    Ok(_) => {
-                        debug!("Successfully launched modpack: {}", uuid_clone);
-                    },
-                    Err(e) => {
-                        error!("Failed to launch modpack: {}", e);
-                        let _ = error_tx.send(format!("Failed to launch modpack: {}", e));
-                    }
-                }
-            });
-        },
-        AuthStatus::NeedsAuth => {
-            // User needs to authenticate first
-            let uuid_clone = uuid.clone();
-            let error_tx_clone = error_tx.clone();
-            std::thread::spawn(move || {
-                match crate::launcher::microsoft_auth::MicrosoftAuth::authenticate() {
-                    Ok(_) => {
-                        debug!("Authentication successful, now launching modpack: {}", uuid_clone);
-                        // After successful authentication, launch the game
-                        match crate::launcher::microsoft_auth::MicrosoftAuth::launch_minecraft(&uuid_clone) {
-                            Ok(_) => {
-                                debug!("Successfully launched modpack after authentication: {}", uuid_clone);
-                            },
-                            Err(e) => {
-                                error!("Failed to launch modpack after authentication: {}", e);
-                                let _ = error_tx_clone.send(format!("Failed to launch modpack: {}", e));
-                            }
-                        }
-                    },
-                    Err(e) => {
-                        error!("Authentication failed: {}", e);
-                        let _ = error_tx.send(format!("Microsoft authentication failed: {}", e));
-                    }
-                }
-            });
+    // Launch the game directly without auth
+    let uuid_clone = uuid.clone();
+    std::thread::spawn(move || {
+        match crate::launch_modpack(&uuid_clone) {
+            Ok(_) => {
+                debug!("Successfully launched modpack: {}", uuid_clone);
+            },
+            Err(e) => {
+                error!("Failed to launch modpack: {}", e);
+                let _ = error_tx.send(format!("Failed to launch modpack: {}", e));
+            }
         }
-    }
+    });
     
     // Create a task to check for errors from the background thread
     spawn(async move {
@@ -2858,25 +2783,25 @@ fn AppHeader(
                 // Legacy tabs (1, 2, 3) if needed
                 if !has_installations {
                     for (i, &index) in main_tab_indices.iter().enumerate() {
-    {
-        let title = main_tab_titles[i].clone();
-                        rsx!(
-                            button {
-                                class: if page() == index && current_installation_id().is_none() { 
-                                    "header-tab-button active" 
-                                } else { 
-                                    "header-tab-button" 
-                                },
-                                onclick: move |_| {
-                                    debug!("TAB CLICK: Changing page from {} to {}", page(), index);
-                                    current_installation_id.set(None);
-                                    page.set(index);
-                                    debug!("TAB CLICK RESULT: Page is now {}", page());
-                                },
-                                "{title}"
-                            }
-                        )
-                    }
+                        {
+                            let title = main_tab_titles[i].clone();
+                            rsx!(
+                                button {
+                                    class: if page() == index && current_installation_id().is_none() { 
+                                        "header-tab-button active" 
+                                    } else { 
+                                        "header-tab-button" 
+                                    },
+                                    onclick: move |_| {
+                                        debug!("TAB CLICK: Changing page from {} to {}", page(), index);
+                                        current_installation_id.set(None);
+                                        page.set(index);
+                                        debug!("TAB CLICK RESULT: Page is now {}", page());
+                                    },
+                                    "{title}"
+                                }
+                            )
+                        }
                     }
                 }
                 
@@ -2885,7 +2810,6 @@ fn AppHeader(
                     class: "header-tab-button new-installation-tab",
                     onclick: move |_| {
                         // This will show the installation creation wizard
-                        // You'll need to implement this logic
                         debug!("Show installation creation wizard");
                     },
                     "+"
@@ -2963,22 +2887,6 @@ fn AppHeader(
                                 }
                             }
                         }
-                    }
-                }
-                
-                // Account button
-                button {
-                    class: "header-tab-button account-button",
-                    onclick: move |_| {
-                        // This would navigate to the accounts page
-                        debug!("Navigate to accounts page");
-                    },
-                    
-                    // Show different icon based on auth status
-                    if crate::is_authenticated() {
-                        "👤"
-                    } else {
-                        "👤"
                     }
                 }
             }
