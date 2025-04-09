@@ -54,6 +54,8 @@ pub use installation::{Installation, get_active_installation, load_all_installat
 pub use preset::{Preset, load_presets};
 pub use universal::{UniversalManifest, load_universal_manifest};
 
+// Remove authentication related code
+
 const CURRENT_MANIFEST_VERSION: i32 = 3;
 const GH_API: &str = "https://api.github.com/repos/";
 const GH_RAW: &str = "https://raw.githubusercontent.com/";
