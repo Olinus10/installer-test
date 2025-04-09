@@ -1,7 +1,6 @@
 // In launcher/mod.rs
 pub mod config; // Change to pub to allow access from microsoft_auth_impl.rs
 mod process;
-pub mod microsoft_auth; // Keep this public
 
 // Correct imports
 pub use config::{update_jvm_args, get_jvm_args};
@@ -9,9 +8,6 @@ pub use config::get_minecraft_dir; // Explicitly re-export this function
 
 // Import log macros
 use log::{debug, warn};
-
-// Use our public Microsoft Auth module
-pub use microsoft_auth::MicrosoftAuth;
 
 // Launch a modpack using MS auth or fallback to the existing process implementation
 pub fn launch_modpack(uuid: &str) -> Result<(), String> {
