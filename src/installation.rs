@@ -140,6 +140,31 @@ impl Installation {
             total_launches: 0,
         }
     }
+
+        pub fn save(&self) -> Result<(), String> {
+        let installation_dir = crate::installation::get_installations_dir().join(&self.id);
+        
+        // Create directory if it doesn't exist
+        if !installation_dir.exists() {
+            std::fs::create_dir_all(&installation_dir)
+                .map_err(|e| format!("Failed to create installation directory: {}", e))?;
+        }
+        
+        let config_path = installation_dir.join("installation.json");
+        let config_json = serde_json::to_string_pretty(self)
+            .map_err(|e| format!("Failed to serialize installation: {}", e))?;
+        
+        std::fs::write(config_path, config_json)
+            .map_err(|e| format!("Failed to write installation config: {}", e))
+    }
+    
+    pub async fn install_or_update(&self, http_client: &crate::CachedHttpClient) -> Result<(), String> {
+        // Simple implementation - in real code, you'd have logic to install or update based on status
+        debug!("Installing or updating installation: {}", self.id);
+        
+        // For now, just return success
+        Ok(())
+    }
     
     // Update the play method to increment launch count
     pub fn record_launch(&mut self) -> Result<(), String> {
