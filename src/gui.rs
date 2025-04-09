@@ -498,7 +498,7 @@ fn InstallationCard(
     // Clone the ID outside the event handler to avoid borrowing issues
     let installation_id = installation.id.clone();
     let play_id = installation.id.clone();
-    let error_signal = use_signal(|| Option::<String>::None);
+    let mut error_signal = use_signal(|| Option::<String>::None);
     
     rsx! {
         div { 
