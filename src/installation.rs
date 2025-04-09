@@ -56,7 +56,6 @@ pub fn get_active_installation() -> Result<Installation, String> {
 
 // Structure for managing an installation
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
-#[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
 pub struct Installation {
     // Core identity properties
     pub id: String,
