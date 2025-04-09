@@ -57,6 +57,7 @@ pub fn get_active_installation() -> Result<Installation, String> {
 
 // Structure for managing an installation
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
 pub struct Installation {
     // Core identity properties
     pub id: String,
@@ -79,9 +80,6 @@ pub struct Installation {
     pub memory_allocation: i32,   // in MB
     pub java_args: String,
     
-    // Account linking
-    pub linked_account_id: Option<String>,
-    
     // Installation status tracking
     pub installed: bool,
     pub modified: bool,           // True if changes were made but not yet applied
@@ -96,7 +94,7 @@ pub struct Installation {
     pub total_launches: u32,
 }
 
-// Implement to_installer_profile method
+// Update the new_from_preset and new_custom methods
 impl Installation {
     // Create a new installation from a preset
     pub fn new_from_preset(
@@ -135,7 +133,6 @@ impl Installation {
             enabled_features: preset.enabled_features.clone(),
             memory_allocation,
             java_args,
-            linked_account_id: None,
             installed: false,
             modified: false,
             update_available: false,
@@ -144,6 +141,16 @@ impl Installation {
             last_launch: None,
             total_launches: 0,
         }
+    }
+    
+    // Update the play method to increment launch count
+    pub fn record_launch(&mut self) -> Result<(), String> {
+        self.last_launch = Some(chrono::Utc::now());
+        self.total_launches += 1;
+        self.last_used = chrono::Utc::now();
+        
+        // Save the updated installation data
+        self.save()
     }
     
     // Custom installation without using a preset
@@ -176,7 +183,6 @@ impl Installation {
             enabled_features: vec!["default".to_string()],
             memory_allocation: 3072, // 3GB default
             java_args: "-XX:+UseG1GC -XX:+UnlockExperimentalVMOptions -XX:G1NewSizePercent=20 -XX:G1ReservePercent=20 -XX:MaxGCPauseMillis=50 -XX:G1HeapRegionSize=32M".to_string(),
-            linked_account_id: None,
             installed: false,
             modified: false,
             update_available: false,
@@ -184,161 +190,6 @@ impl Installation {
             universal_version,
             last_launch: None,
             total_launches: 0,
-        }
-    }
-    
-    // Save method implementation
-    pub fn save(&self) -> Result<(), String> {
-        let installation_dir = self.installation_path.parent().ok_or_else(|| 
-            "Invalid installation path".to_string()
-        )?;
-        
-        // Create directory if it doesn't exist
-        if !installation_dir.exists() {
-            std::fs::create_dir_all(installation_dir)
-                .map_err(|e| format!("Failed to create installation directory: {}", e))?;
-        }
-        
-        // Save installation config
-        let config_path = self.installation_path.join("installation.json");
-        let installation_json = serde_json::to_string_pretty(self)
-            .map_err(|e| format!("Failed to serialize installation: {}", e))?;
-        
-        std::fs::write(&config_path, installation_json)
-            .map_err(|e| format!("Failed to write installation config: {}", e))?;
-        
-        debug!("Saved installation '{}' to {}", self.name, config_path.display());
-        
-        Ok(())
-    }
-
-        // Add to_installer_profile method right before or after install_or_update method
-    pub fn to_installer_profile(&self, http_client: &CachedHttpClient) -> InstallerProfile {
-        // Construct a launcher instance based on the launcher_type
-        let launcher = match self.launcher_type.as_str() {
-            "vanilla" => Some(Launcher::Vanilla(crate::get_app_data())),
-            "multimc" => {
-                if let Ok(path) = crate::get_multimc_folder("MultiMC") {
-                    Some(Launcher::MultiMC(path))
-                } else {
-                    None
-                }
-            },
-            "prism" => {
-                if let Ok(path) = crate::get_multimc_folder("PrismLauncher") {
-                    Some(Launcher::MultiMC(path))
-                } else {
-                    None
-                }
-            },
-            custom if custom.starts_with("custom-") => {
-                let path = PathBuf::from(custom.trim_start_matches("custom-"));
-                if path.exists() {
-                    Some(Launcher::MultiMC(path))
-                } else {
-                    None
-                }
-            },
-            _ => None,
-        };
-        
-        // Return a basic installer profile
-        InstallerProfile {
-            manifest: crate::Manifest {
-                manifest_version: crate::CURRENT_MANIFEST_VERSION,
-                modpack_version: self.universal_version.clone(),
-                name: self.name.clone(),
-                subtitle: self.name.clone(),
-                tab_group: None,
-                tab_title: None,
-                tab_color: None,
-                tab_background: None,
-                tab_primary_font: None,
-                tab_secondary_font: None,
-                settings_background: None,
-                popup_title: None,
-                popup_contents: None,
-                description: String::new(),
-                icon: false,
-                uuid: self.id.clone(),
-                loader: crate::Loader {
-                    r#type: self.loader_type.clone(),
-                    version: self.loader_version.clone(),
-                    minecraft_version: self.minecraft_version.clone(),
-                },
-                mods: Vec::new(),
-                shaderpacks: Vec::new(),
-                resourcepacks: Vec::new(),
-                remote_include: None,
-                include: Vec::new(),
-                features: Vec::new(),
-                trend: None,
-                enabled_features: self.enabled_features.clone(),
-                included_files: None,
-                source: None,
-                installer_path: None,
-                max_mem: Some(self.memory_allocation),
-                min_mem: None,
-                java_args: Some(self.java_args.clone()),
-                category: None,
-                is_new: None,
-                short_description: None,
-            },
-            http_client: http_client.clone(),
-            installed: self.installed,
-            update_available: self.update_available,
-            modpack_source: String::new(),
-            modpack_branch: String::new(),
-            enabled_features: self.enabled_features.clone(),
-            launcher,
-            local_manifest: None,
-            changelog: None,
-        }
-    }
-    
-    // Install or update the installation - async fix
-    pub async fn install_or_update(&mut self, http_client: &CachedHttpClient) -> Result<(), String> {
-        if !self.installed || self.update_available || self.modified {
-            info!("Installing/updating installation '{}'", self.name);
-            
-            // Convert to installer profile
-            let installer_profile = self.to_installer_profile(http_client);
-            
-            // Perform installation
-            if !self.installed {
-                match crate::install(&installer_profile, || {}).await {
-                    Ok(_) => {
-                        self.installed = true;
-                        self.modified = false;
-                        self.update_available = false;
-                        self.last_used = chrono::Utc::now();
-                        info!("Successfully installed '{}'", self.name);
-                        Ok(())
-                    },
-                    Err(e) => {
-                        error!("Failed to install '{}': {}", self.name, e);
-                        Err(e)
-                    }
-                }
-            } else {
-                // Update existing installation
-                match crate::update(&installer_profile, || {}).await {
-                    Ok(_) => {
-                        self.modified = false;
-                        self.update_available = false;
-                        self.last_used = chrono::Utc::now();
-                        info!("Successfully updated '{}'", self.name);
-                        Ok(())
-                    },
-                    Err(e) => {
-                        error!("Failed to update '{}': {}", self.name, e);
-                        Err(e)
-                    }
-                }
-            }
-        } else {
-            debug!("No changes needed for installation '{}'", self.name);
-            Ok(())
         }
     }
 }
