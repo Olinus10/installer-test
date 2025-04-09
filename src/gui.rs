@@ -24,7 +24,6 @@ use crate::{get_app_data, get_installed_packs, get_launcher, uninstall, Installe
 use crate::{Installation, Preset, UniversalManifest};
 use crate::preset;
 use crate::installation;
-use crate::gui::handle_play_click;
 
 mod modal;
 
