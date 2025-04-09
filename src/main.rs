@@ -42,20 +42,16 @@ use std::{
 
 mod gui;
 mod launcher;
-mod microsoft_auth_impl; // This is in the root src directory
 
 mod installation;
-mod accounts;
 mod preset;
 mod universal;
 
 // Update your re-exports
 pub use launcher::{launch_modpack, update_jvm_args, get_jvm_args};
 // Re-export MicrosoftAuth for convenient access
-pub use launcher::microsoft_auth::MicrosoftAuth;
 
 pub use installation::{Installation, get_active_installation, load_all_installations};
-pub use accounts::{StoredAccount, get_active_account, get_all_accounts, authenticate, is_authenticated};
 pub use preset::{Preset, load_presets};
 pub use universal::{UniversalManifest, load_universal_manifest};
 
@@ -1770,10 +1766,6 @@ fn main() {
     .expect("Failed to parse branches!");
     let config_path = get_app_data().join(".WC_OVHL/config.json");
     let config: Config;
-
-if let Err(e) = accounts::initialize_accounts() {
-        error!("Failed to initialize accounts system: {}", e);
-    }
 
     
     if config_path.exists() {
