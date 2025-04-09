@@ -212,11 +212,6 @@ fn main() {
     let config_path = get_app_data().join(".WC_OVHL/config.json");
     let config: Config;
 
-    // Initialize accounts system
-    if let Err(e) = accounts::initialize_accounts() {
-        error!("Failed to initialize accounts system: {}", e);
-    }
-
     // Load or create config
     if config_path.exists() {
         config = serde_json::from_slice(&fs::read(&config_path).expect("Failed to read config!"))
