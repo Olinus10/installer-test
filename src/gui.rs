@@ -24,6 +24,7 @@ use crate::{get_app_data, get_installed_packs, get_launcher, uninstall, Installe
 use crate::{Installation, Preset, UniversalManifest};
 use crate::preset;
 use crate::installation;
+use crate::gui::handle_play_click;
 
 mod modal;
 
@@ -58,7 +59,7 @@ fn PlayButton(
     }
 }
 
-// Play button handler - simplified version without auth
+// Play button handler
 pub fn handle_play_click(uuid: String, error_signal: &Signal<Option<String>>) {
     debug!("Play button clicked for modpack: {}", uuid);
     
@@ -423,7 +424,6 @@ fn NewHomePage(
                             installation: installation.clone(),
                             onclick: move |id| {
                                 // Navigate to installation page
-                                // This will depend on your navigation system
                                 debug!("Clicked installation: {}", id);
                                 // Use context or props here to handle navigation
                             }
@@ -506,6 +506,8 @@ fn InstallationCard(
     
     // Clone the ID outside the event handler to avoid borrowing issues
     let installation_id = installation.id.clone();
+    let play_id = installation.id.clone();
+    let error_signal = use_signal(|| Option::<String>::None);
     
     rsx! {
         div { 
@@ -548,12 +550,30 @@ fn InstallationCard(
             div { class: "installation-card-actions",
                 button { 
                     class: "play-button",
+                    onclick: move |evt| {
+                        evt.stop_propagation();
+                        let id_for_play = play_id.clone();
+                        handle_play_click(id_for_play, &error_signal);
+                    },
                     "Play"
                 }
                 
                 button { 
                     class: "settings-button",
+                    onclick: move |evt| {
+                        evt.stop_propagation();
+                    },
                     "Settings"
+                }
+            }
+            
+            // Display error if any occurs during play
+            if let Some(error) = error_signal() {
+                ErrorNotification {
+                    message: error,
+                    on_close: move |_| {
+                        error_signal.set(None);
+                    }
                 }
             }
         }
@@ -1899,7 +1919,7 @@ fn Version(mut props: VersionProps) -> Element {
     let mut update_available = use_signal(|| installer_profile.update_available);
     let mut install_item_amount = use_signal(|| 0);
 
-    // Create a debug signal to force refreshes when needed
+    // Debug counter to force refreshes
     let mut debug_counter = use_signal(|| 0);
     
     // IMPORTANT: Store the features collection in a signal to solve lifetime issues
@@ -2309,7 +2329,6 @@ fn Version(mut props: VersionProps) -> Element {
                                 PlayButton {
                                     uuid: uuid_str.clone(), // Clone again for component
                                     disabled: false,
-                                    auth_status: None,
                                     onclick: move |_| {
                                         let uuid_for_handler = uuid_str.clone(); // Clone inside closure
                                         handle_play_click(uuid_for_handler, &err_signal);
