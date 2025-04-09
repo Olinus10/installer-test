@@ -714,11 +714,11 @@ pub fn InstallationCreationWizard(props: InstallationCreationWizardProps) -> Ele
     // Function to create the installation
 let create_installation = move || {
     // Get the universal manifest for Minecraft version and loader information
-   if let Some(manifest_data) = universal_manifest.read().as_ref() {
-    // Direct access is fine since manifest_data is already the unwrapped value
-    let minecraft_version = manifest_data.minecraft_version.clone();
-    let loader_type = manifest_data.loader.r#type.clone();
-    let loader_version = manifest_data.loader.version.clone();
+    if let Some(unwrapped_manifest) = universal_manifest.read().as_ref().and_then(|opt| opt.as_ref()) {
+        // Now we have the unwrapped manifest value
+        let minecraft_version = unwrapped_manifest.minecraft_version.clone();
+        let loader_type = unwrapped_manifest.loader.r#type.clone();
+        let loader_version = unwrapped_manifest.loader.version.clone();
         
         // Find the selected preset
         let preset = if let Some(preset_id) = &*selected_preset_id.read() {
@@ -731,6 +731,7 @@ let create_installation = move || {
             None
         };
         
+        
         // Create the installation
         if let Some(preset) = preset {
             let installation = Installation::new_from_preset(
@@ -740,7 +741,7 @@ let create_installation = move || {
                 loader_type,
                 loader_version,
                 "vanilla".to_string(), // Default to vanilla launcher
-                manifest_data.version.clone(),  // Use manifest_data here instead of manifest
+                unwrapped_manifest.version.clone(),
             );
                 
                 // Register the installation
@@ -759,15 +760,15 @@ let create_installation = move || {
                 
                 // Return the new installation
                 props.oncreate.call(installation_copy);
-            } else {
-            // Create custom installation without preset but still using universal manifest settings
+           } else {
+            // Create custom installation without preset
             let installation = Installation::new_custom(
                 name.read().clone(),
                 minecraft_version,
                 loader_type,
                 loader_version,
                 "vanilla".to_string(),
-                manifest_data.version.clone(),  // Use manifest_data here instead of manifest
+                unwrapped_manifest.version.clone(),
             );
                 // Register and save the installation with memory allocation
                 let mut installation_copy = installation.clone();
@@ -782,7 +783,7 @@ let create_installation = move || {
                 
                 props.oncreate.call(installation_copy);
             }
-        } else {
+         } else {
         // If we couldn't get the universal manifest, show an error
         error!("Failed to load universal manifest");
     }
@@ -835,16 +836,16 @@ let create_installation = move || {
                                 }
                                 
                                 // Display Minecraft version and loader from universal manifest
-                                if let Some(manifest_data) = universal_manifest.read().as_ref() {
+                               if let Some(unwrapped_manifest) = universal_manifest.read().as_ref().and_then(|opt| opt.as_ref()) {
     div { class: "manifest-info",
         div { class: "info-item",
             span { class: "info-label", "Minecraft Version:" }
-            span { class: "info-value", "{manifest_data.minecraft_version}" }
+            span { class: "info-value", "{unwrapped_manifest.minecraft_version}" }
         }
         
         div { class: "info-item",
             span { class: "info-label", "Mod Loader:" }
-            span { class: "info-value", "{manifest_data.loader.r#type} {manifest_data.loader.version}" }
+            span { class: "info-value", "{unwrapped_manifest.loader.r#type} {unwrapped_manifest.loader.version}" }
         }
         
         p { class: "info-note", 
@@ -979,17 +980,17 @@ let create_installation = move || {
                                     }
                                     
                                     // Display Minecraft version and loader from universal manifest
-                                    if let Some(manifest_data) = universal_manifest.read().as_ref() {
-                                        div { class: "review-item",
-                                            div { class: "review-label", "Minecraft Version:" }
-                                            div { class: "review-value", "{manifest.minecraft_version.clone()}" }
-                                        }
-                                        
-                                        div { class: "review-item",
-                                            div { class: "review-label", "Mod Loader:" }
-                                            div { class: "review-value", "{manifest.loader.r#type.clone()} {manifest.loader.version.clone()}" }
-                                        }
-                                    }
+                                    if let Some(unwrapped_manifest) = universal_manifest.read().as_ref().and_then(|opt| opt.as_ref()) {
+    div { class: "review-item",
+        div { class: "review-label", "Minecraft Version:" }
+        div { class: "review-value", "{unwrapped_manifest.minecraft_version}" }
+    }
+    
+    div { class: "review-item",
+        div { class: "review-label", "Mod Loader:" }
+        div { class: "review-value", "{unwrapped_manifest.loader.r#type} {unwrapped_manifest.loader.version}" }
+    }
+}
                                     
                                     div { class: "review-item",
                                         div { class: "review-label", "Preset:" }
