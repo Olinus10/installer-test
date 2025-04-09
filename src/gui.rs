@@ -23,9 +23,6 @@ use crate::{GithubBranch, build_http_client, GH_API, REPO, Config};
 use crate::{get_app_data, get_installed_packs, get_launcher, uninstall, InstallerProfile, Launcher, PackName, Changelog,launcher::launch_modpack};
 use crate::{Installation, Preset, UniversalManifest};
 use crate::preset;
-use crate::{get_active_account, get_all_accounts, authenticate, is_authenticated};
-use crate::accounts::{sign_out, switch_account};
-use crate::accounts;
 use crate::installation;
 
 mod modal;
