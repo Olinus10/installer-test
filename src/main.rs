@@ -49,7 +49,6 @@ mod universal;
 
 // Update your re-exports
 pub use launcher::{launch_modpack, update_jvm_args, get_jvm_args};
-// Re-export MicrosoftAuth for convenient access
 
 pub use installation::{Installation, get_active_installation, load_all_installations};
 pub use preset::{Preset, load_presets};
