@@ -10,7 +10,6 @@ use uuid::Uuid;
 use crate::{CachedHttpClient, InstallerProfile, launcher};
 use crate::preset::Preset;
 use crate::Launcher;
-use crate::accounts::{AccountManager, AccountsIndex, StoredAccount};
 
 #[derive(Debug, Deserialize, Serialize, Default, Clone)]
 pub struct InstallationsIndex {
