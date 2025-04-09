@@ -2588,14 +2588,15 @@ fn AppHeader(
         }
     )
 }
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub(crate) struct AppProps {
     pub branches: Vec<super::GithubBranch>,
     pub modpack_source: String,
     pub config: super::Config,
     pub config_path: PathBuf,
-    pub installations: Vec<Installation>, // Add this field to fix the error
+    pub installations: Vec<Installation>,
 }
+
 
 // Update the app() function to properly use the fixed AppProps structure
 pub(crate) fn app() -> Element {
