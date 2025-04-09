@@ -376,7 +376,7 @@ fn Footer() -> Element {
 
 // Home Page component with redundancy removed
 #[component]
-pub fn NewHomePage(
+fn NewHomePage(
     installations: Signal<Vec<Installation>>,
     error_signal: Signal<Option<String>>,
 ) -> Element {
@@ -386,24 +386,12 @@ pub fn NewHomePage(
     // State for creation dialog
     let mut show_creation_dialog = use_signal(|| false);
     
-    // Authentication status check
-    let auth_status = crate::gui::get_auth_status();
-    let username = if auth_status == crate::gui::AuthStatus::Authenticated {
-        crate::launcher::microsoft_auth::MicrosoftAuth::get_username()
-    } else {
-        None
-    };
-    
     rsx! {
         div { class: "home-container",
             if has_installations {
-                // Welcome header with username if available
+                // Welcome header
                 div { class: "welcome-header",
-                    if let Some(name) = username {
-                        h1 { "Welcome back, {name}!" }
-                    } else {
-                        h1 { "Welcome back!" }
-                    }
+                    h1 { "Welcome to Wynncraft Overhaul" }
                 }
                 
                 // Statistics display
@@ -420,10 +408,9 @@ pub fn NewHomePage(
                         PlayButton {
                             uuid: installation.id.clone(),
                             disabled: false,
-                            auth_status: Some(auth_status),
                             onclick: move |_| {
                                 let installation_id = installation.id.clone();
-                                crate::gui::handle_play_click(installation_id, &error_signal);
+                                handle_play_click(installation_id, &error_signal);
                             }
                         }
                     }
@@ -1266,7 +1253,7 @@ pub fn LoginDialog(props: LoginDialogProps) -> Element {
 
 // Installation management page
 #[component]
-pub fn InstallationDetailsPage(installation_id: String) -> Element {
+fn InstallationDetailsPage(installation_id: String) -> Element {
     // Load the installation
     let installation_result = use_memo(move || {
         crate::installation::load_installation(&installation_id)
@@ -1351,80 +1338,22 @@ pub fn InstallationDetailsPage(installation_id: String) -> Element {
                 
                 // Tab content - Features tab (active by default)
                 div { class: "tab-content",
-                    // Features section
+                    // Features section with toggle controls
                     div { class: "features-section",
                         h2 { "Features" }
                         p { "Enable or disable optional features for this installation." }
                         
-                        // Features list - This would be populated with actual features
-                        // from your universal manifest for this installation
-                        div { class: "features-list",
-                            // This is a placeholder - in the actual implementation
-                            // you would loop through the features from your universal manifest
-                            div { class: "feature-item",
-                                div { class: "feature-header",
-                                    h3 { "Example Feature" }
-                                    label { class: "toggle-switch",
-                                        input {
-                                            r#type: "checkbox",
-                                            checked: true,
-                                            onchange: move |_| {
-                                                // Update enabled_features
-                                                has_changes.set(true);
-                                            }
-                                        }
-                                        span { class: "toggle-slider" }
-                                    }
-                                }
-                                p { "This is an example feature description." }
-                            }
-                            
-                            // Add more example features
-                            div { class: "feature-item",
-                                div { class: "feature-header",
-                                    h3 { "Performance Mods" }
-                                    label { class: "toggle-switch",
-                                        input {
-                                            r#type: "checkbox",
-                                            checked: true,
-                                            onchange: move |_| {
-                                                has_changes.set(true);
-                                            }
-                                        }
-                                        span { class: "toggle-slider" }
-                                    }
-                                }
-                                p { "Improves game performance with optimization mods." }
-                            }
-                            
-                            div { class: "feature-item",
-                                div { class: "feature-header",
-                                    h3 { "Visual Enhancements" }
-                                    label { class: "toggle-switch",
-                                        input {
-                                            r#type: "checkbox",
-                                            checked: false,
-                                            onchange: move |_| {
-                                                has_changes.set(true);
-                                            }
-                                        }
-                                        span { class: "toggle-slider" }
-                                    }
-                                }
-                                p { "Adds shaders and visual improvements for better graphics." }
-                            }
-                        }
+                        // Features list would go here
                     }
                 }
             }
             
             // Main actions
             div { class: "installation-actions",
-                // Play button with authentication check
+                // Play button
                 PlayButton {
                     uuid: installation_id_for_launch.clone(),
                     disabled: *is_installing.read(),
-                    auth_status: None, // Will auto-detect
                     onclick: move |_| {
                         handle_play_click(installation_id_for_launch.clone(), &installation_error_signal);
                     }
@@ -1477,7 +1406,6 @@ pub fn InstallationDetailsPage(installation_id: String) -> Element {
                     disabled: *is_installing.read(),
                     onclick: move |_| {
                         // Show confirmation dialog before deleting
-                        // This would use your modal system
                     },
                     "Delete Installation"
                 }
@@ -2900,7 +2828,6 @@ fn AppHeader(
         }
     )
 }
-
 #[derive(Clone)]
 pub(crate) struct AppProps {
     pub branches: Vec<super::GithubBranch>,
@@ -2925,19 +2852,329 @@ pub(crate) fn app() -> Element {
     // Load installations from props, and use a signal to track them
     let installations = use_signal(|| props.installations.clone());
 
-    // Initialize accounts system
-    if let Err(e) = crate::accounts::initialize_accounts() {
-        error!("Failed to initialize accounts system: {}", e);
-    }
-
-    // Initialize authentication flag
-    crate::launcher::microsoft_auth::MicrosoftAuth::mark_initialization_complete();
-
     // Check for updates for installations
     spawn({
         let mut installations_signal = installations.clone();
         async move {
-            // Check each installation for updates
+            div { class: "main-container",
+                {if settings() {
+                    rsx! {
+                        Settings {
+                            config,
+                            settings,
+                            config_path: props.config_path.clone(),
+                            error: err,
+                            b64_id: URL_SAFE_NO_PAD.encode(props.modpack_source)
+                        }
+                    }
+                } else if config.read().first_launch.unwrap_or(true) || launcher.is_none() {
+                    rsx! {
+                        Launcher {
+                            config,
+                            config_path: props.config_path.clone(),
+                            error: err,
+                            b64_id: URL_SAFE_NO_PAD.encode(props.modpack_source)
+                        }
+                    }
+                } else if packs.read().is_none() {
+                    rsx! {
+                        div { class: "loading-container",
+                            div { class: "loading-spinner" }
+                            div { class: "loading-text", "Loading modpack information..." }
+                        }
+                    }
+                } else {
+                    // DIAGNOSTIC CONTENT RENDERING SECTION
+                    if current_page == HOME_PAGE {
+                        debug!("RENDERING: HomePage");
+                        rsx! {
+                            NewHomePage {
+                                installations: installations,
+                                error_signal: err
+                            }
+                        }
+                    } else {
+                        debug!("RENDERING: Content for page {}", current_page);
+                        
+                        // Get tab info without temporary references
+                        let pages_map = pages();
+                        
+                        if let Some(tab_info) = pages_map.get(&current_page) {
+                            debug!("FOUND tab group {} with {} modpacks", 
+                                current_page, tab_info.modpacks.len());
+                            
+                            // CRITICAL FIX: Get all modpacks before rendering
+                            let modpacks = tab_info.modpacks.clone();
+                            debug!("Cloned {} modpacks for rendering", modpacks.len());
+                            
+                            // Log each modpack outside the RSX
+                            for profile in &modpacks {
+                                debug!("Preparing to render modpack: {}", profile.manifest.subtitle);
+                            }
+                            
+                            // Create a separate credits signal for this rendering path
+                            let mut credits_visible = use_signal(|| false);
+                            let mut selected_profile = use_signal(|| modpacks.first().cloned());
+                            let mut error_msg = use_signal(|| Option::<String>::None);
+                            
+                            // Directly return the RSX without unnecessary nesting
+                            rsx! {
+                                // First, conditionally render either the credits view or the normal content
+                                if *credits_visible.read() {
+                                    // Render the Credits component with the selected profile
+                                    if let Some(profile) = selected_profile.read().clone() {
+                                        Credits {
+                                            manifest: profile.manifest.clone(),
+                                            enabled: profile.enabled_features.clone(),
+                                            credits: credits_visible
+                                        }
+                                    }
+                                } else {
+                                    // Error notification if any
+                                    if let Some(error) = error_msg() {
+                                        div { class: "error-notification",
+                                            div { class: "error-message", "{error}" }
+                                            button { 
+                                                class: "error-close",
+                                                onclick: move |_| error_msg.set(None),
+                                                "×"
+                                            }
+                                        }
+                                    }
+                                    
+                                    // Render the normal modpack content
+                                    div { 
+                                        class: "version-page-container",
+                                        style: "display: block; width: 100%;",
+                                        
+                                        for (index, profile) in modpacks.iter().enumerate() {
+                                            {
+                                                let profile_clone = profile.clone();
+                                                let is_installed = profile.installed;
+                                                let uuid = profile.manifest.uuid.clone();
+                                                let error_signal = error_msg.clone();
+                                                
+                                                rsx! {
+                                                    div { 
+                                                        class: "version-container",
+                                                        
+                                                        // Header section
+                                                        div { class: "content-header",
+                                                            h1 { "{profile.manifest.subtitle}" }
+                                                        }
+                                                        
+                                                        // Description section
+                                                        div { class: "content-description",
+                                                            dangerous_inner_html: "{profile.manifest.description}"
+                                                        }
+
+                                                        // Credits link - moved outside the description HTML
+                                                        div { class: "credits-link-container", style: "text-align: center; margin: 15px 0;",
+                                                            a {
+                                                                class: "credits-button",
+                                                                onclick: move |evt| {
+                                                                    // Set the selected profile and show credits
+                                                                    selected_profile.set(Some(profile_clone.clone()));
+                                                                    credits_visible.set(true);
+                                                                    evt.stop_propagation();
+                                                                },
+                                                                "VIEW CREDITS"
+                                                            }
+                                                        }
+                                                        
+                                                        // Features heading
+                                                        h2 { class: "features-heading", "OPTIONAL FEATURES" }
+                                                        
+                                                        // MODIFIED SECTION: Expandable Features
+                                                        div { class: "features-section",
+                                                            {
+                                                                // Filter features inside the RSX block
+                                                                let visible_features: Vec<_> = profile.manifest.features.iter()
+                                                                    .filter(|f| !f.hidden)
+                                                                    .collect();
+                                                                
+                                                                // Calculate whether to show expand button
+                                                                let first_row_count = 3;
+                                                                let show_expand_button = visible_features.len() > first_row_count;
+                                                                
+                                                                // Using a unique signal for each profile's expanded state
+                                                                let expanded_signal_id = format!("expanded-{}-{}", current_page, index);
+                                                                let mut expanded_features = use_signal(|| false);
+                                                                
+                                                                rsx! {
+                                                                    div { class: "feature-cards-container",
+                                                                        // Feature cards rendering (first row)
+                                                                        for feature in visible_features.iter().take(first_row_count) {
+                                                                            {
+                                                                                let feature_clone = feature.clone();
+                                                                                let is_enabled = profile.enabled_features.contains(&feature.id);
+                                                                                
+                                                                                rsx! {
+                                                                                    div { 
+                                                                                        class: if is_enabled { 
+                                                                                            "feature-card feature-enabled" 
+                                                                                        } else { 
+                                                                                            "feature-card feature-disabled" 
+                                                                                        },
+                                                                                        
+                                                                                        // Feature header
+                                                                                        div { class: "feature-card-header",
+                                                                                            h3 { class: "feature-card-title", "{feature.name}" }
+                                                                                            
+                                                                                            // Toggle button
+                                                                                            label {
+                                                                                                class: if is_enabled { 
+                                                                                                    "feature-toggle-button enabled" 
+                                                                                                } else { 
+                                                                                                    "feature-toggle-button disabled" 
+                                                                                                },
+                                                                                                
+                                                                                                input {
+                                                                                                    r#type: "checkbox",
+                                                                                                    checked: is_enabled,
+                                                                                                    onchange: move |_| {
+                                                                                                        // This would toggle the feature
+                                                                                                        // In a real implementation
+                                                                                                    }
+                                                                                                }
+                                                                                                
+                                                                                                if is_enabled { "ON" } else { "OFF" }
+                                                                                            }
+                                                                                        }
+                                                                                        
+                                                                                        // Feature description
+                                                                                        if let Some(description) = &feature.description {
+                                                                                            div { class: "feature-card-description", "{description}" }
+                                                                                        }
+                                                                                    }
+                                                                                }
+                                                                            }
+                                                                        }
+                                                                        
+                                                                        // Additional features (when expanded)
+                                                                        if *expanded_features.read() {
+                                                                            for feature in visible_features.iter().skip(first_row_count) {
+                                                                                {
+                                                                                    let feature_clone = feature.clone();
+                                                                                    let is_enabled = profile.enabled_features.contains(&feature.id);
+                                                                                    
+                                                                                    rsx! {
+                                                                                        div { 
+                                                                                            class: if is_enabled { 
+                                                                                                "feature-card feature-enabled" 
+                                                                                            } else { 
+                                                                                                "feature-card feature-disabled" 
+                                                                                            },
+                                                                                            
+                                                                                            // Feature header
+                                                                                            div { class: "feature-card-header",
+                                                                                                h3 { class: "feature-card-title", "{feature.name}" }
+                                                                                                
+                                                                                                // Toggle button
+                                                                                                label {
+                                                                                                    class: if is_enabled { 
+                                                                                                        "feature-toggle-button enabled" 
+                                                                                                    } else { 
+                                                                                                        "feature-toggle-button disabled" 
+                                                                                                    },
+                                                                                                    
+                                                                                                    input {
+                                                                                                        r#type: "checkbox",
+                                                                                                        checked: is_enabled,
+                                                                                                        onchange: move |_| {
+                                                                                                            // This would toggle the feature
+                                                                                                            // In a real implementation
+                                                                                                        }
+                                                                                                    }
+                                                                                                    
+                                                                                                    if is_enabled { "ON" } else { "OFF" }
+                                                                                                }
+                                                                                            }
+                                                                                            
+                                                                                            // Feature description
+                                                                                            if let Some(description) = &feature.description {
+                                                                                                div { class: "feature-card-description", "{description}" }
+                                                                                            }
+                                                                                        }
+                                                                                    }
+                                                                                }
+                                                                            }
+                                                                        }
+                                                                    }
+                                                                    
+                                                                    // Show expand button if needed
+                                                                    if show_expand_button {
+                                                                        div { class: "features-expand-container",
+                                                                            button {
+                                                                                class: "features-expand-button",
+                                                                                onclick: move |_| {
+                                                                                    let current_value = *expanded_features.read();
+                                                                                    expanded_features.set(!current_value);
+                                                                                },
+                                                                                if *expanded_features.read() {
+                                                                                    "Collapse Features"
+                                                                                } else {
+                                                                                    "Show More Features"
+                                                                                }
+                                                                            }
+                                                                        }
+                                                                    }
+                                                                }
+                                                            }
+                                                        }
+                                                        
+                                                        // Install button and Play button in sequence
+                                                        div { 
+                                                            class: "buttons-container",
+                                                            style: "display: flex; flex-direction: column; align-items: center; margin-top: 20px;",
+                                                            
+                                                            // Install/Update/Modify button
+                                                            div { class: "install-button-container",
+                                                                div { class: "button-scale-wrapper",
+                                                                    button { 
+                                                                        class: "main-install-button",
+                                                                        // You can add proper install logic here if needed
+                                                                        if profile.installed && profile.update_available {
+                                                                            "Update"
+                                                                        } else if profile.installed {
+                                                                            "Modify"
+                                                                        } else {
+                                                                            "Install"
+                                                                        }
+                                                                    }
+                                                                }
+                                                            }
+                                                            
+                                                            // Play button (only if installed)
+                                                            if is_installed {
+                                                                PlayButton {
+                                                                    uuid: uuid.clone(),
+                                                                    disabled: false,
+                                                                    onclick: move |_| {
+                                                                        handle_play_click(uuid.clone(), &error_signal);
+                                                                    }
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        } else {
+                            debug!("NO TAB INFO found for page {}", current_page);
+                            rsx! { div { "No modpack information found for this tab." } }
+                        }
+                    }
+                }
+            }
+            
+            // Add footer if not on settings page
+            if !settings() {
+                Footer {}
+            }// Check each installation for updates
             let http_client = crate::CachedHttpClient::new();
 
             installations_signal.with_mut(|list| {
