@@ -235,9 +235,6 @@ fn main() {
     // Load all installations (or empty vector if error)
     let installations = installation::load_all_installations().unwrap_or_default();
     
-    // Mark initialization as complete
-    INITIALIZATION_COMPLETE.store(true, Ordering::SeqCst);
-    
     // Launch the UI
     LaunchBuilder::desktop().with_cfg(
         DioxusConfig::new().with_window(
