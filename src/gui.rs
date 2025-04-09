@@ -58,6 +58,38 @@ fn PlayButton(
     }
 }
 
+// Play button handler - simplified version without auth
+pub fn handle_play_click(uuid: String, error_signal: &Signal<Option<String>>) {
+    debug!("Play button clicked for modpack: {}", uuid);
+    
+    // Create a channel to communicate back to the main thread
+    let (error_tx, error_rx) = mpsc::channel::<String>();
+    
+    // Clone error_signal before moving to thread
+    let mut error_signal_clone = error_signal.clone();
+    
+    // Launch the game directly without auth
+    let uuid_clone = uuid.clone();
+    std::thread::spawn(move || {
+        match crate::launch_modpack(&uuid_clone) {
+            Ok(_) => {
+                debug!("Successfully launched modpack: {}", uuid_clone);
+            },
+            Err(e) => {
+                error!("Failed to launch modpack: {}", e);
+                let _ = error_tx.send(format!("Failed to launch modpack: {}", e));
+            }
+        }
+    });
+    
+    // Create a task to check for errors from the background thread
+    spawn(async move {
+        if let Ok(error_message) = error_rx.recv() {
+            error_signal_clone.set(Some(error_message));
+        }
+    });
+}
+
 #[component]
 fn BackgroundParticles() -> Element {
     rsx! {
@@ -226,38 +258,6 @@ fn main() {
         config_path,
         installations,
     }).launch(app);
-}
-
-// Play button handler
-pub fn handle_play_click(uuid: String, error_signal: &Signal<Option<String>>) {
-    debug!("Play button clicked for modpack: {}", uuid);
-    
-    // Create a channel to communicate back to the main thread
-    let (error_tx, error_rx) = mpsc::channel::<String>();
-    
-    // Clone error_signal before moving to thread
-    let mut error_signal_clone = error_signal.clone();
-    
-    // Launch the game directly without auth
-    let uuid_clone = uuid.clone();
-    std::thread::spawn(move || {
-        match crate::launch_modpack(&uuid_clone) {
-            Ok(_) => {
-                debug!("Successfully launched modpack: {}", uuid_clone);
-            },
-            Err(e) => {
-                error!("Failed to launch modpack: {}", e);
-                let _ = error_tx.send(format!("Failed to launch modpack: {}", e));
-            }
-        }
-    });
-    
-    // Create a task to check for errors from the background thread
-    spawn(async move {
-        if let Ok(error_message) = error_rx.recv() {
-            error_signal_clone.set(Some(error_message));
-        }
-    });
 }
 
 #[component]
