@@ -2857,4 +2857,3 @@ pub fn app() -> Element {
     }
 }
 }
-}
