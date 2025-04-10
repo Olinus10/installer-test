@@ -22,8 +22,11 @@ use isahc::ReadResponseExt;
 use crate::{GithubBranch, build_http_client, GH_API, REPO, Config};
 use crate::{get_app_data, get_installed_packs, get_launcher, uninstall, InstallerProfile, Launcher, PackName, Changelog,launcher::launch_modpack};
 use crate::{Installation, Preset, UniversalManifest};
-use crate::preset;
 use crate::installation;
+use crate::universal;
+use crate::CachedHttpClient;
+use crate::changelog::{fetch_changelog, Changelog};
+use crate::preset;
 
 mod modal;
 
@@ -1115,7 +1118,7 @@ fn InstallationDetailsPage(
                 // Tabs navigation
                 div { class: "installation-tabs",
                     button { 
-                        class: "tab-button {if *active_tab.read() == "features" { "active" } else { "" }}", 
+                        class: "tab-button {if *active_tab.read() == "features" { "active" } else { "" }}",
                         onclick: move |_| active_tab.set("features"),
                         "Features"
                     }
@@ -2641,7 +2644,6 @@ pub(crate) struct AppProps {
     pub config_path: PathBuf,
     pub installations: Vec<Installation>,
 }
-
 
 // Update the app() function to properly use the fixed AppProps structure
 pub(crate) fn app() -> Element {
