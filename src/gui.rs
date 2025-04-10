@@ -19,12 +19,13 @@ use isahc::ReadResponseExt;
 
 use crate::{GithubBranch, build_http_client, GH_API, REPO, Config};
 use crate::{get_app_data, get_installed_packs, get_launcher, uninstall, InstallerProfile, Launcher, PackName};
-use crate::{Installation, launch_modpack};
+use crate::Installation;
 use crate::installation;
 use crate::universal;
 use crate::CachedHttpClient;
 use crate::changelog::{fetch_changelog, Changelog as ChangelogData};
 use crate::preset;
+use crate::launch_modpack;
 
 mod modal;
 
@@ -1086,8 +1087,16 @@ fn InstallationDetailsPage(
     let installation_id_for_launch = installation.id.clone();
     let installation_error_signal = installation_error.clone();
     let installation_for_update = installation.clone();
+    
+    // Prepare the onback handler for the delete function
+    let onback_clone = onback.clone();
+    let delete_onback = move || {
+        if let Some(handler) = &onback_clone {
+            handler.call(());
+        }
+    };
 
-    rsx! {
+    return rsx! {
         div { class: "installation-details-container",
             // Header with installation name and version
             div { class: "installation-header",
@@ -1273,19 +1282,21 @@ fn InstallationDetailsPage(
                                         class: "danger-button",
                                         onclick: move |_| {
                                             let mut modal = use_context::<ModalContext>();
+                                            let onback_fn = delete_onback.clone();
+                                            
                                             modal.open(
                                                 "Confirm Deletion",
                                                 rsx! {
                                                     p { "Are you sure you want to delete this installation? This action cannot be undone." }
                                                 },
                                                 true,
-                                                Some(|confirmed| {
+                                                Some(move |confirmed| {
                                                     if confirmed {
                                                         // Call delete function
                                                         if let Err(e) = crate::installation::delete_installation(&installation.id) {
                                                             installation_error.set(Some(format!("Failed to delete installation: {}", e)));
-                                                        } else if let Some(handler) = &onback {
-                                                            handler.call(());
+                                                        } else {
+                                                            onback_fn();
                                                         }
                                                     }
                                                 })
@@ -1360,7 +1371,7 @@ fn InstallationDetailsPage(
                 }
             }
         }
-    }
+    };
 }
 
 #[component]
@@ -2548,7 +2559,7 @@ fn AppHeader(
         Vec::new()
     };
     
-    rsx! {
+    return rsx! {
         header { class: "app-header",
             // Logo and title (acts as home button)
             div { 
@@ -2628,7 +2639,7 @@ fn AppHeader(
                 "Settings"
             }
         }
-    }
+    };
 }
 
 #[derive(Debug, Clone)]
@@ -2650,10 +2661,8 @@ pub fn app() -> Element {
     let settings = use_signal(|| false);
     let mut err: Signal<Option<String>> = use_signal(|| None);
     
-    // NEW: Use installation ID instead of page number
+    // Installation handling
     let current_installation_id = use_signal(|| Option::<String>::None);
-    
-    // NEW: Load installations from props, and use a signal to track them
     let installations = use_signal(|| props.installations.clone());
 
     // Get launcher configuration
@@ -2665,7 +2674,7 @@ pub fn app() -> Element {
         },
     };
 
-    // NEW: Load universal manifest and presets
+    // Load universal manifest and presets
     let universal_manifest = use_resource(move || async {
         if launcher.is_none() {
             return None;
@@ -2694,7 +2703,7 @@ pub fn app() -> Element {
         }
     });
     
-    // NEW: Load changelog
+    // Load changelog
     let changelog = use_resource(move || async {
         match fetch_changelog("Olinus10/installer-test/", &CachedHttpClient::new()).await {
             Ok(changelog) => Some(changelog),
@@ -2711,7 +2720,6 @@ pub fn app() -> Element {
             installations_signal.with_mut(|list| {
                 for installation in list.iter_mut() {
                     // Check for updates logic here
-                    // This would need to be implemented based on comparing versions
                     installation.update_available = false; // Placeholder
                 }
             });
@@ -2768,7 +2776,7 @@ pub fn app() -> Element {
                         },
                         on_open_settings: move |_| {
                             settings.set(true);
-                        },
+                        }
                     }
                 }
             } else {
@@ -2806,7 +2814,7 @@ pub fn app() -> Element {
                         }
                     }
                 } else {
-                    // NEW: Main content based on current state
+                    // Main content based on current state
                     if current_installation_id.read().is_none() {
                         // Home page
                         rsx! {
@@ -2825,7 +2833,7 @@ pub fn app() -> Element {
                                 oncreate: move |new_installation| {
                                     // Add the new installation
                                     installations.with_mut(|list| {
-                                        list.insert(0, new_installation);
+                                        list.insert(0, new_installation.clone());
                                     });
                                     
                                     // Set the current installation to the newly created one
@@ -2835,12 +2843,14 @@ pub fn app() -> Element {
                         }
                     } else {
                         // Installation details page
+                        let back_handler = EventHandler::new(move |_| {
+                            current_installation_id.set(None);
+                        });
+                        
                         rsx! {
                             InstallationDetailsPage {
-                                installation_id: current_installation_id.read().unwrap(),
-                                onback: Some(move |_| {
-                                    current_installation_id.set(None);
-                                })
+                                installation_id: current_installation_id.read().unwrap().clone(),
+                                onback: Some(back_handler)
                             }
                         }
                     }
