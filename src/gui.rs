@@ -1,35 +1,34 @@
 use dioxus::prelude::*;
-use std::sync::atomic::{AtomicBool, Ordering};
 use std::fs;
 use std::panic;
 use std::backtrace::Backtrace;
 use std::env;
-use platform_info::{PlatformInfo, PlatformInfoAPI};
+use platform_info::{PlatformInfo, PlatformInfoAPI, UNameAPI};
 use simplelog::{CombinedLogger, TermLogger, WriteLogger, LevelFilter, TerminalMode, ColorChoice, Config as LogConfig};
 use std::fs::File;
 use dioxus::desktop::{Config as DioxusConfig, WindowBuilder, LogicalSize};
 use dioxus::desktop::tao::window::Icon;
-use std::{collections::BTreeMap, path::PathBuf};
+use std::collections::BTreeMap;
+use std::path::PathBuf;
 use base64::{Engine, engine::general_purpose::URL_SAFE_NO_PAD};
 use modal::ModalContext;
 use modal::Modal; 
 use std::sync::mpsc;
-use log::{debug, error, info, warn};
-use platform_info::UNameAPI;
+use log::{debug, error, info};
 use isahc::ReadResponseExt;
 
-
 use crate::{GithubBranch, build_http_client, GH_API, REPO, Config};
-use crate::{get_app_data, get_installed_packs, get_launcher, uninstall, InstallerProfile, Launcher, PackName, Changelog,launcher::launch_modpack};
-use crate::{Installation, Preset, UniversalManifest};
+use crate::{get_app_data, get_installed_packs, get_launcher, uninstall, InstallerProfile, Launcher, PackName};
+use crate::{Installation, launch_modpack};
 use crate::installation;
 use crate::universal;
 use crate::CachedHttpClient;
-use crate::changelog::{fetch_changelog, Changelog};
+use crate::changelog::{fetch_changelog, Changelog as ChangelogData};
 use crate::preset;
 
 mod modal;
 
+// Font constants
 const HEADER_FONT: &str = "\"HEADER_FONT\"";
 const REGULAR_FONT: &str = "\"REGULAR_FONT\"";
 
@@ -255,7 +254,7 @@ fn main() {
 }
 
 #[component]
-fn ChangelogSection(changelog: Option<Changelog>) -> Element {
+fn ChangelogSection(changelog: Option<ChangelogData>) -> Element {
     if let Some(changelog_data) = changelog {
         if changelog_data.entries.is_empty() {
             return None;
@@ -636,38 +635,38 @@ pub fn InstallationCreationWizard(props: InstallationCreationWizardProps) -> Ele
     ];
     
     // Function to create the installation
-let create_installation = move || {
-    // Get the universal manifest for Minecraft version and loader information
-    if let Some(unwrapped_manifest) = universal_manifest.read().as_ref().and_then(|opt| opt.as_ref()) {
-        // Now we have the unwrapped manifest value
-        let minecraft_version = unwrapped_manifest.minecraft_version.clone();
-        let loader_type = unwrapped_manifest.loader.r#type.clone();
-        let loader_version = unwrapped_manifest.loader.version.clone();
-        
-        // Find the selected preset
-        let preset = if let Some(preset_id) = &*selected_preset_id.read() {
-            if let Some(presets_list) = presets.read().as_ref() {
-                preset::find_preset_by_id(presets_list, preset_id)
+    let create_installation = move || {
+        // Get the universal manifest for Minecraft version and loader information
+        if let Some(unwrapped_manifest) = universal_manifest.read().as_ref().and_then(|opt| opt.as_ref()) {
+            // Now we have the unwrapped manifest value
+            let minecraft_version = unwrapped_manifest.minecraft_version.clone();
+            let loader_type = unwrapped_manifest.loader.r#type.clone();
+            let loader_version = unwrapped_manifest.loader.version.clone();
+            
+            // Find the selected preset
+            let preset = if let Some(preset_id) = &*selected_preset_id.read() {
+                if let Some(presets_list) = presets.read().as_ref() {
+                    preset::find_preset_by_id(presets_list, preset_id)
+                } else {
+                    None
+                }
             } else {
                 None
-            }
-        } else {
-            None
-        };
-        
-        
-        // Create the installation
-        if let Some(preset) = preset {
-            let installation = Installation::new_from_preset(
-                name.read().clone(),
-                &preset,
-                minecraft_version,
-                loader_type,
-                loader_version,
-                "vanilla".to_string(), // Default to vanilla launcher
-                unwrapped_manifest.version.clone(),
-            );
-                
+            };
+            
+            
+            // Create the installation
+            if let Some(preset) = preset {
+                let installation = Installation::new_from_preset(
+                    name.read().clone(),
+                    &preset,
+                    minecraft_version,
+                    loader_type,
+                    loader_version,
+                    "vanilla".to_string(), // Default to vanilla launcher
+                    unwrapped_manifest.version.clone(),
+                );
+                    
                 // Register the installation
                 if let Err(e) = crate::installation::register_installation(&installation) {
                     error!("Failed to register installation: {}", e);
@@ -684,16 +683,16 @@ let create_installation = move || {
                 
                 // Return the new installation
                 props.oncreate.call(installation_copy);
-           } else {
-            // Create custom installation without preset
-            let installation = Installation::new_custom(
-                name.read().clone(),
-                minecraft_version,
-                loader_type,
-                loader_version,
-                "vanilla".to_string(),
-                unwrapped_manifest.version.clone(),
-            );
+            } else {
+                // Create custom installation without preset
+                let installation = Installation::new_custom(
+                    name.read().clone(),
+                    minecraft_version,
+                    loader_type,
+                    loader_version,
+                    "vanilla".to_string(),
+                    unwrapped_manifest.version.clone(),
+                );
                 // Register and save the installation with memory allocation
                 let mut installation_copy = installation.clone();
                 installation_copy.memory_allocation = *memory_allocation.read();
@@ -707,11 +706,11 @@ let create_installation = move || {
                 
                 props.oncreate.call(installation_copy);
             }
-         } else {
-        // If we couldn't get the universal manifest, show an error
-        error!("Failed to load universal manifest");
-    }
-};
+        } else {
+            // If we couldn't get the universal manifest, show an error
+            error!("Failed to load universal manifest");
+        }
+    };
     
     rsx! {
         div { class: "wizard-overlay",
@@ -760,25 +759,25 @@ let create_installation = move || {
                                 }
                                 
                                 // Display Minecraft version and loader from universal manifest
-                               if let Some(unwrapped_manifest) = universal_manifest.read().as_ref().and_then(|opt| opt.as_ref()) {
-    div { class: "manifest-info",
-        div { class: "info-item",
-            span { class: "info-label", "Minecraft Version:" }
-            span { class: "info-value", "{unwrapped_manifest.minecraft_version}" }
-        }
-        
-        div { class: "info-item",
-            span { class: "info-label", "Mod Loader:" }
-            span { class: "info-value", "{unwrapped_manifest.loader.r#type} {unwrapped_manifest.loader.version}" }
-        }
-        
-        p { class: "info-note", 
-            "These settings are determined by the modpack requirements and cannot be changed."
-        }
-    }
-} else {
-    div { class: "loading-message", "Loading modpack information..." }
-}
+                                if let Some(unwrapped_manifest) = universal_manifest.read().as_ref().and_then(|opt| opt.as_ref()) {
+                                    div { class: "manifest-info",
+                                        div { class: "info-item",
+                                            span { class: "info-label", "Minecraft Version:" }
+                                            span { class: "info-value", "{unwrapped_manifest.minecraft_version}" }
+                                        }
+                                        
+                                        div { class: "info-item",
+                                            span { class: "info-label", "Mod Loader:" }
+                                            span { class: "info-value", "{unwrapped_manifest.loader.r#type} {unwrapped_manifest.loader.version}" }
+                                        }
+                                        
+                                        p { class: "info-note", 
+                                            "These settings are determined by the modpack requirements and cannot be changed."
+                                        }
+                                    }
+                                } else {
+                                    div { class: "loading-message", "Loading modpack information..." }
+                                }
                             }
                         },
                         1 => rsx! {
@@ -904,17 +903,16 @@ let create_installation = move || {
                                     }
                                     // Display Minecraft version and loader from universal manifest
                                     if let Some(unwrapped_manifest) = universal_manifest.read().as_ref().and_then(|opt| opt.as_ref()) {
-if let Some(unwrapped_manifest) = universal_manifest.read().as_ref().and_then(|opt| opt.as_ref()) {
-    div { class: "review-item",
-        div { class: "review-label", "Minecraft Version:" }
-        div { class: "review-value", "{unwrapped_manifest.minecraft_version}" }
-    }
-    
-    div { class: "review-item",
-        div { class: "review-label", "Mod Loader:" }
-        div { class: "review-value", "{unwrapped_manifest.loader.r#type} {unwrapped_manifest.loader.version}" }
-    }
-}
+                                        div { class: "review-item",
+                                            div { class: "review-label", "Minecraft Version:" }
+                                            div { class: "review-value", "{unwrapped_manifest.minecraft_version}" }
+                                        }
+                                        
+                                        div { class: "review-item",
+                                            div { class: "review-label", "Mod Loader:" }
+                                            div { class: "review-value", "{unwrapped_manifest.loader.r#type} {unwrapped_manifest.loader.version}" }
+                                        }
+                                    }
                                     
                                     div { class: "review-item",
                                         div { class: "review-label", "Preset:" }
@@ -948,7 +946,7 @@ if let Some(unwrapped_manifest) = universal_manifest.read().as_ref().and_then(|o
                         },
                         _ => rsx! {
                             div { "Unknown step" }
-                        }
+                        },
                     }
                 }
                 
@@ -1118,17 +1116,17 @@ fn InstallationDetailsPage(
                 // Tabs navigation
                 div { class: "installation-tabs",
                     button { 
-                        class: "tab-button {if *active_tab.read() == "features" { "active" } else { "" }}",
+                        class: "tab-button {if *active_tab.read() == \"features\" { \"active\" } else { \"\" }}",
                         onclick: move |_| active_tab.set("features"),
                         "Features"
                     }
                     button { 
-                        class: "tab-button {if *active_tab.read() == "performance" { "active" } else { "" }}", 
+                        class: "tab-button {if *active_tab.read() == \"performance\" { \"active\" } else { \"\" }}", 
                         onclick: move |_| active_tab.set("performance"),
                         "Performance"
                     }
                     button { 
-                        class: "tab-button {if *active_tab.read() == "settings" { "active" } else { "" }}", 
+                        class: "tab-button {if *active_tab.read() == \"settings\" { \"active\" } else { \"\" }}", 
                         onclick: move |_| active_tab.set("settings"),
                         "Settings"
                     }
@@ -2060,9 +2058,6 @@ async fn init_branch(source: String, branch: String, launcher: Launcher, mut pag
             title: tab_title,
             background: tab_background,
             settings_background,
-            // Remove these fields as we're now using constants
-            // primary_font: consistent_font.clone(),
-            // secondary_font: consistent_font.clone(),
             modpacks: vec![profile.clone()], // Add the profile immediately
         };
         
@@ -2572,7 +2567,7 @@ fn AppHeader(
             div { class: "header-tabs",
                 // Home tab
                 button { 
-                    class: "header-tab-button {if current_installation_id().is_none() { "active" } else { "" }}", 
+                    class: "header-tab-button {if current_installation_id().is_none() { \"active\" } else { \"\" }}",
                     onclick: move |_| on_go_home.call(()),
                     "Home"
                 }
@@ -2586,7 +2581,7 @@ fn AppHeader(
                         
                         rsx! {
                             button {
-                                class: "header-tab-button {if is_active { "active" } else { "" }}",
+                                class: "header-tab-button {if is_active { \"active\" } else { \"\" }}",
                                 onclick: move |_| on_select_installation.call(id.clone()),
                                 "{name}"
                             }
@@ -2607,7 +2602,7 @@ fn AppHeader(
                                     
                                     rsx! {
                                         button {
-                                            class: "dropdown-item {if is_active { "active" } else { "" }}",
+                                            class: "dropdown-item {if is_active { \"active\" } else { \"\" }}",
                                             onclick: move |_| on_select_installation.call(id.clone()),
                                             "{name}"
                                         }
@@ -2635,9 +2630,10 @@ fn AppHeader(
         }
     }
 }
+}
 
 #[derive(Debug, Clone)]
-pub(crate) struct AppProps {
+pub struct AppProps {
     pub branches: Vec<super::GithubBranch>,
     pub modpack_source: String,
     pub config: super::Config,
@@ -2645,8 +2641,8 @@ pub(crate) struct AppProps {
     pub installations: Vec<Installation>,
 }
 
-// Update the app() function to properly use the fixed AppProps structure
-pub(crate) fn app() -> Element {
+// Fixed app function
+pub fn app() -> Element {
     let props = use_context::<AppProps>();
     let css = include_str!("assets/style.css");
     
@@ -2723,7 +2719,7 @@ pub(crate) fn app() -> Element {
         }
     });
 
-    // CSS content (mostly unchanged)
+    // CSS content
     let css_content = {
         let default_color = "#320625".to_string();
         let default_bg = "https://raw.githubusercontent.com/Wynncraft-Overhaul/installer/master/src/assets/background_installer.png".to_string();
@@ -2735,10 +2731,10 @@ pub(crate) fn app() -> Element {
             .replace("<PRIMARY_FONT>", REGULAR_FONT)
     };
 
-    // Modal context (unchanged)
+    // Modal context
     let mut modal_context = use_context_provider(ModalContext::default);
     
-    // Error handling (unchanged)
+    // Error handling
     if let Some(e) = err() {
         modal_context.open("Error", rsx! {
             p {
@@ -2763,12 +2759,17 @@ pub(crate) fn app() -> Element {
             {if !config.read().first_launch.unwrap_or(true) && launcher.is_some() && !settings() {
                 rsx! {
                     AppHeader {
-                        page,
-                        pages,
-                        settings,
-                        logo_url,
-                        installations,
-                        current_installation_id,
+                        installations: installations.clone(),
+                        current_installation_id: current_installation_id.clone(),
+                        on_select_installation: move |id: String| {
+                            current_installation_id.set(Some(id));
+                        },
+                        on_go_home: move |_| {
+                            current_installation_id.set(None);
+                        },
+                        on_open_settings: move |_| {
+                            settings.set(true);
+                        },
                     }
                 }
             } else {
@@ -2777,7 +2778,7 @@ pub(crate) fn app() -> Element {
 
             div { class: "main-container",
                 {if settings() {
-                    // Settings screen (unchanged)
+                    // Settings screen
                     rsx! {
                         Settings {
                             config,
@@ -2788,7 +2789,7 @@ pub(crate) fn app() -> Element {
                         }
                     }
                 } else if config.read().first_launch.unwrap_or(true) || launcher.is_none() {
-                    // Launcher selection (unchanged)
+                    // Launcher selection
                     rsx! {
                         Launcher {
                             config,
@@ -2837,7 +2838,10 @@ pub(crate) fn app() -> Element {
                         // Installation details page
                         rsx! {
                             InstallationDetailsPage {
-                                installation_id: current_installation_id.read().unwrap()
+                                installation_id: current_installation_id.read().unwrap(),
+                                onback: Some(move |_| {
+                                    current_installation_id.set(None);
+                                })
                             }
                         }
                     }
