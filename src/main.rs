@@ -1756,7 +1756,7 @@ fn main() {
             }
     }
     let icon = image::load_from_memory(include_bytes!("assets/icon.png")).unwrap();
-let branches: Vec<GithubBranch> = serde_json::from_str(
+    let branches: Vec<GithubBranch> = serde_json::from_str(
         build_http_client()
             .get(GH_API.to_owned() + REPO + "branches")
             .expect("Failed to retrieve branches!")
@@ -1788,11 +1788,11 @@ let branches: Vec<GithubBranch> = serde_json::from_str(
     // Load all installations (or empty vector if error)
     let installations = installation::load_all_installations().unwrap_or_default();
     
-    // Load app icon for the window
-    let app_icon = image::load_from_memory(include_bytes!("assets/icon.png")).unwrap();
-    let icon_rgba = app_icon.to_rgba8();
-    let icon = Icon::from_rgba(
-        icon_rgba.to_vec(),
+    // Create app icon and use it immediately
+    let app_icon_data = include_bytes!("assets/icon.png");
+    let app_icon = image::load_from_memory(app_icon_data).unwrap();
+    let window_icon = Icon::from_rgba(
+        app_icon.to_rgba8().to_vec(),
         app_icon.width(),
         app_icon.height()
     ).unwrap();
@@ -1805,7 +1805,7 @@ let branches: Vec<GithubBranch> = serde_json::from_str(
                 .with_title("Majestic Overhaul Launcher")
                 .with_inner_size(LogicalSize::new(1280, 720))
                 .with_min_inner_size(LogicalSize::new(960, 540))
-        ).with_icon(icon)
+        ).with_icon(window_icon)  // Use the icon variable here
         .with_data_directory(
             env::temp_dir().join(".WC_OVHL")
         ).with_menu(None)
