@@ -1027,7 +1027,7 @@ fn InstallationDetailsPage(
     
     // Handle installation not found
     if let Err(e) = &*installation_result.read() {
-        return rsx! {
+        return rsx!{
             div { class: "error-container",
                 h2 { "Installation Not Found" }
                 p { "The requested installation could not be found." }
@@ -1096,7 +1096,7 @@ fn InstallationDetailsPage(
         }
     };
 
-    return rsx! {
+    rsx!{
         div { class: "installation-details-container",
             // Header with installation name and version
             div { class: "installation-header",
@@ -1371,7 +1371,7 @@ fn InstallationDetailsPage(
                 }
             }
         }
-    };
+    }
 }
 
 #[component]
@@ -2559,7 +2559,7 @@ fn AppHeader(
         Vec::new()
     };
     
-    return rsx! {
+    rsx!{
         header { class: "app-header",
             // Logo and title (acts as home button)
             div { 
@@ -2639,7 +2639,7 @@ fn AppHeader(
                 "Settings"
             }
         }
-    };
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -2830,7 +2830,7 @@ pub fn app() -> Element {
                                 onclose: move |_| {
                                     current_installation_id.set(None);
                                 },
-                                oncreate: move |new_installation| {
+                                oncreate: move |new_installation: Installation| {
                                     // Add the new installation
                                     installations.with_mut(|list| {
                                         list.insert(0, new_installation.clone());
