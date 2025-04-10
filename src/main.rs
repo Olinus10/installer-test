@@ -1759,16 +1759,18 @@ fn main() {
     let branches: Vec<GithubBranch> = serde_json::from_str(
         build_http_client()
             .get(GH_API.to_owned() + REPO + "branches")
-            .expect("Failed to retrive branches!")
+            .expect("Failed to retrieve branches!")
             .text()
             .unwrap()
             .as_str(),
     )
     .expect("Failed to parse branches!");
+
+    // Load configuration
     let config_path = get_app_data().join(".WC_OVHL/config.json");
     let config: Config;
 
-    
+    // Load or create config
     if config_path.exists() {
         config = serde_json::from_slice(&fs::read(&config_path).expect("Failed to read config!"))
             .expect("Failed to load config!");
@@ -1780,8 +1782,17 @@ fn main() {
         fs::write(&config_path, serde_json::to_vec(&config).unwrap())
             .expect("Failed to write config!");
     }
+    
     info!("Running installer with config: {config:#?}");
-   LaunchBuilder::desktop().with_cfg(
+    
+    // Load all installations (or empty vector if error)
+    let installations = installation::load_all_installations().unwrap_or_default();
+    
+    // Load icon
+    let icon = image::load_from_memory(include_bytes!("assets/icon.png")).unwrap();
+    
+    // Launch the UI
+    LaunchBuilder::desktop().with_cfg(
         DioxusConfig::new().with_window(
             WindowBuilder::new()
                 .with_resizable(true)
@@ -1798,8 +1809,7 @@ fn main() {
         modpack_source: String::from(REPO),
         config,
         config_path,
-        // Add new properties for installations and presets
-        installations: installation::load_all_installations().unwrap_or_default(),
+        installations,
     }).launch(gui::app);
 }
 
