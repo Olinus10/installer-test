@@ -2630,7 +2630,6 @@ fn AppHeader(
         }
     }
 }
-}
 
 #[derive(Debug, Clone)]
 pub struct AppProps {
