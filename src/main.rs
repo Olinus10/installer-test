@@ -50,7 +50,6 @@ mod universal;
 
 // Update your re-exports
 pub use launcher::{launch_modpack, update_jvm_args, get_jvm_args};
-pub use changelog::{Changelog, ChangelogEntry, fetch_changelog};
 pub use installation::{Installation, get_active_installation, load_all_installations};
 pub use preset::{Preset, load_presets};
 pub use universal::{UniversalManifest, load_universal_manifest};
