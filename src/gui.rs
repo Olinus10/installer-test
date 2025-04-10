@@ -1027,7 +1027,7 @@ fn InstallationDetailsPage(
     
     // Handle installation not found
     if let Err(e) = &*installation_result.read() {
-        return rsx!{
+        rsx! {
             div { class: "error-container",
                 h2 { "Installation Not Found" }
                 p { "The requested installation could not be found." }
@@ -1043,83 +1043,82 @@ fn InstallationDetailsPage(
                     "Back to Home"
                 }
             }
-        };
-    }
-    
-    // Unwrap installation from result (safe because we checked for errors)
-    let installation = installation_result.read().as_ref().unwrap().clone();
-    
-    // State for modification tracking
-    let mut has_changes = use_signal(|| false);
-    let enabled_features = use_signal(|| installation.enabled_features.clone());
-    let mut memory_allocation = use_signal(|| installation.memory_allocation);
-    let mut java_args = use_signal(|| installation.java_args.clone());
-    
-    // Resource for the universal manifest
-    let universal_manifest = use_resource(move || async {
-        match crate::universal::load_universal_manifest(&crate::CachedHttpClient::new(), None).await {
-            Ok(manifest) => Some(manifest),
-            Err(_) => None,
         }
-    });
-    
-    // Effect to detect changes
-    use_effect(move || {
-        let features_changed = enabled_features.read().clone() != installation.enabled_features;
-        let memory_changed = *memory_allocation.read() != installation.memory_allocation;
-        let args_changed = *java_args.read() != installation.java_args;
+    } else {
+        // Unwrap installation from result (safe because we checked for errors)
+        let installation = installation_result.read().as_ref().unwrap().clone();
         
-        has_changes.set(features_changed || memory_changed || args_changed);
-    });
-    
-    // Handle feature toggle
-    let toggle_feature = move |feature_id: String| {
-        enabled_features.with_mut(|features| {
-            if features.contains(&feature_id) {
-                features.retain(|id| id != &feature_id);
-            } else {
-                features.push(feature_id);
+        // State for modification tracking
+        let mut has_changes = use_signal(|| false);
+        let enabled_features = use_signal(|| installation.enabled_features.clone());
+        let mut memory_allocation = use_signal(|| installation.memory_allocation);
+        let mut java_args = use_signal(|| installation.java_args.clone());
+        
+        // Resource for the universal manifest
+        let universal_manifest = use_resource(move || async {
+            match crate::universal::load_universal_manifest(&crate::CachedHttpClient::new(), None).await {
+                Ok(manifest) => Some(manifest),
+                Err(_) => None,
             }
         });
-    };
-    
-    // Clone necessary values for event handlers
-    let installation_id_for_launch = installation.id.clone();
-    let installation_error_signal = installation_error.clone();
-    let installation_for_update = installation.clone();
-    
-    // Prepare the onback handler for the delete function
-    let onback_clone = onback.clone();
-    let delete_onback = move || {
-        if let Some(handler) = &onback_clone {
-            handler.call(());
-        }
-    };
-
-    rsx!{
-        div { class: "installation-details-container",
-            // Header with installation name and version
-            div { class: "installation-header",
-                h1 { "{installation.name}" }
-                span { class: "minecraft-version", "Minecraft {installation.minecraft_version}" }
-                
-                if installation.update_available {
-                    span { class: "update-badge", "Update Available" }
-                }
-            }
+        
+        // Effect to detect changes
+        use_effect(move || {
+            let features_changed = enabled_features.read().clone() != installation.enabled_features;
+            let memory_changed = *memory_allocation.read() != installation.memory_allocation;
+            let args_changed = *java_args.read() != installation.java_args;
             
-            // Error display
-            if let Some(error) = &*installation_error.read() {
-                div { class: "error-notification",
-                    div { class: "error-message", "{error}" }
-                    button { 
-                        class: "error-close",
-                        onclick: move |_| installation_error.set(None),
-                        "×"
+            has_changes.set(features_changed || memory_changed || args_changed);
+        });
+        
+        // Handle feature toggle
+        let toggle_feature = move |feature_id: String| {
+            enabled_features.with_mut(|features| {
+                if features.contains(&feature_id) {
+                    features.retain(|id| id != &feature_id);
+                } else {
+                    features.push(feature_id);
+                }
+            });
+        };
+        
+        // Clone necessary values for event handlers
+        let installation_id_for_launch = installation.id.clone();
+        let installation_error_signal = installation_error.clone();
+        let installation_for_update = installation.clone();
+        
+        // Prepare the onback handler for the delete function
+        let onback_clone = onback.clone();
+        let delete_onback = move || {
+            if let Some(handler) = &onback_clone {
+                handler.call(());
+            }
+        };
+
+        rsx! {
+            div { class: "installation-details-container",
+                // Header with installation name and version
+                div { class: "installation-header",
+                    h1 { "{installation.name}" }
+                    span { class: "minecraft-version", "Minecraft {installation.minecraft_version}" }
+                    
+                    if installation.update_available {
+                        span { class: "update-badge", "Update Available" }
                     }
                 }
-            }
-            
+                
+                // Error display
+                if let Some(error) = &*installation_error.read() {
+                    div { class: "error-notification",
+                        div { class: "error-message", "{error}" }
+                        button { 
+                            class: "error-close",
+                            onclick: move |_| installation_error.set(None),
+                            "×"
+                        }
+                    }
+                }
+             }
             // Main content in tabbed interface
             div { class: "installation-content",
                 // Tabs navigation
@@ -2559,7 +2558,7 @@ fn AppHeader(
         Vec::new()
     };
     
-    rsx!{
+    rsx! {
         header { class: "app-header",
             // Logo and title (acts as home button)
             div { 
@@ -2658,25 +2657,29 @@ pub fn app() -> Element {
     
     // Existing signals
     let config = use_signal(|| props.config);
-    let settings = use_signal(|| false);
+    let mut settings = use_signal(|| false);
     let mut err: Signal<Option<String>> = use_signal(|| None);
     
     // Installation handling
-    let current_installation_id = use_signal(|| Option::<String>::None);
-    let installations = use_signal(|| props.installations.clone());
+    let mut current_installation_id = use_signal(|| Option::<String>::None);
+    let mut installations = use_signal(|| props.installations.clone());
 
-    // Get launcher configuration
-    let launcher = match get_launcher(&config.read().launcher) {
+    // Get launcher configuration and clone it for use in closures
+    let launcher_option = match get_launcher(&config.read().launcher) {
         Ok(launcher) => Some(launcher),
         Err(e) => {
             error!("Failed to load launcher: {} - {}", config.read().launcher, e);
             None
         },
     };
+    // Create separate variables for use in each closure
+    let launcher_option_for_manifest = launcher_option.is_some();
+    let launcher_option_for_presets = launcher_option.is_some();
+    let launcher_option_for_header = launcher_option.is_some();
 
-    // Load universal manifest and presets
-    let universal_manifest = use_resource(move || async {
-        if launcher.is_none() {
+    // Load universal manifest 
+    let _universal_manifest = use_resource(move || async {
+        if !launcher_option_for_manifest {
             return None;
         }
         
@@ -2692,8 +2695,8 @@ pub fn app() -> Element {
         }
     });
 
-    let presets = use_resource(move || async {
-        if launcher.is_none() {
+    let _presets = use_resource(move || async {
+        if !launcher_option_for_presets {
             return Vec::new();
         }
         
@@ -2704,7 +2707,7 @@ pub fn app() -> Element {
     });
     
     // Load changelog
-    let changelog = use_resource(move || async {
+    let _changelog = use_resource(move || async {
         match fetch_changelog("Olinus10/installer-test/", &CachedHttpClient::new()).await {
             Ok(changelog) => Some(changelog),
             Err(_) => None,
@@ -2715,7 +2718,7 @@ pub fn app() -> Element {
     spawn({
         let mut installations_signal = installations.clone();
         async move {
-            let http_client = crate::CachedHttpClient::new();
+            let _http_client = crate::CachedHttpClient::new();
 
             installations_signal.with_mut(|list| {
                 for installation in list.iter_mut() {
@@ -2752,7 +2755,7 @@ pub fn app() -> Element {
     }
 
     // Determine which logo to use
-    let logo_url = Some("https://raw.githubusercontent.com/Wynncraft-Overhaul/installer/master/src/assets/icon.png".to_string());
+    let _logo_url = Some("https://raw.githubusercontent.com/Wynncraft-Overhaul/installer/master/src/assets/icon.png".to_string());
     
     // Main render
     rsx! {
@@ -2763,7 +2766,7 @@ pub fn app() -> Element {
             BackgroundParticles {}
             
             // Show header when appropriate
-            {if !config.read().first_launch.unwrap_or(true) && launcher.is_some() && !settings() {
+            {if !config.read().first_launch.unwrap_or(true) && launcher_option_for_header && !settings() {
                 rsx! {
                     AppHeader {
                         installations: installations.clone(),
@@ -2795,7 +2798,7 @@ pub fn app() -> Element {
                             b64_id: URL_SAFE_NO_PAD.encode(props.modpack_source)
                         }
                     }
-                } else if config.read().first_launch.unwrap_or(true) || launcher.is_none() {
+                } else if config.read().first_launch.unwrap_or(true) || launcher_option.is_none() {
                     // Launcher selection
                     rsx! {
                         Launcher {
@@ -2805,7 +2808,7 @@ pub fn app() -> Element {
                             b64_id: URL_SAFE_NO_PAD.encode(props.modpack_source)
                         }
                     }
-                } else if universal_manifest.read().is_none() {
+                } else if _universal_manifest.read().is_none() {
                     // Loading screen
                     rsx! {
                         div { class: "loading-container",
@@ -2819,11 +2822,11 @@ pub fn app() -> Element {
                         // Home page
                         rsx! {
                             NewHomePage {
-                                installations: installations,
+                                installations,
                                 error_signal: err
                             }
                         }
-                    } else if current_installation_id.read().unwrap() == "new" {
+                    } else if current_installation_id.read().as_ref().map_or(false, |id| id == "new") {
                         // Installation creation wizard
                         rsx! {
                             InstallationCreationWizard {
@@ -2847,9 +2850,11 @@ pub fn app() -> Element {
                             current_installation_id.set(None);
                         });
                         
+                        let current_id = current_installation_id.read().as_ref().map(|id| id.clone()).unwrap_or_default();
+                        
                         rsx! {
                             InstallationDetailsPage {
-                                installation_id: current_installation_id.read().unwrap().clone(),
+                                installation_id: current_id,
                                 onback: Some(back_handler)
                             }
                         }
