@@ -1,3 +1,5 @@
+// Updated Installation structure in installation.rs
+
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::io;
@@ -7,7 +9,7 @@ use chrono::{DateTime, Utc};
 use std::collections::HashMap;
 use uuid::Uuid;
 
-use crate::{CachedHttpClient, InstallerProfile, launcher};
+use crate::{CachedHttpClient, launcher};
 use crate::preset::Preset;
 use crate::Launcher;
 
@@ -141,8 +143,8 @@ impl Installation {
         }
     }
 
-        pub fn save(&self) -> Result<(), String> {
-        let installation_dir = crate::installation::get_installations_dir().join(&self.id);
+    pub fn save(&self) -> Result<(), String> {
+        let installation_dir = get_installations_dir().join(&self.id);
         
         // Create directory if it doesn't exist
         if !installation_dir.exists() {
@@ -159,11 +161,43 @@ impl Installation {
     }
     
     pub async fn install_or_update(&self, http_client: &crate::CachedHttpClient) -> Result<(), String> {
-        // Simple implementation - in real code, you'd have logic to install or update based on status
-        debug!("Installing or updating installation: {}", self.id);
+        // Get the universal manifest
+        let universal_manifest = crate::universal::load_universal_manifest(http_client, None).await
+            .map_err(|e| format!("Failed to load universal manifest: {}", e))?;
         
-        // For now, just return success
-        Ok(())
+        // Convert universal manifest to regular manifest with our enabled features
+        let manifest = crate::universal::universal_to_manifest(
+            &universal_manifest, 
+            self.enabled_features.clone()
+        );
+        
+        // Create installer profile
+        let launcher = match self.launcher_type.as_str() {
+            "vanilla" => Ok(crate::Launcher::Vanilla(crate::get_app_data())),
+            "multimc" => crate::get_multimc_folder("MultiMC").map(crate::Launcher::MultiMC),
+            "prismlauncher" => crate::get_multimc_folder("PrismLauncher").map(crate::Launcher::MultiMC),
+            _ => Err(format!("Unsupported launcher type: {}", self.launcher_type)),
+        }?;
+        
+        let installer_profile = crate::InstallerProfile {
+            manifest,
+            http_client: http_client.clone(),
+            installed: self.installed,
+            update_available: self.update_available,
+            modpack_source: "Olinus10/installer-test/".to_string(),
+            modpack_branch: "master".to_string(),
+            enabled_features: self.enabled_features.clone(),
+            launcher: Some(launcher),
+            local_manifest: None,
+            changelog: None,
+        };
+        
+        // Install or update based on current state
+        if !self.installed {
+            crate::install(&installer_profile, || {}).await
+        } else {
+            crate::update(&installer_profile, || {}).await
+        }
     }
     
     // Update the play method to increment launch count
@@ -283,4 +317,30 @@ pub fn load_installation(id: &str) -> Result<Installation, String> {
         .map_err(|e| format!("Failed to parse installation config: {}", e))?;
     
     Ok(installation)
+}
+
+// Delete an installation
+pub fn delete_installation(id: &str) -> Result<(), String> {
+    // Remove from index
+    let mut index = load_installations_index()
+        .map_err(|e| format!("Failed to load installations index: {}", e))?;
+    
+    index.installations.retain(|i| i != id);
+    
+    // If this was the active installation, clear it
+    if index.active_installation.as_ref().map_or(false, |active| active == id) {
+        index.active_installation = None;
+    }
+    
+    save_installations_index(&index)
+        .map_err(|e| format!("Failed to save installations index: {}", e))?;
+    
+    // Delete installation directory
+    let installation_dir = get_installations_dir().join(id);
+    if installation_dir.exists() {
+        std::fs::remove_dir_all(&installation_dir)
+            .map_err(|e| format!("Failed to delete installation directory: {}", e))?;
+    }
+    
+    Ok(())
 }
