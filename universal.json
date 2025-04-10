@@ -1,246 +1,59 @@
 {
   "manifest_version": 3,
   "modpack_version": "1.0.0",
-  "minecraft_version": "1.20.4",
-  "name": "Wynncraft Overhaul",
+  "minecraft_version": "1.21.4",
+  "name": "Majestic Overhaul",
   "subtitle": "Universal Modpack",
-  "description": "A complete overhaul experience for Wynncraft with customizable features to match your preferences.",
+  "description": "A complete overhaul experience for Wynncraft with customizable features",
   "icon": true,
   "uuid": "wynncraft-overhaul-universal",
   "version": "1.0.0",
-  "short_description": "Customizable Wynncraft enhancement suite",
+  "short_description": "Customizable Wynncraft Modpack",
   "category": "gameplay",
   
   "loader": {
     "type": "fabric",
-    "version": "0.15.3",
-    "minecraft_version": "1.20.4"
+    "version": "0.16.10",
+    "minecraft_version": "1.21.4"
   },
   
-  "max_mem": 4096,
-  "min_mem": 2048,
+  "max_mem": 8128,
+  "min_mem": 1024,
   "java_args": "-XX:+UseG1GC -XX:+UnlockExperimentalVMOptions -XX:G1NewSizePercent=20 -XX:G1ReservePercent=20 -XX:MaxGCPauseMillis=50 -XX:G1HeapRegionSize=32M",
   
   "mods": [
     {
       "id": "sodium",
       "name": "Sodium",
-      "description": "Modern rendering engine and client-side optimization mod",
+      "description": "Client-side optimization mod",
       "source": "modrinth",
-      "location": "complementary_shaders",
-      "version": "4.7",
+      "location": "sodium",
+      "version": "mc1.21.4-0.6.6-fabric",
       "optional": true,
       "default_enabled": false,
-      "category": "visual",
+      "category": "performance",
       "authors": [
         {
           "name": "EminGT",
           "link": "https://modrinth.com/user/EminGT"
         }
       ],
-      "dependencies": ["iris"]
+      "dependencies": ["fabric-api"]
     },
     {
-      "id": "ferrite_core",
-      "name": "FerriteCore",
-      "description": "Memory usage optimization mod",
+      "id": "fabric-api",
+      "name": "Fabric API",
+      "description": "Library mod for fabric loader",
       "source": "modrinth",
-      "location": "uXXizFIs",
-      "version": "6.0.0",
-      "optional": true,
+      "location": "fabric-api",
+      "version": "0.115.0+1.21.4",
+      "optional": false,
       "default_enabled": true,
-      "category": "performance",
+      "category": "library",
       "authors": [
         {
-          "name": "malte0811",
-          "link": "https://modrinth.com/user/malte0811"
-        }
-      ]
-    },
-    {
-      "id": "memoryleakfix",
-      "name": "Memory Leak Fix",
-      "description": "Fixes multiple memory leaks in Minecraft",
-      "source": "modrinth",
-      "location": "NRjRiSSD",
-      "version": "1.1.1",
-      "optional": true,
-      "default_enabled": true,
-      "category": "performance",
-      "authors": [
-        {
-          "name": "FxMorin",
-          "link": "https://modrinth.com/user/FxMorin"
-        }
-      ]
-    },
-    {
-      "id": "starlight",
-      "name": "Starlight",
-      "description": "Rewrites the light engine to fix lighting performance",
-      "source": "modrinth",
-      "location": "H8CaAYZC",
-      "version": "1.1.2",
-      "optional": true,
-      "default_enabled": false,
-      "category": "performance",
-      "authors": [
-        {
-          "name": "Spottedleaf",
-          "link": "https://modrinth.com/user/Spottedleaf"
-        }
-      ]
-    },
-    {
-      "id": "lazydfu",
-      "name": "LazyDFU",
-      "description": "Makes the game boot faster by deferring DataFixerUpper initialization",
-      "source": "modrinth",
-      "location": "hvFnDODi",
-      "version": "0.1.3",
-      "optional": true,
-      "default_enabled": true,
-      "category": "performance",
-      "authors": [
-        {
-          "name": "astei",
-          "link": "https://modrinth.com/user/astei"
-        }
-      ]
-    },
-    {
-      "id": "wynntils",
-      "name": "Wynntils",
-      "description": "A Wynncraft utility mod with numerous features to enhance gameplay",
-      "source": "modrinth",
-      "location": "wynntils",
-      "version": "1.0.5",
-      "optional": true,
-      "default_enabled": false,
-      "category": "gameplay",
-      "authors": [
-        {
-          "name": "Wynntils Team",
-          "link": "https://wynntils.com"
-        }
-      ]
-    },
-    {
-      "id": "entity_culling",
-      "name": "Entity Culling",
-      "description": "Improves performance by not rendering entities that are not visible",
-      "source": "modrinth",
-      "location": "NNAgCjsB",
-      "version": "1.6.2",
-      "optional": true,
-      "default_enabled": false,
-      "category": "performance",
-      "authors": [
-        {
-          "name": "tr7zw",
-          "link": "https://modrinth.com/user/tr7zw"
-        }
-      ]
-    },
-    {
-      "id": "better_f3",
-      "name": "Better F3",
-      "description": "Improves the F3 debug menu with colors and categories",
-      "source": "modrinth",
-      "location": "8shC1gFX",
-      "version": "4.0.0",
-      "optional": true,
-      "default_enabled": false,
-      "category": "utility",
-      "authors": [
-        {
-          "name": "treyruffy",
-          "link": "https://modrinth.com/user/treyruffy"
-        }
-      ]
-    },
-    {
-      "id": "appleskin",
-      "name": "AppleSkin",
-      "description": "Shows food and hunger info in the HUD",
-      "source": "modrinth",
-      "location": "EsAfCjCV",
-      "version": "2.5.0",
-      "optional": true,
-      "default_enabled": false,
-      "category": "utility",
-      "authors": [
-        {
-          "name": "squeek502",
-          "link": "https://modrinth.com/user/squeek502"
-        }
-      ]
-    },
-    {
-      "id": "mouse_wheelie",
-      "name": "Mouse Wheelie",
-      "description": "Adds various mouse wheel scrolling functionalities",
-      "source": "modrinth",
-      "location": "u5Ic2U1u",
-      "version": "1.12.0",
-      "optional": true,
-      "default_enabled": false,
-      "category": "utility",
-      "authors": [
-        {
-          "name": "Siphalor",
-          "link": "https://modrinth.com/user/Siphalor"
-        }
-      ]
-    },
-    {
-      "id": "inventory_profiles",
-      "name": "Inventory Profiles Next",
-      "description": "Take control of inventory management",
-      "source": "modrinth",
-      "location": "O7RBXm3n",
-      "version": "1.10.0",
-      "optional": true,
-      "default_enabled": false,
-      "category": "utility",
-      "authors": [
-        {
-          "name": "blackd",
-          "link": "https://modrinth.com/user/blackd"
-        }
-      ]
-    },
-    {
-      "id": "dynamic_fps",
-      "name": "Dynamic FPS",
-      "description": "Reduces frame rate when Minecraft is in the background",
-      "source": "modrinth",
-      "location": "LQ3K71Q1",
-      "version": "2.4.0",
-      "optional": true,
-      "default_enabled": false,
-      "category": "performance",
-      "authors": [
-        {
-          "name": "juliand665",
-          "link": "https://modrinth.com/user/juliand665"
-        }
-      ]
-    },
-    {
-      "id": "better_animations",
-      "name": "Better Animations Collection",
-      "description": "Improves Minecraft's entity animations",
-      "source": "modrinth",
-      "location": "o9Hm7iHD",
-      "version": "1.0.1",
-      "optional": true,
-      "default_enabled": false,
-      "category": "visual",
-      "authors": [
-        {
-          "name": "KosmX",
-          "link": "https://modrinth.com/user/KosmX"
+          "name": "modmuss50",
+          "link": "https://modrinth.com/user/modmuss50"
         }
       ]
     }
@@ -248,12 +61,12 @@
   
   "shaderpacks": [
     {
-      "id": "complementary_reimagined",
-      "name": "Complementary Reimagined",
+      "id": "complementary-unbound",
+      "name": "Complementary Unbound",
       "description": "Beautiful shader with excellent performance",
       "source": "modrinth",
-      "location": "complementary_reimagined",
-      "version": "2.0.4",
+      "location": "complementary-unbound",
+      "version": "r5.3",
       "optional": true,
       "default_enabled": false,
       "category": "visual",
@@ -263,107 +76,26 @@
           "link": "https://modrinth.com/user/EminGT"
         }
       ]
-    },
-    {
-      "id": "simple_shaders",
-      "name": "Sildur's Vibrant Shaders Lite",
-      "description": "Lightweight shaders with good performance",
-      "source": "modrinth",
-      "location": "sildurs_vibrant_lite",
-      "version": "1.32",
-      "optional": true,
-      "default_enabled": false,
-      "category": "visual",
-      "authors": [
-        {
-          "name": "Sildur",
-          "link": "https://sildurs-shaders.github.io/"
-        }
-      ]
-    }
+    } 
   ],
   
   "resourcepacks": [
     {
-      "id": "faithful",
-      "name": "Faithful 32x",
-      "description": "Higher resolution textures that stay true to Minecraft's style",
+      "id": "wynncraft-tooltips",
+      "name": "Wynncraft Tooltips",
+      "description": "Improved tooltips for Wynncraft items",
       "source": "modrinth",
-      "location": "faithful",
-      "version": "1.20",
+      "location": "wynncraft-tooltips",
+      "version": "2.0.0",
       "optional": true,
       "default_enabled": false,
       "category": "visual",
       "authors": [
         {
-          "name": "Faithful Team",
-          "link": "https://faithfulpack.net/"
-        }
-      ]
-    },
-    {
-      "id": "wynncraft_textures",
-      "name": "Wynncraft Enhanced Textures",
-      "description": "Improved textures for Wynncraft items and terrain",
-      "source": "modrinth",
-      "location": "wynncraft_textures",
-      "version": "1.2",
-      "optional": true,
-      "default_enabled": false,
-      "category": "visual",
-      "authors": [
-        {
-          "name": "Wynncraft Community",
-          "link": "https://wynncraft.com"
+          "name": "Focal_Salt",
+          "link": "https://modrinth.com/user/Focal_Salt"
         }
       ]
     }
   ]
-}inth",
-      "location": "AANobbMI",
-      "version": "0.5.3",
-      "optional": true,
-      "default_enabled": true,
-      "category": "performance",
-      "authors": [
-        {
-          "name": "jellysquid3",
-          "link": "https://modrinth.com/user/jellysquid3"
-        }
-      ]
-    },
-    {
-      "id": "lithium",
-      "name": "Lithium",
-      "description": "No-compromises game logic/server optimization mod",
-      "source": "modrinth",
-      "location": "gvQqBUqZ",
-      "version": "0.11.2",
-      "optional": true,
-      "default_enabled": true,
-      "category": "performance",
-      "authors": [
-        {
-          "name": "jellysquid3",
-          "link": "https://modrinth.com/user/jellysquid3"
-        }
-      ]
-    },
-    {
-      "id": "iris",
-      "name": "Iris Shaders",
-      "description": "A shader mod compatible with OptiFine shaderpacks",
-      "source": "modrinth",
-      "location": "YL57xq9U",
-      "version": "1.6.4",
-      "optional": true,
-      "default_enabled": false,
-      "category": "visual",
-      "authors": [
-        {
-          "name": "coderbot",
-          "link": "https://modrinth.com/user/coderbot"
-        }
-      ],
-      "dependencies": ["sodium"]
-    }
+}
