@@ -1163,36 +1163,36 @@ fn InstallationManagementPage(
                 div { class: "installation-content",
                     match *active_tab.read() {
                         "features" => rsx! {
-                            div { class: "features-tab",
-                                h2 { "Optional Features" }
-                                p { "Toggle features on or off to customize your experience." }
-                                
-                                if let Some(manifest) = universal_manifest.read().as_ref().and_then(|m| m.as_ref()) {
-                                    rsx! {
-                                        div { class: "features-grid",
-                                            // Updated code here:
-                                            for mod_component in manifest.mods.iter().filter(|m| m.optional) {
-                                                FeatureCard {
-                                                    key: "{mod_component.id}",
-                                                    mod_component: mod_component.clone(),
-                                                    is_enabled: enabled_features.read().contains(&mod_component.id),
-                                                    toggle_feature: EventHandler::new(move |feature_id: String| {
-                                                        toggle_feature(feature_id)
-                                                    })
-                                                }
-                                            }
-                                        }
-                                    }
-                                } else {
-                                    rsx! {
-                                        div { class: "loading-container",
-                                            div { class: "loading-spinner" },
-                                            div { class: "loading-text", "Loading features..." }
-                                        }
-                                    }
-                                }
-                            }
-                        },
+    div { class: "features-tab",
+        h2 { "Optional Features" }
+        p { "Toggle features on or off to customize your experience." }
+        
+        if let Some(manifest) = universal_manifest.read().as_ref().and_then(|m| m.as_ref()) {
+            rsx! {
+                div { class: "features-grid",
+                    // Updated code here:
+                    for mod_component in manifest.mods.iter().filter(|m| m.optional) {
+                        FeatureCard {
+                            key: "{mod_component.id}",
+                            mod_component: mod_component.clone(),
+                            is_enabled: enabled_features.read().contains(&mod_component.id),
+                            toggle_feature: EventHandler::new(move |feature_id: String| {
+                                toggle_feature(feature_id)
+                            })
+                        }
+                    }
+                }
+            }
+        } else {
+            rsx! {
+                div { class: "loading-container",
+                    div { class: "loading-spinner" }
+                    div { class: "loading-text", "Loading features..." }
+                }
+            }
+        }
+    }
+},
                         "performance" => {
                             // Performance tab
                             rsx! {
@@ -1897,37 +1897,43 @@ fn FeatureCard(props: FeatureCardProps) -> Element {
     let feature_id = props.mod_component.id.clone();
     let is_enabled = props.is_enabled;
     
-    rsx! {
-        div { 
-            class: if is_enabled { 
+rsx! {
+    div { 
+        class: {
+            if is_enabled { 
                 "feature-card feature-enabled" 
             } else { 
                 "feature-card feature-disabled" 
-            },
-            
-            div { class: "feature-card-header",
-                h3 { "{props.mod_component.name}" }
-                
-                label {
-                    class: if is_enabled { 
-                        "feature-toggle-button enabled" 
-                    } else { 
-                        "feature-toggle-button disabled" 
-                    },
-                    
-                    input {
-                        r#type: "checkbox",
-                        checked: is_enabled,
-                        onchange: move |_| {
-                            props.toggle_feature.call(feature_id.clone())
-                        }
-                    },
-                    
-                    span {
-                        if is_enabled { "Enabled" } else { "Disabled" }
-                    }
+            }
+        },
+        
+        div { class: "feature-card-header",
+            h3 { class: "feature-card-title", "{feat.name}" }
+        }
+        
+        if let Some(description) = &feat.description {
+            div { class: "feature-card-description", "{description}" }
+        }
+        
+        label {
+            class: {
+                if is_enabled { 
+                    "feature-toggle-button enabled" 
+                } else { 
+                    "feature-toggle-button disabled" 
                 }
             },
+            input {
+                r#type: "checkbox",
+                name: "{feat.id}",
+                checked: { if is_enabled { "true" } else { "" } },
+                onchange: move |evt| handle_feature_toggle(feat_clone.clone(), evt),
+                style: "display: none;"
+            }
+            { if is_enabled { "Enabled" } else { "Disabled" } }
+        }
+    }
+},
             
             if let Some(description) = &props.mod_component.description {
                 div { class: "feature-card-description", "{description}" }
