@@ -73,44 +73,99 @@ pub async fn load_presets(http_client: &CachedHttpClient, url: Option<&str>) -> 
     let presets_url = url.unwrap_or(DEFAULT_PRESETS_URL);
     debug!("Loading presets from: {}", presets_url);
     
-    let mut response = match http_client.get_async(presets_url).await {
-        Ok(resp) => resp,
-        Err(e) => {
-            error!("Failed to fetch presets: {}", e);
-            return Err(format!("Failed to fetch presets: {}", e));
-        }
-    };
+    // Add retry logic for more reliability
+    let mut retries = 0;
+    const MAX_RETRIES: usize = 3;
     
-    if response.status() != StatusCode::OK {
-        error!("Failed to fetch presets: HTTP {}", response.status());
-        return Err(format!("Failed to fetch presets: HTTP {}", response.status()));
-    }
-    
-    // Get text as String to avoid the unsized str error
-    let presets_json = match response.text().await {
-        Ok(text_string) => text_string, // text() returns a String, not a &str
-        Err(e) => {
-            error!("Failed to read presets response: {}", e);
-            return Err(format!("Failed to read presets response: {}", e));
-        }
-    };
-    
-    // Parse the outer structure
-    match serde_json::from_str::<PresetsContainer>(&presets_json) {
-        Ok(container) => {
-            debug!("Successfully loaded {} presets", container.presets.len());
-            Ok(container.presets)
-        },
-        Err(e) => {
-            error!("Failed to parse presets JSON: {}", e);
-            Err(format!("Failed to parse presets JSON: {}", e))
+    loop {
+        match http_client.get_async(presets_url).await {
+            Ok(mut response) => {
+                if response.status() != StatusCode::OK {
+                    let status = response.status();
+                    error!("Failed to fetch presets: HTTP {}", status);
+                    
+                    if retries < MAX_RETRIES && (status.as_u16() >= 500 || status.as_u16() == 429) {
+                        retries += 1;
+                        debug!("Retrying request ({}/{})", retries, MAX_RETRIES);
+                        tokio::time::sleep(tokio::time::Duration::from_millis(500 * retries as u64)).await;
+                        continue;
+                    }
+                    
+                    return Err(format!("Failed to fetch presets: HTTP {}", status));
+                }
+                
+                // Get text as String
+                match response.text().await {
+                    Ok(presets_json) => {
+                        // Parse the presets container
+                        match serde_json::from_str::<PresetsContainer>(&presets_json) {
+                            Ok(container) => {
+                                debug!("Successfully loaded {} presets (version: {})", 
+                                      container.presets.len(), container.version);
+                                
+                                // Log preset information for debugging
+                                for preset in &container.presets {
+                                    debug!("Loaded preset: {} (ID: {})", preset.name, preset.id);
+                                }
+                                
+                                return Ok(container.presets);
+                            },
+                            Err(e) => {
+                                error!("Failed to parse presets JSON: {}", e);
+                                
+                                // Log the start of the JSON for debugging
+                                let preview = if presets_json.len() > 200 { 
+                                    format!("{}...", &presets_json[..200]) 
+                                } else { 
+                                    presets_json.clone() 
+                                };
+                                debug!("Presets JSON preview: {}", preview);
+                                
+                                return Err(format!("Failed to parse presets JSON: {}", e));
+                            }
+                        }
+                    },
+                    Err(e) => {
+                        error!("Failed to read presets response: {}", e);
+                        
+                        if retries < MAX_RETRIES {
+                            retries += 1;
+                            debug!("Retrying request ({}/{})", retries, MAX_RETRIES);
+                            tokio::time::sleep(tokio::time::Duration::from_millis(500 * retries as u64)).await;
+                            continue;
+                        }
+                        
+                        return Err(format!("Failed to read presets response: {}", e));
+                    }
+                }
+            },
+            Err(e) => {
+                error!("Failed to fetch presets: {}", e);
+                
+                if retries < MAX_RETRIES {
+                    retries += 1;
+                    debug!("Retrying request ({}/{})", retries, MAX_RETRIES);
+                    tokio::time::sleep(tokio::time::Duration::from_millis(500 * retries as u64)).await;
+                    continue;
+                }
+                
+                return Err(format!("Failed to fetch presets: {}", e));
+            }
         }
     }
 }
-
 // Find a preset by ID
 pub fn find_preset_by_id(presets: &[Preset], id: &str) -> Option<Preset> {
-    presets.iter()
+    debug!("Looking for preset with ID: {}", id);
+    
+    let result = presets.iter()
         .find(|preset| preset.id == id)
-        .cloned()
+        .cloned();
+        
+    match &result {
+        Some(preset) => debug!("Found preset: {}", preset.name),
+        None => debug!("No preset found with ID: {}", id),
+    }
+    
+    result
 }
