@@ -1161,80 +1161,27 @@ fn InstallationManagementPage(
                 // Content area
                 div { class: "installation-content",
                     match *active_tab.read() {
-                        "features" => {
-                            // Features tab
-                            rsx! {
-                                div { class: "features-tab",
-                                    h2 { "Optional Features" }
-                                    p { "Toggle features on or off to customize your experience." }
-                                    
-                                    if let Some(manifest) = universal_manifest.read().as_ref().and_then(|m| m.as_ref()) {
-                                        div { class: "features-grid",
-                                            // Simplify by directly rendering each feature
-                                            for mod_component in manifest.mods.iter().filter(|m| m.optional) {
-                                                div { 
-                                                    key: "{mod_component.id}",
-                                                    class: if enabled_features.read().contains(&mod_component.id) { 
-                                                        "feature-card feature-enabled" 
-                                                    } else { 
-                                                        "feature-card feature-disabled" 
-                                                    },
-                                                    
-                                                    div { class: "feature-card-header",
-                                                        h3 { "{mod_component.name}" }
-                                                        
-                                                        {
-                                                            let feature_id = mod_component.id.clone();
-                                                            let is_enabled = enabled_features.read().contains(&feature_id);
-                                                            let toggle_fn = toggle_feature.clone();
-                                                            
-                                                            rsx! {
-                                                                label {
-                                                                    class: if is_enabled { 
-                                                                        "feature-toggle-button enabled" 
-                                                                    } else { 
-                                                                        "feature-toggle-button disabled" 
-                                                                    },
-                                                                    
-                                                                    input {
-                                                                        r#type: "checkbox",
-                                                                        checked: is_enabled,
-                                                                        onchange: move |_| {
-                                                                            toggle_fn(feature_id.clone());
-                                                                        }
-                                                                    }
-                                                                    
-                                                                    if is_enabled { "Enabled" } else { "Disabled" }
-                                                                }
-                                                            }
-                                                        }
-                                                    }
-                                                    
-                                                    if let Some(description) = &mod_component.description {
-                                                        div { class: "feature-card-description", "{description}" }
-                                                    }
-                                                    
-                                                    if let Some(deps) = &mod_component.dependencies {
-                                                        if !deps.is_empty() {
-                                                            div { class: "feature-dependencies",
-                                                                span { "Required: " }
-                                                                for (i, dep) in deps.iter().enumerate() {
-                                                                    span { 
-                                                                        class: "dependency-item",
-                                                                        "{dep}{if i < deps.len() - 1 { \", \" } else { \"\" }}"
-                                                                    }
-                                                                }
-                                                            }
-                                                        }
-                                                    }
-                                                }
+                        "features" => rsx! {
+                            div { class: "features-tab",
+                                h2 { "Optional Features" }
+                                p { "Toggle features on or off to customize your experience." }
+                                
+                                if let Some(manifest) = universal_manifest.read().as_ref().and_then(|m| m.as_ref()) {
+                                    div { class: "features-grid",
+                                        // Simplify by directly rendering each feature
+                                        for mod_component in manifest.mods.iter().filter(|m| m.optional) {
+                                            FeatureCard {
+                                                key: "{mod_component.id}",
+                                                mod_component: mod_component.clone(),
+                                                is_enabled: enabled_features.read().contains(&mod_component.id),
+                                                toggle_feature: toggle_feature.clone()
                                             }
                                         }
-                                    } else {
-                                        div { class: "loading-container",
-                                            div { class: "loading-spinner" }
-                                            div { class: "loading-text", "Loading features..." }
-                                        }
+                                    }
+                                } else {
+                                    div { class: "loading-container",
+                                        div { class: "loading-spinner" }
+                                        div { class: "loading-text", "Loading features..." }
                                     }
                                 }
                             }
@@ -1930,42 +1877,65 @@ fn NoLauncherFound(props: LauncherProps) -> Element {
 }
 
 // Feature Card component to display features in card format
-#[derive(PartialEq, Props, Clone)]
+#[derive(Props, Clone, PartialEq)]
 struct FeatureCardProps {
-    feature: super::Feature,
-    enabled: bool,
-    on_toggle: EventHandler<FormEvent>,
+    mod_component: ModComponent,
+    is_enabled: bool,
+    toggle_feature: dyn Fn(String) + 'static
 }
 
 #[component]
 fn FeatureCard(props: FeatureCardProps) -> Element {
-    let enabled = props.enabled;
-    let feature_id = props.feature.id.clone();
+    // Clone values needed for closures
+    let feature_id = props.mod_component.id.clone();
+    let is_enabled = props.is_enabled;
+    let toggle_fn = props.toggle_feature.clone();
     
     rsx! {
         div { 
-            class: if enabled { "feature-card feature-enabled" } else { "feature-card feature-disabled" },
+            class: if is_enabled { 
+                "feature-card feature-enabled" 
+            } else { 
+                "feature-card feature-disabled" 
+            },
+            
             div { class: "feature-card-header",
-                h3 { class: "feature-card-title", "{props.feature.name}" }
+                h3 { "{props.mod_component.name}" }
                 
-                // Toggle button with properly connected event handler - moved to header
                 label {
-                    class: if enabled { "feature-toggle-button enabled" } else { "feature-toggle-button disabled" },
+                    class: if is_enabled { 
+                        "feature-toggle-button enabled" 
+                    } else { 
+                        "feature-toggle-button disabled" 
+                    },
+                    
                     input {
                         r#type: "checkbox",
-                        name: "{feature_id}",
-                        checked: if enabled { Some("true") } else { None },
-                        onchange: move |evt| props.on_toggle.call(evt),
-                        style: "display: none;"
+                        checked: is_enabled,
+                        onchange: move |_| {
+                            toggle_fn(feature_id.clone());
+                        }
                     }
-                    if enabled { "ON" } else { "OFF" }
+                    
+                    if is_enabled { "Enabled" } else { "Disabled" }
                 }
             }
             
-            // Render description if available, but only if it exists
-            if let Some(description) = &props.feature.description {
-                if !description.is_empty() {
-                    div { class: "feature-card-description", "{description}" }
+            if let Some(description) = &props.mod_component.description {
+                div { class: "feature-card-description", "{description}" }
+            }
+            
+            if let Some(deps) = &props.mod_component.dependencies {
+                if !deps.is_empty() {
+                    div { class: "feature-dependencies",
+                        span { "Required: " }
+                        for (i, dep) in deps.iter().enumerate() {
+                            span { 
+                                class: "dependency-item",
+                                "{dep}{if i < deps.len() - 1 { \", \" } else { \"\" }}"
+                            }
+                        }
+                    }
                 }
             }
         }
