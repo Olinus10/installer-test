@@ -1163,25 +1163,27 @@ fn InstallationManagementPage(
                     match *active_tab.read() {
                         "features" => rsx! {
                             div { class: "features-tab",
-                                h2 { "Optional Features" }
-                                p { "Toggle features on or off to customize your experience." }
-                                
-                                if let Some(manifest) = universal_manifest.read().as_ref().and_then(|m| m.as_ref()) {
-                                    div { class: "features-grid",
-                                        // Simplify by directly rendering each feature
-                                        for mod_component in manifest.mods.iter().filter(|m| m.optional) {
-                                            FeatureCard {
-                                                key: "{mod_component.id}",
-                                                mod_component: mod_component.clone(),
-                                                is_enabled: enabled_features.read().contains(&mod_component.id),
-                                                toggle_feature: toggle_feature.clone()
-                                            }
-                                        }
-                                    }
-                                } else {
-                                    div { class: "loading-container",
-                                        div { class: "loading-spinner" }
-                                        div { class: "loading-text", "Loading features..." }
+    h2 { "Optional Features" }
+    p { "Toggle features on or off to customize your experience." }
+    
+    if let Some(manifest) = universal_manifest.read().as_ref().and_then(|m| m.as_ref()) {
+        div { class: "features-grid",
+            // Updated code here:
+            for mod_component in manifest.mods.iter().filter(|m| m.optional) {
+                FeatureCard {
+                    key: "{mod_component.id}",
+                    mod_component: mod_component.clone(),
+                    is_enabled: enabled_features.read().contains(&mod_component.id),
+                    toggle_feature: EventHandler::new(move |feature_id: String| {
+                        toggle_feature(feature_id);
+                    })
+                }
+            }
+        }
+    } else {
+        div { class: "loading-container",
+            div { class: "loading-spinner" }
+            div { class: "loading-text", "Loading features..." }
                                     }
                                 }
                             }
@@ -1876,12 +1878,12 @@ fn NoLauncherFound(props: LauncherProps) -> Element {
     }
 }
 
-// Feature Card component to display features in card format
+// Change the FeatureCardProps struct to use Box<dyn Fn> for the callback
 #[derive(Props, Clone, PartialEq)]
 struct FeatureCardProps {
     mod_component: ModComponent,
     is_enabled: bool,
-    toggle_feature: dyn Fn(String) + 'static
+    toggle_feature: EventHandler<String>
 }
 
 #[component]
@@ -1889,7 +1891,6 @@ fn FeatureCard(props: FeatureCardProps) -> Element {
     // Clone values needed for closures
     let feature_id = props.mod_component.id.clone();
     let is_enabled = props.is_enabled;
-    let toggle_fn = props.toggle_feature.clone();
     
     rsx! {
         div { 
@@ -1913,7 +1914,7 @@ fn FeatureCard(props: FeatureCardProps) -> Element {
                         r#type: "checkbox",
                         checked: is_enabled,
                         onchange: move |_| {
-                            toggle_fn(feature_id.clone());
+                            props.toggle_feature.call(feature_id.clone());
                         }
                     }
                     
@@ -1941,7 +1942,6 @@ fn FeatureCard(props: FeatureCardProps) -> Element {
         }
     }
 }
-
 
 
 fn feature_change(
