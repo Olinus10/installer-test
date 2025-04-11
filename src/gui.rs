@@ -1148,7 +1148,7 @@ fn InstallationDetailsPage(
                 
                 rsx! {
                     div { class: "feature-cards-container",
-                        {feature_cards}
+                        {feature_cards.into_iter()}
                     }
                 }
             } else {
@@ -1278,7 +1278,7 @@ fn InstallationDetailsPage(
             }
         }
     } else {
-        rsx! { "" }
+        rsx! { () }
     };
     
     // Pre-build the update button
@@ -1328,7 +1328,7 @@ fn InstallationDetailsPage(
             }
         }
     } else {
-        rsx! { "" }
+        rsx! { () }
     };
 
     // Main render with reduced nesting
@@ -2419,140 +2419,120 @@ fn Version(mut props: VersionProps) -> Element {
                     div { class: "features-section",
                         h2 { class: "features-heading", "OPTIONAL FEATURES" }
                         
-                        div { class: "feature-cards-container",
-                            {
-                                // Filter features inside the RSX block
-                                let features_list = features.read();
-                                let visible_features: Vec<_> = features_list.iter()
-                                    .filter(|f| !f.hidden)
-                                    .collect();
-                                
-                                // Calculate whether to show expand button
-                                let show_expand_button = visible_features.len() > first_row_count;
-                                
-                                rsx! {
-                                    // First row of features (always shown)
-                                    for feat in visible_features.iter().take(first_row_count) {
-                                        {
-                                            let is_enabled = enabled_features.read().contains(&feat.id);
-                                            let feat_clone = (*feat).clone();
-                                            
-                                            rsx! {
-                                                div { 
-                                                    class: if is_enabled { "feature-card feature-enabled" } else { "feature-card feature-disabled" },
-                                                    div { class: "feature-card-header",
-                                                        h3 { class: "feature-card-title", "{feat.name}" }
-                                                    }
-                                                    
-                                                    if let Some(description) = &feat.description {
-                                                        div { class: "feature-card-description", "{description}" }
-                                                    }
-                                                    
-                                                    label {
-                                                        class: if is_enabled { "feature-toggle-button enabled" } else { "feature-toggle-button disabled" },
-                                                        input {
-                                                            r#type: "checkbox",
-                                                            name: "{feat.id}",
-                                                            checked: if is_enabled { Some("true") } else { None },
-                                                            onchange: move |evt| handle_feature_toggle(feat_clone.clone(), evt),
-                                                            style: "display: none;"
-                                                        }
-                                                        if is_enabled { "Enabled" } else { "Disabled" }
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
-                                    
-                                    // Additional features (shown only when expanded)
-                                    if *expanded_features.read() {
-                                        for feat in visible_features.iter().skip(first_row_count) {
-                                            {
-                                                let is_enabled = enabled_features.read().contains(&feat.id);
-                                                let feat_clone = (*feat).clone();
-                                                
-                                                rsx! {
-                                                    div { 
-                                                        class: if is_enabled { "feature-card feature-enabled" } else { "feature-card feature-disabled" },
-                                                        div { class: "feature-card-header",
-                                                            h3 { class: "feature-card-title", "{feat.name}" }
-                                                        }
-                                                        
-                                                        if let Some(description) = &feat.description {
-                                                            div { class: "feature-card-description", "{description}" }
-                                                        }
-                                                        
-                                                        label {
-                                                            class: if is_enabled { "feature-toggle-button enabled" } else { "feature-toggle-button disabled" },
-                                                            input {
-                                                                r#type: "checkbox",
-                                                                name: "{feat.id}",
-                                                                checked: if is_enabled { Some("true") } else { None },
-                                                                onchange: move |evt| handle_feature_toggle(feat_clone.clone(), evt),
-                                                                style: "display: none;"
-                                                            }
-                                                            if is_enabled { "Enabled" } else { "Disabled" }
-                                                        }
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
-                                    
-                                    // Only show expand button if needed
-                                    if show_expand_button {
-                                        div { class: "features-expand-container",
-                                            button {
-                                                class: "features-expand-button",
-                                                onclick: move |_| {
-                                                    let current_state = *expanded_features.read();
-                                                    expanded_features.set(!current_state);
-                                                    debug!("Toggled expanded features: {}", !current_state);
-                                                },
-                                                if *expanded_features.read() {
-                                                    "Collapse Features"
-                                                } else {
-                                                    {format!("Show {} More Features", visible_features.len() - first_row_count)}
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
+                        rsx! {
+    // Feature cards container
+    div { class: "feature-cards-container",
+        {
+            // Filter features inside the RSX block
+            let features_list = features.read();
+            let visible_features: Vec<_> = features_list.iter()
+                .filter(|f| !f.hidden)
+                .collect();
+            
+            // Calculate whether to show expand button
+            let show_expand_button = visible_features.len() > first_row_count;
+            
+            let first_row_cards = visible_features.iter().take(first_row_count).map(|feat| {
+                let is_enabled = enabled_features.read().contains(&feat.id);
+                let feat_clone = (*feat).clone();
+                
+                rsx! {
+                    div { 
+                        class: if is_enabled { "feature-card feature-enabled" } else { "feature-card feature-disabled" },
+                        div { class: "feature-card-header",
+                            h3 { class: "feature-card-title", "{feat.name}" }
                         }
-                    }
-                    
-                    // Install/Update/Modify button at the bottom with explicit label
-                    div { class: "install-button-container",
-                        div { class: "button-scale-wrapper",
-                            button {
-                                class: "main-install-button",
-                                disabled: install_disable,
-                                "{button_label}"
-                            }
+                        
+                        if let Some(description) = &feat.description {
+                            div { class: "feature-card-description", "{description}" }
                         }
-                    }
-                    
-                    // Add Play button only when installed
-                    if *installed.read() {
-                        {
-                            let uuid_str = uuid.clone(); // Clone outside
-                            let err_signal = props.error.clone(); // Use props.error
-                            
-                            rsx! {
-                                PlayButton {
-                                    uuid: uuid_str.clone(), // Clone again for component
-                                    disabled: false,
-                                    onclick: move |_| {
-                                        let uuid_for_handler = uuid_str.clone(); // Clone inside closure
-                                        handle_play_click(uuid_for_handler, &err_signal);
-                                    }
-                                }
+                        
+                        label {
+                            class: if is_enabled { "feature-toggle-button enabled" } else { "feature-toggle-button disabled" },
+                            input {
+                                r#type: "checkbox",
+                                name: "{feat.id}",
+                                checked: if is_enabled { Some("true") } else { None },
+                                onchange: move |evt| handle_feature_toggle(feat_clone.clone(), evt),
+                                style: "display: none;"
                             }
+                            if is_enabled { "Enabled" } else { "Disabled" }
                         }
                     }
                 }
-            }
+            }).collect::<Vec<_>>();
+            
+            // Additional features (shown only when expanded)
+            let additional_cards = if *expanded_features.read() {
+                visible_features.iter().skip(first_row_count).map(|feat| {
+                    let is_enabled = enabled_features.read().contains(&feat.id);
+                    let feat_clone = (*feat).clone();
+                    
+                    rsx! {
+                        div { 
+                            class: if is_enabled { "feature-card feature-enabled" } else { "feature-card feature-disabled" },
+                            div { class: "feature-card-header",
+                                h3 { class: "feature-card-title", "{feat.name}" }
+                            }
+                            
+                            if let Some(description) = &feat.description {
+                                div { class: "feature-card-description", "{description}" }
+                            }
+                            
+                            label {
+                                class: if is_enabled { "feature-toggle-button enabled" } else { "feature-toggle-button disabled" },
+                                input {
+                                    r#type: "checkbox",
+                                    name: "{feat.id}",
+                                    checked: if is_enabled { Some("true") } else { None },
+                                    onchange: move |evt| handle_feature_toggle(feat_clone.clone(), evt),
+                                    style: "display: none;"
+                                }
+                                if is_enabled { "Enabled" } else { "Disabled" }
+                            }
+                        }
+                    }
+                }).collect::<Vec<_>>()
+            } else {
+                Vec::new()
+            };
+            
+            // Expand button
+            let expand_button = if show_expand_button {
+                vec![rsx! {
+                    div { class: "features-expand-container",
+                        button {
+                            class: "features-expand-button",
+                            onclick: move |_| {
+                                let current_state = *expanded_features.read();
+                                expanded_features.set(!current_state);
+                                debug!("Toggled expanded features: {}", !current_state);
+                            },
+                            if *expanded_features.read() {
+                                "Collapse Features"
+                            } else {
+                                {format!("Show {} More Features", visible_features.len() - first_row_count)}
+                            }
+                        }
+                    }
+                }]
+            } else {
+                Vec::new()
+            };
+            
+            // Combine all components
+            let mut all_components = Vec::new();
+            all_components.extend(first_row_cards);
+            all_components.extend(additional_cards);
+            all_components.extend(expand_button);
+            
+            all_components.into_iter()
+        }
+    }
+}
+                        }
+                     }
+                }
         }
     }
 }
@@ -2586,45 +2566,46 @@ fn AppHeader(
             let is_active = current_id.as_ref().map_or(false, |current_id| current_id == &id);
             let on_select = on_select_installation.clone();
             
-            tabs.push(rsx! {
-                button {
-                    class: "header-tab-button {if is_active { \"active\" } else { \"\" }}",
-                    onclick: move |_| on_select.call(id.clone()),
-                    "{name}"
+            tabs.push(
+                rsx! {
+                    button {
+                        class: "header-tab-button {if is_active { \"active\" } else { \"\" }}",
+                        onclick: move |_| on_select.call(id.clone()),
+                        "{name}"
+                    }
                 }
-            });
+            );
         }
-        tabs
+        tabs.into_iter()
     };
     
     // Pre-build dropdown menu
     let dropdown_menu = if !dropdown_installations.is_empty() {
-        let mut dropdown_items = Vec::new();
-        for installation in &dropdown_installations {
+        let dropdown_items = dropdown_installations.iter().map(|installation| {
             let id = installation.id.clone();
             let name = installation.name.clone();
             let is_active = current_id.as_ref().map_or(false, |current_id| current_id == &id);
             let on_select = on_select_installation.clone();
             
-            dropdown_items.push(rsx! {
+            rsx! {
                 button {
                     class: "dropdown-item {if is_active { \"active\" } else { \"\" }}",
                     onclick: move |_| on_select.call(id.clone()),
                     "{name}"
                 }
-            });
-        }
+            }
+        }).collect::<Vec<_>>();
         
         rsx! {
             div { class: "dropdown",
                 button { class: "header-tab-button", "More Installations ▼" }
                 div { class: "dropdown-content",
-                    {dropdown_items}
+                    {dropdown_items.into_iter()}
                 }
             }
         }
     } else {
-        rsx! { "" }
+        rsx! { () }
     };
     
     // Main render
@@ -2793,14 +2774,14 @@ pub fn app() -> Element {
         }, false, Some(move |_| err.set(None)));
         
         // Return empty RSX to use in the main render
-        rsx! { "" }
+        rsx! { () }
     } else {
-        rsx! { "" }
+        rsx! { () }
     };
 
     // Pre-build the header if appropriate
     let header_component = if !config.read().first_launch.unwrap_or(true) && has_launcher && !settings() {
-        rsx! {
+        Some(rsx! {
             AppHeader {
                 installations: installations.clone(),
                 current_installation_id: current_installation_id.clone(),
@@ -2814,16 +2795,16 @@ pub fn app() -> Element {
                     settings.set(true);
                 }
             }
-        }
+        })
     } else {
-        rsx! { "" }
+        None
     };
     
     // Pre-build the footer
     let footer_component = if !settings() {
-        rsx! { Footer {} }
+        Some(rsx! { Footer {} })
     } else {
-        rsx! { "" }
+        None
     };
     
     // Pre-build the main content based on state
@@ -2910,14 +2891,18 @@ pub fn app() -> Element {
             BackgroundParticles {}
             
             // Show header when appropriate
-            {header_component}
+            if let Some(header) = header_component {
+                {header}
+            }
 
             div { class: "main-container",
                 {main_content}
             }
             
             // Footer
-            {footer_component}
+            if let Some(footer) = footer_component {
+                {footer}
+            }
             
             // Error modal (triggered earlier)
             {error_modal}
