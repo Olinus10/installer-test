@@ -1170,24 +1170,25 @@ fn InstallationManagementPage(
                                     
                                     if let Some(manifest) = universal_manifest.read().as_ref().and_then(|m| m.as_ref()) {
                                         div { class: "features-grid",
-                                            // Render each feature card directly
+                                            // Simplify by directly rendering each feature
                                             for mod_component in manifest.mods.iter().filter(|m| m.optional) {
-                                                {
-                                                    let feature_id = mod_component.id.clone();
-                                                    let is_enabled = enabled_features.read().contains(&feature_id);
-                                                    let toggle_fn = toggle_feature.clone();
+                                                div { 
+                                                    key: "{mod_component.id}",
+                                                    class: if enabled_features.read().contains(&mod_component.id) { 
+                                                        "feature-card feature-enabled" 
+                                                    } else { 
+                                                        "feature-card feature-disabled" 
+                                                    },
                                                     
-                                                    rsx! {
-                                                        div { 
-                                                            class: if is_enabled { 
-                                                                "feature-card feature-enabled" 
-                                                            } else { 
-                                                                "feature-card feature-disabled" 
-                                                            },
+                                                    div { class: "feature-card-header",
+                                                        h3 { "{mod_component.name}" }
+                                                        
+                                                        {
+                                                            let feature_id = mod_component.id.clone();
+                                                            let is_enabled = enabled_features.read().contains(&feature_id);
+                                                            let toggle_fn = toggle_feature.clone();
                                                             
-                                                            div { class: "feature-card-header",
-                                                                h3 { "{mod_component.name}" }
-                                                                
+                                                            rsx! {
                                                                 label {
                                                                     class: if is_enabled { 
                                                                         "feature-toggle-button enabled" 
@@ -1199,29 +1200,28 @@ fn InstallationManagementPage(
                                                                         r#type: "checkbox",
                                                                         checked: is_enabled,
                                                                         onchange: move |_| {
-                                                                            let feature_id_inner = feature_id.clone();
-                                                                            toggle_fn(feature_id_inner);
+                                                                            toggle_fn(feature_id.clone());
                                                                         }
                                                                     }
                                                                     
                                                                     if is_enabled { "Enabled" } else { "Disabled" }
                                                                 }
                                                             }
-                                                            
-                                                            if let Some(description) = &mod_component.description {
-                                                                div { class: "feature-card-description", "{description}" }
-                                                            }
-                                                            
-                                                            if let Some(deps) = &mod_component.dependencies {
-                                                                if !deps.is_empty() {
-                                                                    div { class: "feature-dependencies",
-                                                                        span { "Required: " }
-                                                                        for (i, dep) in deps.iter().enumerate() {
-                                                                            span { 
-                                                                                class: "dependency-item",
-                                                                                "{dep}{if i < deps.len() - 1 { \", \" } else { \"\" }}"
-                                                                            }
-                                                                        }
+                                                        }
+                                                    }
+                                                    
+                                                    if let Some(description) = &mod_component.description {
+                                                        div { class: "feature-card-description", "{description}" }
+                                                    }
+                                                    
+                                                    if let Some(deps) = &mod_component.dependencies {
+                                                        if !deps.is_empty() {
+                                                            div { class: "feature-dependencies",
+                                                                span { "Required: " }
+                                                                for (i, dep) in deps.iter().enumerate() {
+                                                                    span { 
+                                                                        class: "dependency-item",
+                                                                        "{dep}{if i < deps.len() - 1 { \", \" } else { \"\" }}"
                                                                     }
                                                                 }
                                                             }
