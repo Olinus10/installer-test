@@ -67,37 +67,79 @@ pub async fn load_universal_manifest(http_client: &CachedHttpClient, url: Option
     let manifest_url = url.unwrap_or(DEFAULT_UNIVERSAL_URL);
     debug!("Loading universal manifest from: {}", manifest_url);
     
-    let mut response = match http_client.get_async(manifest_url).await {
-        Ok(resp) => resp,
-        Err(e) => {
-            error!("Failed to fetch universal manifest: {}", e);
-            return Err(format!("Failed to fetch universal manifest: {}", e));
-        }
-    };
+    // Add retry logic for more reliability
+    let mut retries = 0;
+    const MAX_RETRIES: usize = 3;
     
-    if response.status() != StatusCode::OK {
-        error!("Failed to fetch universal manifest: HTTP {}", response.status());
-        return Err(format!("Failed to fetch universal manifest: HTTP {}", response.status()));
-    }
-    
-    // Get text as String to avoid the unsized str error
-    let manifest_json = match response.text().await {
-        Ok(text_string) => text_string, // text() returns a String, not a &str
-        Err(e) => {
-            error!("Failed to read universal manifest response: {}", e);
-            return Err(format!("Failed to read universal manifest response: {}", e));
-        }
-    };
-    
-    // Parse the universal manifest
-    match serde_json::from_str::<UniversalManifest>(&manifest_json) {
-        Ok(manifest) => {
-            debug!("Successfully loaded universal manifest for {}", manifest.name);
-            Ok(manifest)
-        },
-        Err(e) => {
-            error!("Failed to parse universal manifest JSON: {}", e);
-            Err(format!("Failed to parse universal manifest JSON: {}", e))
+    loop {
+        match http_client.get_async(manifest_url).await {
+            Ok(mut response) => {
+                if response.status() != StatusCode::OK {
+                    let status = response.status();
+                    error!("Failed to fetch universal manifest: HTTP {}", status);
+                    
+                    if retries < MAX_RETRIES && (status.as_u16() >= 500 || status.as_u16() == 429) {
+                        retries += 1;
+                        debug!("Retrying request ({}/{})", retries, MAX_RETRIES);
+                        tokio::time::sleep(tokio::time::Duration::from_millis(500 * retries as u64)).await;
+                        continue;
+                    }
+                    
+                    return Err(format!("Failed to fetch universal manifest: HTTP {}", status));
+                }
+                
+                // Get text as String to avoid the unsized str error
+                match response.text().await {
+                    Ok(manifest_json) => {
+                        // Parse the universal manifest
+                        match serde_json::from_str::<UniversalManifest>(&manifest_json) {
+                            Ok(manifest) => {
+                                debug!("Successfully loaded universal manifest for {}", manifest.name);
+                                debug!("Manifest contains: {} mods, {} shaderpacks, {} resourcepacks", 
+                                    manifest.mods.len(), manifest.shaderpacks.len(), manifest.resourcepacks.len());
+                                return Ok(manifest);
+                            },
+                            Err(e) => {
+                                error!("Failed to parse universal manifest JSON: {}", e);
+                                
+                                // Log the start of the JSON for debugging
+                                let preview = if manifest_json.len() > 200 { 
+                                    format!("{}...", &manifest_json[..200]) 
+                                } else { 
+                                    manifest_json.clone() 
+                                };
+                                debug!("Manifest JSON preview: {}", preview);
+                                
+                                return Err(format!("Failed to parse universal manifest JSON: {}", e));
+                            }
+                        }
+                    },
+                    Err(e) => {
+                        error!("Failed to read universal manifest response: {}", e);
+                        
+                        if retries < MAX_RETRIES {
+                            retries += 1;
+                            debug!("Retrying request ({}/{})", retries, MAX_RETRIES);
+                            tokio::time::sleep(tokio::time::Duration::from_millis(500 * retries as u64)).await;
+                            continue;
+                        }
+                        
+                        return Err(format!("Failed to read universal manifest response: {}", e));
+                    }
+                }
+            },
+            Err(e) => {
+                error!("Failed to fetch universal manifest: {}", e);
+                
+                if retries < MAX_RETRIES {
+                    retries += 1;
+                    debug!("Retrying request ({}/{})", retries, MAX_RETRIES);
+                    tokio::time::sleep(tokio::time::Duration::from_millis(500 * retries as u64)).await;
+                    continue;
+                }
+                
+                return Err(format!("Failed to fetch universal manifest: {}", e));
+            }
         }
     }
 }
