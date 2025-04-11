@@ -411,30 +411,28 @@ fn HomePage(
                 
                 // Big play button for the most recent installation
                 if let Some(installation) = latest_installation.clone() {
+                    let play_id = installation.id.clone();
+                    let has_update = installation.update_available;
+                    let update_id = installation.id.clone();
+                    
                     div { class: "main-play-container",
                         PlayButton {
-                            uuid: installation.id.clone(),
+                            uuid: play_id.clone(),
                             disabled: false,
                             onclick: move |_| {
-                                let installation_id = installation.id.clone();
-                                handle_play_click(installation_id, &error_signal);
+                                handle_play_click(play_id.clone(), &error_signal);
                             }
                         }
                         
                         // Quick update button if available
-                        if installation.update_available {
-                            {
-                                let update_id = installation.id.clone();
-                                rsx! {
-                                    button {
-                                        class: "quick-update-button",
-                                        onclick: move |_| {
-                                            // Quick update functionality
-                                            debug!("Quick update clicked for: {}", update_id);
-                                        },
-                                        "Update Available"
-                                    }
-                                }
+                        if has_update {
+                            button {
+                                class: "quick-update-button",
+                                onclick: move |_| {
+                                    // Quick update functionality
+                                    debug!("Quick update clicked for: {}", update_id);
+                                },
+                                "Update Available"
                             }
                         }
                     }
@@ -1164,68 +1162,72 @@ fn InstallationManagementPage(
                                     
                                     if let Some(manifest) = universal_manifest.read().as_ref().and_then(|m| m.as_ref()) {
                                         div { class: "features-grid",
-                                            // Create a vector of feature cards
                                             {
-                                                manifest.mods.iter()
-                                                    .filter(|m| m.optional)
-                                                    .map(|mod_component| {
-                                                        let feature_id = mod_component.id.clone();
-                                                        let is_enabled = enabled_features.read().contains(&feature_id);
-                                                        let mod_name = mod_component.name.clone();
-                                                        let description = mod_component.description.clone();
-                                                        let dependencies = mod_component.dependencies.clone();
-                                                        
-                                                        rsx! {
-                                                            div { 
-                                                                class: if is_enabled { 
-                                                                    "feature-card feature-enabled" 
-                                                                } else { 
-                                                                    "feature-card feature-disabled" 
-                                                                },
+                                                // Manually build the feature cards
+                                                let mut feature_cards = Vec::new();
+                                                
+                                                for mod_component in manifest.mods.iter().filter(|m| m.optional) {
+                                                    let feature_id = mod_component.id.clone();
+                                                    let is_enabled = enabled_features.read().contains(&feature_id);
+                                                    let mod_name = mod_component.name.clone();
+                                                    let description = mod_component.description.clone();
+                                                    let dependencies = mod_component.dependencies.clone();
+                                                    
+                                                    feature_cards.push(rsx! {
+                                                        div { 
+                                                            key: "{feature_id}",
+                                                            class: if is_enabled { 
+                                                                "feature-card feature-enabled" 
+                                                            } else { 
+                                                                "feature-card feature-disabled" 
+                                                            },
+                                                            
+                                                            div { class: "feature-card-header",
+                                                                h3 { "{mod_name}" }
                                                                 
-                                                                div { class: "feature-card-header",
-                                                                    h3 { "{mod_name}" }
+                                                                label {
+                                                                    class: if is_enabled { 
+                                                                        "feature-toggle-button enabled" 
+                                                                    } else { 
+                                                                        "feature-toggle-button disabled" 
+                                                                    },
                                                                     
-                                                                    label {
-                                                                        class: if is_enabled { 
-                                                                            "feature-toggle-button enabled" 
-                                                                        } else { 
-                                                                            "feature-toggle-button disabled" 
-                                                                        },
-                                                                        
-                                                                        input {
-                                                                            r#type: "checkbox",
-                                                                            checked: is_enabled,
-                                                                            onchange: {
-                                                                                let feature_id = feature_id.clone();
-                                                                                move |_| toggle_feature(feature_id.clone())
-                                                                            }
+                                                                    input {
+                                                                        r#type: "checkbox",
+                                                                        checked: is_enabled,
+                                                                        onchange: {
+                                                                            let toggle_feature = toggle_feature.clone();
+                                                                            let feature_id = feature_id.clone();
+                                                                            move |_| toggle_feature(feature_id.clone())
                                                                         }
-                                                                        
-                                                                        if is_enabled { "Enabled" } else { "Disabled" }
                                                                     }
+                                                                    
+                                                                    if is_enabled { "Enabled" } else { "Disabled" }
                                                                 }
-                                                                
-                                                                if let Some(desc) = description {
-                                                                    div { class: "feature-card-description", "{desc}" }
-                                                                }
-                                                                
-                                                                if let Some(deps) = dependencies {
-                                                                    if !deps.is_empty() {
-                                                                        div { class: "feature-dependencies",
-                                                                            span { "Required: " }
-                                                                            for (i, dep) in deps.iter().enumerate() {
-                                                                                span { 
-                                                                                    class: "dependency-item",
-                                                                                    "{dep}{if i < deps.len() - 1 { \", \" } else { \"\" }}"
-                                                                                }
+                                                            }
+                                                            
+                                                            if let Some(desc) = description {
+                                                                div { class: "feature-card-description", "{desc}" }
+                                                            }
+                                                            
+                                                            if let Some(deps) = dependencies {
+                                                                if !deps.is_empty() {
+                                                                    div { class: "feature-dependencies",
+                                                                        span { "Required: " }
+                                                                        for (i, dep) in deps.iter().enumerate() {
+                                                                            span { 
+                                                                                class: "dependency-item",
+                                                                                "{dep}{if i < deps.len() - 1 { \", \" } else { \"\" }}"
                                                                             }
                                                                         }
                                                                     }
                                                                 }
                                                             }
                                                         }
-                                                    }).collect::<Vec<_>>()
+                                                    });
+                                                }
+                                                
+                                                feature_cards
                                             }
                                         }
                                     } else {
