@@ -1164,30 +1164,31 @@ fn InstallationManagementPage(
                     match *active_tab.read() {
                         "features" => rsx! {
                             div { class: "features-tab",
-    h2 { "Optional Features" }
-    p { "Toggle features on or off to customize your experience." }
-    
-    if let Some(manifest) = universal_manifest.read().as_ref().and_then(|m| m.as_ref()) {
-    rsx! {
-        div { class: "features-grid",
-            // Updated code here:
-            for mod_component in manifest.mods.iter().filter(|m| m.optional) {
-                FeatureCard {
-                    key: "{mod_component.id}",
-                    mod_component: mod_component.clone(),
-                    is_enabled: enabled_features.read().contains(&mod_component.id),
-                    toggle_feature: EventHandler::new(move |feature_id: String| {
-                        toggle_feature(feature_id)
-                    })
-                }
-            }
-        }
-    }
-} else {
-    rsx! {
-        div { class: "loading-container",
-            div { class: "loading-spinner" },
-            div { class: "loading-text", "Loading features..." }
+                                h2 { "Optional Features" }
+                                p { "Toggle features on or off to customize your experience." }
+                                
+                                if let Some(manifest) = universal_manifest.read().as_ref().and_then(|m| m.as_ref()) {
+                                    rsx! {
+                                        div { class: "features-grid",
+                                            // Updated code here:
+                                            for mod_component in manifest.mods.iter().filter(|m| m.optional) {
+                                                FeatureCard {
+                                                    key: "{mod_component.id}",
+                                                    mod_component: mod_component.clone(),
+                                                    is_enabled: enabled_features.read().contains(&mod_component.id),
+                                                    toggle_feature: EventHandler::new(move |feature_id: String| {
+                                                        toggle_feature(feature_id)
+                                                    })
+                                                }
+                                            }
+                                        }
+                                    }
+                                } else {
+                                    rsx! {
+                                        div { class: "loading-container",
+                                            div { class: "loading-spinner" },
+                                            div { class: "loading-text", "Loading features..." }
+                                        }
                                     }
                                 }
                             }
