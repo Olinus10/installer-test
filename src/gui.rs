@@ -1899,13 +1899,7 @@ fn FeatureCard(props: FeatureCardProps) -> Element {
     
     rsx! {
         div { 
-            class: {
-                if is_enabled { 
-                    "feature-card feature-enabled" 
-                } else { 
-                    "feature-card feature-disabled" 
-                }
-            },
+            class: {if is_enabled { "feature-card feature-enabled" } else { "feature-card feature-disabled" }},
             
             div { class: "feature-card-header",
                 h3 { class: "feature-card-title", "{props.mod_component.name}" }
@@ -1930,21 +1924,15 @@ fn FeatureCard(props: FeatureCardProps) -> Element {
             }
             
             label {
-                class: {
-                    if is_enabled { 
-                        "feature-toggle-button enabled" 
-                    } else { 
-                        "feature-toggle-button disabled" 
-                    }
-                },
+                class: {if is_enabled { "feature-toggle-button enabled" } else { "feature-toggle-button disabled" }},
                 input {
                     r#type: "checkbox",
                     name: "{feature_id}",
-                    checked: { if is_enabled { "true" } else { "" } },
+                    checked: {if is_enabled { "true" } else { "" }},
                     onchange: move |evt| props.toggle_feature.call(feature_id.clone()),
                     style: "display: none;"
                 }
-                { if is_enabled { "Enabled" } else { "Disabled" } }
+                {if is_enabled { "Enabled" } else { "Disabled" }}
             }
         }
     }
