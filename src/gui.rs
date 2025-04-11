@@ -26,6 +26,7 @@ use crate::CachedHttpClient;
 use crate::changelog::{fetch_changelog, Changelog as ChangelogData};
 use crate::preset;
 use crate::launch_modpack;
+use crate::universal::ModComponent;
 
 mod modal;
 
@@ -1167,6 +1168,7 @@ fn InstallationManagementPage(
     p { "Toggle features on or off to customize your experience." }
     
     if let Some(manifest) = universal_manifest.read().as_ref().and_then(|m| m.as_ref()) {
+    rsx! {
         div { class: "features-grid",
             // Updated code here:
             for mod_component in manifest.mods.iter().filter(|m| m.optional) {
@@ -1175,14 +1177,16 @@ fn InstallationManagementPage(
                     mod_component: mod_component.clone(),
                     is_enabled: enabled_features.read().contains(&mod_component.id),
                     toggle_feature: EventHandler::new(move |feature_id: String| {
-                        toggle_feature(feature_id);
+                        toggle_feature(feature_id)
                     })
                 }
             }
         }
-    } else {
+    }
+} else {
+    rsx! {
         div { class: "loading-container",
-            div { class: "loading-spinner" }
+            div { class: "loading-spinner" },
             div { class: "loading-text", "Loading features..." }
                                     }
                                 }
@@ -1914,22 +1918,24 @@ fn FeatureCard(props: FeatureCardProps) -> Element {
                         r#type: "checkbox",
                         checked: is_enabled,
                         onchange: move |_| {
-                            props.toggle_feature.call(feature_id.clone());
+                            props.toggle_feature.call(feature_id.clone())
                         }
-                    }
+                    },
                     
-                    if is_enabled { "Enabled" } else { "Disabled" }
+                    span {
+                        if is_enabled { "Enabled" } else { "Disabled" }
+                    }
                 }
-            }
+            },
             
             if let Some(description) = &props.mod_component.description {
                 div { class: "feature-card-description", "{description}" }
-            }
+            },
             
             if let Some(deps) = &props.mod_component.dependencies {
                 if !deps.is_empty() {
                     div { class: "feature-dependencies",
-                        span { "Required: " }
+                        span { "Required: " },
                         for (i, dep) in deps.iter().enumerate() {
                             span { 
                                 class: "dependency-item",
@@ -1942,7 +1948,6 @@ fn FeatureCard(props: FeatureCardProps) -> Element {
         }
     }
 }
-
 
 fn feature_change(
     local_features: Signal<Option<Vec<String>>>,
