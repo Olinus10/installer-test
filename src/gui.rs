@@ -1027,7 +1027,7 @@ fn InstallationDetailsPage(
     
     // Handle installation not found
     if let Err(e) = &*installation_result.read() {
-        rsx! {
+        return rsx! {
             div { class: "error-container",
                 h2 { "Installation Not Found" }
                 p { "The requested installation could not be found." }
@@ -1043,82 +1043,83 @@ fn InstallationDetailsPage(
                     "Back to Home"
                 }
             }
+        };
+    } 
+    
+    // Unwrap installation from result (safe because we checked for errors)
+    let installation = installation_result.read().as_ref().unwrap().clone();
+    
+    // State for modification tracking
+    let mut has_changes = use_signal(|| false);
+    let enabled_features = use_signal(|| installation.enabled_features.clone());
+    let mut memory_allocation = use_signal(|| installation.memory_allocation);
+    let mut java_args = use_signal(|| installation.java_args.clone());
+    
+    // Resource for the universal manifest
+    let universal_manifest = use_resource(move || async {
+        match crate::universal::load_universal_manifest(&crate::CachedHttpClient::new(), None).await {
+            Ok(manifest) => Some(manifest),
+            Err(_) => None,
         }
-    } else {
-        // Unwrap installation from result (safe because we checked for errors)
-        let installation = installation_result.read().as_ref().unwrap().clone();
+    });
+    
+    // Effect to detect changes
+    use_effect(move || {
+        let features_changed = enabled_features.read().clone() != installation.enabled_features;
+        let memory_changed = *memory_allocation.read() != installation.memory_allocation;
+        let args_changed = *java_args.read() != installation.java_args;
         
-        // State for modification tracking
-        let mut has_changes = use_signal(|| false);
-        let enabled_features = use_signal(|| installation.enabled_features.clone());
-        let mut memory_allocation = use_signal(|| installation.memory_allocation);
-        let mut java_args = use_signal(|| installation.java_args.clone());
-        
-        // Resource for the universal manifest
-        let universal_manifest = use_resource(move || async {
-            match crate::universal::load_universal_manifest(&crate::CachedHttpClient::new(), None).await {
-                Ok(manifest) => Some(manifest),
-                Err(_) => None,
+        has_changes.set(features_changed || memory_changed || args_changed);
+    });
+    
+    // Handle feature toggle
+    let toggle_feature = move |feature_id: String| {
+        enabled_features.with_mut(|features| {
+            if features.contains(&feature_id) {
+                features.retain(|id| id != &feature_id);
+            } else {
+                features.push(feature_id);
             }
         });
-        
-        // Effect to detect changes
-        use_effect(move || {
-            let features_changed = enabled_features.read().clone() != installation.enabled_features;
-            let memory_changed = *memory_allocation.read() != installation.memory_allocation;
-            let args_changed = *java_args.read() != installation.java_args;
-            
-            has_changes.set(features_changed || memory_changed || args_changed);
-        });
-        
-        // Handle feature toggle
-        let toggle_feature = move |feature_id: String| {
-            enabled_features.with_mut(|features| {
-                if features.contains(&feature_id) {
-                    features.retain(|id| id != &feature_id);
-                } else {
-                    features.push(feature_id);
-                }
-            });
-        };
-        
-        // Clone necessary values for event handlers
-        let installation_id_for_launch = installation.id.clone();
-        let installation_error_signal = installation_error.clone();
-        let installation_for_update = installation.clone();
-        
-        // Prepare the onback handler for the delete function
-        let onback_clone = onback.clone();
-        let delete_onback = move || {
-            if let Some(handler) = &onback_clone {
-                handler.call(());
-            }
-        };
+    };
+    
+    // Clone necessary values for event handlers
+    let installation_id_for_launch = installation.id.clone();
+    let installation_error_signal = installation_error.clone();
+    let installation_for_update = installation.clone();
+    
+    // Prepare the onback handler for the delete function
+    let onback_clone = onback.clone();
+    let delete_onback = move || {
+        if let Some(handler) = &onback_clone {
+            handler.call(());
+        }
+    };
 
-        rsx! {
-            div { class: "installation-details-container",
-                // Header with installation name and version
-                div { class: "installation-header",
-                    h1 { "{installation.name}" }
-                    span { class: "minecraft-version", "Minecraft {installation.minecraft_version}" }
-                    
-                    if installation.update_available {
-                        span { class: "update-badge", "Update Available" }
-                    }
-                }
+    rsx! {
+        div { class: "installation-details-container",
+            // Header with installation name and version
+            div { class: "installation-header",
+                h1 { "{installation.name}" }
+                span { class: "minecraft-version", "Minecraft {installation.minecraft_version}" }
                 
-                // Error display
-                if let Some(error) = &*installation_error.read() {
-                    div { class: "error-notification",
-                        div { class: "error-message", "{error}" }
-                        button { 
-                            class: "error-close",
-                            onclick: move |_| installation_error.set(None),
-                            "×"
-                        }
+                if installation.update_available {
+                    span { class: "update-badge", "Update Available" }
+                }
+            }
+            
+            // Error display
+            if let Some(error) = &*installation_error.read() {
+                div { class: "error-notification",
+                    div { class: "error-message", "{error}" }
+                    button { 
+                        class: "error-close",
+                        onclick: move |_| installation_error.set(None),
+                        "×"
                     }
                 }
-             }
+            }
+        
             // Main content in tabbed interface
             div { class: "installation-content",
                 // Tabs navigation
@@ -2664,50 +2665,54 @@ pub fn app() -> Element {
     let mut current_installation_id = use_signal(|| Option::<String>::None);
     let mut installations = use_signal(|| props.installations.clone());
 
-    // Get launcher configuration and clone it for use in closures
-    let launcher_option = match get_launcher(&config.read().launcher) {
-        Ok(launcher) => Some(launcher),
+    // Get launcher configuration
+    let launcher = match get_launcher(&config.read().launcher) {
+        Ok(l) => Some(l),
         Err(e) => {
             error!("Failed to load launcher: {} - {}", config.read().launcher, e);
             None
         },
     };
-    // Create separate variables for use in each closure
-    let launcher_option_for_manifest = launcher_option.is_some();
-    let launcher_option_for_presets = launcher_option.is_some();
-    let launcher_option_for_header = launcher_option.is_some();
+    let has_launcher = launcher.is_some();
 
-    // Load universal manifest 
-    let _universal_manifest = use_resource(move || async {
-        if !launcher_option_for_manifest {
-            return None;
-        }
-        
-        match universal::load_universal_manifest(&CachedHttpClient::new(), None).await {
-            Ok(manifest) => {
-                debug!("Successfully loaded universal manifest");
-                Some(manifest)
-            },
-            Err(e) => {
-                error!("Failed to load universal manifest: {}", e);
-                None
+    // Load universal manifest - Fixed by cloning launcher for use in closure
+    let universal_manifest = use_resource(move || {
+        let has_launcher = has_launcher; // Clone here
+        async move {
+            if !has_launcher {
+                return None;
+            }
+            
+            match universal::load_universal_manifest(&CachedHttpClient::new(), None).await {
+                Ok(manifest) => {
+                    debug!("Successfully loaded universal manifest");
+                    Some(manifest)
+                },
+                Err(e) => {
+                    error!("Failed to load universal manifest: {}", e);
+                    None
+                }
             }
         }
     });
 
-    let _presets = use_resource(move || async {
-        if !launcher_option_for_presets {
-            return Vec::new();
-        }
-        
-        match preset::load_presets(&CachedHttpClient::new(), None).await {
-            Ok(presets) => presets,
-            Err(_) => Vec::new(),
+    // Fixed presets resource
+    let presets = use_resource(move || {
+        let has_launcher = has_launcher; // Clone here
+        async move {
+            if !has_launcher {
+                return Vec::new();
+            }
+            
+            match preset::load_presets(&CachedHttpClient::new(), None).await {
+                Ok(presets) => presets,
+                Err(_) => Vec::new(),
+            }
         }
     });
     
     // Load changelog
-    let _changelog = use_resource(move || async {
+    let changelog = use_resource(move || async {
         match fetch_changelog("Olinus10/installer-test/", &CachedHttpClient::new()).await {
             Ok(changelog) => Some(changelog),
             Err(_) => None,
@@ -2766,7 +2771,7 @@ pub fn app() -> Element {
             BackgroundParticles {}
             
             // Show header when appropriate
-            {if !config.read().first_launch.unwrap_or(true) && launcher_option_for_header && !settings() {
+            {if !config.read().first_launch.unwrap_or(true) && has_launcher && !settings() {
                 rsx! {
                     AppHeader {
                         installations: installations.clone(),
@@ -2798,7 +2803,7 @@ pub fn app() -> Element {
                             b64_id: URL_SAFE_NO_PAD.encode(props.modpack_source)
                         }
                     }
-                } else if config.read().first_launch.unwrap_or(true) || launcher_option.is_none() {
+                } else if config.read().first_launch.unwrap_or(true) || !has_launcher {
                     // Launcher selection
                     rsx! {
                         Launcher {
@@ -2808,7 +2813,7 @@ pub fn app() -> Element {
                             b64_id: URL_SAFE_NO_PAD.encode(props.modpack_source)
                         }
                     }
-                } else if _universal_manifest.read().is_none() {
+                } else if universal_manifest.read().is_none() {
                     // Loading screen
                     rsx! {
                         div { class: "loading-container",
