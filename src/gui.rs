@@ -1162,32 +1162,36 @@ fn InstallationManagementPage(
                 // Content area
                 div { class: "installation-content",
                     match *active_tab.read() {
-                        "features" => rsx! {
-    div { class: "features-tab",
-        h2 { "Optional Features" }
-        p { "Toggle features on or off to customize your experience." }
-        
-        if let Some(manifest) = universal_manifest.read().as_ref().and_then(|m| m.as_ref()) {
-            rsx! {
-                div { class: "features-grid",
-                    // Updated code here:
-                    for mod_component in manifest.mods.iter().filter(|m| m.optional) {
-                        FeatureCard {
-                            key: "{mod_component.id}",
-                            mod_component: mod_component.clone(),
-                            is_enabled: enabled_features.read().contains(&mod_component.id),
-                            toggle_feature: EventHandler::new(move |feature_id: String| {
-                                toggle_feature(feature_id)
-                            })
+                        "features" => {
+    rsx! {
+        div { class: "features-tab",
+            h2 { "Optional Features" }
+            p { "Toggle features on or off to customize your experience." }
+            
+            {
+                if let Some(manifest) = universal_manifest.read().as_ref().and_then(|m| m.as_ref()) {
+                    rsx! {
+                        div { class: "features-grid",
+                            // Updated code here:
+                            for mod_component in manifest.mods.iter().filter(|m| m.optional) {
+                                FeatureCard {
+                                    key: "{mod_component.id}",
+                                    mod_component: mod_component.clone(),
+                                    is_enabled: enabled_features.read().contains(&mod_component.id),
+                                    toggle_feature: EventHandler::new(move |feature_id: String| {
+                                        toggle_feature(feature_id)
+                                    })
+                                }
+                            }
                         }
                     }
-                }
-            }
-        } else {
-            rsx! {
-                div { class: "loading-container",
-                    div { class: "loading-spinner" }
-                    div { class: "loading-text", "Loading features..." }
+                } else {
+                    rsx! {
+                        div { class: "loading-container",
+                            div { class: "loading-spinner" }
+                            div { class: "loading-text", "Loading features..." }
+                        }
+                    }
                 }
             }
         }
@@ -1899,40 +1903,53 @@ fn FeatureCard(props: FeatureCardProps) -> Element {
     
     rsx! {
         div { 
-            class: {if is_enabled { "feature-card feature-enabled" } else { "feature-card feature-disabled" }},
+            class: {if is_enabled {"feature-card feature-enabled"} else {"feature-card feature-disabled"}},
             
             div { class: "feature-card-header",
-                h3 { class: "feature-card-title", "{props.mod_component.name}" }
+                h3 { "{props.mod_component.name}" }
             }
             
-            if let Some(description) = &props.mod_component.description {
-                div { class: "feature-card-description", "{description}" }
+            {
+                if let Some(description) = &props.mod_component.description {
+                    rsx! {
+                        div { class: "feature-card-description", "{description}" }
+                    }
+                } else {
+                    rsx! {}
+                }
             }
             
-            if let Some(deps) = &props.mod_component.dependencies {
-                if !deps.is_empty() {
-                    div { class: "feature-dependencies",
-                        span { "Required: " }
-                        for (i, dep) in deps.iter().enumerate() {
-                            span { 
-                                class: "dependency-item",
-                                "{dep}{if i < deps.len() - 1 { \", \" } else { \"\" }}"
+            {
+                if let Some(deps) = &props.mod_component.dependencies {
+                    if !deps.is_empty() {
+                        rsx! {
+                            div { class: "feature-dependencies",
+                                span { "Required: " }
+                                for (i, dep) in deps.iter().enumerate() {
+                                    span { 
+                                        class: "dependency-item",
+                                        "{dep}{if i < deps.len() - 1 { \", \" } else { \"\" }}"
+                                    }
+                                }
                             }
                         }
+                    } else {
+                        rsx! {}
                     }
+                } else {
+                    rsx! {}
                 }
             }
             
             label {
-                class: {if is_enabled { "feature-toggle-button enabled" } else { "feature-toggle-button disabled" }},
+                class: {if is_enabled {"feature-toggle-button enabled"} else {"feature-toggle-button disabled"}},
                 input {
                     r#type: "checkbox",
-                    name: "{feature_id}",
-                    checked: {if is_enabled { "true" } else { "" }},
-                    onchange: move |evt| props.toggle_feature.call(feature_id.clone()),
+                    checked: {is_enabled},
+                    onchange: move |_| props.toggle_feature.call(feature_id.clone()),
                     style: "display: none;"
                 }
-                {if is_enabled { "Enabled" } else { "Disabled" }}
+                {if is_enabled {"Enabled"} else {"Disabled"}}
             }
         }
     }
