@@ -411,28 +411,36 @@ fn HomePage(
                 
                 // Big play button for the most recent installation
                 if let Some(installation) = latest_installation.clone() {
-                    let play_id = installation.id.clone();
-                    let has_update = installation.update_available;
-                    let update_id = installation.id.clone();
-                    
                     div { class: "main-play-container",
-                        PlayButton {
-                            uuid: play_id.clone(),
-                            disabled: false,
-                            onclick: move |_| {
-                                handle_play_click(play_id.clone(), &error_signal);
+                        // Play button
+                        {
+                            let play_id = installation.id.clone();
+                            rsx! {
+                                PlayButton {
+                                    uuid: play_id.clone(),
+                                    disabled: false,
+                                    onclick: move |_| {
+                                        let play_id_inner = play_id.clone();
+                                        handle_play_click(play_id_inner, &error_signal);
+                                    }
+                                }
                             }
                         }
                         
                         // Quick update button if available
-                        if has_update {
-                            button {
-                                class: "quick-update-button",
-                                onclick: move |_| {
-                                    // Quick update functionality
-                                    debug!("Quick update clicked for: {}", update_id);
-                                },
-                                "Update Available"
+                        if installation.update_available {
+                            {
+                                let update_id = installation.id.clone();
+                                rsx! {
+                                    button {
+                                        class: "quick-update-button",
+                                        onclick: move |_| {
+                                            // Quick update functionality
+                                            debug!("Quick update clicked for: {}", update_id);
+                                        },
+                                        "Update Available"
+                                    }
+                                }
                             }
                         }
                     }
@@ -1162,20 +1170,15 @@ fn InstallationManagementPage(
                                     
                                     if let Some(manifest) = universal_manifest.read().as_ref().and_then(|m| m.as_ref()) {
                                         div { class: "features-grid",
-                                            {
-                                                // Manually build the feature cards
-                                                let mut feature_cards = Vec::new();
-                                                
-                                                for mod_component in manifest.mods.iter().filter(|m| m.optional) {
+                                            // Render each feature card directly
+                                            for mod_component in manifest.mods.iter().filter(|m| m.optional) {
+                                                {
                                                     let feature_id = mod_component.id.clone();
                                                     let is_enabled = enabled_features.read().contains(&feature_id);
-                                                    let mod_name = mod_component.name.clone();
-                                                    let description = mod_component.description.clone();
-                                                    let dependencies = mod_component.dependencies.clone();
+                                                    let toggle_fn = toggle_feature.clone();
                                                     
-                                                    feature_cards.push(rsx! {
+                                                    rsx! {
                                                         div { 
-                                                            key: "{feature_id}",
                                                             class: if is_enabled { 
                                                                 "feature-card feature-enabled" 
                                                             } else { 
@@ -1183,7 +1186,7 @@ fn InstallationManagementPage(
                                                             },
                                                             
                                                             div { class: "feature-card-header",
-                                                                h3 { "{mod_name}" }
+                                                                h3 { "{mod_component.name}" }
                                                                 
                                                                 label {
                                                                     class: if is_enabled { 
@@ -1195,10 +1198,9 @@ fn InstallationManagementPage(
                                                                     input {
                                                                         r#type: "checkbox",
                                                                         checked: is_enabled,
-                                                                        onchange: {
-                                                                            let toggle_feature = toggle_feature.clone();
-                                                                            let feature_id = feature_id.clone();
-                                                                            move |_| toggle_feature(feature_id.clone())
+                                                                        onchange: move |_| {
+                                                                            let feature_id_inner = feature_id.clone();
+                                                                            toggle_fn(feature_id_inner);
                                                                         }
                                                                     }
                                                                     
@@ -1206,11 +1208,11 @@ fn InstallationManagementPage(
                                                                 }
                                                             }
                                                             
-                                                            if let Some(desc) = description {
-                                                                div { class: "feature-card-description", "{desc}" }
+                                                            if let Some(description) = &mod_component.description {
+                                                                div { class: "feature-card-description", "{description}" }
                                                             }
                                                             
-                                                            if let Some(deps) = dependencies {
+                                                            if let Some(deps) = &mod_component.dependencies {
                                                                 if !deps.is_empty() {
                                                                     div { class: "feature-dependencies",
                                                                         span { "Required: " }
@@ -1224,10 +1226,8 @@ fn InstallationManagementPage(
                                                                 }
                                                             }
                                                         }
-                                                    });
+                                                    }
                                                 }
-                                                
-                                                feature_cards
                                             }
                                         }
                                     } else {
