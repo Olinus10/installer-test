@@ -1049,15 +1049,18 @@ fn InstallationDetailsPage(
     // Unwrap installation from result (safe because we checked for errors)
     let installation = installation_result.read().as_ref().unwrap().clone();
     
-    // Store needed values for closures to avoid ownership issues
+    // Clone all the values we need from installation to avoid partial moves
     let installation_id_for_delete = installation.id.clone();
     let installation_java_args = installation.java_args.clone();
+    let installation_enabled_features = installation.enabled_features.clone();
+    let installation_id_for_launch = installation.id.clone();
+    let installation_for_update = installation.clone();
     
     // State for modification tracking
     let mut has_changes = use_signal(|| false);
-    let mut enabled_features = use_signal(|| installation.enabled_features.clone());
+    let mut enabled_features = use_signal(|| installation_enabled_features.clone());
     let mut memory_allocation = use_signal(|| installation.memory_allocation);
-    let mut java_args = use_signal(|| installation.java_args.clone());
+    let mut java_args = use_signal(|| installation_java_args.clone());
     
     // Resource for the universal manifest
     let universal_manifest = use_resource(move || async {
@@ -1067,13 +1070,22 @@ fn InstallationDetailsPage(
         }
     });
     
-    // Effect to detect changes
-    use_effect(move || {
-        let features_changed = enabled_features.read().clone() != installation.enabled_features;
-        let memory_changed = *memory_allocation.read() != installation.memory_allocation;
-        let args_changed = *java_args.read() != installation.java_args;
+    // Effect to detect changes - now using cloned values
+    use_effect({
+        let enabled_features_for_effect = enabled_features.clone();
+        let java_args_for_effect = java_args.clone();
+        let installation_enabled_features = installation_enabled_features.clone();
+        let installation_java_args = installation_java_args.clone();
+        let memory_allocation_for_effect = memory_allocation.clone();
+        let installation_memory = installation.memory_allocation;
         
-        has_changes.set(features_changed || memory_changed || args_changed);
+        move || {
+            let features_changed = enabled_features_for_effect.read().clone() != installation_enabled_features;
+            let memory_changed = *memory_allocation_for_effect.read() != installation_memory;
+            let args_changed = *java_args_for_effect.read() != installation_java_args;
+            
+            has_changes.set(features_changed || memory_changed || args_changed);
+        }
     });
     
     // Handle feature toggle
@@ -1087,10 +1099,8 @@ fn InstallationDetailsPage(
         });
     };
     
-    // Clone necessary values for event handlers
-    let installation_id_for_launch = installation.id.clone();
+    // Installation error signal for play button
     let installation_error_signal = installation_error.clone();
-    let installation_for_update = installation.clone();
     
     // Prepare the onback handler for the delete function
     let onback_clone = onback.clone();
@@ -1171,54 +1181,56 @@ fn InstallationDetailsPage(
                 }
             }
         },
-        "performance" => rsx! {
-            div { class: "performance-section",
-                h2 { "Performance Settings" }
-                p { "Configure memory allocation and Java arguments." }
-                
-                div { class: "form-group",
-                    label { r#for: "memory-allocation",
-                        "Memory Allocation: {*memory_allocation.read()} MB"
-                    }
-                    input {
-                        id: "memory-allocation",
-                        r#type: "range",
-                        min: "1024",
-                        max: "8192",
-                        step: "512",
-                        value: "{*memory_allocation.read()}",
-                        oninput: move |evt| {
-                            if let Ok(value) = evt.value().parse::<i32>() {
-                                memory_allocation.set(value);
+        "performance" => {
+            let java_args_value = java_args.read().clone();
+            let installation_java_args_clone = installation_java_args.clone();
+            
+            rsx! {
+                div { class: "performance-section",
+                    h2 { "Performance Settings" }
+                    p { "Configure memory allocation and Java arguments." }
+                    
+                    div { class: "form-group",
+                        label { r#for: "memory-allocation",
+                            "Memory Allocation: {*memory_allocation.read()} MB"
+                        }
+                        input {
+                            id: "memory-allocation",
+                            r#type: "range",
+                            min: "1024",
+                            max: "8192",
+                            step: "512",
+                            value: "{*memory_allocation.read()}",
+                            oninput: move |evt| {
+                                if let Ok(value) = evt.value().parse::<i32>() {
+                                    memory_allocation.set(value);
+                                }
                             }
                         }
-                    }
-                    div { class: "memory-markers",
-                        span { "1 GB" }
-                        span { "4 GB" }
-                        span { "8 GB" }
-                    }
-                }
-                
-                div { class: "form-group",
-                    label { r#for: "java-args", "Java Arguments:" }
-                    input {
-                        id: "java-args",
-                        r#type: "text",
-                        value: "{*java_args.read()}",
-                        oninput: move |evt| {
-                            java_args.set(evt.value().clone());
+                        div { class: "memory-markers",
+                            span { "1 GB" }
+                            span { "4 GB" }
+                            span { "8 GB" }
                         }
                     }
-                    button { 
-                        class: "reset-button",
-                        onclick: {
-                            let java_args_clone = installation_java_args.clone();
-                            move |_| {
-                                java_args.set(java_args_clone.clone());
+                    
+                    div { class: "form-group",
+                        label { r#for: "java-args", "Java Arguments:" }
+                        input {
+                            id: "java-args",
+                            r#type: "text",
+                            value: "{java_args_value}",
+                            oninput: move |evt| {
+                                java_args.set(evt.value().clone());
                             }
-                        },
-                        "Reset to Default"
+                        }
+                        button { 
+                            class: "reset-button",
+                            onclick: move |_| {
+                                java_args.set(installation_java_args_clone.clone());
+                            },
+                            "Reset to Default"
+                        }
                     }
                 }
             }
