@@ -1096,6 +1096,230 @@ fn InstallationDetailsPage(
         }
     };
 
+    let features_tab = if *active_tab.read() == "features" {
+        rsx! {
+            div { class: "features-section",
+                h2 { "Features" }
+                p { "Enable or disable optional features for this installation." }
+                
+                // Features list
+                if let Some(manifest) = universal_manifest.read().as_ref().and_then(|m| m.as_ref()) {
+                    div { class: "feature-cards-container",
+                        for mod_component in &manifest.mods {
+                            if mod_component.optional {
+                                {
+                                    let feature_id = mod_component.id.clone();
+                                    let is_enabled = enabled_features.read().contains(&feature_id);
+                                    
+                                    rsx! {
+                                        div { 
+                                            class: if is_enabled { 
+                                                "feature-card feature-enabled" 
+                                            } else { 
+                                                "feature-card feature-disabled" 
+                                            },
+                                            
+                                            // Feature card header
+                                            div { class: "feature-card-header",
+                                                h3 { class: "feature-card-title", "{mod_component.name}" }
+                                                
+                                                // Toggle control
+                                                label {
+                                                    class: if is_enabled { 
+                                                        "feature-toggle-button enabled" 
+                                                    } else { 
+                                                        "feature-toggle-button disabled" 
+                                                    },
+                                                    
+                                                    input {
+                                                        r#type: "checkbox",
+                                                        checked: is_enabled,
+                                                        onchange: {
+                                                            let feature_id = feature_id.clone();
+                                                            move |_| toggle_feature(feature_id.clone())
+                                                        }
+                                                    }
+                                                    
+                                                    if is_enabled { "Enabled" } else { "Disabled" }
+                                                }
+                                            }
+                                            
+                                            // Feature description
+                                            if let Some(description) = &mod_component.description {
+                                                div { class: "feature-card-description", "{description}" }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    div { class: "loading-message", "Loading available features..." }
+                }
+            }
+        }
+    } else {
+        rsx! { "" }
+    };
+
+    let performance_tab = if *active_tab.read() == "performance" {
+        rsx! {
+            div { class: "performance-section",
+                h2 { "Performance Settings" }
+                p { "Configure memory allocation and Java arguments." }
+                
+                div { class: "form-group",
+                    label { r#for: "memory-allocation",
+                        "Memory Allocation: {*memory_allocation.read()} MB"
+                    }
+                    input {
+                        id: "memory-allocation",
+                        r#type: "range",
+                        min: "1024",
+                        max: "8192",
+                        step: "512",
+                        value: "{*memory_allocation.read()}",
+                        oninput: move |evt| {
+                            if let Ok(value) = evt.value().parse::<i32>() {
+                                memory_allocation.set(value);
+                            }
+                        }
+                    }
+                    div { class: "memory-markers",
+                        span { "1 GB" }
+                        span { "4 GB" }
+                        span { "8 GB" }
+                    }
+                }
+                
+                div { class: "form-group",
+                    label { r#for: "java-args", "Java Arguments:" }
+                    input {
+                        id: "java-args",
+                        r#type: "text",
+                        value: "{*java_args.read()}",
+                        oninput: move |evt| {
+                            java_args.set(evt.value().clone());
+                        }
+                    }
+                    button { 
+                        class: "reset-button",
+                        onclick: move |_| {
+                            java_args.set(installation.java_args.clone());
+                        },
+                        "Reset to Default"
+                    }
+                }
+            }
+        }
+    } else {
+        rsx! { "" }
+    };
+
+    let settings_tab = if *active_tab.read() == "settings" {
+        rsx! {
+            div { class: "settings-section",
+                h2 { "Installation Settings" }
+                
+                div { class: "form-group",
+                    label { r#for: "installation-name", "Installation Name:" }
+                    input {
+                        id: "installation-name",
+                        r#type: "text",
+                        value: "{installation.name}",
+                        disabled: true
+                    }
+                }
+                
+                div { class: "danger-zone",
+                    h3 { "Danger Zone" }
+                    p { "These actions cannot be undone." }
+                    
+                    button { 
+                        class: "danger-button",
+                        onclick: move |_| {
+                            let mut modal = use_context::<ModalContext>();
+                            let onback_fn = delete_onback.clone();
+                            
+                            modal.open(
+                                "Confirm Deletion",
+                                rsx! {
+                                    p { "Are you sure you want to delete this installation? This action cannot be undone." }
+                                },
+                                true,
+                                Some(move |confirmed| {
+                                    if confirmed {
+                                        // Call delete function
+                                        if let Err(e) = crate::installation::delete_installation(&installation.id) {
+                                            installation_error.set(Some(format!("Failed to delete installation: {}", e)));
+                                        } else {
+                                            onback_fn();
+                                        }
+                                    }
+                                })
+                            );
+                        },
+                        "Delete Installation"
+                    }
+                }
+            }
+        }
+    } else {
+        rsx! { "" }
+    };
+
+    // Let's create the button first as a separate element
+    let update_button = if !installation.installed || installation.update_available || *has_changes.read() {
+        rsx! {
+            button {
+                class: "install-update-button",
+                disabled: *is_installing.read(),
+                onclick: move |_| {
+                    is_installing.set(true);
+                    let mut installation_clone = installation_for_update.clone();
+                    
+                    // Update settings
+                    installation_clone.enabled_features = enabled_features.read().clone();
+                    installation_clone.memory_allocation = *memory_allocation.read();
+                    installation_clone.java_args = java_args.read().clone();
+                    installation_clone.modified = true;
+                    
+                    let http_client = crate::CachedHttpClient::new();
+                    let mut installation_error_clone = installation_error.clone();
+                    
+                    spawn(async move {
+                        match installation_clone.install_or_update(&http_client).await {
+                            Ok(_) => {
+                                // Save the updated installation
+                                if let Err(e) = installation_clone.save() {
+                                    installation_error_clone.set(Some(format!("Failed to save changes: {}", e)));
+                                } else {
+                                    has_changes.set(false);
+                                }
+                            },
+                            Err(e) => {
+                                installation_error_clone.set(Some(e));
+                            }
+                        }
+                        is_installing.set(false);
+                    });
+                },
+                
+                if !installation.installed {
+                    "Install"
+                } else if installation.update_available {
+                    "Update"
+                } else {
+                    "Apply Changes"
+                }
+            }
+        }
+    } else {
+        rsx! { "" }
+    };
+
+    // Simplified by breaking it into more manageable parts
     rsx! {
         div { class: "installation-details-container",
             // Header with installation name and version
@@ -1143,171 +1367,11 @@ fn InstallationDetailsPage(
                 
                 // Tab content - based on active tab
                 div { class: "tab-content",
-                    // Features tab
-                    if *active_tab.read() == "features" {
-                        rsx! {
-                            div { class: "features-section",
-                                h2 { "Features" }
-                                p { "Enable or disable optional features for this installation." }
-                                
-                                // Features list
-                                if let Some(manifest) = universal_manifest.read().as_ref().and_then(|m| m.as_ref()) {
-                                    div { class: "feature-cards-container",
-                                        for mod_component in &manifest.mods {
-                                            if mod_component.optional {
-                                                {
-                                                    let feature_id = mod_component.id.clone();
-                                                    let is_enabled = enabled_features.read().contains(&feature_id);
-                                                    
-                                                    rsx! {
-                                                        div { 
-                                                            class: if is_enabled { 
-                                                                "feature-card feature-enabled" 
-                                                            } else { 
-                                                                "feature-card feature-disabled" 
-                                                            },
-                                                            
-                                                            // Feature card header
-                                                            div { class: "feature-card-header",
-                                                                h3 { class: "feature-card-title", "{mod_component.name}" }
-                                                                
-                                                                // Toggle control
-                                                                label {
-                                                                    class: if is_enabled { 
-                                                                        "feature-toggle-button enabled" 
-                                                                    } else { 
-                                                                        "feature-toggle-button disabled" 
-                                                                    },
-                                                                    
-                                                                    input {
-                                                                        r#type: "checkbox",
-                                                                        checked: is_enabled,
-                                                                        onchange: {
-                                                                            let feature_id = feature_id.clone();
-                                                                            move |_| toggle_feature(feature_id.clone())
-                                                                        }
-                                                                    }
-                                                                    
-                                                                    if is_enabled { "Enabled" } else { "Disabled" }
-                                                                }
-                                                            }
-                                                            
-                                                            // Feature description
-                                                            if let Some(description) = &mod_component.description {
-                                                                div { class: "feature-card-description", "{description}" }
-                                                            }
-                                                        }
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
-                                } else {
-                                    div { class: "loading-message", "Loading available features..." }
-                                }
-                            }
-                        }
-                    // Performance tab
-                    } else if *active_tab.read() == "performance" {
-                        rsx! {
-                            div { class: "performance-section",
-                                h2 { "Performance Settings" }
-                                p { "Configure memory allocation and Java arguments." }
-                                
-                                div { class: "form-group",
-                                    label { r#for: "memory-allocation",
-                                        "Memory Allocation: {*memory_allocation.read()} MB"
-                                    }
-                                    input {
-                                        id: "memory-allocation",
-                                        r#type: "range",
-                                        min: "1024",
-                                        max: "8192",
-                                        step: "512",
-                                        value: "{*memory_allocation.read()}",
-                                        oninput: move |evt| {
-                                            if let Ok(value) = evt.value().parse::<i32>() {
-                                                memory_allocation.set(value);
-                                            }
-                                        }
-                                    }
-                                    div { class: "memory-markers",
-                                        span { "1 GB" }
-                                        span { "4 GB" }
-                                        span { "8 GB" }
-                                    }
-                                }
-                                
-                                div { class: "form-group",
-                                    label { r#for: "java-args", "Java Arguments:" }
-                                    input {
-                                        id: "java-args",
-                                        r#type: "text",
-                                        value: "{*java_args.read()}",
-                                        oninput: move |evt| {
-                                            java_args.set(evt.value().clone());
-                                        }
-                                    }
-                                    button { 
-                                        class: "reset-button",
-                                        onclick: move |_| {
-                                            java_args.set(installation.java_args.clone());
-                                        },
-                                        "Reset to Default"
-                                    }
-                                }
-                            }
-                        }
-                    // Settings tab
-                    } else if *active_tab.read() == "settings" {
-                        rsx! {
-                            div { class: "settings-section",
-                                h2 { "Installation Settings" }
-                                
-                                div { class: "form-group",
-                                    label { r#for: "installation-name", "Installation Name:" }
-                                    input {
-                                        id: "installation-name",
-                                        r#type: "text",
-                                        value: "{installation.name}",
-                                        disabled: true
-                                    }
-                                }
-                                
-                                div { class: "danger-zone",
-                                    h3 { "Danger Zone" }
-                                    p { "These actions cannot be undone." }
-                                    
-                                    button { 
-                                        class: "danger-button",
-                                        onclick: move |_| {
-                                            let mut modal = use_context::<ModalContext>();
-                                            let onback_fn = delete_onback.clone();
-                                            
-                                            modal.open(
-                                                "Confirm Deletion",
-                                                rsx! {
-                                                    p { "Are you sure you want to delete this installation? This action cannot be undone." }
-                                                },
-                                                true,
-                                                Some(move |confirmed| {
-                                                    if confirmed {
-                                                        // Call delete function
-                                                        if let Err(e) = crate::installation::delete_installation(&installation.id) {
-                                                            installation_error.set(Some(format!("Failed to delete installation: {}", e)));
-                                                        } else {
-                                                            onback_fn();
-                                                        }
-                                                    }
-                                                })
-                                            );
-                                        },
-                                        "Delete Installation"
-                                    }
-                                }
-                            }
-                        }
-                    } else {
+                    {features_tab}
+                    {performance_tab}
+                    {settings_tab}
+                    
+                    if !(*active_tab.read() == "features" || *active_tab.read() == "performance" || *active_tab.read() == "settings") {
                         rsx! { div { "Unknown tab" } }
                     }
                 }
@@ -1325,50 +1389,7 @@ fn InstallationDetailsPage(
                 }
                 
                 // Install/Update button if needed
-                if !installation.installed || installation.update_available || *has_changes.read() {
-                    button {
-                        class: "install-update-button",
-                        disabled: *is_installing.read(),
-                        onclick: move |_| {
-                            is_installing.set(true);
-                            let mut installation_clone = installation_for_update.clone();
-                            
-                            // Update settings
-                            installation_clone.enabled_features = enabled_features.read().clone();
-                            installation_clone.memory_allocation = *memory_allocation.read();
-                            installation_clone.java_args = java_args.read().clone();
-                            installation_clone.modified = true;
-                            
-                            let http_client = crate::CachedHttpClient::new();
-                            let mut installation_error_clone = installation_error.clone();
-                            
-                            spawn(async move {
-                                match installation_clone.install_or_update(&http_client).await {
-                                    Ok(_) => {
-                                        // Save the updated installation
-                                        if let Err(e) = installation_clone.save() {
-                                            installation_error_clone.set(Some(format!("Failed to save changes: {}", e)));
-                                        } else {
-                                            has_changes.set(false);
-                                        }
-                                    },
-                                    Err(e) => {
-                                        installation_error_clone.set(Some(e));
-                                    }
-                                }
-                                is_installing.set(false);
-                            });
-                        },
-                        
-                        if !installation.installed {
-                            "Install"
-                        } else if installation.update_available {
-                            "Update"
-                        } else {
-                            "Apply Changes"
-                        }
-                    }
-                }
+                {update_button}
             }
         }
     }
@@ -2558,7 +2579,56 @@ fn AppHeader(
     } else {
         Vec::new()
     };
+
+    // Create the dropdown content as a separate element if needed
+    let dropdown_content = if !dropdown_installations.is_empty() {
+        rsx! {
+            div { class: "dropdown",
+                button { class: "header-tab-button", "More Installations ▼" }
+                div { class: "dropdown-content",
+                    for installation in &dropdown_installations {
+                        {
+                            let id = installation.id.clone();
+                            let name = installation.name.clone();
+                            let is_active = current_installation_id().as_ref().map_or(false, |current_id| current_id == &id);
+                            
+                            rsx! {
+                                button {
+                                    class: "dropdown-item {if is_active { \"active\" } else { \"\" }}",
+                                    onclick: move |_| on_select_installation.call(id.clone()),
+                                    "{name}"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    } else {
+        rsx! { "" }
+    };
+
+    // Direct installation tabs as a separate element
+    let direct_tabs = rsx! {
+        // Installation tabs (first MAX_INSTALLATION_TABS)
+        for installation in &direct_installations {
+            {
+                let id = installation.id.clone();
+                let name = installation.name.clone();
+                let is_active = current_installation_id().as_ref().map_or(false, |current_id| current_id == &id);
+                
+                rsx! {
+                    button {
+                        class: "header-tab-button {if is_active { \"active\" } else { \"\" }}",
+                        onclick: move |_| on_select_installation.call(id.clone()),
+                        "{name}"
+                    }
+                }
+            }
+        }
+    };
     
+    // Now assemble the header with our broken-down parts
     rsx! {
         header { class: "app-header",
             // Logo and title (acts as home button)
@@ -2583,46 +2653,11 @@ fn AppHeader(
                     "Home"
                 }
                 
-                // Installation tabs (first MAX_INSTALLATION_TABS)
-                for installation in &direct_installations {
-                    {
-                        let id = installation.id.clone();
-                        let name = installation.name.clone();
-                        let is_active = current_installation_id().as_ref().map_or(false, |current_id| current_id == &id);
-                        
-                        rsx! {
-                            button {
-                                class: "header-tab-button {if is_active { \"active\" } else { \"\" }}",
-                                onclick: move |_| on_select_installation.call(id.clone()),
-                                "{name}"
-                            }
-                        }
-                    }
-                }
+                // Insert direct tabs
+                {direct_tabs}
                 
-                // Dropdown for remaining installations
-                if !dropdown_installations.is_empty() {
-                    div { class: "dropdown",
-                        button { class: "header-tab-button", "More Installations ▼" }
-                        div { class: "dropdown-content",
-                            for installation in &dropdown_installations {
-                                {
-                                    let id = installation.id.clone();
-                                    let name = installation.name.clone();
-                                    let is_active = current_installation_id().as_ref().map_or(false, |current_id| current_id == &id);
-                                    
-                                    rsx! {
-                                        button {
-                                            class: "dropdown-item {if is_active { \"active\" } else { \"\" }}",
-                                            onclick: move |_| on_select_installation.call(id.clone()),
-                                            "{name}"
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
+                // Insert dropdown if needed
+                {dropdown_content}
                 
                 // Create new installation tab
                 button { 
