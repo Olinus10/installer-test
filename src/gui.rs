@@ -1897,52 +1897,28 @@ fn FeatureCard(props: FeatureCardProps) -> Element {
     let feature_id = props.mod_component.id.clone();
     let is_enabled = props.is_enabled;
     
-rsx! {
-    div { 
-        class: {
-            if is_enabled { 
-                "feature-card feature-enabled" 
-            } else { 
-                "feature-card feature-disabled" 
-            }
-        },
-        
-        div { class: "feature-card-header",
-            h3 { class: "feature-card-title", "{feat.name}" }
-        }
-        
-        if let Some(description) = &feat.description {
-            div { class: "feature-card-description", "{description}" }
-        }
-        
-        label {
+    rsx! {
+        div { 
             class: {
                 if is_enabled { 
-                    "feature-toggle-button enabled" 
+                    "feature-card feature-enabled" 
                 } else { 
-                    "feature-toggle-button disabled" 
+                    "feature-card feature-disabled" 
                 }
             },
-            input {
-                r#type: "checkbox",
-                name: "{feat.id}",
-                checked: { if is_enabled { "true" } else { "" } },
-                onchange: move |evt| handle_feature_toggle(feat_clone.clone(), evt),
-                style: "display: none;"
+            
+            div { class: "feature-card-header",
+                h3 { class: "feature-card-title", "{props.mod_component.name}" }
             }
-            { if is_enabled { "Enabled" } else { "Disabled" } }
-        }
-    }
-},
             
             if let Some(description) = &props.mod_component.description {
                 div { class: "feature-card-description", "{description}" }
-            },
+            }
             
             if let Some(deps) = &props.mod_component.dependencies {
                 if !deps.is_empty() {
                     div { class: "feature-dependencies",
-                        span { "Required: " },
+                        span { "Required: " }
                         for (i, dep) in deps.iter().enumerate() {
                             span { 
                                 class: "dependency-item",
@@ -1951,6 +1927,24 @@ rsx! {
                         }
                     }
                 }
+            }
+            
+            label {
+                class: {
+                    if is_enabled { 
+                        "feature-toggle-button enabled" 
+                    } else { 
+                        "feature-toggle-button disabled" 
+                    }
+                },
+                input {
+                    r#type: "checkbox",
+                    name: "{feature_id}",
+                    checked: { if is_enabled { "true" } else { "" } },
+                    onchange: move |evt| props.toggle_feature.call(feature_id.clone()),
+                    style: "display: none;"
+                }
+                { if is_enabled { "Enabled" } else { "Disabled" } }
             }
         }
     }
