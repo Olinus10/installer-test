@@ -1025,7 +1025,7 @@ fn InstallationDetailsPage(
     let mut is_installing = use_signal(|| false);
     let mut installation_error = use_signal(|| Option::<String>::None);
     
-    // Handle installation not found
+    // Handle installation not found with early return
     if let Err(e) = &*installation_result.read() {
         return rsx! {
             div { class: "error-container",
@@ -1095,76 +1095,78 @@ fn InstallationDetailsPage(
             handler.call(());
         }
     };
-
-    let features_tab = if *active_tab.read() == "features" {
-        rsx! {
-            div { class: "features-section",
-                h2 { "Features" }
-                p { "Enable or disable optional features for this installation." }
+    
+    // Pre-build the tab content to reduce nesting
+    let tab_content = match *active_tab.read() {
+        "features" => {
+            let manifest_content = if let Some(manifest) = universal_manifest.read().as_ref().and_then(|m| m.as_ref()) {
+                let mut feature_cards = Vec::new();
                 
-                // Features list
-                if let Some(manifest) = universal_manifest.read().as_ref().and_then(|m| m.as_ref()) {
-                    div { class: "feature-cards-container",
-                        for mod_component in &manifest.mods {
-                            if mod_component.optional {
-                                {
-                                    let feature_id = mod_component.id.clone();
-                                    let is_enabled = enabled_features.read().contains(&feature_id);
+                for mod_component in &manifest.mods {
+                    if mod_component.optional {
+                        let feature_id = mod_component.id.clone();
+                        let is_enabled = enabled_features.read().contains(&feature_id);
+                        
+                        feature_cards.push(rsx! {
+                            div { 
+                                class: if is_enabled { 
+                                    "feature-card feature-enabled" 
+                                } else { 
+                                    "feature-card feature-disabled" 
+                                },
+                                
+                                div { class: "feature-card-header",
+                                    h3 { class: "feature-card-title", "{mod_component.name}" }
                                     
-                                    rsx! {
-                                        div { 
-                                            class: if is_enabled { 
-                                                "feature-card feature-enabled" 
-                                            } else { 
-                                                "feature-card feature-disabled" 
-                                            },
-                                            
-                                            // Feature card header
-                                            div { class: "feature-card-header",
-                                                h3 { class: "feature-card-title", "{mod_component.name}" }
-                                                
-                                                // Toggle control
-                                                label {
-                                                    class: if is_enabled { 
-                                                        "feature-toggle-button enabled" 
-                                                    } else { 
-                                                        "feature-toggle-button disabled" 
-                                                    },
-                                                    
-                                                    input {
-                                                        r#type: "checkbox",
-                                                        checked: is_enabled,
-                                                        onchange: {
-                                                            let feature_id = feature_id.clone();
-                                                            move |_| toggle_feature(feature_id.clone())
-                                                        }
-                                                    }
-                                                    
-                                                    if is_enabled { "Enabled" } else { "Disabled" }
-                                                }
-                                            }
-                                            
-                                            // Feature description
-                                            if let Some(description) = &mod_component.description {
-                                                div { class: "feature-card-description", "{description}" }
+                                    label {
+                                        class: if is_enabled { 
+                                            "feature-toggle-button enabled" 
+                                        } else { 
+                                            "feature-toggle-button disabled" 
+                                        },
+                                        
+                                        input {
+                                            r#type: "checkbox",
+                                            checked: is_enabled,
+                                            onchange: {
+                                                let feature_id = feature_id.clone();
+                                                move |_| toggle_feature(feature_id.clone())
                                             }
                                         }
+                                        
+                                        if is_enabled { "Enabled" } else { "Disabled" }
                                     }
                                 }
+                                
+                                if let Some(description) = &mod_component.description {
+                                    div { class: "feature-card-description", "{description}" }
+                                }
                             }
-                        }
+                        });
                     }
-                } else {
+                }
+                
+                rsx! {
+                    div { class: "feature-cards-container",
+                        {feature_cards}
+                    }
+                }
+            } else {
+                rsx! {
                     div { class: "loading-message", "Loading available features..." }
                 }
+            };
+            
+            rsx! {
+                div { class: "features-section",
+                    h2 { "Features" }
+                    p { "Enable or disable optional features for this installation." }
+                    
+                    {manifest_content}
+                }
             }
-        }
-    } else {
-        rsx! { "" }
-    };
-
-    let performance_tab = if *active_tab.read() == "performance" {
-        rsx! {
+        },
+        "performance" => rsx! {
             div { class: "performance-section",
                 h2 { "Performance Settings" }
                 p { "Configure memory allocation and Java arguments." }
@@ -1212,13 +1214,8 @@ fn InstallationDetailsPage(
                     }
                 }
             }
-        }
-    } else {
-        rsx! { "" }
-    };
-
-    let settings_tab = if *active_tab.read() == "settings" {
-        rsx! {
+        },
+        "settings" => rsx! {
             div { class: "settings-section",
                 h2 { "Installation Settings" }
                 
@@ -1264,12 +1261,27 @@ fn InstallationDetailsPage(
                     }
                 }
             }
+        },
+        _ => rsx! { div { "Unknown tab" } }
+    };
+    
+    // Pre-build the error notification
+    let error_notification = if let Some(error) = &*installation_error.read() {
+        rsx! {
+            div { class: "error-notification",
+                div { class: "error-message", "{error}" }
+                button { 
+                    class: "error-close",
+                    onclick: move |_| installation_error.set(None),
+                    "×"
+                }
+            }
         }
     } else {
         rsx! { "" }
     };
-
-    // Let's create the button first as a separate element
+    
+    // Pre-build the update button
     let update_button = if !installation.installed || installation.update_available || *has_changes.read() {
         rsx! {
             button {
@@ -1319,7 +1331,7 @@ fn InstallationDetailsPage(
         rsx! { "" }
     };
 
-    // Simplified by breaking it into more manageable parts
+    // Main render with reduced nesting
     rsx! {
         div { class: "installation-details-container",
             // Header with installation name and version
@@ -1333,16 +1345,7 @@ fn InstallationDetailsPage(
             }
             
             // Error display
-            if let Some(error) = &*installation_error.read() {
-                div { class: "error-notification",
-                    div { class: "error-message", "{error}" }
-                    button { 
-                        class: "error-close",
-                        onclick: move |_| installation_error.set(None),
-                        "×"
-                    }
-                }
-            }
+            {error_notification}
         
             // Main content in tabbed interface
             div { class: "installation-content",
@@ -1365,15 +1368,9 @@ fn InstallationDetailsPage(
                     }
                 }
                 
-                // Tab content - based on active tab
+                // Tab content
                 div { class: "tab-content",
-                    {features_tab}
-                    {performance_tab}
-                    {settings_tab}
-                    
-                    if !(*active_tab.read() == "features" || *active_tab.read() == "performance" || *active_tab.read() == "settings") {
-                        rsx! { div { "Unknown tab" } }
-                    }
+                    {tab_content}
                 }
             }
             
@@ -2569,69 +2566,71 @@ fn AppHeader(
     on_go_home: EventHandler<()>,
     on_open_settings: EventHandler<()>,
 ) -> Element {
-    // Number of installation tabs to show directly (if more, put in dropdown)
+    // Number of installation tabs to show directly
     let MAX_INSTALLATION_TABS = 3;
     
     // Prepare installation tabs
-    let direct_installations = installations().iter().take(MAX_INSTALLATION_TABS).cloned().collect::<Vec<_>>();
-    let dropdown_installations = if installations().len() > MAX_INSTALLATION_TABS {
-        installations().iter().skip(MAX_INSTALLATION_TABS).cloned().collect::<Vec<_>>()
-    } else {
-        Vec::new()
+    let all_installations = installations();
+    let direct_installations = all_installations.iter().take(MAX_INSTALLATION_TABS).cloned().collect::<Vec<_>>();
+    let dropdown_installations = all_installations.iter().skip(MAX_INSTALLATION_TABS).cloned().collect::<Vec<_>>();
+    
+    // Current ID for active state
+    let current_id = current_installation_id();
+    
+    // Pre-build direct tabs
+    let direct_tabs_content = {
+        let mut tabs = Vec::new();
+        for installation in &direct_installations {
+            let id = installation.id.clone();
+            let name = installation.name.clone();
+            let is_active = current_id.as_ref().map_or(false, |current_id| current_id == &id);
+            let on_select = on_select_installation.clone();
+            
+            tabs.push(rsx! {
+                button {
+                    class: "header-tab-button {if is_active { \"active\" } else { \"\" }}",
+                    onclick: move |_| on_select.call(id.clone()),
+                    "{name}"
+                }
+            });
+        }
+        tabs
     };
-
-    // Create the dropdown content as a separate element if needed
-    let dropdown_content = if !dropdown_installations.is_empty() {
+    
+    // Pre-build dropdown menu
+    let dropdown_menu = if !dropdown_installations.is_empty() {
+        let mut dropdown_items = Vec::new();
+        for installation in &dropdown_installations {
+            let id = installation.id.clone();
+            let name = installation.name.clone();
+            let is_active = current_id.as_ref().map_or(false, |current_id| current_id == &id);
+            let on_select = on_select_installation.clone();
+            
+            dropdown_items.push(rsx! {
+                button {
+                    class: "dropdown-item {if is_active { \"active\" } else { \"\" }}",
+                    onclick: move |_| on_select.call(id.clone()),
+                    "{name}"
+                }
+            });
+        }
+        
         rsx! {
             div { class: "dropdown",
                 button { class: "header-tab-button", "More Installations ▼" }
                 div { class: "dropdown-content",
-                    for installation in &dropdown_installations {
-                        {
-                            let id = installation.id.clone();
-                            let name = installation.name.clone();
-                            let is_active = current_installation_id().as_ref().map_or(false, |current_id| current_id == &id);
-                            
-                            rsx! {
-                                button {
-                                    class: "dropdown-item {if is_active { \"active\" } else { \"\" }}",
-                                    onclick: move |_| on_select_installation.call(id.clone()),
-                                    "{name}"
-                                }
-                            }
-                        }
-                    }
+                    {dropdown_items}
                 }
             }
         }
     } else {
         rsx! { "" }
     };
-
-    // Direct installation tabs as a separate element
-    let direct_tabs = rsx! {
-        // Installation tabs (first MAX_INSTALLATION_TABS)
-        for installation in &direct_installations {
-            {
-                let id = installation.id.clone();
-                let name = installation.name.clone();
-                let is_active = current_installation_id().as_ref().map_or(false, |current_id| current_id == &id);
-                
-                rsx! {
-                    button {
-                        class: "header-tab-button {if is_active { \"active\" } else { \"\" }}",
-                        onclick: move |_| on_select_installation.call(id.clone()),
-                        "{name}"
-                    }
-                }
-            }
-        }
-    };
     
-    // Now assemble the header with our broken-down parts
+    // Main render
     rsx! {
         header { class: "app-header",
-            // Logo and title (acts as home button)
+            // Logo and title
             div { 
                 class: "app-header-left", 
                 onclick: move |_| on_go_home.call(()),
@@ -2648,16 +2647,16 @@ fn AppHeader(
             div { class: "header-tabs",
                 // Home tab
                 button { 
-                    class: "header-tab-button {if current_installation_id().is_none() { \"active\" } else { \"\" }}",
+                    class: "header-tab-button {if current_id.is_none() { \"active\" } else { \"\" }}",
                     onclick: move |_| on_go_home.call(()),
                     "Home"
                 }
                 
-                // Insert direct tabs
-                {direct_tabs}
+                // Direct installation tabs
+                {direct_tabs_content}
                 
-                // Insert dropdown if needed
-                {dropdown_content}
+                // Dropdown menu
+                {dropdown_menu}
                 
                 // Create new installation tab
                 button { 
@@ -2700,7 +2699,7 @@ pub fn app() -> Element {
     let mut current_installation_id = use_signal(|| Option::<String>::None);
     let mut installations = use_signal(|| props.installations.clone());
 
-    // Get launcher configuration
+    // Get launcher configuration and create a boolean flag for closure captures
     let launcher = match get_launcher(&config.read().launcher) {
         Ok(l) => Some(l),
         Err(e) => {
@@ -2710,11 +2709,11 @@ pub fn app() -> Element {
     };
     let has_launcher = launcher.is_some();
 
-    // Load universal manifest - Fixed by cloning launcher for use in closure
+    // Fixed universal manifest resource
     let universal_manifest = use_resource(move || {
-        let has_launcher = has_launcher; // Clone here
+        let launcher_available = has_launcher;
         async move {
-            if !has_launcher {
+            if !launcher_available {
                 return None;
             }
             
@@ -2733,9 +2732,9 @@ pub fn app() -> Element {
 
     // Fixed presets resource
     let presets = use_resource(move || {
-        let has_launcher = has_launcher; // Clone here
+        let launcher_available = has_launcher;
         async move {
-            if !has_launcher {
+            if !launcher_available {
                 return Vec::new();
             }
             
@@ -2784,20 +2783,125 @@ pub fn app() -> Element {
     // Modal context
     let mut modal_context = use_context_provider(ModalContext::default);
     
-    // Error handling
-    if let Some(e) = err() {
+    // Pre-build error modal
+    let error_modal = if let Some(e) = err() {
         modal_context.open("Error", rsx! {
             p {
                 "The installer encountered an error if the problem does not resolve itself please open a thread in #📂modpack-issues on the discord."
             }
             textarea { class: "error-area", readonly: true, "{e}" }
         }, false, Some(move |_| err.set(None)));
-    }
+        
+        // Return empty RSX to use in the main render
+        rsx! { "" }
+    } else {
+        rsx! { "" }
+    };
 
-    // Determine which logo to use
-    let _logo_url = Some("https://raw.githubusercontent.com/Wynncraft-Overhaul/installer/master/src/assets/icon.png".to_string());
+    // Pre-build the header if appropriate
+    let header_component = if !config.read().first_launch.unwrap_or(true) && has_launcher && !settings() {
+        rsx! {
+            AppHeader {
+                installations: installations.clone(),
+                current_installation_id: current_installation_id.clone(),
+                on_select_installation: move |id: String| {
+                    current_installation_id.set(Some(id));
+                },
+                on_go_home: move |_| {
+                    current_installation_id.set(None);
+                },
+                on_open_settings: move |_| {
+                    settings.set(true);
+                }
+            }
+        }
+    } else {
+        rsx! { "" }
+    };
     
-    // Main render
+    // Pre-build the footer
+    let footer_component = if !settings() {
+        rsx! { Footer {} }
+    } else {
+        rsx! { "" }
+    };
+    
+    // Pre-build the main content based on state
+    let main_content = if settings() {
+        // Settings screen
+        rsx! {
+            Settings {
+                config,
+                settings,
+                config_path: props.config_path.clone(),
+                error: err,
+                b64_id: URL_SAFE_NO_PAD.encode(props.modpack_source)
+            }
+        }
+    } else if config.read().first_launch.unwrap_or(true) || !has_launcher {
+        // Launcher selection
+        rsx! {
+            Launcher {
+                config,
+                config_path: props.config_path.clone(),
+                error: err,
+                b64_id: URL_SAFE_NO_PAD.encode(props.modpack_source)
+            }
+        }
+    } else if universal_manifest.read().is_none() {
+        // Loading screen
+        rsx! {
+            div { class: "loading-container",
+                div { class: "loading-spinner" }
+                div { class: "loading-text", "Loading modpack information..." }
+            }
+        }
+    } else {
+        // Main content based on current state
+        if current_installation_id.read().is_none() {
+            // Home page
+            rsx! {
+                NewHomePage {
+                    installations,
+                    error_signal: err
+                }
+            }
+        } else if current_installation_id.read().as_ref().map_or(false, |id| id == "new") {
+            // Installation creation wizard
+            rsx! {
+                InstallationCreationWizard {
+                    onclose: move |_| {
+                        current_installation_id.set(None);
+                    },
+                    oncreate: move |new_installation: Installation| {
+                        // Add the new installation
+                        installations.with_mut(|list| {
+                            list.insert(0, new_installation.clone());
+                        });
+                        
+                        // Set the current installation to the newly created one
+                        current_installation_id.set(Some(new_installation.id));
+                    }
+                }
+            }
+        } else {
+            // Installation details page
+            let back_handler = EventHandler::new(move |_| {
+                current_installation_id.set(None);
+            });
+            
+            let current_id = current_installation_id.read().as_ref().map(|id| id.clone()).unwrap_or_default();
+            
+            rsx! {
+                InstallationDetailsPage {
+                    installation_id: current_id,
+                    onback: Some(back_handler)
+                }
+            }
+        }
+    };
+    
+    // Main render with minimal nesting
     rsx! {
         div {
             style { {css_content} }
@@ -2806,109 +2910,17 @@ pub fn app() -> Element {
             BackgroundParticles {}
             
             // Show header when appropriate
-            {if !config.read().first_launch.unwrap_or(true) && has_launcher && !settings() {
-                rsx! {
-                    AppHeader {
-                        installations: installations.clone(),
-                        current_installation_id: current_installation_id.clone(),
-                        on_select_installation: move |id: String| {
-                            current_installation_id.set(Some(id));
-                        },
-                        on_go_home: move |_| {
-                            current_installation_id.set(None);
-                        },
-                        on_open_settings: move |_| {
-                            settings.set(true);
-                        }
-                    }
-                }
-            } else {
-                None
-            }}
+            {header_component}
 
             div { class: "main-container",
-                {if settings() {
-                    // Settings screen
-                    rsx! {
-                        Settings {
-                            config,
-                            settings,
-                            config_path: props.config_path.clone(),
-                            error: err,
-                            b64_id: URL_SAFE_NO_PAD.encode(props.modpack_source)
-                        }
-                    }
-                } else if config.read().first_launch.unwrap_or(true) || !has_launcher {
-                    // Launcher selection
-                    rsx! {
-                        Launcher {
-                            config,
-                            config_path: props.config_path.clone(),
-                            error: err,
-                            b64_id: URL_SAFE_NO_PAD.encode(props.modpack_source)
-                        }
-                    }
-                } else if universal_manifest.read().is_none() {
-                    // Loading screen
-                    rsx! {
-                        div { class: "loading-container",
-                            div { class: "loading-spinner" }
-                            div { class: "loading-text", "Loading modpack information..." }
-                        }
-                    }
-                } else {
-                    // Main content based on current state
-                    if current_installation_id.read().is_none() {
-                        // Home page
-                        rsx! {
-                            NewHomePage {
-                                installations,
-                                error_signal: err
-                            }
-                        }
-                    } else if current_installation_id.read().as_ref().map_or(false, |id| id == "new") {
-                        // Installation creation wizard
-                        rsx! {
-                            InstallationCreationWizard {
-                                onclose: move |_| {
-                                    current_installation_id.set(None);
-                                },
-                                oncreate: move |new_installation: Installation| {
-                                    // Add the new installation
-                                    installations.with_mut(|list| {
-                                        list.insert(0, new_installation.clone());
-                                    });
-                                    
-                                    // Set the current installation to the newly created one
-                                    current_installation_id.set(Some(new_installation.id));
-                                }
-                            }
-                        }
-                    } else {
-                        // Installation details page
-                        let back_handler = EventHandler::new(move |_| {
-                            current_installation_id.set(None);
-                        });
-                        
-                        let current_id = current_installation_id.read().as_ref().map(|id| id.clone()).unwrap_or_default();
-                        
-                        rsx! {
-                            InstallationDetailsPage {
-                                installation_id: current_id,
-                                onback: Some(back_handler)
-                            }
-                        }
-                    }
-                }
+                {main_content}
             }
             
             // Footer
-            {if !settings() {
-                rsx! { Footer {} }
-            } else {
-                None
-            }}
+            {footer_component}
+            
+            // Error modal (triggered earlier)
+            {error_modal}
         }
     }
-}
 }
