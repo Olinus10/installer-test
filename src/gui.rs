@@ -1037,17 +1037,17 @@ fn InstallationManagementPage(
     });
     
     // Handle feature toggle
-    let toggle_feature = move |feature_id: String| {
-        debug!("Toggling feature: {}", feature_id);
-        enabled_features.with_mut(|features| {
-            if features.contains(&feature_id) {
-                features.retain(|id| id != &feature_id);
-                debug!("Removed feature: {}", feature_id);
-            } else {
-                features.push(feature_id.clone());
-                debug!("Added feature: {}", feature_id);
-            }
-        });
+    let mut toggle_feature = move |feature_id: String| {
+    debug!("Toggling feature: {}", feature_id);
+    enabled_features.with_mut(|features| {
+        if features.contains(&feature_id) {
+            features.retain(|id| id != &feature_id);
+            debug!("Removed feature: {}", feature_id);
+        } else {
+            features.push(feature_id.clone());
+            debug!("Added feature: {}", feature_id);
+        }
+    });
     };
     
     // Handle install/update
@@ -1062,7 +1062,7 @@ fn InstallationManagementPage(
         installation_clone.modified = true;
         
         let http_client = crate::CachedHttpClient::new();
-        let installation_error_clone = installation_error.clone();
+        let mut installation_error_clone = installation_error.clone();
         
         spawn(async move {
             match installation_clone.install_or_update(&http_client).await {
@@ -1328,12 +1328,12 @@ fn InstallationManagementPage(
             div { class: "installation-actions",
                 // Play button
                 PlayButton {
-                    uuid: installation_id_for_launch,
-                    disabled: *is_installing.read(),
-                    onclick: move |_| {
-                        handle_play_click(installation_id_for_launch.clone(), &installation_error);
-                    }
-                }
+    uuid: installation_id_for_launch.clone(),
+    disabled: *is_installing.read(),
+    onclick: move |_| {
+        handle_play_click(installation_id_for_launch.clone(), &installation_error);
+    }
+}
                 
                 // Install/Update/Apply button
                 button {
@@ -1903,49 +1903,40 @@ fn FeatureCard(props: FeatureCardProps) -> Element {
     
     rsx! {
         div { 
-            class: {if is_enabled {"feature-card feature-enabled"} else {"feature-card feature-disabled"}},
+            class: if is_enabled {"feature-card feature-enabled"} else {"feature-card feature-disabled"},
             
             div { class: "feature-card-header",
                 h3 { "{props.mod_component.name}" }
             }
             
-            {
-                if let Some(description) = &props.mod_component.description {
-                    rsx! {
-                        div { class: "feature-card-description", "{description}" }
-                    }
-                } else {
-                    rsx! {}
-                }
+            // Description display
+            if let Some(description) = &props.mod_component.description {
+                div { class: "feature-card-description", "{description}" }
             }
             
-            {
-                if let Some(deps) = &props.mod_component.dependencies {
-                    if !deps.is_empty() {
-                        rsx! {
-                            div { class: "feature-dependencies",
-                                span { "Required: " }
-                                for (i, dep) in deps.iter().enumerate() {
-                                    span { 
-                                        class: "dependency-item",
-                                        "{dep}{if i < deps.len() - 1 { \", \" } else { \"\" }}"
-                                    }
+            // Dependencies display - Fixed the nested rsx! issue
+            if let Some(deps) = &props.mod_component.dependencies {
+                if !deps.is_empty() {
+                    div { class: "feature-dependencies",
+                        span { "Required: " }
+                        // Iterator in RSX
+                        {deps.iter().enumerate().map(|(i, dep)| {
+                            rsx! {
+                                span { 
+                                    class: "dependency-item",
+                                    "{dep}{if i < deps.len() - 1 { \", \" } else { \"\" }}"
                                 }
                             }
-                        }
-                    } else {
-                        rsx! {}
+                        })}
                     }
-                } else {
-                    rsx! {}
                 }
             }
             
             label {
-                class: {if is_enabled {"feature-toggle-button enabled"} else {"feature-toggle-button disabled"}},
+                class: if is_enabled {"feature-toggle-button enabled"} else {"feature-toggle-button disabled"},
                 input {
                     r#type: "checkbox",
-                    checked: {is_enabled},
+                    checked: is_enabled,
                     onchange: move |_| props.toggle_feature.call(feature_id.clone()),
                     style: "display: none;"
                 }
@@ -1954,6 +1945,7 @@ fn FeatureCard(props: FeatureCardProps) -> Element {
         }
     }
 }
+
 
 fn feature_change(
     local_features: Signal<Option<Vec<String>>>,
