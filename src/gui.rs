@@ -1278,7 +1278,7 @@ fn InstallationDetailsPage(
             }
         }
     } else {
-        rsx! { () }
+        rsx! { Fragment {} }
     };
     
     // Pre-build the update button
@@ -1328,7 +1328,7 @@ fn InstallationDetailsPage(
             }
         }
     } else {
-        rsx! { () }
+        rsx! { Fragment {} }
     };
 
     // Main render with reduced nesting
@@ -1352,17 +1352,35 @@ fn InstallationDetailsPage(
                 // Tabs navigation
                 div { class: "installation-tabs",
                     button { 
-                        class: "tab-button {if *active_tab.read() == \"features\" { \"active\" } else { \"\" }}",
+                        class: {
+                            if *active_tab.read() == "features" { 
+                                "tab-button active" 
+                            } else { 
+                                "tab-button" 
+                            }
+                        },
                         onclick: move |_| active_tab.set("features"),
                         "Features"
                     }
                     button { 
-                        class: "tab-button {if *active_tab.read() == \"performance\" { \"active\" } else { \"\" }}", 
+                        class: {
+                            if *active_tab.read() == "performance" { 
+                                "tab-button active" 
+                            } else { 
+                                "tab-button" 
+                            }
+                        },
                         onclick: move |_| active_tab.set("performance"),
                         "Performance"
                     }
                     button { 
-                        class: "tab-button {if *active_tab.read() == \"settings\" { \"active\" } else { \"\" }}", 
+                        class: {
+                            if *active_tab.read() == "settings" { 
+                                "tab-button active" 
+                            } else { 
+                                "tab-button" 
+                            }
+                        },
                         onclick: move |_| active_tab.set("settings"),
                         "Settings"
                     }
@@ -2569,7 +2587,13 @@ fn AppHeader(
             tabs.push(
                 rsx! {
                     button {
-                        class: "header-tab-button {if is_active { \"active\" } else { \"\" }}",
+                        class: {
+                            if is_active { 
+                                "header-tab-button active" 
+                            } else { 
+                                "header-tab-button" 
+                            }
+                        },
                         onclick: move |_| on_select.call(id.clone()),
                         "{name}"
                     }
@@ -2589,7 +2613,13 @@ fn AppHeader(
             
             rsx! {
                 button {
-                    class: "dropdown-item {if is_active { \"active\" } else { \"\" }}",
+                    class: {
+                        if is_active { 
+                            "dropdown-item active" 
+                        } else { 
+                            "dropdown-item" 
+                        }
+                    },
                     onclick: move |_| on_select.call(id.clone()),
                     "{name}"
                 }
@@ -2605,7 +2635,7 @@ fn AppHeader(
             }
         }
     } else {
-        rsx! { () }
+        rsx! { Fragment {} }
     };
     
     // Main render
@@ -2628,7 +2658,13 @@ fn AppHeader(
             div { class: "header-tabs",
                 // Home tab
                 button { 
-                    class: "header-tab-button {if current_id.is_none() { \"active\" } else { \"\" }}",
+                    class: {
+                        if current_id.is_none() { 
+                            "header-tab-button active" 
+                        } else { 
+                            "header-tab-button" 
+                        }
+                    },
                     onclick: move |_| on_go_home.call(()),
                     "Home"
                 }
@@ -2774,9 +2810,9 @@ pub fn app() -> Element {
         }, false, Some(move |_| err.set(None)));
         
         // Return empty RSX to use in the main render
-        rsx! { () }
+        rsx! { Fragment {} }
     } else {
-        rsx! { () }
+        rsx! { Fragment {} }
     };
 
     // Pre-build the header if appropriate
