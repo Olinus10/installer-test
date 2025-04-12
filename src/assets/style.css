@@ -1826,7 +1826,7 @@ a:hover {
     background-color: rgba(255, 255, 255, 0.2);
 }
 
-/* Installation Wizard */
+/* Make the wizard overlay scrollable if content is too tall */
 .wizard-overlay {
     position: fixed;
     top: 0;
@@ -1839,6 +1839,22 @@ a:hover {
     justify-content: center;
     z-index: 1000;
     backdrop-filter: blur(5px);
+    overflow-y: auto; /* Enable scrolling for the entire overlay */
+    padding: 20px; /* Add padding to avoid content being right at the edge */
+}
+
+/* Control the size and scrolling of the wizard modal */
+.installation-wizard {
+    background-color: rgba(0, 0, 0, 0.8);
+    border-radius: 12px;
+    width: 90%;
+    max-width: 900px;
+    max-height: 80vh; /* Limit height to 80% of viewport */
+    display: flex;
+    flex-direction: column;
+    margin: 20px 0; /* Add margin to ensure it's not flush against the edges */
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
 }
 
 .wizard-container {
@@ -1854,9 +1870,15 @@ a:hover {
     flex-direction: column;
 }
 
+/* Make the header sticky at the top */
 .wizard-header {
     padding: 20px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    position: sticky;
+    top: 0;
+    background-color: rgba(0, 0, 0, 0.9);
+    z-index: 2;
+    border-radius: 12px 12px 0 0;
 }
 
 .wizard-header h2 {
@@ -1889,6 +1911,52 @@ a:hover {
     align-items: center;
     position: relative;
     z-index: 2;
+}
+
+/* Add responsive adjustments for smaller screens */
+@media (max-height: 700px) {
+    .installation-wizard {
+        max-height: 90vh;
+    }
+    
+    .wizard-content {
+        max-height: 50vh;
+        padding: 15px;
+    }
+    
+    .wizard-section {
+        margin-bottom: 15px;
+    }
+    
+    .presets-grid {
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+        gap: 10px;
+    }
+}
+
+@media (max-width: 640px) {
+    .installation-wizard {
+        width: 95%;
+    }
+    
+    .wizard-header, 
+    .wizard-content, 
+    .wizard-footer {
+        padding: 15px;
+    }
+    
+    .presets-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .wizard-footer {
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .wizard-footer button {
+        width: 100%;
+    }
 }
 
 .step-number {
@@ -1928,9 +1996,10 @@ a:hover {
 }
 
 .wizard-content {
-    padding: 30px;
+    padding: 20px 25px;
+    overflow-y: auto; /* Enable scrolling for content */
+    max-height: 60vh; /* Limit height for scrollable content */
     flex-grow: 1;
-    overflow-y: auto;
 }
 
 .wizard-step-content {
@@ -1978,12 +2047,24 @@ a:hover {
     color: rgba(255, 255, 255, 0.6);
 }
 
+/* Make the footer sticky at the bottom */
 .wizard-footer {
-    padding: 20px;
+    padding: 15px 20px;
     border-top: 1px solid rgba(255, 255, 255, 0.1);
     display: flex;
     justify-content: space-between;
+    position: sticky;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.9);
+    z-index: 2;
+    border-radius: 0 0 12px 12px;
 }
+
+/* Compact the form elements if space is limited */
+.wizard-section {
+    margin-bottom: 20px;
+}
+
 
 .cancel-button {
     background-color: transparent;
