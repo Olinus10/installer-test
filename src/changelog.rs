@@ -24,10 +24,10 @@ pub async fn fetch_changelog(
     modpack_source: &str, 
     http_client: &crate::CachedHttpClient
 ) -> Result<Changelog, String> {
-    // Make sure we're using the right path format for raw GitHub content
-    debug!("Fetching changelog from {}{}/src/data/changelog.json", crate::GH_RAW, modpack_source);
+    // Point to the root directory instead of src/data
+    debug!("Fetching changelog from {}{}/changelog.json", crate::GH_RAW, modpack_source);
     
-    let changelog_url = format!("{}{}/src/data/changelog.json", crate::GH_RAW, modpack_source);
+    let changelog_url = format!("{}{}/changelog.json", crate::GH_RAW, modpack_source);
     
     let mut changelog_resp = match http_client.get_async(changelog_url.clone()).await {
         Ok(val) => val,
