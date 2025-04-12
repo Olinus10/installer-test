@@ -240,7 +240,7 @@ pub async fn load_universal_manifest(http_client: &CachedHttpClient, url: Option
                         }
                         
                         // Parse the universal manifest
-                        match serde_json::from_str::(&manifest_json) {
+match serde_json::from_str::<UniversalManifest>(&manifest_json) {
     Ok(manifest) => {
         debug!("Successfully loaded universal manifest for {}", manifest.name);
         return Ok(manifest);
@@ -267,12 +267,12 @@ pub async fn load_universal_manifest(http_client: &CachedHttpClient, url: Option
                             continue;
                         }
                         
-                        Err(ManifestError {
-                            message: format!("Failed to read universal manifest: {}", e),
-                            error_type: ManifestErrorType::NetworkError,
-                            file_name: "universal.json".to_string(),
-                            raw_content: None,
-                        })
+return Err(ManifestError {
+    message: format!("Failed to read universal manifest: {}", e),
+    error_type: ManifestErrorType::NetworkError,
+    file_name: "universal.json".to_string(),
+    raw_content: None,
+});
                     }
                 }
             },
@@ -286,12 +286,12 @@ pub async fn load_universal_manifest(http_client: &CachedHttpClient, url: Option
                     continue;
                 }
                 
-                Err(ManifestError {
-                    message: format!("Failed to fetch universal manifest: {}", e),
-                    error_type: ManifestErrorType::NetworkError,
-                    file_name: "universal.json".to_string(),
-                    raw_content: None,
-                })
+return Err(ManifestError {
+    message: format!("Failed to fetch universal manifest: {}", e),
+    error_type: ManifestErrorType::NetworkError,
+    file_name: "universal.json".to_string(),
+    raw_content: None,
+});
             }
         }
     }
