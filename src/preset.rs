@@ -70,7 +70,8 @@ impl Preset {
 
 // Function to load presets from a URL
 pub async fn load_presets(http_client: &CachedHttpClient, url: Option<&str>) -> Result<Vec<Preset>, String> {
-    let presets_url = url.unwrap_or(DEFAULT_PRESETS_URL);
+    // Use the correct raw content URL format for GitHub
+    let presets_url = url.unwrap_or("https://raw.githubusercontent.com/Olinus10/installer-test/master/src/data/presets.json");
     debug!("Loading presets from: {}", presets_url);
     
     // Add retry logic for more reliability
@@ -80,8 +81,10 @@ pub async fn load_presets(http_client: &CachedHttpClient, url: Option<&str>) -> 
     loop {
         match http_client.get_async(presets_url).await {
             Ok(mut response) => {
-                if response.status() != StatusCode::OK {
-                    let status = response.status();
+                let status = response.status();
+                debug!("Got response with status: {}", status);
+                
+                if status != StatusCode::OK {
                     error!("Failed to fetch presets: HTTP {}", status);
                     
                     if retries < MAX_RETRIES && (status.as_u16() >= 500 || status.as_u16() == 429) {
@@ -97,6 +100,7 @@ pub async fn load_presets(http_client: &CachedHttpClient, url: Option<&str>) -> 
                 // Get text as String
                 match response.text().await {
                     Ok(presets_json) => {
+                        debug!("Received presets JSON of length: {}", presets_json.len());
                         // Parse the presets container
                         match serde_json::from_str::<PresetsContainer>(&presets_json) {
                             Ok(container) => {
@@ -154,6 +158,8 @@ pub async fn load_presets(http_client: &CachedHttpClient, url: Option<&str>) -> 
         }
     }
 }
+
+
 // Find a preset by ID
 pub fn find_preset_by_id(presets: &[Preset], id: &str) -> Option<Preset> {
     debug!("Looking for preset with ID: {}", id);
