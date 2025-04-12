@@ -123,27 +123,27 @@ pub async fn load_presets(http_client: &CachedHttpClient, url: Option<&str>) -> 
                         }
                         
                         // Parse the presets container
-                        match serde_json::from_str::<PresetsContainer>(&presets_json) {
-                            Ok(container) => {
-                                debug!("Successfully loaded {} presets (version: {})", 
-                                      container.presets.len(), container.version);
-                                
-                                // Log preset information for debugging
-                                for preset in &container.presets {
-                                    debug!("Loaded preset: {} (ID: {})", preset.name, preset.id);
-                                }
-                                
-                                Ok(container.presets)
-                            },
-                            Err(e) => {
-                                error!("Failed to parse presets JSON: {}", e);
-                                
-                                Err(ManifestError {
-                                    message: format!("Failed to parse presets: {}", e),
-                                    error_type: ManifestErrorType::DeserializationError,
-                                    file_name: "presets.json".to_string(),
-                                    raw_content,
-                                })
+                        match serde_json::from_str::(&presets_json) {
+    Ok(container) => {
+        debug!("Successfully loaded {} presets (version: {})", 
+              container.presets.len(), container.version);
+        
+        // Log preset information for debugging
+        for preset in &container.presets {
+            debug!("Loaded preset: {} (ID: {})", preset.name, preset.id);
+        }
+        
+        return Ok(container.presets);
+    },
+    Err(e) => {
+        error!("Failed to parse presets JSON: {}", e);
+        
+        return Err(ManifestError {
+            message: format!("Failed to parse presets: {}", e),
+            error_type: ManifestErrorType::DeserializationError,
+            file_name: "presets.json".to_string(),
+            raw_content,
+        });
                             }
                         }
                     },
