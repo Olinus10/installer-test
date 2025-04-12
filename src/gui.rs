@@ -27,6 +27,7 @@ use crate::changelog::{fetch_changelog, Changelog as ChangelogData};
 use crate::preset;
 use crate::launch_modpack;
 use crate::universal::ModComponent;
+use crate::universal::ManifestError;
 
 mod modal;
 
@@ -289,6 +290,7 @@ fn open_url(url: &str) -> Result<(), String> {
     {
         Err("Opening URLs is not supported on this platform".to_string())
     }
+}
 
 // Updated main function to initialize the app correctly
 fn main() {
@@ -790,20 +792,24 @@ pub fn SimplifiedInstallationWizard(props: InstallationCreationProps) -> Element
     let mut selected_preset_id = use_signal(|| Option::<String>::None);
     let mut memory_allocation = use_signal(|| 3072);
     let mut installation_error = use_signal(|| Option::<String>::None);
+    let mut manifest_error = use_signal(|| Option::<ManifestError>::None);
     
     // Resource for presets - with better error handling
     let presets = use_resource(move || async {
-    debug!("Loading presets from the server...");
-    match crate::preset::load_presets(
-        &crate::CachedHttpClient::new(), 
-        Some("https://raw.githubusercontent.com/Olinus10/installer-test/master/presets.json")
-    ).await {
+        debug!("Loading presets from the server...");
+        match crate::preset::load_presets(
+            &crate::CachedHttpClient::new(), 
+            Some("https://raw.githubusercontent.com/Olinus10/installer-test/master/presets.json")
+        ).await {
             Ok(presets) => {
                 debug!("Successfully loaded {} presets", presets.len());
                 presets
             },
             Err(e) => {
                 error!("Failed to load presets: {}", e);
+                if let ManifestError::DeserializationError = e.error_type {
+                    manifest_error.set(Some(e.clone()));
+                }
                 Vec::new()
             }
         }
@@ -811,21 +817,22 @@ pub fn SimplifiedInstallationWizard(props: InstallationCreationProps) -> Element
     
     // Resource for universal manifest - with better error handling
     let universal_manifest = use_resource(move || async {
-    debug!("Loading universal manifest...");
-    match crate::universal::load_universal_manifest(&CachedHttpClient::new(), 
-        Some("https://raw.githubusercontent.com/Olinus10/installer-test/master/universal.json")).await {
-        Ok(manifest) => {
-            debug!("Successfully loaded universal manifest: {}", manifest.name);
-            Ok(manifest)
-        },
-        Err(e) => {
-            error!("Failed to load universal manifest: {}", e);
-            // Save the error for displaying to the user
-            manifest_error.set(Some(e));
-            Err(e)
+        debug!("Loading universal manifest...");
+        match crate::universal::load_universal_manifest(
+            &crate::CachedHttpClient::new(), 
+            Some("https://raw.githubusercontent.com/Olinus10/installer-test/master/universal.json")
+        ).await {
+            Ok(manifest) => {
+                debug!("Successfully loaded universal manifest: {}", manifest.name);
+                Some(manifest)
+            },
+            Err(e) => {
+                error!("Failed to load universal manifest: {}", e);
+                manifest_error.set(Some(e));
+                None
+            }
         }
-    }
-});
+    });
     
     // Function to create the installation
     let create_installation = move |_| {
@@ -1095,6 +1102,19 @@ pub fn SimplifiedInstallationWizard(props: InstallationCreationProps) -> Element
                         disabled: universal_manifest.read().is_none(),
                         onclick: create_installation,
                         "Create Installation"
+                    }
+                }
+            }
+            
+            // Add manifest error display
+            if let Some(error) = manifest_error() {
+                ManifestErrorDisplay {
+                    error: error.message.clone(),
+                    error_type: format!("{}", error.error_type),
+                    file_name: error.file_name.clone(),
+                    onclose: move |_| manifest_error.set(None),
+                    onreport: move |_| {
+                        let _ = open_url("https://discord.gg/olinus-corner-778965021656743966");
                     }
                 }
             }
@@ -2829,52 +2849,65 @@ pub fn app() -> Element {
     };
     let has_launcher = launcher.is_some();
 
-    // Load universal manifest
+    // Load universal manifest with error handling
     let universal_manifest = use_resource(move || async {
-        match universal::load_universal_manifest(&CachedHttpClient::new(), None).await {
-            Ok(manifest) => Ok(manifest),
+        let launcher_available = has_launcher;
+        if !launcher_available {
+            return None;
+        }
+        
+        debug!("Loading universal manifest...");
+        match crate::universal::load_universal_manifest(&CachedHttpClient::new(), 
+            Some("https://raw.githubusercontent.com/Olinus10/installer-test/master/universal.json")).await {
+            Ok(manifest) => {
+                debug!("Successfully loaded universal manifest: {}", manifest.name);
+                Some(manifest)
+            },
             Err(e) => {
                 error!("Failed to load universal manifest: {}", e);
-                manifest_error.set(Some(e.clone()));
-                Err(e)
+                manifest_error.set(Some(e));
+                None
             }
         }
     });
-    // Load presets
-    let presets = use_resource(move || {
+    
+    // Load presets with error handling
+    let presets = use_resource(move || async {
         let launcher_available = has_launcher;
-        async move {
-            if !launcher_available {
-                return Vec::new();
-            }
-            
-            match preset::load_presets(&CachedHttpClient::new(), None).await {
-                Ok(presets) => {
-                    debug!("Successfully loaded {} presets", presets.len());
-                    presets
-                },
-                Err(e) => {
-                    error!("Failed to load presets: {}", e);
-                    Vec::new()
-                }
+        if !launcher_available {
+            return Vec::new();
+        }
+        
+        debug!("Loading presets from the server...");
+        match crate::preset::load_presets(
+            &crate::CachedHttpClient::new(), 
+            Some("https://raw.githubusercontent.com/Olinus10/installer-test/master/presets.json")
+        ).await {
+            Ok(presets) => {
+                debug!("Successfully loaded {} presets", presets.len());
+                presets
+            },
+            Err(e) => {
+                error!("Failed to load presets: {}", e);
+                // We don't show manifest error for presets as they're less critical
+                Vec::new()
             }
         }
     });
     
     // Load changelog
-   let changelog = use_resource(move || async {
-    match fetch_changelog("Olinus10/installer-test", &CachedHttpClient::new()).await {
-        Ok(changelog) => {
-            debug!("Successfully loaded changelog with {} entries", changelog.entries.len());
-            Some(changelog)
-        },
-        Err(e) => {
-            error!("Failed to load changelog: {}", e);
-            None
+    let changelog = use_resource(move || async {
+        match fetch_changelog("Olinus10/installer-test", &CachedHttpClient::new()).await {
+            Ok(changelog) => {
+                debug!("Successfully loaded changelog with {} entries", changelog.entries.len());
+                Some(changelog)
+            },
+            Err(e) => {
+                error!("Failed to load changelog: {}", e);
+                None
+            }
         }
-    }
-});
-
+    });
 
     // Modal context for popups
     let mut modal_context = use_context_provider(ModalContext::default);
@@ -3000,21 +3033,6 @@ pub fn app() -> Element {
         }
     };
 
-    rsx! {
-        // Add the error display component to your UI
-        if let Some(error) = manifest_error() {
-            ManifestErrorDisplay {
-                error: error.message.clone(),
-                error_type: format!("{}", error.error_type),
-                file_name: error.file_name.clone(),
-                onclose: move |_| manifest_error.set(None),
-                onreport: move |_| {
-                    // Open Discord or issue tracker
-                    let _ = open_url("https://discord.gg/olinus-corner-778965021656743966");
-                }
-            }
-        }
-    
     // Combine components for final render
     rsx! {
         div {
@@ -3036,6 +3054,19 @@ pub fn app() -> Element {
             if !settings() && current_installation_id.read().is_none() && 
                !config.read().first_launch.unwrap_or(true) && has_launcher {
                 Footer {}
+            }
+            
+            // Add manifest error display outside of the main container to ensure it appears on top
+            if let Some(error) = manifest_error() {
+                ManifestErrorDisplay {
+                    error: error.message.clone(),
+                    error_type: format!("{}", error.error_type),
+                    file_name: error.file_name.clone(),
+                    onclose: move |_| manifest_error.set(None),
+                    onreport: move |_| {
+                        let _ = open_url("https://discord.gg/olinus-corner-778965021656743966");
+                    }
+                }
             }
         }
     }
