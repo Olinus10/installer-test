@@ -64,8 +64,8 @@ const DEFAULT_PRESETS_URL: &str = "https://raw.githubusercontent.com/Olinus10/in
 
 // Load the universal manifest from a URL
 pub async fn load_universal_manifest(http_client: &CachedHttpClient, url: Option<&str>) -> Result<UniversalManifest, String> {
-    // Use the correct raw content URL format for GitHub
-    let manifest_url = url.unwrap_or("https://raw.githubusercontent.com/Olinus10/installer-test/master/src/data/universal.json");
+    // Point to the root directory instead of src/data
+    let manifest_url = url.unwrap_or("https://raw.githubusercontent.com/Olinus10/installer-test/master/universal.json");
     debug!("Loading universal manifest from: {}", manifest_url);
     
     // Add retry logic for more reliability
