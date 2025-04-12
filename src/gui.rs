@@ -524,6 +524,7 @@ fn HomePage(
     installations: Signal<Vec<Installation>>,
     error_signal: Signal<Option<String>>,
     changelog: Signal<Option<ChangelogData>>,
+    current_installation_id: Signal<Option<String>>, // Add this parameter
 ) -> Element {
     // State for the installation creation dialog
     let mut show_creation_dialog = use_signal(|| false);
@@ -600,11 +601,16 @@ fn HomePage(
                 div { class: "installations-grid",
                     // Existing installation cards
                     for installation in installations() {
-                        InstallationCard { 
-                            installation: installation.clone(),
-                            onclick: move |id| {
-                                debug!("Clicked installation: {}", id);
-                                // Navigation would go here
+                        {
+                            let installation_id = installation.id.clone();
+                            rsx! {
+                                InstallationCard { 
+                                    installation: installation.clone(),
+                                    onclick: move |_| {
+                                        debug!("Clicked installation: {}", installation_id);
+                                        current_installation_id.set(Some(installation_id.clone()));
+                                    }
+                                }
                             }
                         }
                     }
@@ -655,11 +661,14 @@ fn HomePage(
                     oncreate: move |new_installation| {
                         // Add the new installation to the list
                         installations.with_mut(|list| {
-                            list.insert(0, new_installation);
+                            list.insert(0, new_installation.clone());
                         });
                         
                         // Close the dialog
                         show_creation_dialog.set(false);
+                        
+                        // Set the current installation to navigate to the installation page
+                        current_installation_id.set(Some(new_installation.id));
                     }
                 }
             }
@@ -789,66 +798,36 @@ pub struct InstallationCreationProps {
 
 #[component]
 pub fn SimplifiedInstallationWizard(props: InstallationCreationProps) -> Element {
-    // State for all the installation options
+    // State for installation name only
     let mut name = use_signal(|| "My Wynncraft Installation".to_string());
-    let mut selected_preset_id = use_signal(|| Option::<String>::None);
-    let mut memory_allocation = use_signal(|| 3072);
     let mut installation_error = use_signal(|| Option::<String>::None);
     let mut manifest_error = use_signal(|| Option::<ManifestError>::None);
     
-    // Resource for presets - with better error handling
-let manifest_error_clone = manifest_error.clone();
-let presets = use_resource(move || {
-    let mut manifest_error = manifest_error_clone.clone();
-    async move {
-        debug!("Loading presets from the server...");
-        match crate::preset::load_presets(
-            &crate::CachedHttpClient::new(), 
-            Some("https://raw.githubusercontent.com/Olinus10/installer-test/master/presets.json")
-        ).await {
-            Ok(presets) => {
-                debug!("Successfully loaded {} presets", presets.len());
-                presets
-            },
-            Err(e) => {
-                error!("Failed to load presets: {}", e);
-                if let ManifestErrorType::DeserializationError = e.error_type {
+    // Resource for universal manifest with better error handling
+    let manifest_error_clone = manifest_error.clone();
+    let universal_manifest = use_resource(move || {
+        let mut manifest_error = manifest_error_clone.clone();
+        async move {
+            debug!("Loading universal manifest...");
+            match crate::universal::load_universal_manifest(
+                &crate::CachedHttpClient::new(), 
+                Some("https://raw.githubusercontent.com/Olinus10/installer-test/master/universal.json")
+            ).await {
+                Ok(manifest) => {
+                    debug!("Successfully loaded universal manifest: {}", manifest.name);
+                    Some(manifest)
+                },
+                Err(e) => {
+                    error!("Failed to load universal manifest: {}", e);
                     // Use spawn to update the signal from outside the closure
                     spawn(async move {
                         manifest_error.set(Some(e.clone()));
                     });
+                    None
                 }
-                Vec::new()
             }
         }
-    }
-});
-    
-    // Resource for universal manifest - with better error handling
-let manifest_error_clone2 = manifest_error.clone();
-let universal_manifest = use_resource(move || {
-    let mut manifest_error = manifest_error_clone2.clone();
-    async move {
-        debug!("Loading universal manifest...");
-        match crate::universal::load_universal_manifest(
-            &crate::CachedHttpClient::new(), 
-            Some("https://raw.githubusercontent.com/Olinus10/installer-test/master/universal.json")
-        ).await {
-            Ok(manifest) => {
-                debug!("Successfully loaded universal manifest: {}", manifest.name);
-                Some(manifest)
-            },
-            Err(e) => {
-                error!("Failed to load universal manifest: {}", e);
-                // Use spawn to update the signal from outside the closure
-                spawn(async move {
-                    manifest_error.set(Some(e.clone()));
-                });
-                None
-            }
-        }
-    }
-});
+    });
     
     // Function to create the installation
     let create_installation = move |_| {
@@ -856,68 +835,38 @@ let universal_manifest = use_resource(move || {
         
         // Get the universal manifest for Minecraft version and loader information
         if let Some(unwrapped_manifest) = universal_manifest.read().as_ref().and_then(|opt| opt.as_ref()) {
-            // Now we have the unwrapped manifest value
             let minecraft_version = unwrapped_manifest.minecraft_version.clone();
             let loader_type = unwrapped_manifest.loader.r#type.clone();
             let loader_version = unwrapped_manifest.loader.version.clone();
             
-            // Find the selected preset
-            let preset = if let Some(preset_id) = &*selected_preset_id.read() {
-                if let Some(presets_list) = presets.read().as_ref() {
-                    preset::find_preset_by_id(presets_list, preset_id)
-                } else {
-                    None
-                }
-            } else {
-                None
-            };
-            
-            // Create the installation
-            let installation = if let Some(preset) = preset {
-                debug!("Creating installation with preset: {}", preset.name);
-                Installation::new_from_preset(
-                    name.read().clone(),
-                    &preset,
-                    minecraft_version,
-                    loader_type,
-                    loader_version,
-                    "vanilla".to_string(), // Default to vanilla launcher
-                    unwrapped_manifest.version.clone(),
-                )
-            } else {
-                debug!("Creating custom installation without preset");
-                Installation::new_custom(
-                    name.read().clone(),
-                    minecraft_version,
-                    loader_type,
-                    loader_version,
-                    "vanilla".to_string(),
-                    unwrapped_manifest.version.clone(),
-                )
-            };
-            
-            // Update memory allocation
-            let mut installation_copy = installation.clone();
-            installation_copy.memory_allocation = *memory_allocation.read();
+            // Create a basic installation
+            let installation = Installation::new_custom(
+                name.read().clone(),
+                minecraft_version,
+                loader_type,
+                loader_version,
+                "vanilla".to_string(),
+                unwrapped_manifest.version.clone(),
+            );
             
             // Register the installation
-            if let Err(e) = crate::installation::register_installation(&installation_copy) {
+            if let Err(e) = crate::installation::register_installation(&installation) {
                 error!("Failed to register installation: {}", e);
                 installation_error.set(Some(format!("Failed to register installation: {}", e)));
                 return;
             }
             
             // Save the installation
-            if let Err(e) = installation_copy.save() {
+            if let Err(e) = installation.save() {
                 error!("Failed to save installation: {}", e);
                 installation_error.set(Some(format!("Failed to save installation: {}", e)));
                 return;
             }
             
-            debug!("Successfully created installation: {}", installation_copy.id);
+            debug!("Successfully created installation: {}", installation.id);
             
             // Call the oncreate handler to finalize
-            props.oncreate.call(installation_copy);
+            props.oncreate.call(installation);
         } else {
             error!("Universal manifest not available");
             installation_error.set(Some("Failed to load modpack information. Please try again.".to_string()));
@@ -949,7 +898,7 @@ let universal_manifest = use_resource(move || {
                     }
                 }
                 
-                // Main content
+                // Main content - simplified to just name
                 div { class: "wizard-content",
                     // Name section
                     div { class: "wizard-section",
@@ -966,7 +915,7 @@ let universal_manifest = use_resource(move || {
                         }
                     }
                     
-                    // Minecraft info section
+                    // Minecraft info section - just to show what they're creating
                     if let Some(unwrapped_manifest) = universal_manifest.read().as_ref().and_then(|opt| opt.as_ref()) {
                         div { class: "wizard-section minecraft-info",
                             div { class: "info-row",
@@ -985,122 +934,6 @@ let universal_manifest = use_resource(move || {
                         div { class: "loading-section",
                             div { class: "loading-spinner" }
                             div { class: "loading-text", "Loading modpack information..." }
-                        }
-                    }
-                    
-                    // Preset selection
-                    div { class: "wizard-section",
-                        h3 { "Choose a Preset Configuration" }
-                        p { "Presets determine which features are enabled by default." }
-                        
-                        if let Some(presets_list) = presets.read().as_ref() {
-                            if presets_list.is_empty() {
-                                div { class: "loading-message", "No presets available." }
-                            } else {
-                                div { class: "presets-grid",
-                                    // Custom preset first (no preset)
-                                    div { 
-                                        class: if selected_preset_id.read().is_none() {
-                                            "preset-card selected"
-                                        } else {
-                                            "preset-card"
-                                        },
-                                        onclick: move |_| {
-                                            selected_preset_id.set(None);
-                                        },
-                                        
-                                        h4 { "Custom Configuration" }
-                                        p { "Start with a minimal setup and customize everything yourself." }
-                                    }
-                                    
-                                    // Available presets
-                                    for preset in presets_list {
-                                        {
-                                            let preset_id = preset.id.clone();
-                                            let is_selected = selected_preset_id.read().as_ref().map_or(false, |id| id == &preset_id);
-                                            
-                                            rsx! {
-                                                div { 
-                                                    class: if is_selected {
-                                                        "preset-card selected"
-                                                    } else {
-                                                        "preset-card"
-                                                    },
-                                                    onclick: move |_| {
-                                                        selected_preset_id.set(Some(preset_id.clone()));
-                                                    },
-                                                    
-                                                    if preset.trending.unwrap_or(false) {
-                                                        div { class: "trending-badge", "TRENDING" }
-                                                    }
-                                                    
-                                                    h4 { "{preset.name}" }
-                                                    p { "{preset.description}" }
-                                                    
-                                                    if let Some(author) = &preset.author {
-                                                        div { class: "preset-author", "By: {author}" }
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        } else {
-                            div { class: "loading-section",
-                                div { class: "loading-spinner" }
-                                div { class: "loading-text", "Loading presets..." }
-                            }
-                        }
-                    }
-                    
-                    // Performance settings
-                    div { class: "wizard-section",
-                        h3 { "Performance Settings" }
-                        
-                        div { class: "form-group",
-                            label { r#for: "memory-allocation",
-                                "Memory Allocation: {memory_allocation} MB"
-                            }
-                            input {
-                                id: "memory-allocation",
-                                r#type: "range",
-                                min: "1024",
-                                max: "8192",
-                                step: "512",
-                                value: "{memory_allocation}",
-                                oninput: move |evt| {
-                                    if let Ok(value) = evt.value().parse::<i32>() {
-                                        memory_allocation.set(value);
-                                    }
-                                }
-                            }
-                            div { class: "memory-markers",
-                                span { "1 GB" }
-                                span { "4 GB" }
-                                span { "8 GB" }
-                            }
-                        }
-                        
-                        // Show preset recommended settings if applicable
-                        if let Some(preset_id) = &*selected_preset_id.read() {
-                            if let Some(presets_list) = presets.read().as_ref() {
-                                if let Some(preset) = preset::find_preset_by_id(presets_list, preset_id) {
-                                    if let Some(rec_memory) = preset.recommended_memory {
-                                        div { class: "recommended-setting",
-                                            "Recommended memory for this preset: {rec_memory} MB"
-                                            
-                                            button {
-                                                class: "apply-recommended-button",
-                                                onclick: move |_| {
-                                                    memory_allocation.set(rec_memory);
-                                                },
-                                                "Apply"
-                                            }
-                                        }
-                                    }
-                                }
-                            }
                         }
                     }
                 }
@@ -1186,6 +1019,14 @@ fn InstallationManagementPage(
     let mut enabled_features = use_signal(|| installation.enabled_features.clone());
     let mut memory_allocation = use_signal(|| installation.memory_allocation);
     let mut java_args = use_signal(|| installation.java_args.clone());
+    let mut selected_preset = use_signal(|| Option::<String>::None);
+    
+    // State for tracking modifications in different areas 
+    let mut features_modified = use_signal(|| false);
+    let mut performance_modified = use_signal(|| false);
+    
+    // Filter text for feature search
+    let mut filter_text = use_signal(|| String::new());
     
     // Load universal manifest for features information
     let universal_manifest = use_resource(move || async {
@@ -1201,6 +1042,20 @@ fn InstallationManagementPage(
         }
     });
     
+    // Load presets
+    let presets = use_resource(move || async {
+        match crate::preset::load_presets(&crate::CachedHttpClient::new(), None).await {
+            Ok(presets) => {
+                debug!("Successfully loaded {} presets", presets.len());
+                presets
+            },
+            Err(e) => {
+                error!("Failed to load presets: {}", e);
+                Vec::new()
+            }
+        }
+    });
+    
     // Effect to detect changes
     use_effect({
         let enabled_features_for_effect = enabled_features.clone();
@@ -1209,13 +1064,21 @@ fn InstallationManagementPage(
         let original_java_args = installation.java_args.clone();
         let memory_allocation_for_effect = memory_allocation.clone();
         let original_memory = installation.memory_allocation;
+        let mut features_modified_copy = features_modified.clone();
+        let mut performance_modified_copy = performance_modified.clone();
         
         move || {
             let features_changed = enabled_features_for_effect.read().clone() != original_features;
             let memory_changed = *memory_allocation_for_effect.read() != original_memory;
             let args_changed = *java_args_for_effect.read() != original_java_args;
             
+            // Update specific modification flags
+            features_modified_copy.set(features_changed);
+            performance_modified_copy.set(memory_changed || args_changed);
+            
+            // Update overall change flag
             has_changes.set(features_changed || memory_changed || args_changed);
+            
             debug!("Change detection: features={}, memory={}, args={}, has_changes={}",
                    features_changed, memory_changed, args_changed, 
                    features_changed || memory_changed || args_changed);
@@ -1224,16 +1087,41 @@ fn InstallationManagementPage(
     
     // Handle feature toggle
     let mut toggle_feature = move |feature_id: String| {
-    debug!("Toggling feature: {}", feature_id);
-    enabled_features.with_mut(|features| {
-        if features.contains(&feature_id) {
-            features.retain(|id| id != &feature_id);
-            debug!("Removed feature: {}", feature_id);
-        } else {
-            features.push(feature_id.clone());
-            debug!("Added feature: {}", feature_id);
+        debug!("Toggling feature: {}", feature_id);
+        enabled_features.with_mut(|features| {
+            if features.contains(&feature_id) {
+                features.retain(|id| id != &feature_id);
+                debug!("Removed feature: {}", feature_id);
+            } else {
+                features.push(feature_id.clone());
+                debug!("Added feature: {}", feature_id);
+            }
+        });
+    };
+    
+    // Handle preset application
+    let mut apply_preset = move |preset_id: String| {
+        if let Some(presets_list) = presets.read().as_ref() {
+            if let Some(preset) = preset::find_preset_by_id(presets_list, &preset_id) {
+                debug!("Applying preset: {}", preset.name);
+                
+                // Update enabled features
+                enabled_features.set(preset.enabled_features.clone());
+                
+                // Update memory if recommended
+                if let Some(mem) = preset.recommended_memory {
+                    memory_allocation.set(mem);
+                }
+                
+                // Update Java args if recommended
+                if let Some(args) = &preset.recommended_java_args {
+                    java_args.set(args.clone());
+                }
+                
+                // Mark as selected
+                selected_preset.set(Some(preset_id));
+            }
         }
-    });
     };
     
     // Handle install/update
@@ -1260,6 +1148,8 @@ fn InstallationManagementPage(
                         installation_error_clone.set(Some(format!("Failed to save changes: {}", e)));
                     } else {
                         has_changes.set(false);
+                        features_modified.set(false);
+                        performance_modified.set(false);
                     }
                 },
                 Err(e) => {
@@ -1332,11 +1222,29 @@ fn InstallationManagementPage(
                         class: if *active_tab.read() == "features" { "tab-button active" } else { "tab-button" },
                         onclick: move |_| active_tab.set("features"),
                         "Features"
+                        
+                        // Count of enabled features
+                        span { class: "tab-counter", "{enabled_features.read().len()}" }
+                        
+                        // Show indicator if features modified
+                        if *features_modified.read() {
+                            span { class: "modified-indicator" }
+                        }
+                    }
+                    button { 
+                        class: if *active_tab.read() == "presets" { "tab-button active" } else { "tab-button" },
+                        onclick: move |_| active_tab.set("presets"),
+                        "Presets"
                     }
                     button { 
                         class: if *active_tab.read() == "performance" { "tab-button active" } else { "tab-button" },
                         onclick: move |_| active_tab.set("performance"),
                         "Performance"
+                        
+                        // Show indicator if performance settings modified
+                        if *performance_modified.read() {
+                            span { class: "modified-indicator" }
+                        }
                     }
                     button { 
                         class: if *active_tab.read() == "settings" { "tab-button active" } else { "tab-button" },
@@ -1349,190 +1257,113 @@ fn InstallationManagementPage(
                 div { class: "installation-content",
                     match *active_tab.read() {
                         "features" => {
-    rsx! {
-        div { class: "features-tab",
-            h2 { "Optional Features" }
-            p { "Toggle features on or off to customize your experience." }
-            
-            {
-                if let Some(manifest) = universal_manifest.read().as_ref().and_then(|m| m.as_ref()) {
-                    rsx! {
-                        div { class: "features-grid",
-                            // Updated code here:
-                            for mod_component in manifest.mods.iter().filter(|m| m.optional) {
-                                FeatureCard {
-                                    key: "{mod_component.id}",
-                                    mod_component: mod_component.clone(),
-                                    is_enabled: enabled_features.read().contains(&mod_component.id),
-                                    toggle_feature: EventHandler::new(move |feature_id: String| {
-                                        toggle_feature(feature_id)
-                                    })
-                                }
-                            }
-                        }
-                    }
-                } else {
-                    rsx! {
-                        div { class: "loading-container",
-                            div { class: "loading-spinner" }
-                            div { class: "loading-text", "Loading features..." }
-                        }
-                    }
-                }
-            }
-        }
-    }
-},
-                        "performance" => {
-                            // Performance tab
                             rsx! {
-                                div { class: "performance-tab",
-                                    h2 { "Performance Settings" }
-                                    p { "Adjust memory allocation and Java arguments." }
+                                div { class: "features-tab",
+                                    h2 { "Optional Features" }
+                                    p { "Toggle features on or off to customize your experience." }
                                     
-                                    div { class: "form-group memory-slider",
-                                        label { r#for: "memory-allocation",
-                                            "Memory Allocation: {*memory_allocation.read()} MB"
-                                        }
-                                        input {
-                                            id: "memory-allocation",
-                                            r#type: "range",
-                                            min: "1024",
-                                            max: "8192",
-                                            step: "512",
-                                            value: "{*memory_allocation.read()}",
-                                            oninput: move |evt| {
-                                                if let Ok(value) = evt.value().parse::<i32>() {
-                                                    memory_allocation.set(value);
+                                    // Add search filter
+                                    FeatureFilter { filter_text: filter_text.clone() }
+                                    
+                                    if let Some(manifest) = universal_manifest.read().as_ref().and_then(|m| m.as_ref()) {
+                                        // Group mods by category
+                                        {
+                                            let mut categories = BTreeMap::new();
+                                            let search_term = filter_text.read().to_lowercase();
+                                            
+                                            // Collect mods by category, applying search filter
+                                            for mod_component in manifest.mods.iter().filter(|m| m.optional) {
+                                                // Skip if it doesn't match search
+                                                if !search_term.is_empty() {
+                                                    let name_match = mod_component.name.to_lowercase().contains(&search_term);
+                                                    let description_match = mod_component.description.as_ref()
+                                                        .map_or(false, |desc| desc.to_lowercase().contains(&search_term));
+                                                        
+                                                    if !name_match && !description_match {
+                                                        continue;
+                                                    }
+                                                }
+                                                
+                                                let category = mod_component.category.clone().unwrap_or_else(|| "Uncategorized".to_string());
+                                                categories.entry(category).or_insert_with(Vec::new).push(mod_component.clone());
+                                            }
+                                            
+                                            // Show "no results" message if nothing matches
+                                            if categories.is_empty() && !search_term.is_empty() {
+                                                rsx! {
+                                                    div { class: "no-search-results",
+                                                        "No mods found matching '{search_term}'. Try a different search term."
+                                                    }
+                                                }
+                                            } else {
+                                                // Create category sections using our new component
+                                                for (category_name, mods) in categories {
+                                                    rsx! {
+                                                        FeatureCategory {
+                                                            category_name: category_name.clone(),
+                                                            mods: mods.clone(),
+                                                            enabled_features: enabled_features.clone(),
+                                                            toggle_feature: EventHandler::new(move |feature_id: String| {
+                                                                toggle_feature(feature_id)
+                                                            })
+                                                        }
+                                                    }
                                                 }
                                             }
                                         }
-                                        div { class: "memory-markers",
-                                            span { "1 GB" }
-                                            span { "4 GB" }
-                                            span { "8 GB" }
-                                        }
-                                    }
-                                    
-                                    div { class: "form-group java-args",
-                                        label { r#for: "java-args", "Java Arguments:" }
-                                        input {
-                                            id: "java-args",
-                                            r#type: "text",
-                                            value: "{java_args.read()}",
-                                            oninput: move |evt| {
-                                                java_args.set(evt.value().clone());
-                                            }
-                                        }
-                                        
-                                        button { 
-                                            class: "reset-button",
-                                            onclick: move |_| {
-                                                java_args.set(
-                                                    "-XX:+UseG1GC -XX:+UnlockExperimentalVMOptions -XX:G1NewSizePercent=20 -XX:G1ReservePercent=20 -XX:MaxGCPauseMillis=50 -XX:G1HeapRegionSize=32M".to_string()
-                                                );
-                                            },
-                                            "Reset to Default"
-                                        }
-                                    }
-                                    
-                                    div { class: "performance-tips",
-                                        h3 { "Performance Tips" }
-                                        
-                                        div { class: "tip-card",
-                                            h4 { "Memory Allocation" }
-                                            p { "Allocate 3-4 GB for most setups. More memory doesn't always mean better performance!" }
-                                        }
-                                        
-                                        div { class: "tip-card",
-                                            h4 { "Java GC Tuning" }
-                                            p { "The default arguments include G1GC settings that work well for most Minecraft installations." }
+                                    } else {
+                                        div { class: "loading-container",
+                                            div { class: "loading-spinner" }
+                                            div { class: "loading-text", "Loading features..." }
                                         }
                                     }
                                 }
                             }
                         },
-                        "settings" => {
-                            // Settings tab
+                        "presets" => {
                             rsx! {
-                                div { class: "settings-tab",
-                                    h2 { "Installation Settings" }
+                                div { class: "presets-tab",
+                                    h2 { "Preset Configurations" }
+                                    p { "Choose a preset to quickly configure your installation with a curated set of mods." }
                                     
-                                    div { class: "info-section",
-                                        div { class: "info-row",
-                                            div { class: "info-label", "Created:" }
-                                            div { class: "info-value", "{installation.created_at.format(\"%B %d, %Y\").to_string()}" }
-                                        }
-                                        
-                                        div { class: "info-row",
-                                            div { class: "info-label", "Installation ID:" }
-                                            div { class: "info-value id-value", "{installation.id}" }
-                                        }
-                                        
-                                        div { class: "info-row",
-                                            div { class: "info-label", "Path:" }
-                                            div { class: "info-value path-value", 
-                                                "{installation.installation_path.to_string_lossy()}" 
-                                            }
-                                        }
-                                    }
+                                    if let Some(presets_list) = presets.read().as_ref() {
+                                        if presets_list.is_empty() {
+                                            div { class: "loading-message", "No presets available." }
+                                        } else {
+                                            div { class: "presets-grid",
+                                                // Custom preset (no preset)
+                                                div { 
+                                                    class: if selected_preset.read().is_none() {
+                                                        "preset-card selected"
+                                                    } else {
+                                                        "preset-card"
+                                                    },
+                                                    onclick: move |_| {
+                                                        selected_preset.set(None);
+                                                    },
+                                                    
+                                                    h4 { "Custom Configuration" }
+                                                    p { "Start with a minimal setup and customize everything yourself." }
+                                                    div { class: "preset-features-count", "Core mods only" }
+                                                }
+                                                
+                                                // Available presets
+                                                for preset in presets_list {
+                                                    {
+                                    let mod_id = mod_component.id.clone();
+                                    let is_enabled = props.enabled_features.read().contains(&mod_id);
                                     
-                                    div { class: "danger-zone",
-                                        h3 { "Danger Zone" }
-                                        p { "These actions cannot be undone." }
-                                        
-                                        div { class: "danger-actions",
-                                            button { 
-                                                class: "danger-button",
-                                                onclick: move |_| {
-                                                    // Delete confirmation would go here
-                                                    // For now, just directly delete
-                                                    match crate::installation::delete_installation(&installation_id_for_delete) {
-                                                        Ok(_) => {
-                                                            debug!("Successfully deleted installation");
-                                                            onback.call(());
-                                                        },
-                                                        Err(e) => {
-                                                            error!("Failed to delete installation: {}", e);
-                                                            installation_error.set(Some(format!("Failed to delete installation: {}", e)));
-                                                        }
-                                                    }
-                                                },
-                                                "Delete Installation"
-                                            }
+                                    rsx! {
+                                        FeatureCard {
+                                            key: "{mod_id}",
+                                            mod_component: mod_component.clone(),
+                                            is_enabled: is_enabled,
+                                            toggle_feature: props.toggle_feature.clone()
                                         }
                                     }
                                 }
                             }
-                        },
-                        _ => rsx! { div { "Unknown tab" } }
-                    }
-                }
-            }
-            
-            // Action buttons
-            div { class: "installation-actions",
-                // Play button
-                PlayButton {
-    uuid: installation_id_for_launch.clone(),
-    disabled: *is_installing.read(),
-    onclick: move |_| {
-        handle_play_click(installation_id_for_launch.clone(), &installation_error);
-    }
-}
-                
-                // Install/Update/Apply button
-                button {
-                    class: "action-button",
-                    disabled: action_button_disabled,
-                    onclick: handle_update,
-                    
-                    if *is_installing.read() {
-                        // Show spinner when installing
-                        div { class: "button-spinner" }
-                        " Installing..."
-                    } else {
-                        {action_button_label}
+                        }
                     }
                 }
             }
@@ -2092,7 +1923,18 @@ fn FeatureCard(props: FeatureCardProps) -> Element {
             class: if is_enabled {"feature-card feature-enabled"} else {"feature-card feature-disabled"},
             
             div { class: "feature-card-header",
-                h3 { "{props.mod_component.name}" }
+                h3 { class: "feature-card-title", "{props.mod_component.name}" }
+                
+                label {
+                    class: if is_enabled {"feature-toggle-button enabled"} else {"feature-toggle-button disabled"},
+                    input {
+                        r#type: "checkbox",
+                        checked: is_enabled,
+                        onchange: move |_| props.toggle_feature.call(feature_id.clone()),
+                        style: "display: none;"
+                    }
+                    {if is_enabled {"Enabled"} else {"Disabled"}}
+                }
             }
             
             // Description display
@@ -2112,15 +1954,39 @@ fn FeatureCard(props: FeatureCardProps) -> Element {
                 }
             }
             
-            label {
-                class: if is_enabled {"feature-toggle-button enabled"} else {"feature-toggle-button disabled"},
-                input {
-                    r#type: "checkbox",
-                    checked: is_enabled,
-                    onchange: move |_| props.toggle_feature.call(feature_id.clone()),
-                    style: "display: none;"
+            // Incompatibilities display 
+            if let Some(incompats) = &props.mod_component.incompatibilities {
+                if !incompats.is_empty() {
+                    div { class: "feature-incompatibilities",
+                        span { "Incompatible with: " }
+                        
+                        // Simply join the incompatibilities with commas
+                        span { class: "incompatibility-list", "{incompats.join(\", \")}" }
+                    }
                 }
-                {if is_enabled {"Enabled"} else {"Disabled"}}
+            }
+            
+            // Author information
+            if !props.mod_component.authors.is_empty() {
+                div { class: "feature-authors",
+                    span { "By: " }
+                    
+                    // Join authors with commas
+                    for (index, author) in props.mod_component.authors.iter().enumerate() {
+                        {
+                            let is_last = index == props.mod_component.authors.len() - 1;
+                            rsx! {
+                                a {
+                                    href: "{author.link}",
+                                    target: "_blank",
+                                    rel: "noopener noreferrer",
+                                    class: "author-link",
+                                    "{author.name}{if !is_last { \", \" } else { \"\" }}"
+                                }
+                            }
+                        }
+                    }
+                }
             }
         }
     }
@@ -2866,87 +2732,46 @@ pub fn app() -> Element {
     let has_launcher = launcher.is_some();
 
     // Load universal manifest with error handling
-    let has_launcher_copy = has_launcher; // Create a copy that can be moved
+    let has_launcher_copy = has_launcher;
 
-let config_clone = config.clone();
-let manifest_error_clone = manifest_error.clone();
-let universal_manifest = use_resource(move || {
-    let config = config_clone.clone();
-    let mut manifest_error = manifest_error_clone.clone();
-    async move {
-        // We'll use a new technique here - clone the launcher string
-        // instead of using the Signal directly
-        let launcher_str = config.read().launcher.clone();
-        
-        // Now use the string value with get_launcher
-        let launcher = match get_launcher(&launcher_str) {
-            Ok(l) => Some(l),
-            Err(_) => None,
-        };
-        
-        let launcher_available = launcher.is_some();
-        if !launcher_available {
-            return None;
-        }
-        
-        debug!("Loading universal manifest...");
-        match crate::universal::load_universal_manifest(&CachedHttpClient::new(), 
-            Some("https://raw.githubusercontent.com/Olinus10/installer-test/master/universal.json")).await {
-            Ok(manifest) => {
-                debug!("Successfully loaded universal manifest: {}", manifest.name);
-                Some(manifest)
-            },
-            Err(e) => {
-                error!("Failed to load universal manifest: {}", e);
-                // Use spawn to update the signal
-                spawn(async move {
-                    manifest_error.set(Some(e.clone()));
-                });
-                None
+    let config_clone = config.clone();
+    let manifest_error_clone = manifest_error.clone();
+    let universal_manifest = use_resource(move || {
+        let config = config_clone.clone();
+        let mut manifest_error = manifest_error_clone.clone();
+        async move {
+            // Clone the launcher string
+            let launcher_str = config.read().launcher.clone();
+            
+            // Now use the string value with get_launcher
+            let launcher = match get_launcher(&launcher_str) {
+                Ok(l) => Some(l),
+                Err(_) => None,
+            };
+            
+            let launcher_available = launcher.is_some();
+            if !launcher_available {
+                return None;
+            }
+            
+            debug!("Loading universal manifest...");
+            match crate::universal::load_universal_manifest(&CachedHttpClient::new(), 
+                Some("https://raw.githubusercontent.com/Olinus10/installer-test/master/universal.json")).await {
+                Ok(manifest) => {
+                    debug!("Successfully loaded universal manifest: {}", manifest.name);
+                    Some(manifest)
+                },
+                Err(e) => {
+                    error!("Failed to load universal manifest: {}", e);
+                    // Use spawn to update the signal
+                    spawn(async move {
+                        manifest_error.set(Some(e.clone()));
+                    });
+                    None
+                }
             }
         }
-    }
-});
-
-    
-    // Load presets with error handling
-    let has_launcher_copy2 = has_launcher;
-    
-let config_clone2 = config.clone();
-let presets = use_resource(move || {
-    let config = config_clone2.clone();
-    async move {
-        // Clone the launcher string
-        let launcher_str = config.read().launcher.clone();
-        
-        // Use the string value
-        let launcher = match get_launcher(&launcher_str) {
-            Ok(l) => Some(l),
-            Err(_) => None,
-        };
-        
-        let launcher_available = launcher.is_some();
-        if !launcher_available {
-            return Vec::new();
-        }
-        
-        debug!("Loading presets from the server...");
-        match crate::preset::load_presets(
-            &crate::CachedHttpClient::new(), 
-            Some("https://raw.githubusercontent.com/Olinus10/installer-test/master/presets.json")
-        ).await {
-            Ok(presets) => {
-                debug!("Successfully loaded {} presets", presets.len());
-                presets
-            },
-            Err(e) => {
-                error!("Failed to load presets: {}", e);
-                Vec::new()
-            }
-        }
-    }
-});
-
+    });
     
     // Load changelog
     let changelog = use_resource(move || async {
@@ -2981,6 +2806,10 @@ let presets = use_resource(move || {
         .replace("<BG_IMAGE>", "https://raw.githubusercontent.com/Wynncraft-Overhaul/installer/master/src/assets/background_installer.png")
         .replace("<SECONDARY_FONT>", "\"HEADER_FONT\"")
         .replace("<PRIMARY_FONT>", "\"REGULAR_FONT\"");
+    
+    // Add custom category styles
+    let custom_styles = include_str!("assets/category-styles.css");
+    let complete_css = format!("{}\n{}", css_content, custom_styles);
 
     // Create header component if needed
     let header_component = if !config.read().first_launch.unwrap_or(true) && has_launcher && !settings() {
@@ -3049,6 +2878,7 @@ let presets = use_resource(move || {
                     installations,
                     error_signal: error_signal.clone(),
                     changelog: use_signal(|| changelog.read().as_ref().cloned().flatten()),
+                    current_installation_id: current_installation_id.clone(),
                 }
             }
         } else if current_installation_id.read().as_ref().map_or(false, |id| id == "new") {
@@ -3089,7 +2919,7 @@ let presets = use_resource(move || {
     // Combine components for final render
     rsx! {
         div {
-            style { {css_content} }
+            style { {complete_css} }
             Modal {}
 
             BackgroundParticles {}
