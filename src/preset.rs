@@ -2,9 +2,12 @@ use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 use log::{debug, error};
 
-use isahc::http::StatusCode;
 use isahc::AsyncReadResponseExt;
 use crate::CachedHttpClient;
+
+use crate::universal::ManifestError;
+use crate::universal::ManifestErrorType;
+use isahc::http::StatusCode;
 
 // Structure defining a single preset configuration
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
@@ -70,7 +73,6 @@ impl Preset {
 
 // Function to load presets from a URL
 pub async fn load_presets(http_client: &CachedHttpClient, url: Option<&str>) -> Result<Vec<Preset>, ManifestError> {
-    // Point to the root directory instead of src/data
     let presets_url = url.unwrap_or("https://raw.githubusercontent.com/Olinus10/installer-test/master/presets.json");
     debug!("Loading presets from: {}", presets_url);
     
@@ -82,7 +84,7 @@ pub async fn load_presets(http_client: &CachedHttpClient, url: Option<&str>) -> 
         match http_client.get_async(presets_url).await {
             Ok(mut response) => {
                 let status = response.status();
-                debug!("Got response with status: {}", status);
+                debug!("Presets HTTP status: {}", status);
                 
                 if status != StatusCode::OK {
                     error!("Failed to fetch presets: HTTP {}", status);
@@ -94,13 +96,32 @@ pub async fn load_presets(http_client: &CachedHttpClient, url: Option<&str>) -> 
                         continue;
                     }
                     
-                    return Err(format!("Failed to fetch presets: HTTP {}", status));
+                    return Err(ManifestError {
+                        message: format!("Failed to fetch presets: HTTP {}", status),
+                        error_type: ManifestErrorType::NetworkError,
+                        file_name: "presets.json".to_string(),
+                        raw_content: None,
+                    });
                 }
                 
                 // Get text as String
                 match response.text().await {
                     Ok(presets_json) => {
                         debug!("Received presets JSON of length: {}", presets_json.len());
+                        
+                        // Store the raw JSON for debugging
+                        let raw_content = Some(presets_json.clone());
+                        
+                        // Try parsing as regular JSON first to catch syntax errors
+                        if let Err(json_err) = serde_json::from_str::<serde_json::Value>(&presets_json) {
+                            return Err(ManifestError {
+                                message: format!("Invalid JSON syntax: {}", json_err),
+                                error_type: ManifestErrorType::SyntaxError,
+                                file_name: "presets.json".to_string(),
+                                raw_content,
+                            });
+                        }
+                        
                         // Parse the presets container
                         match serde_json::from_str::<PresetsContainer>(&presets_json) {
                             Ok(container) => {
@@ -112,20 +133,17 @@ pub async fn load_presets(http_client: &CachedHttpClient, url: Option<&str>) -> 
                                     debug!("Loaded preset: {} (ID: {})", preset.name, preset.id);
                                 }
                                 
-                                return Ok(container.presets);
+                                Ok(container.presets)
                             },
                             Err(e) => {
                                 error!("Failed to parse presets JSON: {}", e);
                                 
-                                // Log the start of the JSON for debugging
-                                let preview = if presets_json.len() > 200 { 
-                                    format!("{}...", &presets_json[..200]) 
-                                } else { 
-                                    presets_json.clone() 
-                                };
-                                debug!("Presets JSON preview: {}", preview);
-                                
-                                return Err(format!("Failed to parse presets JSON: {}", e));
+                                Err(ManifestError {
+                                    message: format!("Failed to parse presets: {}", e),
+                                    error_type: ManifestErrorType::DeserializationError,
+                                    file_name: "presets.json".to_string(),
+                                    raw_content,
+                                })
                             }
                         }
                     },
@@ -139,7 +157,12 @@ pub async fn load_presets(http_client: &CachedHttpClient, url: Option<&str>) -> 
                             continue;
                         }
                         
-                        return Err(format!("Failed to read presets response: {}", e));
+                        Err(ManifestError {
+                            message: format!("Failed to read presets response: {}", e),
+                            error_type: ManifestErrorType::NetworkError,
+                            file_name: "presets.json".to_string(),
+                            raw_content: None,
+                        })
                     }
                 }
             },
@@ -153,7 +176,12 @@ pub async fn load_presets(http_client: &CachedHttpClient, url: Option<&str>) -> 
                     continue;
                 }
                 
-                return Err(format!("Failed to fetch presets: {}", e));
+                Err(ManifestError {
+                    message: format!("Failed to fetch presets: {}", e),
+                    error_type: ManifestErrorType::NetworkError,
+                    file_name: "presets.json".to_string(),
+                    raw_content: None,
+                })
             }
         }
     }
