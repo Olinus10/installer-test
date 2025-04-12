@@ -648,11 +648,11 @@ pub fn SimplifiedInstallationWizard(props: InstallationCreationProps) -> Element
     
     // Resource for presets - with better error handling
     let presets = use_resource(move || async {
-        debug!("Loading presets from the server...");
-        match crate::preset::load_presets(
-            &crate::CachedHttpClient::new(), 
-            Some("https://raw.githubusercontent.com/Olinus10/installer-test/master/src/data/presets.json")
-        ).await {
+    debug!("Loading presets from the server...");
+    match crate::preset::load_presets(
+        &crate::CachedHttpClient::new(), 
+        Some("https://raw.githubusercontent.com/Olinus10/installer-test/master/presets.json")
+    ).await {
             Ok(presets) => {
                 debug!("Successfully loaded {} presets", presets.len());
                 presets
@@ -666,11 +666,11 @@ pub fn SimplifiedInstallationWizard(props: InstallationCreationProps) -> Element
     
     // Resource for universal manifest - with better error handling
     let universal_manifest = use_resource(move || async {
-        debug!("Loading universal manifest...");
-        match crate::universal::load_universal_manifest(
-            &crate::CachedHttpClient::new(), 
-            Some("https://raw.githubusercontent.com/Olinus10/installer-test/master/src/data/universal.json")
-        ).await {
+    debug!("Loading universal manifest...");
+    match crate::universal::load_universal_manifest(
+        &crate::CachedHttpClient::new(), 
+        Some("https://raw.githubusercontent.com/Olinus10/installer-test/master/universal.json")
+    ).await {
             Ok(manifest) => {
                 debug!("Successfully loaded universal manifest: {}", manifest.name);
                 Some(manifest)
@@ -2684,10 +2684,10 @@ pub fn app() -> Element {
     let has_launcher = launcher.is_some();
 
     // Load universal manifest
-    let universal_manifest = use_resource(move || async {
+let universal_manifest = use_resource(move || async {
     debug!("Loading universal manifest...");
     match crate::universal::load_universal_manifest(&CachedHttpClient::new(), 
-        Some("https://raw.githubusercontent.com/Olinus10/installer-test/master/src/data/universal.json")).await {
+        Some("https://raw.githubusercontent.com/Olinus10/installer-test/master/universal.json")).await {
         Ok(manifest) => {
             debug!("Successfully loaded universal manifest: {}", manifest.name);
             Some(manifest)
@@ -2698,7 +2698,6 @@ pub fn app() -> Element {
         }
     }
 });
-
     // Load presets
     let presets = use_resource(move || {
         let launcher_available = has_launcher;
@@ -2733,6 +2732,7 @@ pub fn app() -> Element {
         }
     }
 });
+
 
     // Modal context for popups
     let mut modal_context = use_context_provider(ModalContext::default);
