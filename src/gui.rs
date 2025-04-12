@@ -1129,7 +1129,7 @@ let universal_manifest = use_resource(move || {
                     file_name: error.file_name.clone(),
                     onclose: move |_| manifest_error.set(None),
                     onreport: move |_| {
-                        let _ = open_url("https://discord.gg/olinus-corner-778965021656743966");
+                        let _ = open_url("https://discord.com/channels/778965021656743966/1234506784626970684");
                     }
                 }
             }
@@ -3116,7 +3116,7 @@ let presets = use_resource(move || {
                     file_name: error.file_name.clone(),
                     onclose: move |_| manifest_error.set(None),
                     onreport: move |_| {
-                        let _ = open_url("https://discord.gg/olinus-corner-778965021656743966");
+                        let _ = open_url("https://discord.com/channels/778965021656743966/1234506784626970684");
                     }
                 }
             }
