@@ -1,0 +1,75 @@
+.no-search-results {
+    background-color: rgba(0, 0, 0, 0.3);
+    border-radius: 8px;
+    padding: 20px;
+    text-align: center;
+    margin: 30px 0;
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 1.1rem;
+}
+
+/* Animation for when search changes */
+@keyframes search-pulse {
+    0% { 
+        box-shadow: 0 0 0 0 rgba(7, 60, 23, 0.4);
+    }
+    70% { 
+        box-shadow: 0 0 0 10px rgba(7, 60, 23, 0);
+    }
+    100% { 
+        box-shadow: 0 0 0 0 rgba(7, 60, 23, 0);
+    }
+}
+
+.feature-filter:focus {
+    animation: search-pulse 1.5s ease-out;
+}
+
+/* Additional styles for tabs with counts */
+.installation-tabs .tab-button {
+    position: relative;
+}
+
+/* Badge to show there are modified features */
+.modified-indicator {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background-color: #ffb900;
+}
+
+/* Mobile responsiveness for feature grid */
+@media (max-width: 768px) {
+    .presets-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .apply-preset-button,
+    .preview-preset-button {
+        position: static;
+        display: inline-block;
+        margin: 10px 5px 0 0;
+    }
+    
+    .preset-card {
+        min-height: auto;
+        padding-bottom: 60px;
+    }
+    
+    .feature-category-section {
+        padding: 15px;
+    }
+    
+    .category-header {
+        padding-right: 30px;
+    }
+    
+    .features-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 10px;
+    }
+}
