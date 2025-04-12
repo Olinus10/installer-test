@@ -798,7 +798,7 @@ pub fn SimplifiedInstallationWizard(props: InstallationCreationProps) -> Element
     // Resource for presets - with better error handling
 let manifest_error_clone = manifest_error.clone();
 let presets = use_resource(move || {
-    let manifest_error = manifest_error_clone.clone();
+    let mut manifest_error = manifest_error_clone.clone();
     async move {
         debug!("Loading presets from the server...");
         match crate::preset::load_presets(
@@ -826,7 +826,7 @@ let presets = use_resource(move || {
     // Resource for universal manifest - with better error handling
 let manifest_error_clone2 = manifest_error.clone();
 let universal_manifest = use_resource(move || {
-    let manifest_error = manifest_error_clone2.clone();
+    let mut manifest_error = manifest_error_clone2.clone();
     async move {
         debug!("Loading universal manifest...");
         match crate::universal::load_universal_manifest(
@@ -2871,7 +2871,7 @@ let config_clone = config.clone();
 let manifest_error_clone = manifest_error.clone();
 let universal_manifest = use_resource(move || {
     let config = config_clone.clone();
-    let manifest_error = manifest_error_clone.clone();
+    let mut manifest_error = manifest_error_clone.clone();
     async move {
         // We'll use a new technique here - clone the launcher string
         // instead of using the Signal directly
