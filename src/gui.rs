@@ -28,6 +28,7 @@ use crate::preset;
 use crate::launch_modpack;
 use crate::universal::ModComponent;
 use crate::universal::ManifestError;
+use crate::universal::ManifestErrorType;
 
 mod modal;
 
@@ -808,8 +809,8 @@ pub fn SimplifiedInstallationWizard(props: InstallationCreationProps) -> Element
             Err(e) => {
                 error!("Failed to load presets: {}", e);
                 if let ManifestErrorType::DeserializationError = e.error_type {
-                manifest_error.set(Some(e.clone()));
-                }
+    manifest_error.set(Some(e.clone()));
+}
                 Vec::new()
             }
         }
@@ -2851,8 +2852,15 @@ pub fn app() -> Element {
 
     // Load universal manifest with error handling
     let has_launcher_copy = has_launcher; // Create a copy that can be moved
+
     let universal_manifest = use_resource(move || async {
-    let launcher_available = has_launcher_copy; // Use the copy
+    // Re-check launcher inside the closure instead of capturing has_launcher
+    let launcher = match get_launcher(&config.read().launcher) {
+        Ok(l) => Some(l),
+        Err(_) => None,
+    };
+    let launcher_available = launcher.is_some();
+    
     if !launcher_available {
         return None;
     }
@@ -2874,8 +2882,15 @@ pub fn app() -> Element {
     
     // Load presets with error handling
     let has_launcher_copy2 = has_launcher;
-    let _presets = use_resource(move || async {
-    let launcher_available = has_launcher_copy2;
+    
+    let presets = use_resource(move || async {
+    // Re-check launcher inside the closure
+    let launcher = match get_launcher(&config.read().launcher) {
+        Ok(l) => Some(l),
+        Err(_) => None,
+    };
+    let launcher_available = launcher.is_some();
+    
     if !launcher_available {
         return Vec::new();
     }
