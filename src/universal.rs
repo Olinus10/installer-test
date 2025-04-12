@@ -64,7 +64,8 @@ const DEFAULT_PRESETS_URL: &str = "https://raw.githubusercontent.com/Olinus10/in
 
 // Load the universal manifest from a URL
 pub async fn load_universal_manifest(http_client: &CachedHttpClient, url: Option<&str>) -> Result<UniversalManifest, String> {
-    let manifest_url = url.unwrap_or(DEFAULT_UNIVERSAL_URL);
+    // Use the correct raw content URL format for GitHub
+    let manifest_url = url.unwrap_or("https://raw.githubusercontent.com/Olinus10/installer-test/master/src/data/universal.json");
     debug!("Loading universal manifest from: {}", manifest_url);
     
     // Add retry logic for more reliability
@@ -74,8 +75,10 @@ pub async fn load_universal_manifest(http_client: &CachedHttpClient, url: Option
     loop {
         match http_client.get_async(manifest_url).await {
             Ok(mut response) => {
-                if response.status() != StatusCode::OK {
-                    let status = response.status();
+                let status = response.status();
+                debug!("Got response with status: {}", status);
+                
+                if status != StatusCode::OK {
                     error!("Failed to fetch universal manifest: HTTP {}", status);
                     
                     if retries < MAX_RETRIES && (status.as_u16() >= 500 || status.as_u16() == 429) {
@@ -91,6 +94,7 @@ pub async fn load_universal_manifest(http_client: &CachedHttpClient, url: Option
                 // Get text as String to avoid the unsized str error
                 match response.text().await {
                     Ok(manifest_json) => {
+                        debug!("Received manifest JSON of length: {}", manifest_json.len());
                         // Parse the universal manifest
                         match serde_json::from_str::<UniversalManifest>(&manifest_json) {
                             Ok(manifest) => {
