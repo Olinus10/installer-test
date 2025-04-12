@@ -240,20 +240,20 @@ pub async fn load_universal_manifest(http_client: &CachedHttpClient, url: Option
                         }
                         
                         // Parse the universal manifest
-                        match serde_json::from_str::<UniversalManifest>(&manifest_json) {
-                            Ok(manifest) => {
-                                debug!("Successfully loaded universal manifest for {}", manifest.name);
-                                Ok(manifest)
-                            },
-                            Err(e) => {
-                                error!("Failed to parse universal manifest JSON: {}", e);
-                                
-                                Err(ManifestError {
-                                    message: format!("Failed to parse universal manifest: {}", e),
-                                    error_type: ManifestErrorType::DeserializationError,
-                                    file_name: "universal.json".to_string(),
-                                    raw_content,
-                                })
+                        match serde_json::from_str::(&manifest_json) {
+    Ok(manifest) => {
+        debug!("Successfully loaded universal manifest for {}", manifest.name);
+        return Ok(manifest);
+    },
+    Err(e) => {
+        error!("Failed to parse universal manifest JSON: {}", e);
+        
+        return Err(ManifestError {
+            message: format!("Failed to parse universal manifest: {}", e),
+            error_type: ManifestErrorType::DeserializationError,
+            file_name: "universal.json".to_string(),
+            raw_content,
+        });
                             }
                         }
                     },
