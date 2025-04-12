@@ -145,6 +145,151 @@ fn ErrorNotification(
     }
 }
 
+#[component]
+fn ManifestErrorDisplay(
+    error: String,
+    error_type: String,
+    file_name: String,
+    onclose: EventHandler<MouseEvent>,
+    onreport: EventHandler<MouseEvent>,
+) -> Element {
+    let formatted_error = format_error_message(&error);
+    
+    rsx! {
+        div { class: "manifest-error-overlay",
+            div { class: "manifest-error-container",
+                div { class: "manifest-error-header",
+                    h2 { "{error_type} Error" }
+                    button { 
+                        class: "close-button",
+                        onclick: move |evt| onclose.call(evt),
+                        "×"
+                    }
+                }
+                
+                div { class: "manifest-error-content",
+                    p { class: "error-intro",
+                        "There was a problem loading the {file_name} file. This could be due to:"
+                    }
+                    
+                    ul { class: "error-reasons",
+                        li { "A network connection issue" }
+                        li { "A formatting problem in the file" }
+                        li { "Missing or invalid data in the file" }
+                    }
+                    
+                    div { class: "error-details-container",
+                        h3 { "Error Details" }
+                        div { class: "error-details",
+                            pre { "{formatted_error}" }
+                        }
+                    }
+                    
+                    p { class: "error-help",
+                        "Please copy these error details and report this issue so we can fix it."
+                    }
+                }
+                
+                div { class: "manifest-error-footer",
+                    button { 
+                        class: "report-button",
+                        onclick: move |evt| onreport.call(evt),
+                        "Report Issue"
+                    }
+                    
+                    button { 
+                        class: "copy-button",
+                        onclick: move |_| {
+                            // This would need to be implemented in your system
+                            // Typically using web_sys::clipboard in WASM
+                            debug!("Copying error to clipboard");
+                        },
+                        "Copy Error Details"
+                    }
+                }
+            }
+        }
+    }
+}
+
+// 2. Add a utility function to format error messages in a user-friendly way
+fn format_error_message(error: &str) -> String {
+    // Extract the most useful information from the error message
+    
+    if error.contains("failed to deserialize") || error.contains("missing field") {
+        // Handle deserialization errors
+        if let Some(field_name) = extract_field_name(error) {
+            return format!("Problem with field: '{}'\n\nFull error: {}", field_name, error);
+        }
+    } else if error.contains("expected value") && error.contains("true") {
+        return format!("Boolean value error: JSON requires lowercase 'true' and 'false'.\n\nFull error: {}", error);
+    } else if error.contains("HTTP 404") {
+        return format!("File not found (404). The file may have moved or been renamed.\n\nFull error: {}", error);
+    } else if error.to_lowercase().contains("unexpected character") {
+        return format!("JSON syntax error. There may be a missing comma, quote, or bracket.\n\nFull error: {}", error);
+    }
+    
+    // Default case - return the original error
+    error.to_string()
+}
+
+// Extract field name from deserialization errors
+fn extract_field_name(error: &str) -> Option<String> {
+    // Try to extract field name from common error patterns
+    let patterns = [
+        "missing field `", 
+        "unknown field `",
+        "invalid type for field `"
+    ];
+    
+    for pattern in patterns {
+        if let Some(start) = error.find(pattern) {
+            let start_pos = start + pattern.len();
+            if let Some(end) = error[start_pos..].find('`') {
+                return Some(error[start_pos..(start_pos + end)].to_string());
+            }
+        }
+    }
+    
+    None
+}
+
+fn open_url(url: &str) -> Result<(), String> {
+    #[cfg(target_os = "windows")]
+    {
+        match std::process::Command::new("cmd")
+            .args(&["/c", "start", "", url])
+            .spawn() {
+                Ok(_) => Ok(()),
+                Err(e) => Err(format!("Failed to open URL: {}", e)),
+            }
+    }
+    
+    #[cfg(target_os = "macos")]
+    {
+        match std::process::Command::new("open")
+            .arg(url)
+            .spawn() {
+                Ok(_) => Ok(()),
+                Err(e) => Err(format!("Failed to open URL: {}", e)),
+            }
+    }
+    
+    #[cfg(target_os = "linux")]
+    {
+        match std::process::Command::new("xdg-open")
+            .arg(url)
+            .spawn() {
+                Ok(_) => Ok(()),
+                Err(e) => Err(format!("Failed to open URL: {}", e)),
+            }
+    }
+    
+    #[cfg(not(any(target_os = "windows", target_os = "macos", target_os = "linux")))]
+    {
+        Err("Opening URLs is not supported on this platform".to_string())
+    }
+
 // Updated main function to initialize the app correctly
 fn main() {
     // Initialize logger
@@ -667,20 +812,20 @@ pub fn SimplifiedInstallationWizard(props: InstallationCreationProps) -> Element
     // Resource for universal manifest - with better error handling
     let universal_manifest = use_resource(move || async {
     debug!("Loading universal manifest...");
-    match crate::universal::load_universal_manifest(
-        &crate::CachedHttpClient::new(), 
-        Some("https://raw.githubusercontent.com/Olinus10/installer-test/master/universal.json")
-    ).await {
-            Ok(manifest) => {
-                debug!("Successfully loaded universal manifest: {}", manifest.name);
-                Some(manifest)
-            },
-            Err(e) => {
-                error!("Failed to load universal manifest: {}", e);
-                None
-            }
+    match crate::universal::load_universal_manifest(&CachedHttpClient::new(), 
+        Some("https://raw.githubusercontent.com/Olinus10/installer-test/master/universal.json")).await {
+        Ok(manifest) => {
+            debug!("Successfully loaded universal manifest: {}", manifest.name);
+            Ok(manifest)
+        },
+        Err(e) => {
+            error!("Failed to load universal manifest: {}", e);
+            // Save the error for displaying to the user
+            manifest_error.set(Some(e));
+            Err(e)
         }
-    });
+    }
+});
     
     // Function to create the installation
     let create_installation = move |_| {
@@ -2668,6 +2813,7 @@ pub fn app() -> Element {
     let config = use_signal(|| props.config);
     let mut settings = use_signal(|| false);
     let mut error_signal = use_signal(|| Option::<String>::None);
+    let mut manifest_error = use_signal(|| Option::<ManifestError>::None);
     
     // Installation handling
     let mut current_installation_id = use_signal(|| Option::<String>::None);
@@ -2684,20 +2830,16 @@ pub fn app() -> Element {
     let has_launcher = launcher.is_some();
 
     // Load universal manifest
-let universal_manifest = use_resource(move || async {
-    debug!("Loading universal manifest...");
-    match crate::universal::load_universal_manifest(&CachedHttpClient::new(), 
-        Some("https://raw.githubusercontent.com/Olinus10/installer-test/master/universal.json")).await {
-        Ok(manifest) => {
-            debug!("Successfully loaded universal manifest: {}", manifest.name);
-            Some(manifest)
-        },
-        Err(e) => {
-            error!("Failed to load universal manifest: {}", e);
-            None
+    let universal_manifest = use_resource(move || async {
+        match universal::load_universal_manifest(&CachedHttpClient::new(), None).await {
+            Ok(manifest) => Ok(manifest),
+            Err(e) => {
+                error!("Failed to load universal manifest: {}", e);
+                manifest_error.set(Some(e.clone()));
+                Err(e)
+            }
         }
-    }
-});
+    });
     // Load presets
     let presets = use_resource(move || {
         let launcher_available = has_launcher;
@@ -2858,6 +3000,21 @@ let universal_manifest = use_resource(move || async {
         }
     };
 
+    rsx! {
+        // Add the error display component to your UI
+        if let Some(error) = manifest_error() {
+            ManifestErrorDisplay {
+                error: error.message.clone(),
+                error_type: format!("{}", error.error_type),
+                file_name: error.file_name.clone(),
+                onclose: move |_| manifest_error.set(None),
+                onreport: move |_| {
+                    // Open Discord or issue tracker
+                    let _ = open_url("https://discord.gg/olinus-corner-778965021656743966");
+                }
+            }
+        }
+    
     // Combine components for final render
     rsx! {
         div {
