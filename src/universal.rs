@@ -11,24 +11,6 @@ use crate::preset::{Preset, PresetsContainer};
 
 // Structure for a mod/component in the universal manifest
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
-pub struct ModComponent {
-    pub id: String,
-    pub name: String,
-    pub description: Option<String>,
-    pub source: String,
-    pub location: String,
-    pub version: String,
-    pub path: Option<PathBuf>,
-    pub optional: bool,
-    pub default_enabled: bool,
-    pub authors: Vec<Author>,
-    pub category: Option<String>,  // Type of mod (gameplay, visual, etc.)
-    pub dependencies: Option<Vec<String>>,  // IDs of required mods
-    pub incompatibilities: Option<Vec<String>>,  // IDs of incompatible mods
-}
-
-// Complete universal manifest structure
-#[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
 pub struct UniversalManifest {
     pub manifest_version: i32,
     pub modpack_version: String,
@@ -44,18 +26,131 @@ pub struct UniversalManifest {
     
     // All available components
     pub mods: Vec<ModComponent>,
+    #[serde(default)]  // Add default in case this field is missing
     pub shaderpacks: Vec<ModComponent>,
+    #[serde(default)]  // Add default in case this field is missing
     pub resourcepacks: Vec<ModComponent>,
     
-    // Metadata
+    // Metadata - make all these optional
+    #[serde(default)]
     pub category: Option<String>,
+    #[serde(default)]
     pub short_description: Option<String>,
     pub version: String,
     
-    // Default settings
+    // Default settings - all optional
+    #[serde(default)]
     pub max_mem: Option<i32>,
+    #[serde(default)]
     pub min_mem: Option<i32>,
+    #[serde(default)]
     pub java_args: Option<String>,
+}
+
+// Structure for a mod/component with more flexible options
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
+pub struct ModComponent {
+    pub id: String,
+    pub name: String,
+    #[serde(default)]
+    pub description: Option<String>,
+    pub source: String,
+    pub location: String,
+    pub version: String,
+    #[serde(default)]
+    pub path: Option<PathBuf>,
+    #[serde(default = "default_false")]
+    pub optional: bool,
+    #[serde(default = "default_false")]
+    pub default_enabled: bool,
+    #[serde(default)]
+    pub authors: Vec<Author>,
+    #[serde(default)]
+    pub category: Option<String>,
+    #[serde(default)]
+    pub dependencies: Option<Vec<String>>,
+    #[serde(default)]
+    pub incompatibilities: Option<Vec<String>>,
+}
+
+fn default_false() -> bool {
+    false
+}
+
+pub async fn validate_universal_json(http_client: &CachedHttpClient, url: &str) -> Result<(), String> {
+    debug!("Validating universal.json structure from: {}", url);
+    
+    match http_client.get_async(url).await {
+        Ok(mut response) => {
+            let status = response.status();
+            
+            if status != StatusCode::OK {
+                return Err(format!("Failed to fetch universal.json: HTTP {}", status));
+            }
+            
+            match response.text().await {
+                Ok(json_text) => {
+                    debug!("Received {} bytes of universal.json", json_text.len());
+                    
+                    // First check if it's valid JSON
+                    match serde_json::from_str::<serde_json::Value>(&json_text) {
+                        Ok(value) => {
+                            debug!("universal.json is valid JSON");
+                            
+                            // Check if it's an object
+                            if let Some(obj) = value.as_object() {
+                                debug!("Top-level fields in universal.json:");
+                                for (key, val) in obj {
+                                    let type_name = match val {
+                                        serde_json::Value::Null => "null",
+                                        serde_json::Value::Bool(_) => "boolean",
+                                        serde_json::Value::Number(_) => "number",
+                                        serde_json::Value::String(_) => "string",
+                                        serde_json::Value::Array(_) => "array",
+                                        serde_json::Value::Object(_) => "object",
+                                    };
+                                    debug!("  - {}: {}", key, type_name);
+                                }
+                                
+                                // Now check for required fields
+                                let required_fields = vec![
+                                    "manifest_version", "modpack_version", "minecraft_version",
+                                    "name", "subtitle", "description", "icon", "uuid",
+                                    "loader", "mods", "version"
+                                ];
+                                
+                                for field in required_fields {
+                                    if !obj.contains_key(field) {
+                                        return Err(format!("universal.json is missing required field: {}", field));
+                                    }
+                                }
+                            }
+                        },
+                        Err(e) => {
+                            return Err(format!("universal.json is not valid JSON: {}", e));
+                        }
+                    }
+                    
+                    // Now try to deserialize into our struct
+                    match serde_json::from_str::<UniversalManifest>(&json_text) {
+                        Ok(_) => {
+                            debug!("universal.json successfully validates against UniversalManifest struct");
+                            Ok(())
+                        },
+                        Err(e) => {
+                            Err(format!("universal.json does not match UniversalManifest struct: {}", e))
+                        }
+                    }
+                },
+                Err(e) => {
+                    Err(format!("Failed to read universal.json: {}", e))
+                }
+            }
+        },
+        Err(e) => {
+            Err(format!("Failed to fetch universal.json: {}", e))
+        }
+    }
 }
 
 // Default URL for the universal manifest
