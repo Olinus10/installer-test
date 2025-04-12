@@ -77,6 +77,41 @@ fn default_false() -> bool {
     false
 }
 
+#[derive(Debug, Clone)]
+pub struct ManifestError {
+    pub message: String,
+    pub error_type: ManifestErrorType,
+    pub file_name: String,
+    pub raw_content: Option<String>, // Store the raw content for debugging
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum ManifestErrorType {
+    NetworkError,
+    SyntaxError,
+    DeserializationError,
+    ValidationError,
+    UnknownError,
+}
+
+impl std::fmt::Display for ManifestError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{} in {}: {}", self.error_type, self.file_name, self.message)
+    }
+}
+
+impl std::fmt::Display for ManifestErrorType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ManifestErrorType::NetworkError => write!(f, "Network Error"),
+            ManifestErrorType::SyntaxError => write!(f, "Syntax Error"),
+            ManifestErrorType::DeserializationError => write!(f, "Deserialization Error"),
+            ManifestErrorType::ValidationError => write!(f, "Validation Error"),
+            ManifestErrorType::UnknownError => write!(f, "Unknown Error"),
+        }
+    }
+}
+
 pub async fn validate_universal_json(http_client: &CachedHttpClient, url: &str) -> Result<(), String> {
     debug!("Validating universal.json structure from: {}", url);
     
@@ -158,8 +193,7 @@ const DEFAULT_UNIVERSAL_URL: &str = "https://raw.githubusercontent.com/Olinus10/
 const DEFAULT_PRESETS_URL: &str = "https://raw.githubusercontent.com/Olinus10/installer-test/master/src/data/presets.json";
 
 // Load the universal manifest from a URL
-pub async fn load_universal_manifest(http_client: &CachedHttpClient, url: Option<&str>) -> Result<UniversalManifest, String> {
-    // Point to the root directory instead of src/data
+pub async fn load_universal_manifest(http_client: &CachedHttpClient, url: Option<&str>) -> Result<UniversalManifest, ManifestError> {
     let manifest_url = url.unwrap_or("https://raw.githubusercontent.com/Olinus10/installer-test/master/universal.json");
     debug!("Loading universal manifest from: {}", manifest_url);
     
@@ -170,10 +204,8 @@ pub async fn load_universal_manifest(http_client: &CachedHttpClient, url: Option
     loop {
         match http_client.get_async(manifest_url).await {
             Ok(mut response) => {
-                let status = response.status();
-                debug!("Got response with status: {}", status);
-                
-                if status != StatusCode::OK {
+                if response.status() != StatusCode::OK {
+                    let status = response.status();
                     error!("Failed to fetch universal manifest: HTTP {}", status);
                     
                     if retries < MAX_RETRIES && (status.as_u16() >= 500 || status.as_u16() == 429) {
@@ -183,33 +215,45 @@ pub async fn load_universal_manifest(http_client: &CachedHttpClient, url: Option
                         continue;
                     }
                     
-                    return Err(format!("Failed to fetch universal manifest: HTTP {}", status));
+                    return Err(ManifestError {
+                        message: format!("Failed to fetch universal manifest: HTTP {}", status),
+                        error_type: ManifestErrorType::NetworkError,
+                        file_name: "universal.json".to_string(),
+                        raw_content: None,
+                    });
                 }
                 
                 // Get text as String to avoid the unsized str error
                 match response.text().await {
                     Ok(manifest_json) => {
-                        debug!("Received manifest JSON of length: {}", manifest_json.len());
+                        // Store the raw JSON for debugging
+                        let raw_content = Some(manifest_json.clone());
+                        
+                        // Try parsing as regular JSON first to catch syntax errors
+                        if let Err(json_err) = serde_json::from_str::<serde_json::Value>(&manifest_json) {
+                            return Err(ManifestError {
+                                message: format!("Invalid JSON syntax: {}", json_err),
+                                error_type: ManifestErrorType::SyntaxError,
+                                file_name: "universal.json".to_string(),
+                                raw_content,
+                            });
+                        }
+                        
                         // Parse the universal manifest
                         match serde_json::from_str::<UniversalManifest>(&manifest_json) {
                             Ok(manifest) => {
                                 debug!("Successfully loaded universal manifest for {}", manifest.name);
-                                debug!("Manifest contains: {} mods, {} shaderpacks, {} resourcepacks", 
-                                    manifest.mods.len(), manifest.shaderpacks.len(), manifest.resourcepacks.len());
-                                return Ok(manifest);
+                                Ok(manifest)
                             },
                             Err(e) => {
                                 error!("Failed to parse universal manifest JSON: {}", e);
                                 
-                                // Log the start of the JSON for debugging
-                                let preview = if manifest_json.len() > 200 { 
-                                    format!("{}...", &manifest_json[..200]) 
-                                } else { 
-                                    manifest_json.clone() 
-                                };
-                                debug!("Manifest JSON preview: {}", preview);
-                                
-                                return Err(format!("Failed to parse universal manifest JSON: {}", e));
+                                Err(ManifestError {
+                                    message: format!("Failed to parse universal manifest: {}", e),
+                                    error_type: ManifestErrorType::DeserializationError,
+                                    file_name: "universal.json".to_string(),
+                                    raw_content,
+                                })
                             }
                         }
                     },
@@ -223,7 +267,12 @@ pub async fn load_universal_manifest(http_client: &CachedHttpClient, url: Option
                             continue;
                         }
                         
-                        return Err(format!("Failed to read universal manifest response: {}", e));
+                        Err(ManifestError {
+                            message: format!("Failed to read universal manifest: {}", e),
+                            error_type: ManifestErrorType::NetworkError,
+                            file_name: "universal.json".to_string(),
+                            raw_content: None,
+                        })
                     }
                 }
             },
@@ -237,7 +286,12 @@ pub async fn load_universal_manifest(http_client: &CachedHttpClient, url: Option
                     continue;
                 }
                 
-                return Err(format!("Failed to fetch universal manifest: {}", e));
+                Err(ManifestError {
+                    message: format!("Failed to fetch universal manifest: {}", e),
+                    error_type: ManifestErrorType::NetworkError,
+                    file_name: "universal.json".to_string(),
+                    raw_content: None,
+                })
             }
         }
     }
