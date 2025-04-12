@@ -807,8 +807,8 @@ pub fn SimplifiedInstallationWizard(props: InstallationCreationProps) -> Element
             },
             Err(e) => {
                 error!("Failed to load presets: {}", e);
-                if let ManifestError::DeserializationError = e.error_type {
-                    manifest_error.set(Some(e.clone()));
+                if let ManifestErrorType::DeserializationError = e.error_type {
+                manifest_error.set(Some(e.clone()));
                 }
                 Vec::new()
             }
@@ -2850,50 +2850,52 @@ pub fn app() -> Element {
     let has_launcher = launcher.is_some();
 
     // Load universal manifest with error handling
+    let has_launcher_copy = has_launcher; // Create a copy that can be moved
     let universal_manifest = use_resource(move || async {
-        let launcher_available = has_launcher;
-        if !launcher_available {
-            return None;
+    let launcher_available = has_launcher_copy; // Use the copy
+    if !launcher_available {
+        return None;
+    }
+    
+    debug!("Loading universal manifest...");
+    match crate::universal::load_universal_manifest(&crate::CachedHttpClient::new(), 
+        Some("https://raw.githubusercontent.com/Olinus10/installer-test/master/universal.json")).await {
+        Ok(manifest) => {
+            debug!("Successfully loaded universal manifest: {}", manifest.name);
+            Some(manifest)
+        },
+        Err(e) => {
+            error!("Failed to load universal manifest: {}", e);
+            manifest_error.set(Some(e));
+            None
         }
-        
-        debug!("Loading universal manifest...");
-        match crate::universal::load_universal_manifest(&CachedHttpClient::new(), 
-            Some("https://raw.githubusercontent.com/Olinus10/installer-test/master/universal.json")).await {
-            Ok(manifest) => {
-                debug!("Successfully loaded universal manifest: {}", manifest.name);
-                Some(manifest)
-            },
-            Err(e) => {
-                error!("Failed to load universal manifest: {}", e);
-                manifest_error.set(Some(e));
-                None
-            }
-        }
-    });
+    }
+});
     
     // Load presets with error handling
-    let presets = use_resource(move || async {
-        let launcher_available = has_launcher;
-        if !launcher_available {
-            return Vec::new();
+    let has_launcher_copy2 = has_launcher;
+    let _presets = use_resource(move || async {
+    let launcher_available = has_launcher_copy2;
+    if !launcher_available {
+        return Vec::new();
+    }
+    
+    debug!("Loading presets from the server...");
+    match crate::preset::load_presets(
+        &crate::CachedHttpClient::new(), 
+        Some("https://raw.githubusercontent.com/Olinus10/installer-test/master/presets.json")
+    ).await {
+        Ok(presets) => {
+            debug!("Successfully loaded {} presets", presets.len());
+            presets
+        },
+        Err(e) => {
+            error!("Failed to load presets: {}", e);
+            Vec::new()
         }
-        
-        debug!("Loading presets from the server...");
-        match crate::preset::load_presets(
-            &crate::CachedHttpClient::new(), 
-            Some("https://raw.githubusercontent.com/Olinus10/installer-test/master/presets.json")
-        ).await {
-            Ok(presets) => {
-                debug!("Successfully loaded {} presets", presets.len());
-                presets
-            },
-            Err(e) => {
-                error!("Failed to load presets: {}", e);
-                // We don't show manifest error for presets as they're less critical
-                Vec::new()
-            }
-        }
-    });
+    }
+});
+
     
     // Load changelog
     let changelog = use_resource(move || async {
