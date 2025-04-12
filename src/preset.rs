@@ -123,7 +123,7 @@ pub async fn load_presets(http_client: &CachedHttpClient, url: Option<&str>) -> 
                         }
                         
                         // Parse the presets container
-                        match serde_json::from_str::(&presets_json) {
+match serde_json::from_str::<PresetsContainer>(&presets_json) {
     Ok(container) => {
         debug!("Successfully loaded {} presets (version: {})", 
               container.presets.len(), container.version);
@@ -157,12 +157,12 @@ pub async fn load_presets(http_client: &CachedHttpClient, url: Option<&str>) -> 
                             continue;
                         }
                         
-                        Err(ManifestError {
-                            message: format!("Failed to read presets response: {}", e),
-                            error_type: ManifestErrorType::NetworkError,
-                            file_name: "presets.json".to_string(),
-                            raw_content: None,
-                        })
+                        return Err(ManifestError {
+    message: format!("Failed to read presets response: {}", e),
+    error_type: ManifestErrorType::NetworkError,
+    file_name: "presets.json".to_string(),
+    raw_content: None,
+});
                     }
                 }
             },
@@ -176,12 +176,12 @@ pub async fn load_presets(http_client: &CachedHttpClient, url: Option<&str>) -> 
                     continue;
                 }
                 
-                Err(ManifestError {
-                    message: format!("Failed to fetch presets: {}", e),
-                    error_type: ManifestErrorType::NetworkError,
-                    file_name: "presets.json".to_string(),
-                    raw_content: None,
-                })
+                return Err(ManifestError {
+    message: format!("Failed to fetch presets: {}", e),
+    error_type: ManifestErrorType::NetworkError,
+    file_name: "presets.json".to_string(),
+    raw_content: None,
+});
             }
         }
     }
