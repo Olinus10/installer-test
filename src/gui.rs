@@ -29,6 +29,7 @@ use crate::launch_modpack;
 use crate::universal::ModComponent;
 use crate::universal::ManifestError;
 use crate::universal::ManifestErrorType;
+use crate::launcher::{FeatureCard, FeatureCategory, FeatureFilter};
 
 mod modal;
 
