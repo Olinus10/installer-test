@@ -70,8 +70,8 @@ impl Preset {
 
 // Function to load presets from a URL
 pub async fn load_presets(http_client: &CachedHttpClient, url: Option<&str>) -> Result<Vec<Preset>, String> {
-    // Use the correct raw content URL format for GitHub
-    let presets_url = url.unwrap_or("https://raw.githubusercontent.com/Olinus10/installer-test/master/src/data/presets.json");
+    // Point to the root directory instead of src/data
+    let presets_url = url.unwrap_or("https://raw.githubusercontent.com/Olinus10/installer-test/master/presets.json");
     debug!("Loading presets from: {}", presets_url);
     
     // Add retry logic for more reliability
