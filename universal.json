@@ -527,7 +527,7 @@
       "location": "fabric-language-kotlin",
       "version": "1.13.0+kotlin.2.1.0",
       "optional": true,
-      "default_enabled": True,
+      "default_enabled": true,
       "category": "Library",
       "authors": [
         {
