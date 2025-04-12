@@ -1914,20 +1914,14 @@ fn FeatureCard(props: FeatureCardProps) -> Element {
                 div { class: "feature-card-description", "{description}" }
             }
             
-            // Dependencies display - Fixed the nested rsx! issue
+            // Dependencies display with simplified approach
             if let Some(deps) = &props.mod_component.dependencies {
                 if !deps.is_empty() {
                     div { class: "feature-dependencies",
                         span { "Required: " }
-                        // Iterator in RSX
-                        {deps.iter().enumerate().map(|(i, dep)| {
-                            rsx! {
-                                span { 
-                                    class: "dependency-item",
-                                    "{dep}{if i < deps.len() - 1 { \", \" } else { \"\" }}"
-                                }
-                            }
-                        })}
+                        
+                        // Simply join the dependencies with commas
+                        span { class: "dependency-list", "{deps.join(\", \")}" }
                     }
                 }
             }
@@ -1945,7 +1939,6 @@ fn FeatureCard(props: FeatureCardProps) -> Element {
         }
     }
 }
-
 
 fn feature_change(
     local_features: Signal<Option<Vec<String>>>,
