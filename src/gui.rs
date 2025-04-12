@@ -2679,25 +2679,20 @@ pub fn app() -> Element {
     let has_launcher = launcher.is_some();
 
     // Load universal manifest
-    let universal_manifest = use_resource(move || {
-        let launcher_available = has_launcher;
-        async move {
-            if !launcher_available {
-                return None;
-            }
-            
-            match universal::load_universal_manifest(&CachedHttpClient::new(), None).await {
-                Ok(manifest) => {
-                    debug!("Successfully loaded universal manifest for app");
-                    Some(manifest)
-                },
-                Err(e) => {
-                    error!("Failed to load universal manifest: {}", e);
-                    None
-                }
-            }
+    let universal_manifest = use_resource(move || async {
+    debug!("Loading universal manifest...");
+    match crate::universal::load_universal_manifest(&CachedHttpClient::new(), 
+        Some("https://raw.githubusercontent.com/Olinus10/installer-test/master/src/data/universal.json")).await {
+        Ok(manifest) => {
+            debug!("Successfully loaded universal manifest: {}", manifest.name);
+            Some(manifest)
+        },
+        Err(e) => {
+            error!("Failed to load universal manifest: {}", e);
+            None
         }
-    });
+    }
+});
 
     // Load presets
     let presets = use_resource(move || {
@@ -2721,18 +2716,18 @@ pub fn app() -> Element {
     });
     
     // Load changelog
-    let changelog = use_resource(move || async {
-        match fetch_changelog("Olinus10/installer-test/", &CachedHttpClient::new()).await {
-            Ok(changelog) => {
-                debug!("Successfully loaded changelog with {} entries", changelog.entries.len());
-                Some(changelog)
-            },
-            Err(e) => {
-                error!("Failed to load changelog: {}", e);
-                None
-            }
+   let changelog = use_resource(move || async {
+    match fetch_changelog("Olinus10/installer-test", &CachedHttpClient::new()).await {
+        Ok(changelog) => {
+            debug!("Successfully loaded changelog with {} entries", changelog.entries.len());
+            Some(changelog)
+        },
+        Err(e) => {
+            error!("Failed to load changelog: {}", e);
+            None
         }
-    });
+    }
+});
 
     // Modal context for popups
     let mut modal_context = use_context_provider(ModalContext::default);
