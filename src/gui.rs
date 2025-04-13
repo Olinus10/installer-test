@@ -978,6 +978,7 @@ pub fn SimplifiedInstallationWizard(props: InstallationCreationProps) -> Element
 pub fn InstallationManagementPage(
     installation_id: String,
     onback: EventHandler<()>,
+    installations: Signal<Vec<Installation>>,
 ) -> Element {
     // State for the current tab
     let mut active_tab = use_signal(|| "features");
@@ -1042,6 +1043,29 @@ pub fn InstallationManagementPage(
         }
     });
 };
+
+    let update_installation = move |updated: Installation| {
+        // Update in the installations list
+        installations.with_mut(|list| {
+            if let Some(index) = list.iter().position(|i| i.id == updated.id) {
+                list[index] = updated.clone();
+            }
+        });
+        
+        // Reload the current view
+        spawn(async move {
+            match installation::load_installation(&updated.id) {
+                Ok(refreshed) => {
+                    // Update the current view
+                    // This requires refactoring to use a Signal instead of a Memo for installation_result
+                    // For now, we're relying on the list update to refresh things
+                },
+                Err(e) => {
+                    debug!("Failed to reload installation: {}", e);
+                }
+            }
+        });
+    };
     
     // Load universal manifest for features information
     let universal_manifest = use_resource(move || async {
