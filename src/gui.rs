@@ -1305,7 +1305,7 @@ fn InstallationManagementPage(
             let category_name_clone = category_name.clone();
             let mods_clone = mods.clone();
             let enabled_features_clone = enabled_features.clone();
-            let toggle_feature_clone = toggle_feature.clone();
+            let mut toggle_feature_clone = toggle_feature.clone();
             
             rsx! {
                 FeatureCategory {
@@ -1463,33 +1463,69 @@ fn InstallationManagementPage(
                                     div { class: "settings-actions",
                                         // Rename button
                                         button {
-                                            class: "settings-button",
-                                            onclick: move |_| {
-                                                debug!("Rename clicked for: {}", installation.id);
-                                                // Implementation for rename functionality
-                                            },
-                                            "Rename Installation"
-                                        }
-                                        
-                                        // Open folder button
-                                        button {
-                                            class: "settings-button",
-                                            onclick: move |_| {
-                                                debug!("Open folder clicked for: {}", installation.id);
-                                                // Implementation for opening installation folder
-                                            },
-                                            "Open Installation Folder"
-                                        }
-                                        
-                                        // Delete installation button
-                                        button {
-                                            class: "settings-button delete-button",
-                                            onclick: move |_| {
-                                                debug!("Delete clicked for: {}", installation_id_for_delete);
-                                                // Implementation for delete functionality
-                                            },
-                                            "Delete Installation"
-                                        }
+    class: "settings-button",
+    onclick: move |_| {
+        debug!("Rename clicked for: {}", installation.id);
+        // Implementation for rename functionality
+    },
+    "Rename Installation"
+}
+
+button {
+    class: "settings-button",
+    onclick: move |_| {
+        debug!("Open folder clicked for: {}", installation.id);
+        // Implementation for opening installation folder
+    },
+    "Open Installation Folder"
+}
+
+button {
+    class: "settings-button delete-button",
+    onclick: move |_| {
+        debug!("Delete clicked for: {}", installation_id_for_delete);
+        // Implementation for delete functionality
+    },
+    "Delete Installation"
+}
+
+// Fixed code (clone the id for each closure):
+{
+    let id_for_rename = installation.id.clone();
+    rsx! {
+        button {
+            class: "settings-button",
+            onclick: move |_| {
+                debug!("Rename clicked for: {}", id_for_rename);
+                // Implementation for rename functionality
+            },
+            "Rename Installation"
+        }
+    }
+}
+
+{
+    let id_for_open = installation.id.clone();
+    rsx! {
+        button {
+            class: "settings-button",
+            onclick: move |_| {
+                debug!("Open folder clicked for: {}", id_for_open);
+                // Implementation for opening installation folder
+            },
+            "Open Installation Folder"
+        }
+    }
+}
+
+button {
+    class: "settings-button delete-button",
+    onclick: move |_| {
+        debug!("Delete clicked for: {}", installation_id_for_delete);
+        // Implementation for delete functionality
+    },
+    "Delete Installation"
+}
                                     }
                                 }
                             }
