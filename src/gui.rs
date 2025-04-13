@@ -1029,6 +1029,19 @@ pub fn InstallationManagementPage(
     
     // Filter text for feature search
     let mut filter_text = use_signal(|| String::new());
+
+    let refresh_installation = move |updated_installation: Installation| {
+    // Update the current installation data
+    installation_result.set(Ok(updated_installation.clone()));
+    
+    // Also update the list of installations
+    installations.with_mut(|list| {
+        // Find and replace the installation
+        if let Some(index) = list.iter().position(|i| i.id == updated_installation.id) {
+            list[index] = updated_installation;
+        }
+    });
+};
     
     // Load universal manifest for features information
     let universal_manifest = use_resource(move || async {
@@ -1258,15 +1271,15 @@ pub fn InstallationManagementPage(
                         "settings" => {
                             rsx! {
                                 SettingsTab {
-                                    installation: installation.clone(),
-                                    installation_id: installation_id_for_delete.clone(),
-                                    ondelete: move |_| {
-                                        // Handle delete functionality
-                                        debug!("Delete clicked for: {}", installation_id_for_delete);
-                                        // Implementation for delete functionality would go here
-                                        onback.call(());
-                                    },
-                                }
+    installation: installation.clone(),
+    installation_id: installation_id_for_delete.clone(),
+    ondelete: move |_| {
+        // Handle delete functionality
+        debug!("Delete clicked for: {}", installation_id_for_delete);
+        onback.call(());
+    },
+    onupdate: refresh_installation,
+}
                             }
                         },
                         _ => rsx! { div { "Unknown tab selected" } }
