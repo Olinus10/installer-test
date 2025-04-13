@@ -1,5 +1,5 @@
 use dioxus::prelude::*;
-use crate::preset::{Preset, find_preset_by_id};
+use crate::preset::Preset;
 use crate::universal::ModComponent;
 
 // Component for the integrated presets and features section
@@ -275,10 +275,12 @@ pub fn IntegratedFeatures(props: IntegratedFeaturesProps) -> Element {
                                                             if let Some(description) = &component.description {
                                                                 div { class: "feature-card-description",
                                                                     // Truncate description if too long
-                                                                    if description.len() > 100 {
-                                                                        "{description[..100]}..."
-                                                                    } else {
-                                                                        "{description}"
+                                                                    {
+                                                                        if description.len() > 100 {
+                                                                            format!("{}...", &description[..100])
+                                                                        } else {
+                                                                            description.clone()
+                                                                        }
                                                                     }
                                                                 }
                                                             }
