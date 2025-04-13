@@ -1033,7 +1033,11 @@ pub fn InstallationManagementPage(
 
     let refresh_installation = move |updated_installation: Installation| {
     // Update the current installation data
-    installation_result.set(Ok(updated_installation.clone()));
+    installations.with_mut(|list| {
+    if let Some(index) = list.iter().position(|i| i.id == updated_installation.id) {
+        list[index] = updated_installation.clone();
+    }
+});
     
     // Also update the list of installations
     installations.with_mut(|list| {
@@ -1311,13 +1315,13 @@ pub fn InstallationManagementPage(
                 Ok(refreshed) => {
                     // Also update the installations list
                     // (This requires passing installations as a prop to InstallationManagementPage)
-                    if let Some(installations_signal) = installation_list.as_ref() {
+                    installations.with_mut(|list| {
                         installations_signal.with_mut(|list| {
                             if let Some(index) = list.iter().position(|i| i.id == refreshed.id) {
                                 list[index] = refreshed.clone();
                             }
                         });
-                    }
+                    });
                 },
                 Err(e) => {
                     error!("Failed to reload installation: {}", e);
@@ -2854,7 +2858,8 @@ let complete_css = format!("{}\n{}\n{}\n{}\n{}",
             rsx! {
                 InstallationManagementPage {
                     installation_id: id,
-                    onback: back_handler
+                    onback: back_handler,
+                    installations: installations.clone()
                 }
             }
         }
