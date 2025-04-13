@@ -1349,21 +1349,260 @@ fn InstallationManagementPage(
                                                 
                                                 // Available presets
                                                 for preset in presets_list {
+                                                    // Preset card
                                                     {
-                                    let mod_id = mod_component.id.clone();
-                                    let is_enabled = props.enabled_features.read().contains(&mod_id);
-                                    
-                                    rsx! {
-                                        FeatureCard {
-                                            key: "{mod_id}",
-                                            mod_component: mod_component.clone(),
-                                            is_enabled: is_enabled,
-                                            toggle_feature: props.toggle_feature.clone()
+                                                        let preset_id = preset.id.clone();
+                                                        let is_selected = selected_preset.read().as_ref().map_or(false, |id| id == &preset_id);
+                                                    
+                                                        rsx! {
+                                                            div {
+                                                                class: if is_selected {
+                                                                    "preset-card selected"
+                                                                } else {
+                                                                    "preset-card"
+                                                                },
+                                                                onclick: move |_| {
+                                                                    apply_preset(preset_id.clone());
+                                                                },
+                                                                
+                                                                h4 { "{preset.name}" }
+                                                                p { "{preset.description}" }
+                                                                
+                                                                div { class: "preset-features-count",
+                                                                    "{preset.enabled_features.len()} features"
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    } else {
+                                        div { class: "loading-container",
+                                            div { class: "loading-spinner" }
+                                            div { class: "loading-text", "Loading presets..." }
                                         }
                                     }
                                 }
                             }
+                        },
+                        "performance" => {
+                            rsx! {
+                                div { class: "performance-tab",
+                                    h2 { "Performance Settings" }
+                                    
+                                    div { class: "performance-section",
+                                        div { class: "form-group",
+                                            label { r#for: "memory-allocation", "Memory Allocation (MB)" }
+                                            input {
+                                                id: "memory-allocation",
+                                                r#type: "number",
+                                                min: "512",
+                                                max: "32768",
+                                                step: "512",
+                                                value: "{memory_allocation}",
+                                                oninput: move |evt| memory_allocation.set(evt.value().parse().unwrap_or(2048))
+                                            }
+                                        }
+                                        
+                                        div { class: "form-group",
+                                            label { r#for: "java-args", "Java Arguments" }
+                                            textarea {
+                                                id: "java-args",
+                                                rows: "3",
+                                                value: "{java_args}",
+                                                oninput: move |evt| java_args.set(evt.value().clone())
+                                            }
+                                        }
+                                        
+                                        div { class: "java-args-presets",
+                                            h3 { "Suggested Arguments" }
+                                            
+                                            div { class: "java-preset-buttons",
+                                                button {
+                                                    class: "java-preset-button",
+                                                    onclick: move |_| java_args.set("-XX:+UseG1GC -XX:+ParallelRefProcEnabled -XX:MaxGCPauseMillis=200 -XX:+UnlockExperimentalVMOptions -XX:+DisableExplicitGC -XX:+AlwaysPreTouch -XX:G1NewSizePercent=30 -XX:G1MaxNewSizePercent=40 -XX:G1HeapRegionSize=8M -XX:G1ReservePercent=20 -XX:G1HeapWastePercent=5 -XX:G1MixedGCCountTarget=4 -XX:InitiatingHeapOccupancyPercent=15 -XX:G1MixedGCLiveThresholdPercent=90 -XX:G1RSetUpdatingPauseTimePercent=5 -XX:SurvivorRatio=32 -XX:+PerfDisableSharedMem -XX:MaxTenuringThreshold=1".to_string()),
+                                                    "Optimized G1GC (Recommended)"
+                                                }
+                                                
+                                                button {
+                                                    class: "java-preset-button",
+                                                                                                        onclick: move |_| java_args.set("-XX:+UseShenandoahGC -XX:ShenandoahGCHeuristics=compact -XX:+UseNUMA -XX:+AlwaysPreTouch -XX:+DisableExplicitGC".to_string()),
+                                                    "Shenandoah GC (High-End Systems)"
+                                                }
+                                                
+                                                button {
+                                                    class: "java-preset-button",
+                                                    onclick: move |_| java_args.set("".to_string()),
+                                                    "Default (No Arguments)"
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        "settings" => {
+                            rsx! {
+                                div { class: "settings-tab",
+                                    h2 { "Installation Settings" }
+                                    
+                                    div { class: "settings-actions",
+                                        // Rename button
+                                        button {
+                                            class: "settings-button",
+                                            onclick: move |_| {
+                                                debug!("Rename clicked for: {}", installation.id);
+                                                // Implementation for rename functionality
+                                            },
+                                            "Rename Installation"
+                                        }
+                                        
+                                        // Open folder button
+                                        button {
+                                            class: "settings-button",
+                                            onclick: move |_| {
+                                                debug!("Open folder clicked for: {}", installation.id);
+                                                // Implementation for opening installation folder
+                                            },
+                                            "Open Installation Folder"
+                                        }
+                                        
+                                        // Delete installation button
+                                        button {
+                                            class: "settings-button delete-button",
+                                            onclick: move |_| {
+                                                debug!("Delete clicked for: {}", installation_id_for_delete);
+                                                // Implementation for delete functionality
+                                            },
+                                            "Delete Installation"
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        _ => rsx! { div { "Unknown tab selected" } }
+                    }
+                }
+            }
+            
+            // Bottom action bar with install/update/modify button
+            div { class: "installation-actions",
+                // Launch button
+                button {
+                    class: "launch-button",
+                    disabled: !installation.installed || *is_installing.read(),
+                    onclick: move |_| {
+                        let mut error_signal = installation_error.clone();
+                        handle_play_click(installation_id_for_launch.clone(), &error_signal);
+                    },
+                    "Launch Game"
+                }
+                
+                // Install/Update/Modify button
+                button {
+                    class: if installation.update_available {
+                        "action-button update-button"
+                    } else if *has_changes.read() {
+                        "action-button modify-button"
+                    } else {
+                        "action-button"
+                    },
+                    disabled: action_button_disabled,
+                    onclick: handle_update,
+                    
+                    if *is_installing.read() {
+                        "Installing..."
+                    } else {
+                        {action_button_label}
+                    }
+                }
+            }
+        }
+    }
+}
+
+#[component]
+fn FeatureCategory(
+    category_name: String,
+    mods: Vec<ModComponent>,
+    enabled_features: Signal<Vec<String>>,
+    toggle_feature: EventHandler<String>
+) -> Element {
+    let mut expanded = use_signal(|| false);
+    
+    // Count enabled mods in this category
+    let enabled_count = enabled_features.read().iter()
+        .filter(|id| mods.iter().any(|m| &m.id == *id))
+        .count();
+    
+    rsx! {
+        div { class: "feature-category",
+            // Category header
+            div { 
+                class: "category-header",
+                onclick: move |_| expanded.set(!*expanded.read()),
+                
+                div { class: "category-title-section",
+                    h3 { class: "category-name", "{category_name}" }
+                    span { class: "category-count", "{enabled_count}/{mods.len()}" }
+                }
+                
+                div { 
+                    class: if *expanded.read() { "category-toggle expanded" } else { "category-toggle" },
+                    "▼"
+                }
+            }
+            
+            // Category content (expandable)
+            div { 
+                class: if *expanded.read() { "category-content expanded" } else { "category-content" },
+                
+                div { class: "feature-cards-grid",
+                    // Display mod cards in this category
+                    for mod_component in &mods {
+                        {
+                            let mod_id = mod_component.id.clone();
+                            let is_enabled = enabled_features.read().contains(&mod_id);
+                            
+                            rsx! {
+                                FeatureCard {
+                                    key: "{mod_id}",
+                                    mod_component: mod_component.clone(),
+                                    is_enabled: is_enabled,
+                                    toggle_feature: toggle_feature.clone()
+                                }
+                            }
                         }
+                    }
+                }
+            }
+        }
+    }
+}
+
+// Filter component for searching features
+#[component]
+fn FeatureFilter(
+    filter_text: Signal<String>
+) -> Element {
+    rsx! {
+        div { class: "feature-filter",
+            // Search input
+            div { class: "search-container",
+                input {
+                    r#type: "text",
+                    placeholder: "Search features...",
+                    value: "{filter_text.read()}",
+                    oninput: move |evt| filter_text.set(evt.value().clone())
+                }
+                
+                // Clear button
+                if !filter_text.read().is_empty() {
+                    button {
+                        class: "clear-search",
+                        onclick: move |_| filter_text.set(String::new()),
+                        "×"
                     }
                 }
             }
