@@ -654,21 +654,21 @@ fn HomePage(
             
             // Installation creation dialog
             if *show_creation_dialog.read() {
-                SimplifiedInstallationWizard {
-                    onclose: move |_| {
-                        show_creation_dialog.set(false);
-                    },
-                    oncreate: move |new_installation: Installation| {
-                        // Add the new installation to the list
-                        installations.with_mut(|list| {
-                            list.insert(0, new_installation.clone());
-                        });
-                        
-                        // Close the dialog
-                        show_creation_dialog.set(false);
-                        
-                        // Set the current installation to navigate to the installation page
-                        current_installation_id.set(Some(new_installation.id));
+    SimplifiedInstallationWizard {
+        onclose: move |_| {
+            show_creation_dialog.set(false);
+        },
+        oncreate: move |new_installation: Installation| {  // Added type annotation here
+            // Add the new installation to the list
+            installations.with_mut(|list| {
+                list.insert(0, new_installation.clone());
+            });
+            
+            // Close the dialog
+            show_creation_dialog.set(false);
+            
+            // Set the current installation to navigate to the installation page
+            current_installation_id.set(Some(new_installation.id));
                     }
                 }
             }
@@ -2994,24 +2994,24 @@ let complete_css = format!("{}\n{}\n{}\n{}\n{}",
         } else if current_installation_id.read().as_ref().map_or(false, |id| id == "new") {
             // New installation flow
             rsx! {
-                SimplifiedInstallationWizard {
-                    onclose: move |_| {
-                        current_installation_id.set(None);
-                    },
-                    oncreate: move |new_installation: Installation| {
-    // Add the new installation to the list
-    installations.with_mut(|list| {
-        list.insert(0, new_installation.clone());
-    });
-    
-    // Set the current installation to navigate to the installation page
-    current_installation_id.set(Some(new_installation.id));
-    
-    // Explicitly return unit type to match expected return type
-    ()
+    SimplifiedInstallationWizard {
+        onclose: move |_| {
+            current_installation_id.set(None);
+        },
+        oncreate: move |new_installation: Installation| {  // Added type annotation here
+            // Add the new installation to the list
+            installations.with_mut(|list| {
+                list.insert(0, new_installation.clone());
+            });
+            
+            // Set the current installation to navigate to the installation page
+            current_installation_id.set(Some(new_installation.id));
+            
+            // Explicitly return unit type to match expected return type
+            ()
+        }
+    }
 }
-                }
-            }
         } else {
             // Specific installation management page
             let back_handler = EventHandler::new(move |_| {
