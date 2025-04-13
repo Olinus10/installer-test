@@ -6,7 +6,7 @@ pub struct FeatureFilterProps {
 }
 
 #[component]
-pub fn FeatureFilter(props: FeatureFilterProps) -> Element {
+pub fn FeatureFilter(mut props: FeatureFilterProps) -> Element {
     rsx! {
         div { class: "feature-filter-container",
             span { class: "feature-filter-icon", "🔍" }
