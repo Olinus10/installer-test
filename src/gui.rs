@@ -1265,58 +1265,71 @@ fn InstallationManagementPage(
                                     // Add search filter - using imported FeatureFilter component
                                     FeatureFilter { filter_text: filter_text.clone() }
                                     
-                                    if let Some(manifest) = universal_manifest.read().as_ref().and_then(|m| m.as_ref()) {
-                                        // Group mods by category
-                                        {
-                                            let mut categories = BTreeMap::new();
-                                            let search_term = filter_text.read().to_lowercase();
-                                            
-                                            // Collect mods by category, applying search filter
-                                            for mod_component in manifest.mods.iter().filter(|m| m.optional) {
-                                                // Skip if it doesn't match search
-                                                if !search_term.is_empty() {
-                                                    let name_match = mod_component.name.to_lowercase().contains(&search_term);
-                                                    let description_match = mod_component.description.as_ref()
-                                                        .map_or(false, |desc| desc.to_lowercase().contains(&search_term));
-                                                        
-                                                    if !name_match && !description_match {
-                                                        continue;
-                                                    }
-                                                }
-                                                
-                                                let category = mod_component.category.clone().unwrap_or_else(|| "Uncategorized".to_string());
-                                                categories.entry(category).or_insert_with(Vec::new).push(mod_component.clone());
-                                            }
-                                            
-                                            // Show "no results" message if nothing matches
-                                            if categories.is_empty() && !search_term.is_empty() {
-                                                rsx! {
-                                                    div { class: "no-search-results",
-                                                        "No mods found matching '{search_term}'. Try a different search term."
-                                                    }
-                                                }
-                                            } else {
-                                                // Create category sections using imported FeatureCategory component
-                                                for (category_name, mods) in categories {
-                                                    rsx! {
-                                                        FeatureCategory {
-                                                            category_name: category_name.clone(),
-                                                            mods: mods.clone(),
-                                                            enabled_features: enabled_features.clone(),
-                                                            toggle_feature: EventHandler::new(move |feature_id: String| {
-                                                                toggle_feature(feature_id)
-                                                            })
-                                                        }
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    } else {
-                                        div { class: "loading-container",
-                                            div { class: "loading-spinner" }
-                                            div { class: "loading-text", "Loading features..." }
-                                        }
-                                    }
+                                   if let Some(manifest) = universal_manifest.read().as_ref().and_then(|m| m.as_ref()) {
+    // Group mods by category
+    {
+        let mut categories = BTreeMap::new();
+        let search_term = filter_text.read().to_lowercase();
+        
+        // Collect mods by category, applying search filter
+        for mod_component in manifest.mods.iter().filter(|m| m.optional) {
+            // Skip if it doesn't match search
+            if !search_term.is_empty() {
+                let name_match = mod_component.name.to_lowercase().contains(&search_term);
+                let description_match = mod_component.description.as_ref()
+                    .map_or(false, |desc| desc.to_lowercase().contains(&search_term));
+                    
+                if !name_match && !description_match {
+                    continue;
+                }
+            }
+            
+            let category = mod_component.category.clone().unwrap_or_else(|| "Uncategorized".to_string());
+            categories.entry(category).or_insert_with(Vec::new).push(mod_component.clone());
+        }
+        
+        // Fixed: Wrap the conditional in a block to ensure consistent return type
+        {
+            if categories.is_empty() && !search_term.is_empty() {
+                rsx! {
+                    div { class: "no-search-results",
+                        "No mods found matching '{search_term}'. Try a different search term."
+                    }
+                }
+            } else {
+                // Fixed: Use a Fragment to collect multiple components
+                rsx! {
+                    // Create category sections using imported FeatureCategory component
+                    {
+                        categories.iter().map(|(category_name, mods)| {
+                            let category_name_clone = category_name.clone();
+                            let mods_clone = mods.clone();
+                            let enabled_features_clone = enabled_features.clone();
+                            let toggle_feature_clone = toggle_feature.clone();
+                            
+                            rsx! {
+                                FeatureCategory {
+                                    key: "{category_name_clone}",
+                                    category_name: category_name_clone,
+                                    mods: mods_clone,
+                                    enabled_features: enabled_features_clone,
+                                    toggle_feature: EventHandler::new(move |feature_id: String| {
+                                        toggle_feature_clone(feature_id)
+                                    })
+                                }
+                            }
+                        }).collect::<Vec<_>>()
+                    }
+                }
+            }
+        }
+    }
+} else {
+    div { class: "loading-container",
+        div { class: "loading-spinner" }
+        div { class: "loading-text", "Loading features..." }
+    }
+}
                                 }
                             }
                         },
@@ -2986,14 +2999,20 @@ let complete_css = format!("{}\n{}\n{}\n{}\n{}",
                         current_installation_id.set(None);
                     },
                     oncreate: move |new_installation: Installation| {
-                        // Add the new installation
-                        installations.with_mut(|list| {
-                            list.insert(0, new_installation.clone());
-                        });
-                        
-                        // Set the current installation to the newly created one
-                        current_installation_id.set(Some(new_installation.id));
-                    }
+    // Add the new installation to the list
+    installations.with_mut(|list| {
+        list.insert(0, new_installation.clone());
+    });
+    
+    // Close the dialog
+    show_creation_dialog.set(false);
+    
+    // Set the current installation to navigate to the installation page
+    current_installation_id.set(Some(new_installation.id));
+    
+    // Explicitly return unit type to match expected return type
+    ()
+}
                 }
             }
         } else {
