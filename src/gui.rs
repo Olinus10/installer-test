@@ -29,7 +29,6 @@ use crate::launch_modpack;
 use crate::universal::ModComponent;
 use crate::universal::ManifestError;
 use crate::universal::ManifestErrorType;
-use crate::launcher::{FeatureCard, FeatureCategory, FeatureFilter};
 use crate::launcher::FeaturesTab;
 use crate::launcher::PerformanceTab;
 use crate::launcher::SettingsTab;
