@@ -433,11 +433,14 @@ fn render_features_by_category(
                                                                     let is_last = i == component.authors.len() - 1;
                                                                     rsx! {
                                                                         a {
-                                                                            class: "author-link",
-                                                                            href: "{author.link}",
-                                                                            target: "_blank",
-                                                                            "{author.name}{if !is_last { ", " } else { "" }}"
-                                                                        }
+    class: "author-link",
+    href: "{author.link}",
+    target: "_blank",
+    "{author.name}"
+}
+if !is_last {
+    ", "
+}
                                                                     }
                                                                 }
                                                             }
