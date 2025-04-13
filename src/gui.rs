@@ -1262,7 +1262,7 @@ fn InstallationManagementPage(
                                     h2 { "Optional Features" }
                                     p { "Toggle features on or off to customize your experience." }
                                     
-                                    // Add search filter
+                                    // Add search filter - using imported FeatureFilter component
                                     FeatureFilter { filter_text: filter_text.clone() }
                                     
                                     if let Some(manifest) = universal_manifest.read().as_ref().and_then(|m| m.as_ref()) {
@@ -1296,7 +1296,7 @@ fn InstallationManagementPage(
                                                     }
                                                 }
                                             } else {
-                                                // Create category sections using our new component
+                                                // Create category sections using imported FeatureCategory component
                                                 for (category_name, mods) in categories {
                                                     rsx! {
                                                         FeatureCategory {
@@ -1347,7 +1347,7 @@ fn InstallationManagementPage(
                                                     div { class: "preset-features-count", "Core mods only" }
                                                 }
                                                 
-                                                // Available presets
+                                                // Available presets - fixed structure
                                                 for preset in presets_list {
                                                     // Preset card
                                                     {
@@ -1427,7 +1427,7 @@ fn InstallationManagementPage(
                                                 
                                                 button {
                                                     class: "java-preset-button",
-                                                                                                        onclick: move |_| java_args.set("-XX:+UseShenandoahGC -XX:ShenandoahGCHeuristics=compact -XX:+UseNUMA -XX:+AlwaysPreTouch -XX:+DisableExplicitGC".to_string()),
+                                                    onclick: move |_| java_args.set("-XX:+UseShenandoahGC -XX:ShenandoahGCHeuristics=compact -XX:+UseNUMA -XX:+AlwaysPreTouch -XX:+DisableExplicitGC".to_string()),
                                                     "Shenandoah GC (High-End Systems)"
                                                 }
                                                 
@@ -1515,94 +1515,6 @@ fn InstallationManagementPage(
                         "Installing..."
                     } else {
                         {action_button_label}
-                    }
-                }
-            }
-        }
-    }
-}
-
-#[component]
-fn FeatureCategory(
-    category_name: String,
-    mods: Vec<ModComponent>,
-    enabled_features: Signal<Vec<String>>,
-    toggle_feature: EventHandler<String>
-) -> Element {
-    let mut expanded = use_signal(|| false);
-    
-    // Count enabled mods in this category
-    let enabled_count = enabled_features.read().iter()
-        .filter(|id| mods.iter().any(|m| &m.id == *id))
-        .count();
-    
-    rsx! {
-        div { class: "feature-category",
-            // Category header
-            div { 
-                class: "category-header",
-                onclick: move |_| expanded.set(!*expanded.read()),
-                
-                div { class: "category-title-section",
-                    h3 { class: "category-name", "{category_name}" }
-                    span { class: "category-count", "{enabled_count}/{mods.len()}" }
-                }
-                
-                div { 
-                    class: if *expanded.read() { "category-toggle expanded" } else { "category-toggle" },
-                    "▼"
-                }
-            }
-            
-            // Category content (expandable)
-            div { 
-                class: if *expanded.read() { "category-content expanded" } else { "category-content" },
-                
-                div { class: "feature-cards-grid",
-                    // Display mod cards in this category
-                    for mod_component in &mods {
-                        {
-                            let mod_id = mod_component.id.clone();
-                            let is_enabled = enabled_features.read().contains(&mod_id);
-                            
-                            rsx! {
-                                FeatureCard {
-                                    key: "{mod_id}",
-                                    mod_component: mod_component.clone(),
-                                    is_enabled: is_enabled,
-                                    toggle_feature: toggle_feature.clone()
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-// Filter component for searching features
-#[component]
-fn FeatureFilter(
-    filter_text: Signal<String>
-) -> Element {
-    rsx! {
-        div { class: "feature-filter",
-            // Search input
-            div { class: "search-container",
-                input {
-                    r#type: "text",
-                    placeholder: "Search features...",
-                    value: "{filter_text.read()}",
-                    oninput: move |evt| filter_text.set(evt.value().clone())
-                }
-                
-                // Clear button
-                if !filter_text.read().is_empty() {
-                    button {
-                        class: "clear-search",
-                        onclick: move |_| filter_text.set(String::new()),
-                        "×"
                     }
                 }
             }
