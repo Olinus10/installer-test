@@ -2,19 +2,12 @@ use dioxus::prelude::*;
 use crate::installation::{Installation, delete_installation};
 use log::{debug, error};
 
-#[derive(PartialEq, Props, Clone)]
-pub struct SettingsTabProps {
-    pub installation: Installation,
-    pub installation_id: String,
-    pub ondelete: EventHandler<()>,
-    pub onupdate: EventHandler<Installation>, // Add this prop
-}
-
 #[component]
 pub fn SettingsTab(
     installation: Installation,
     installation_id: String,
     ondelete: EventHandler<()>,
+    onupdate: EventHandler<Installation>,
 ) -> Element {
     // Clone everything we need to use across closures
     let installation_path_display = installation.installation_path.display().to_string();
