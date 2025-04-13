@@ -127,9 +127,14 @@ pub fn FeaturesTab(
                                     } else {
                                         String::new()
                                     },
-                                    onclick: move |_| {
-                                        apply_preset(preset_id.clone());
-                                    },
+                                    {
+    let apply_preset_clone = apply_preset.clone();
+    rsx! {
+        onclick: move |_| {
+            apply_preset_clone(preset_id.clone());
+        }
+    }
+},
                                     
                                     // Dark overlay for text readability
                                     div { class: "preset-card-overlay" }
@@ -364,7 +369,7 @@ fn render_features_by_category(
                                         {
                                             let component_id = component.id.clone();
                                             let is_enabled = enabled_features.read().contains(&component_id);
-                                            let toggle_func = toggle_feature.clone();
+                                            let mut toggle_func = toggle_feature.clone();
                                             
                                             rsx! {
                                                 div { 
