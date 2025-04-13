@@ -11,9 +11,12 @@ pub fn FeaturesTab(
     selected_preset: Signal<Option<String>>,
     filter_text: Signal<String>,
 ) -> Element {
+    // Clone presets to avoid ownership issues in closure
+    let presets_for_closure = presets.clone();
+    
     // Handle changing a preset
     let mut apply_preset = move |preset_id: String| {
-        if let Some(preset) = find_preset_by_id(&presets, &preset_id) {
+        if let Some(preset) = find_preset_by_id(&presets_for_closure, &preset_id) {
             // Update enabled features
             enabled_features.set(preset.enabled_features.clone());
             
@@ -69,7 +72,7 @@ pub fn FeaturesTab(
                     // Render the integrated features component
                     rsx! {
                         IntegratedFeatures {
-                            presets: presets,
+                            presets: presets.clone(), // Clone here to avoid ownership issues
                             selected_preset: selected_preset,
                             apply_preset: EventHandler::new(move |preset_id: String| {
                                 apply_preset(preset_id)
