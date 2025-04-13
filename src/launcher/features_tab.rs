@@ -206,7 +206,7 @@ fn render_features_by_category(
     components: Vec<ModComponent>,
     enabled_features: Signal<Vec<String>>,
     filter_text: Signal<String>,
-    toggle_feature: impl Fn(String) + Clone + 'static,
+    toggle_feature: impl FnMut(String) + Clone + 'static,
 ) -> Element {
     // Apply current filter
     let filter = filter_text.read().to_lowercase();
@@ -287,7 +287,7 @@ fn render_features_by_category(
                                 {
                                     let components_clone = components.clone();
                                     let category_name_clone = category_name.clone();
-                                    let enabled_features = enabled_features.clone();
+                                    let mut enabled_features = enabled_features.clone();
                                     
                                     rsx! {
                                         button {
