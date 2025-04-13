@@ -1,4 +1,3 @@
-// Existing imports and exports
 pub mod config;
 mod process;
 
@@ -6,17 +5,18 @@ mod process;
 pub use config::{update_jvm_args, get_jvm_args};
 pub use process::launch_modpack;
 
-// New component modules
+// Component modules
 mod integrated_features;
 mod features_tab;
 mod performance_tab;
 mod settings_tab;
 
-// Export components
-pub use integrated_features::IntegratedFeatures;
+// Export components (removing unused exports)
 pub use features_tab::FeaturesTab;
 pub use performance_tab::PerformanceTab;
 pub use settings_tab::SettingsTab;
 
-// Import log macros
-use log::info;
+// Define public feature types needed by other modules
+pub struct FeatureCard;
+pub struct FeatureCategory;
+pub struct FeatureFilter;
