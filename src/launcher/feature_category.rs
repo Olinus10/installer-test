@@ -1,15 +1,13 @@
 use dioxus::prelude::*;
-// Remove this import if it causes conflicts
-// use crate::launcher::FeatureCard;
-use crate::universal::ModComponent;
 use crate::launcher::FeatureCard;
+use crate::universal::ModComponent;
 
 #[derive(PartialEq, Props, Clone)]
 pub struct FeatureCategoryProps {
     pub category_name: String,
-    pub mods: Vec,
-    pub enabled_features: Signal<Vec>,
-    pub toggle_feature: EventHandler,
+    pub mods: Vec<ModComponent>,  // Fixed: Added generic type
+    pub enabled_features: Signal<Vec<String>>,  // Fixed: Added generic type
+    pub toggle_feature: EventHandler<String>,
 }
 
 #[component]
@@ -49,13 +47,16 @@ pub fn FeatureCategory(props: FeatureCategoryProps) -> Element {
                         {
                             let mod_id = mod_component.id.clone();
                             let is_enabled = props.enabled_features.read().contains(&mod_id);
+                            let toggle_feature_clone = props.toggle_feature.clone();
                             
                             rsx! {
                                 FeatureCard {
                                     key: "{mod_id}",
                                     mod_component: mod_component.clone(),
                                     is_enabled: is_enabled,
-                                    toggle_feature: props.toggle_feature.clone()
+                                    toggle_feature: EventHandler::new(move |id: String| {
+                                        toggle_feature_clone.call(id);
+                                    })
                                 }
                             }
                         }
