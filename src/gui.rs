@@ -1239,7 +1239,7 @@ pub fn InstallationManagementPage(
                         "features" => {
                             rsx! {
                                 FeaturesTab {
-                                    universal_manifest: universal_manifest.read().as_ref().cloned(),
+                                    universal_manifest: universal_manifest.read().clone().flatten(),
                                     presets: presets.read().clone().unwrap_or_default(),
                                     enabled_features: enabled_features,
                                     selected_preset: selected_preset,
