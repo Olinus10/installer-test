@@ -5,7 +5,7 @@ use crate::universal::ModComponent;
 pub struct FeatureCardProps {
     pub mod_component: ModComponent,
     pub is_enabled: bool,
-    pub toggle_feature: EventHandler<String>
+    pub toggle_feature: EventHandler<String>,
 }
 
 #[component]
@@ -67,17 +67,17 @@ pub fn FeatureCard(props: FeatureCardProps) -> Element {
                 div { class: "feature-authors",
                     span { "By: " }
                     
-                    // Join authors with commas
+                    // Join authors with commas - FIXED for RSX syntax
                     for (index, author) in props.mod_component.authors.iter().enumerate() {
                         {
                             let is_last = index == props.mod_component.authors.len() - 1;
                             rsx! {
                                 a {
-                                    href: "{author.link}",
+                                    href: author.link.clone(),
                                     target: "_blank",
                                     rel: "noopener noreferrer",
                                     class: "author-link",
-                                    "{author.name}{if !is_last { \", \" } else { \"\" }}"
+                                    {format!("{}{}", author.name, if !is_last { ", " } else { "" })}
                                 }
                             }
                         }
