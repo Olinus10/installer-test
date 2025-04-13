@@ -2940,3 +2940,30 @@ a:hover {
         width: 100%;
     }
 }
+
+/* Fix for white text on white buttons */
+.installation-card-actions button,
+.category-toggle-button,
+.tab-button {
+    color: #fce8f6; /* Ensure text is light */
+    background-color: rgba(0, 0, 0, 0.6); /* Darker background */
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5); /* Add shadow for legibility */
+}
+
+.installation-card-actions .manage-button {
+    background-color: rgba(7, 60, 23, 0.8); /* Green tint */
+}
+
+.installation-card-actions .play-button {
+    background-color: rgba(7, 60, 23, 0.8); /* Green tint */
+}
+
+.category-toggle-all {
+    background-color: rgba(7, 60, 23, 0.7); /* Better green background */
+    color: white;
+}
+
+.category-toggle-all.disabled {
+    background-color: rgba(217, 82, 72, 0.7); /* Red background */
+}
