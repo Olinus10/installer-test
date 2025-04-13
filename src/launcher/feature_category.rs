@@ -2,6 +2,7 @@ use dioxus::prelude::*;
 // Remove this import if it causes conflicts
 // use crate::launcher::FeatureCard;
 use crate::universal::ModComponent;
+use crate::launcher::FeatureCard;
 
 pub struct FeatureCategoryProps {
     pub category_name: String,
