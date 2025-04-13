@@ -5,8 +5,8 @@ use crate::universal::ModComponent;
 #[derive(PartialEq, Props, Clone)]
 pub struct FeatureCategoryProps {
     pub category_name: String,
-    pub mods: Vec<ModComponent>,  // Fixed: Added generic type
-    pub enabled_features: Signal<Vec<String>>,  // Fixed: Added generic type
+    pub mods: Vec<ModComponent>, 
+    pub enabled_features: Signal<Vec<String>>,
     pub toggle_feature: EventHandler<String>,
 }
 
@@ -24,10 +24,11 @@ pub fn FeatureCategory(props: FeatureCategoryProps) -> Element {
             // Category header
             div { 
                 class: "category-header",
+                // Fixed: Split the read and set operations to avoid simultaneous mutable and immutable borrows
                 onclick: move |_| {
-    let current = *expanded.read();
-    expanded.set(!current);
-},
+                    let current = *expanded.read();
+                    expanded.set(!current);
+                },
                 
                 div { class: "category-title-section",
                     h3 { class: "category-name", "{props.category_name}" }
