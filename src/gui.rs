@@ -1461,71 +1461,50 @@ fn InstallationManagementPage(
                                     h2 { "Installation Settings" }
                                     
                                     div { class: "settings-actions",
-                                        // Rename button
-                                        button {
-    class: "settings-button",
-    onclick: move |_| {
-        debug!("Rename clicked for: {}", installation.id);
-        // Implementation for rename functionality
-    },
-    "Rename Installation"
-}
+                                        // Rename button - using properly cloned ID
+                                        {
+                                            let id_for_rename = installation.id.clone();
+                                            rsx! {
+                                                button {
+                                                    class: "settings-button",
+                                                    onclick: move |_| {
+                                                        debug!("Rename clicked for: {}", id_for_rename);
+                                                        // Implementation for rename functionality
+                                                    },
+                                                    "Rename Installation"
+                                                }
+                                            }
+                                        }
 
-button {
-    class: "settings-button",
-    onclick: move |_| {
-        debug!("Open folder clicked for: {}", installation.id);
-        // Implementation for opening installation folder
-    },
-    "Open Installation Folder"
-}
+                                        // Open folder button - using properly cloned ID
+                                        {
+                                            let id_for_open = installation.id.clone();
+                                            rsx! {
+                                                button {
+                                                    class: "settings-button",
+                                                    onclick: move |_| {
+                                                        debug!("Open folder clicked for: {}", id_for_open);
+                                                        // Implementation for opening installation folder
+                                                    },
+                                                    "Open Installation Folder"
+                                                }
+                                            }
+                                        }
 
-button {
-    class: "settings-button delete-button",
-    onclick: move |_| {
-        debug!("Delete clicked for: {}", installation_id_for_delete);
-        // Implementation for delete functionality
-    },
-    "Delete Installation"
-}
-
-// Fixed code (clone the id for each closure):
-{
-    let id_for_rename = installation.id.clone();
-    rsx! {
-        button {
-            class: "settings-button",
-            onclick: move |_| {
-                debug!("Rename clicked for: {}", id_for_rename);
-                // Implementation for rename functionality
-            },
-            "Rename Installation"
-        }
-    }
-}
-
-{
-    let id_for_open = installation.id.clone();
-    rsx! {
-        button {
-            class: "settings-button",
-            onclick: move |_| {
-                debug!("Open folder clicked for: {}", id_for_open);
-                // Implementation for opening installation folder
-            },
-            "Open Installation Folder"
-        }
-    }
-}
-
-button {
-    class: "settings-button delete-button",
-    onclick: move |_| {
-        debug!("Delete clicked for: {}", installation_id_for_delete);
-        // Implementation for delete functionality
-    },
-    "Delete Installation"
-}
+                                        // Delete button - using properly cloned ID
+                                        {
+                                            let id_for_delete = installation_id_for_delete.clone();
+                                            rsx! {
+                                                button {
+                                                    class: "settings-button delete-button",
+                                                    onclick: move |_| {
+                                                        debug!("Delete clicked for: {}", id_for_delete);
+                                                        // Implementation for delete functionality
+                                                    },
+                                                    "Delete Installation"
+                                                }
+                                            }
+                                        }
                                     }
                                 }
                             }
