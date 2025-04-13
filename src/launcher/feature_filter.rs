@@ -1,7 +1,8 @@
 use dioxus::prelude::*;
 
+#[derive(PartialEq, Props, Clone)]
 pub struct FeatureFilterProps {
-    pub filter_text: Signal<String>,
+    pub filter_text: Signal,
 }
 
 #[component]
