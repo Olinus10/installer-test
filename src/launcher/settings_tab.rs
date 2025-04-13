@@ -8,12 +8,23 @@ pub fn SettingsTab(
     installation_id: String,
     ondelete: EventHandler<()>,
 ) -> Element {
-    // Clone the values we'll need across closures to avoid moved value errors
+    // Clone everything we need to use across closures
+    let installation_path_display = installation.installation_path.display().to_string();
     let installation_name = installation.name.clone();
-    let installation_path = installation.installation_path.clone();
     let installation_id_for_delete = installation_id.clone();
     let installation_id_for_cache = installation_id.clone();
     let installation_id_for_repair = installation_id.clone();
+    
+    // Clone values needed in the UI (outside of closures)
+    let path_for_ui = installation.installation_path.clone();
+    let minecraft_version = installation.minecraft_version.clone();
+    let loader_type = installation.loader_type.clone();
+    let loader_version = installation.loader_version.clone();
+    let launcher_type = installation.launcher_type.clone();
+    let created_at = installation.created_at;
+    let last_used = installation.last_used;
+    let total_launches = installation.total_launches;
+    let last_launch = installation.last_launch;
     
     // State for rename dialog
     let mut show_rename_dialog = use_signal(|| false);
@@ -27,9 +38,10 @@ pub fn SettingsTab(
     let mut is_operating = use_signal(|| false);
     let mut operation_error = use_signal(|| Option::<String>::None);
     
-    // Open folder function
+    // Open folder function - now uses the cloned path
+    let installation_path_for_folder = installation.installation_path.clone();
     let open_folder = move |_| {
-        let path = &installation_path;
+        let path = &installation_path_for_folder;
         debug!("Opening installation folder: {:?}", path);
         
         #[cfg(target_os = "windows")]
@@ -57,8 +69,9 @@ pub fn SettingsTab(
     };
     
     // Handle rename
+    let installation_for_rename = installation.clone();
     let handle_rename = move |_| {
-        let mut installation_copy = installation.clone();
+        let mut installation_copy = installation_for_rename.clone();
         installation_copy.name = new_name.read().clone();
         
         // Validate name
@@ -130,37 +143,37 @@ pub fn SettingsTab(
                 div { class: "info-grid",
                     div { class: "info-row",
                         div { class: "info-label", "Name:" }
-                        div { class: "info-value", "{installation.name}" }
+                        div { class: "info-value", "{installation_name}" }
                     }
                     
                     div { class: "info-row",
                         div { class: "info-label", "Created:" }
-                        div { class: "info-value", "{installation.created_at.format(\"%B %d, %Y\")}" }
+                        div { class: "info-value", "{created_at.format(\"%B %d, %Y\")}" }
                     }
                     
                     div { class: "info-row",
                         div { class: "info-label", "Last Used:" }
-                        div { class: "info-value", "{installation.last_used.format(\"%B %d, %Y\")}" }
+                        div { class: "info-value", "{last_used.format(\"%B %d, %Y\")}" }
                     }
                     
                     div { class: "info-row",
                         div { class: "info-label", "Minecraft:" }
-                        div { class: "info-value", "{installation.minecraft_version}" }
+                        div { class: "info-value", "{minecraft_version}" }
                     }
                     
                     div { class: "info-row",
                         div { class: "info-label", "Loader:" }
-                        div { class: "info-value", "{installation.loader_type} {installation.loader_version}" }
+                        div { class: "info-value", "{loader_type} {loader_version}" }
                     }
                     
                     div { class: "info-row",
                         div { class: "info-label", "Launcher:" }
-                        div { class: "info-value", "{installation.launcher_type}" }
+                        div { class: "info-value", "{launcher_type}" }
                     }
                     
                     div { class: "info-row",
                         div { class: "info-label", "Path:" }
-                        div { class: "info-value truncate-path", "{installation_path.display()}" }
+                        div { class: "info-value truncate-path", "{installation_path_display}" }
                     }
                 }
             }
@@ -171,14 +184,14 @@ pub fn SettingsTab(
                 
                 div { class: "stats-grid",
                     div { class: "stat-item",
-                        div { class: "stat-value", "{installation.total_launches}" }
+                        div { class: "stat-value", "{total_launches}" }
                         div { class: "stat-label", "Total Launches" }
                     }
                     
                     div { class: "stat-item",
                         div { class: "stat-value",
-                            if let Some(last_launch) = installation.last_launch {
-                                {last_launch.format("%B %d, %Y").to_string()}
+                            if let Some(launch_date) = last_launch {
+                                {launch_date.format("%B %d, %Y").to_string()}
                             } else {
                                 {"Never".to_string()}
                             }
