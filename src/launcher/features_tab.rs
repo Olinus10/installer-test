@@ -1,7 +1,9 @@
+// features_tab.rs - Complete fixed version
 use dioxus::prelude::*;
 use crate::universal::{ModComponent, UniversalManifest};
 use crate::preset::{Preset, find_preset_by_id};
-use crate::launcher::integrated_features::IntegratedFeatures;
+// Remove unused import
+// use crate::launcher::integrated_features::IntegratedFeatures;
 
 #[component]
 pub fn FeaturesTab(
@@ -15,7 +17,7 @@ pub fn FeaturesTab(
     let presets_for_closure = presets.clone();
     
     // Handle changing a preset
-    let mut apply_preset = move |preset_id: String| {
+    let apply_preset = move |preset_id: String| {
         if let Some(preset) = find_preset_by_id(&presets_for_closure, &preset_id) {
             // Update enabled features
             enabled_features.set(preset.enabled_features.clone());
@@ -26,7 +28,7 @@ pub fn FeaturesTab(
     };
     
     // Handle toggling a feature
-    let mut toggle_feature = move |feature_id: String| {
+    let toggle_feature = move |feature_id: String| {
         enabled_features.with_mut(|features| {
             if features.contains(&feature_id) {
                 features.retain(|id| id != &feature_id);
@@ -113,6 +115,7 @@ pub fn FeaturesTab(
                         {
                             let preset_id = preset.id.clone();
                             let is_selected = selected_preset.read().as_ref().map_or(false, |id| id == &preset_id);
+                            let apply_preset_clone = apply_preset.clone();
                             
                             rsx! {
                                 div {
@@ -127,14 +130,9 @@ pub fn FeaturesTab(
                                     } else {
                                         String::new()
                                     },
-                                    {
-    let apply_preset_clone = apply_preset.clone();
-    rsx! {
-        onclick: move |_| {
-            apply_preset_clone(preset_id.clone());
-        }
-    }
-},
+                                    onclick: move |_| {
+                                        apply_preset_clone(preset_id.clone());
+                                    },
                                     
                                     // Dark overlay for text readability
                                     div { class: "preset-card-overlay" }
@@ -291,7 +289,7 @@ fn render_features_by_category(
                                 // Toggle all button
                                 {
                                     let components_clone = components.clone();
-                                    let category_name_clone = category_name.clone();
+                                    let _category_name_clone = category_name.clone();
                                     let mut enabled_features = enabled_features.clone();
                                     
                                     rsx! {
@@ -438,14 +436,14 @@ fn render_features_by_category(
                                                                     let is_last = i == component.authors.len() - 1;
                                                                     rsx! {
                                                                         a {
-    class: "author-link",
-    href: "{author.link}",
-    target: "_blank",
-    "{author.name}"
-}
-if !is_last {
-    ", "
-}
+                                                                            class: "author-link",
+                                                                            href: "{author.link}",
+                                                                            target: "_blank",
+                                                                            "{author.name}"
+                                                                        }
+                                                                        if !is_last {
+                                                                            ", "
+                                                                        }
                                                                     }
                                                                 }
                                                             }
