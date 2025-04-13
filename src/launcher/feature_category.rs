@@ -24,7 +24,10 @@ pub fn FeatureCategory(props: FeatureCategoryProps) -> Element {
             // Category header
             div { 
                 class: "category-header",
-                onclick: move |_| expanded.set(!*expanded.read()),
+                onclick: move |_| {
+    let current = *expanded.read();
+    expanded.set(!current);
+},
                 
                 div { class: "category-title-section",
                     h3 { class: "category-name", "{props.category_name}" }
