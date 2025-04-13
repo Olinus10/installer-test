@@ -2,6 +2,14 @@ use dioxus::prelude::*;
 use crate::installation::{Installation, delete_installation};
 use log::{debug, error};
 
+#[derive(PartialEq, Props, Clone)]
+pub struct SettingsTabProps {
+    pub installation: Installation,
+    pub installation_id: String,
+    pub ondelete: EventHandler<()>,
+    pub onupdate: EventHandler<Installation>, // Add this prop
+}
+
 #[component]
 pub fn SettingsTab(
     installation: Installation,
@@ -71,33 +79,33 @@ let open_folder = move |_| {
     // Handle rename
     let installation_for_rename = installation.clone();
     let handle_rename = move |_| {
-        let mut installation_copy = installation_for_rename.clone();
-        installation_copy.name = new_name.read().clone();
-        
-        // Validate name
-        if installation_copy.name.trim().is_empty() {
-            rename_error.set(Some("Installation name cannot be empty".to_string()));
-            return;
+    let mut installation_copy = installation_for_rename.clone();
+    installation_copy.name = new_name.read().clone();
+    
+    // Validate name
+    if installation_copy.name.trim().is_empty() {
+        rename_error.set(Some("Installation name cannot be empty".to_string()));
+        return;
+    }
+    
+    is_operating.set(true);
+    
+    // Save changes
+    match installation_copy.save() {
+        Ok(_) => {
+            debug!("Renamed installation to: {}", installation_copy.name);
+            show_rename_dialog.set(false);
+            is_operating.set(false);
+            // Call the update handler with the updated installation
+            onupdate.call(installation_copy);
+        },
+        Err(e) => {
+            debug!("Failed to rename installation: {}", e);
+            rename_error.set(Some(format!("Failed to rename installation: {}", e)));
+            is_operating.set(false);
         }
-        
-        is_operating.set(true);
-        
-        // Save changes
-        match installation_copy.save() {
-            Ok(_) => {
-                debug!("Renamed installation to: {}", installation_copy.name);
-                show_rename_dialog.set(false);
-                is_operating.set(false);
-                // Ideally we would update the UI to show the new name
-                // For a complete implementation, we might want to refresh the installation
-            },
-            Err(e) => {
-                debug!("Failed to rename installation: {}", e);
-                rename_error.set(Some(format!("Failed to rename installation: {}", e)));
-                is_operating.set(false);
-            }
-        }
-    };
+    }
+};
     
     // Handle delete
     let handle_delete = move |_| {
