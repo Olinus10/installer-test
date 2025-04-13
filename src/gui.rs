@@ -1306,7 +1306,7 @@ pub fn InstallationManagementPage(
         debug!("Delete clicked for: {}", installation_id_for_delete);
         onback.call(());
     },
-    onupdate: move |updated_installation| {
+    onupdate: move |updated_installation: Installation| {
         // Update the installation data in memory
         // We need to handle this differently since installation_result is a Memo not a Signal
         spawn(async move {
@@ -1316,11 +1316,11 @@ pub fn InstallationManagementPage(
                     // Also update the installations list
                     // (This requires passing installations as a prop to InstallationManagementPage)
                     installations.with_mut(|list| {
-                        installations_signal.with_mut(|list| {
-                            if let Some(index) = list.iter().position(|i| i.id == refreshed.id) {
-                                list[index] = refreshed.clone();
-                            }
-                        });
+                        installations.with_mut(|list| {
+    if let Some(index) = list.iter().position(|i| i.id == refreshed.id) {
+        list[index] = refreshed.clone();
+    }
+});
                     });
                 },
                 Err(e) => {
