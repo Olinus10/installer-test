@@ -39,34 +39,34 @@ pub fn SettingsTab(
     let mut operation_error = use_signal(|| Option::<String>::None);
     
     // Open folder function - now uses the cloned path
-    let installation_path_for_folder = installation.installation_path.clone();
-    let open_folder = move |_| {
-        let path = &installation_path_for_folder;
-        debug!("Opening installation folder: {:?}", path);
+let installation_path_for_folder = installation.installation_path.clone();
+let open_folder = move |_| {
+    let path = &installation_path_for_folder;
+    debug!("Opening installation folder: {:?}", path);
+    
+    #[cfg(target_os = "windows")]
+    let result = std::process::Command::new("explorer")
+        .arg(path)
+        .spawn();
         
-        #[cfg(target_os = "windows")]
-        let result = std::process::Command::new("explorer")
-            .arg(path)
-            .spawn();
-            
-        #[cfg(target_os = "macos")]
-        let result = std::process::Command::new("open")
-            .arg(path)
-            .spawn();
-            
-        #[cfg(target_os = "linux")]
-        let result = std::process::Command::new("xdg-open")
-            .arg(path)
-            .spawn();
-            
-        #[cfg(not(any(target_os = "windows", target_os = "macos", target_os = "linux")))]
-        let result = Err(std::io::Error::new(std::io::ErrorKind::Other, "Unsupported platform"));
+    #[cfg(target_os = "macos")]
+    let result = std::process::Command::new("open")
+        .arg(path)
+        .spawn();
         
-        if let Err(e) = result {
-            debug!("Failed to open installation folder: {}", e);
-            operation_error.set(Some(format!("Failed to open folder: {}", e)));
-        }
-    };
+    #[cfg(target_os = "linux")]
+    let result = std::process::Command::new("xdg-open")
+        .arg(path)
+        .spawn();
+        
+    #[cfg(not(any(target_os = "windows", target_os = "macos", target_os = "linux")))]
+    let result = Err(std::io::Error::new(std::io::ErrorKind::Other, "Unsupported platform"));
+    
+    if let Err(e) = result {
+        debug!("Failed to open installation folder: {}", e);
+        operation_error.set(Some(format!("Failed to open folder: {}", e)));
+    }
+};
     
     // Handle rename
     let installation_for_rename = installation.clone();
