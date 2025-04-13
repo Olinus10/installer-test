@@ -973,7 +973,7 @@ pub fn SimplifiedInstallationWizard(props: InstallationCreationProps) -> Element
 
 // Installation management page
 #[component]
-fn InstallationManagementPage(
+pub fn InstallationManagementPage(
     installation_id: String,
     onback: EventHandler<()>,
 ) -> Element {
@@ -1078,51 +1078,8 @@ fn InstallationManagementPage(
             
             // Update overall change flag
             has_changes.set(features_changed || memory_changed || args_changed);
-            
-            debug!("Change detection: features={}, memory={}, args={}, has_changes={}",
-                   features_changed, memory_changed, args_changed, 
-                   features_changed || memory_changed || args_changed);
         }
     });
-    
-    // Handle feature toggle
-    let mut toggle_feature = move |feature_id: String| {
-        debug!("Toggling feature: {}", feature_id);
-        enabled_features.with_mut(|features| {
-            if features.contains(&feature_id) {
-                features.retain(|id| id != &feature_id);
-                debug!("Removed feature: {}", feature_id);
-            } else {
-                features.push(feature_id.clone());
-                debug!("Added feature: {}", feature_id);
-            }
-        });
-    };
-    
-    // Handle preset application
-    let mut apply_preset = move |preset_id: String| {
-        if let Some(presets_list) = presets.read().as_ref() {
-            if let Some(preset) = preset::find_preset_by_id(presets_list, &preset_id) {
-                debug!("Applying preset: {}", preset.name);
-                
-                // Update enabled features
-                enabled_features.set(preset.enabled_features.clone());
-                
-                // Update memory if recommended
-                if let Some(mem) = preset.recommended_memory {
-                    memory_allocation.set(mem);
-                }
-                
-                // Update Java args if recommended
-                if let Some(args) = &preset.recommended_java_args {
-                    java_args.set(args.clone());
-                }
-                
-                // Mark as selected
-                selected_preset.set(Some(preset_id));
-            }
-        }
-    };
     
     // Handle install/update
     let handle_update = move |_| {
@@ -1161,7 +1118,7 @@ fn InstallationManagementPage(
         });
     };
     
-    // Build action button label
+    // Button label based on state
     let action_button_label = if !installation.installed {
         "Install"
     } else if installation.update_available {
@@ -1172,11 +1129,40 @@ fn InstallationManagementPage(
         "Already Up To Date"
     };
     
-    // Determine if action button should be disabled
+    // Button disable logic
     let action_button_disabled = *is_installing.read() || 
                                 (!installation.update_available && 
                                  installation.installed && 
                                  !*has_changes.read());
+    
+    // Handle launch
+    let handle_launch = move |_| {
+        let mut installation_error_clone = installation_error.clone();
+        let installation_id = installation_id_for_launch.clone();
+        
+        // Create a channel to communicate back to the main thread
+        let (error_tx, error_rx) = std::sync::mpsc::channel::<String>();
+        
+        // Launch the game
+        std::thread::spawn(move || {
+            match crate::launch_modpack(&installation_id) {
+                Ok(_) => {
+                    debug!("Successfully launched modpack: {}", installation_id);
+                },
+                Err(e) => {
+                    error!("Failed to launch modpack: {}", e);
+                    let _ = error_tx.send(format!("Failed to launch modpack: {}", e));
+                }
+            }
+        });
+        
+        // Create a task to check for errors from the background thread
+        spawn(async move {
+            if let Ok(error_message) = error_rx.recv() {
+                installation_error_clone.set(Some(error_message));
+            }
+        });
+    };
     
     rsx! {
         div { class: "installation-management-container",
@@ -1221,20 +1207,12 @@ fn InstallationManagementPage(
                     button { 
                         class: if *active_tab.read() == "features" { "tab-button active" } else { "tab-button" },
                         onclick: move |_| active_tab.set("features"),
-                        "Features"
-                        
-                        // Count of enabled features
-                        span { class: "tab-counter", "{enabled_features.read().len()}" }
+                        "Features & Presets"
                         
                         // Show indicator if features modified
                         if *features_modified.read() {
                             span { class: "modified-indicator" }
                         }
-                    }
-                    button { 
-                        class: if *active_tab.read() == "presets" { "tab-button active" } else { "tab-button" },
-                        onclick: move |_| active_tab.set("presets"),
-                        "Presets"
                     }
                     button { 
                         class: if *active_tab.read() == "performance" { "tab-button active" } else { "tab-button" },
@@ -1258,254 +1236,34 @@ fn InstallationManagementPage(
                     match *active_tab.read() {
                         "features" => {
                             rsx! {
-                                div { class: "features-tab",
-                                    h2 { "Optional Features" }
-                                    p { "Toggle features on or off to customize your experience." }
-                                    
-                                    // Add search filter - using imported FeatureFilter component
-                                    FeatureFilter { filter_text: filter_text.clone() }
-                                    
-                                   if let Some(manifest) = universal_manifest.read().as_ref().and_then(|m| m.as_ref()) {
-    // Group mods by category
-    {
-        let mut categories = BTreeMap::new();
-        let search_term = filter_text.read().to_lowercase();
-        
-        // Collect mods by category, applying search filter
-        for mod_component in manifest.mods.iter().filter(|m| m.optional) {
-            // Skip if it doesn't match search
-            if !search_term.is_empty() {
-                let name_match = mod_component.name.to_lowercase().contains(&search_term);
-                let description_match = mod_component.description.as_ref()
-                    .map_or(false, |desc| desc.to_lowercase().contains(&search_term));
-                    
-                if !name_match && !description_match {
-                    continue;
-                }
-            }
-            
-            let category = mod_component.category.clone().unwrap_or_else(|| "Uncategorized".to_string());
-            categories.entry(category).or_insert_with(Vec::new).push(mod_component.clone());
-        }
-        
-        // Fixed: Wrap the conditional in a block to ensure consistent return type
-        {
-            if categories.is_empty() && !search_term.is_empty() {
-                rsx! {
-                    div { class: "no-search-results",
-                        "No mods found matching '{search_term}'. Try a different search term."
-                    }
-                }
-            } else {
-                // Fixed: Use a Fragment to collect multiple components
-                rsx! {
-    // Create category sections using imported FeatureCategory component
-    {
-        categories.iter().map(|(category_name, mods)| {
-            let category_name_clone = category_name.clone();
-            let mods_clone = mods.clone();
-            let enabled_features_clone = enabled_features.clone();
-            let mut toggle_feature_clone = toggle_feature.clone();
-            
-            rsx! {
-                FeatureCategory {
-                    key: "{category_name_clone}",
-                    category_name: category_name_clone,
-                    mods: mods_clone,
-                    enabled_features: enabled_features_clone,
-                    toggle_feature: EventHandler::new(move |feature_id: String| {
-                        toggle_feature_clone(feature_id)
-                    })
-                }
-            }
-        }).collect::<Vec<_>>().into_iter()
-    }
-}
-            }
-        }
-    }
-} else {
-    div { class: "loading-container",
-        div { class: "loading-spinner" }
-        div { class: "loading-text", "Loading features..." }
-    }
-}
-                                }
-                            }
-                        },
-                        "presets" => {
-                            rsx! {
-                                div { class: "presets-tab",
-                                    h2 { "Preset Configurations" }
-                                    p { "Choose a preset to quickly configure your installation with a curated set of mods." }
-                                    
-                                    if let Some(presets_list) = presets.read().as_ref() {
-                                        if presets_list.is_empty() {
-                                            div { class: "loading-message", "No presets available." }
-                                        } else {
-                                            div { class: "presets-grid",
-                                                // Custom preset (no preset)
-                                                div { 
-                                                    class: if selected_preset.read().is_none() {
-                                                        "preset-card selected"
-                                                    } else {
-                                                        "preset-card"
-                                                    },
-                                                    onclick: move |_| {
-                                                        selected_preset.set(None);
-                                                    },
-                                                    
-                                                    h4 { "Custom Configuration" }
-                                                    p { "Start with a minimal setup and customize everything yourself." }
-                                                    div { class: "preset-features-count", "Core mods only" }
-                                                }
-                                                
-                                                // Available presets - fixed structure
-                                                for preset in presets_list {
-                                                    // Preset card
-                                                    {
-                                                        let preset_id = preset.id.clone();
-                                                        let is_selected = selected_preset.read().as_ref().map_or(false, |id| id == &preset_id);
-                                                    
-                                                        rsx! {
-                                                            div {
-                                                                class: if is_selected {
-                                                                    "preset-card selected"
-                                                                } else {
-                                                                    "preset-card"
-                                                                },
-                                                                onclick: move |_| {
-                                                                    apply_preset(preset_id.clone());
-                                                                },
-                                                                
-                                                                h4 { "{preset.name}" }
-                                                                p { "{preset.description}" }
-                                                                
-                                                                div { class: "preset-features-count",
-                                                                    "{preset.enabled_features.len()} features"
-                                                                }
-                                                            }
-                                                        }
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    } else {
-                                        div { class: "loading-container",
-                                            div { class: "loading-spinner" }
-                                            div { class: "loading-text", "Loading presets..." }
-                                        }
-                                    }
+                                FeaturesTab {
+                                    universal_manifest: universal_manifest.read().as_ref().cloned(),
+                                    presets: presets.read().clone().unwrap_or_default(),
+                                    enabled_features: enabled_features,
+                                    selected_preset: selected_preset,
+                                    filter_text: filter_text,
                                 }
                             }
                         },
                         "performance" => {
                             rsx! {
-                                div { class: "performance-tab",
-                                    h2 { "Performance Settings" }
-                                    
-                                    div { class: "performance-section",
-                                        div { class: "form-group",
-                                            label { r#for: "memory-allocation", "Memory Allocation (MB)" }
-                                            input {
-                                                id: "memory-allocation",
-                                                r#type: "number",
-                                                min: "512",
-                                                max: "32768",
-                                                step: "512",
-                                                value: "{memory_allocation}",
-                                                oninput: move |evt| memory_allocation.set(evt.value().parse().unwrap_or(2048))
-                                            }
-                                        }
-                                        
-                                        div { class: "form-group",
-                                            label { r#for: "java-args", "Java Arguments" }
-                                            textarea {
-                                                id: "java-args",
-                                                rows: "3",
-                                                value: "{java_args}",
-                                                oninput: move |evt| java_args.set(evt.value().clone())
-                                            }
-                                        }
-                                        
-                                        div { class: "java-args-presets",
-                                            h3 { "Suggested Arguments" }
-                                            
-                                            div { class: "java-preset-buttons",
-                                                button {
-                                                    class: "java-preset-button",
-                                                    onclick: move |_| java_args.set("-XX:+UseG1GC -XX:+ParallelRefProcEnabled -XX:MaxGCPauseMillis=200 -XX:+UnlockExperimentalVMOptions -XX:+DisableExplicitGC -XX:+AlwaysPreTouch -XX:G1NewSizePercent=30 -XX:G1MaxNewSizePercent=40 -XX:G1HeapRegionSize=8M -XX:G1ReservePercent=20 -XX:G1HeapWastePercent=5 -XX:G1MixedGCCountTarget=4 -XX:InitiatingHeapOccupancyPercent=15 -XX:G1MixedGCLiveThresholdPercent=90 -XX:G1RSetUpdatingPauseTimePercent=5 -XX:SurvivorRatio=32 -XX:+PerfDisableSharedMem -XX:MaxTenuringThreshold=1".to_string()),
-                                                    "Optimized G1GC (Recommended)"
-                                                }
-                                                
-                                                button {
-                                                    class: "java-preset-button",
-                                                    onclick: move |_| java_args.set("-XX:+UseShenandoahGC -XX:ShenandoahGCHeuristics=compact -XX:+UseNUMA -XX:+AlwaysPreTouch -XX:+DisableExplicitGC".to_string()),
-                                                    "Shenandoah GC (High-End Systems)"
-                                                }
-                                                
-                                                button {
-                                                    class: "java-preset-button",
-                                                    onclick: move |_| java_args.set("".to_string()),
-                                                    "Default (No Arguments)"
-                                                }
-                                            }
-                                        }
-                                    }
+                                PerformanceTab {
+                                    memory_allocation: memory_allocation,
+                                    java_args: java_args,
                                 }
                             }
                         },
                         "settings" => {
                             rsx! {
-                                div { class: "settings-tab",
-                                    h2 { "Installation Settings" }
-                                    
-                                    div { class: "settings-actions",
-                                        // Rename button - using properly cloned ID
-                                        {
-                                            let id_for_rename = installation.id.clone();
-                                            rsx! {
-                                                button {
-                                                    class: "settings-button",
-                                                    onclick: move |_| {
-                                                        debug!("Rename clicked for: {}", id_for_rename);
-                                                        // Implementation for rename functionality
-                                                    },
-                                                    "Rename Installation"
-                                                }
-                                            }
-                                        }
-
-                                        // Open folder button - using properly cloned ID
-                                        {
-                                            let id_for_open = installation.id.clone();
-                                            rsx! {
-                                                button {
-                                                    class: "settings-button",
-                                                    onclick: move |_| {
-                                                        debug!("Open folder clicked for: {}", id_for_open);
-                                                        // Implementation for opening installation folder
-                                                    },
-                                                    "Open Installation Folder"
-                                                }
-                                            }
-                                        }
-
-                                        // Delete button - using properly cloned ID
-                                        {
-                                            let id_for_delete = installation_id_for_delete.clone();
-                                            rsx! {
-                                                button {
-                                                    class: "settings-button delete-button",
-                                                    onclick: move |_| {
-                                                        debug!("Delete clicked for: {}", id_for_delete);
-                                                        // Implementation for delete functionality
-                                                    },
-                                                    "Delete Installation"
-                                                }
-                                            }
-                                        }
-                                    }
+                                SettingsTab {
+                                    installation: installation.clone(),
+                                    installation_id: installation_id_for_delete.clone(),
+                                    ondelete: move |_| {
+                                        // Handle delete functionality
+                                        debug!("Delete clicked for: {}", installation_id_for_delete);
+                                        // Implementation for delete functionality would go here
+                                        onback.call(());
+                                    },
                                 }
                             }
                         },
@@ -1520,10 +1278,7 @@ fn InstallationManagementPage(
                 button {
                     class: "launch-button",
                     disabled: !installation.installed || *is_installing.read(),
-                    onclick: move |_| {
-                        let mut error_signal = installation_error.clone();
-                        handle_play_click(installation_id_for_launch.clone(), &error_signal);
-                    },
+                    onclick: handle_launch,
                     "Launch Game"
                 }
                 
