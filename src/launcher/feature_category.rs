@@ -4,11 +4,12 @@ use dioxus::prelude::*;
 use crate::universal::ModComponent;
 use crate::launcher::FeatureCard;
 
+#[derive(PartialEq, Props, Clone)]
 pub struct FeatureCategoryProps {
     pub category_name: String,
-    pub mods: Vec<ModComponent>,
-    pub enabled_features: Signal<Vec<String>>,
-    pub toggle_feature: EventHandler<String>,
+    pub mods: Vec,
+    pub enabled_features: Signal<Vec>,
+    pub toggle_feature: EventHandler,
 }
 
 #[component]
