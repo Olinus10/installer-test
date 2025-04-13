@@ -41,48 +41,54 @@ pub fn FeaturesTab(
             h2 { "Features & Presets" }
             p { "Choose a preset or customize individual features to match your preferences." }
             
-            if let Some(manifest) = universal_manifest {
-                // Get all optional mods
-                let optional_mods: Vec<ModComponent> = manifest.mods.iter()
-                    .filter(|m| m.optional)
-                    .cloned()
-                    .collect();
-                
-                // Get all optional shaderpacks and resourcepacks too
-                let optional_shaderpacks: Vec<ModComponent> = manifest.shaderpacks.iter()
-                    .filter(|m| m.optional)
-                    .cloned()
-                    .collect();
-                
-                let optional_resourcepacks: Vec<ModComponent> = manifest.resourcepacks.iter()
-                    .filter(|m| m.optional)
-                    .cloned()
-                    .collect();
-                
-                // Combine all optional components
-                let mut all_components = Vec::new();
-                all_components.extend(optional_mods);
-                all_components.extend(optional_shaderpacks);
-                all_components.extend(optional_resourcepacks);
-                
-                // Render the integrated features component
-                IntegratedFeatures {
-                    presets: presets,
-                    selected_preset: selected_preset,
-                    apply_preset: EventHandler::new(move |preset_id: String| {
-                        apply_preset(preset_id)
-                    }),
-                    mod_components: all_components,
-                    enabled_features: enabled_features,
-                    toggle_feature: EventHandler::new(move |feature_id: String| {
-                        toggle_feature(feature_id)
-                    }),
-                    filter_text: Some(filter_text),
-                }
-            } else {
-                div { class: "loading-container",
-                    div { class: "loading-spinner" }
-                    div { class: "loading-text", "Loading features..." }
+            {
+                if let Some(manifest) = &universal_manifest {
+                    // Get all optional mods
+                    let optional_mods: Vec<ModComponent> = manifest.mods.iter()
+                        .filter(|m| m.optional)
+                        .cloned()
+                        .collect();
+                    
+                    // Get all optional shaderpacks and resourcepacks too
+                    let optional_shaderpacks: Vec<ModComponent> = manifest.shaderpacks.iter()
+                        .filter(|m| m.optional)
+                        .cloned()
+                        .collect();
+                    
+                    let optional_resourcepacks: Vec<ModComponent> = manifest.resourcepacks.iter()
+                        .filter(|m| m.optional)
+                        .cloned()
+                        .collect();
+                    
+                    // Combine all optional components
+                    let mut all_components = Vec::new();
+                    all_components.extend(optional_mods);
+                    all_components.extend(optional_shaderpacks);
+                    all_components.extend(optional_resourcepacks);
+                    
+                    // Render the integrated features component
+                    rsx! {
+                        IntegratedFeatures {
+                            presets: presets,
+                            selected_preset: selected_preset,
+                            apply_preset: EventHandler::new(move |preset_id: String| {
+                                apply_preset(preset_id)
+                            }),
+                            mod_components: all_components,
+                            enabled_features: enabled_features,
+                            toggle_feature: EventHandler::new(move |feature_id: String| {
+                                toggle_feature(feature_id)
+                            }),
+                            filter_text: Some(filter_text),
+                        }
+                    }
+                } else {
+                    rsx! {
+                        div { class: "loading-container",
+                            div { class: "loading-spinner" }
+                            div { class: "loading-text", "Loading features..." }
+                        }
+                    }
                 }
             }
         }
