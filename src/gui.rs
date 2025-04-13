@@ -1298,29 +1298,29 @@ fn InstallationManagementPage(
                 }
             } else {
                 // Fixed: Use a Fragment to collect multiple components
-                rsx! {
-                    // Create category sections using imported FeatureCategory component
-                    {
-                        categories.iter().map(|(category_name, mods)| {
-                            let category_name_clone = category_name.clone();
-                            let mods_clone = mods.clone();
-                            let enabled_features_clone = enabled_features.clone();
-                            let toggle_feature_clone = toggle_feature.clone();
-                            
-                            rsx! {
-                                FeatureCategory {
-                                    key: "{category_name_clone}",
-                                    category_name: category_name_clone,
-                                    mods: mods_clone,
-                                    enabled_features: enabled_features_clone,
-                                    toggle_feature: EventHandler::new(move |feature_id: String| {
-                                        toggle_feature_clone(feature_id)
-                                    })
-                                }
-                            }
-                        }).collect::<Vec<_>>()
-                    }
+                sx! {
+    // Create category sections using imported FeatureCategory component
+    {
+        categories.iter().map(|(category_name, mods)| {
+            let category_name_clone = category_name.clone();
+            let mods_clone = mods.clone();
+            let enabled_features_clone = enabled_features.clone();
+            let toggle_feature_clone = toggle_feature.clone();
+            
+            rsx! {
+                FeatureCategory {
+                    key: "{category_name_clone}",
+                    category_name: category_name_clone,
+                    mods: mods_clone,
+                    enabled_features: enabled_features_clone,
+                    toggle_feature: EventHandler::new(move |feature_id: String| {
+                        toggle_feature_clone(feature_id)
+                    })
                 }
+            }
+        }).collect::<Vec<_>>().into_iter()
+    }
+}
             }
         }
     }
@@ -3003,9 +3003,6 @@ let complete_css = format!("{}\n{}\n{}\n{}\n{}",
     installations.with_mut(|list| {
         list.insert(0, new_installation.clone());
     });
-    
-    // Close the dialog
-    show_creation_dialog.set(false);
     
     // Set the current installation to navigate to the installation page
     current_installation_id.set(Some(new_installation.id));
