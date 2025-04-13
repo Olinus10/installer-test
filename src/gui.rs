@@ -1644,11 +1644,17 @@ fn Credits(mut props: CreditsProps) -> Element {
                                     div { class: "credit-authors",
                                         "by "
                                         for author in &r#mod.authors {
-                                            a { href: "{author.link}", class: "credit-author",
-                                                if r#mod.authors.last().unwrap() == author {
-                                                    {author.name.to_string()}
-                                                } else {
-                                                    {author.name.to_string() + ", "}
+                                            // FIXED: Proper handling of href and author name with comma
+                                            {
+                                                let is_last = author == r#mod.authors.last().unwrap();
+                                                rsx! {
+                                                    a { 
+                                                        href: author.link.clone(), 
+                                                        class: "credit-author",
+                                                        target: "_blank",
+                                                        rel: "noopener noreferrer",
+                                                        {format!("{}{}", author.name, if !is_last { ", " } else { "" })}
+                                                    }
                                                 }
                                             }
                                         }
@@ -1663,11 +1669,17 @@ fn Credits(mut props: CreditsProps) -> Element {
                                     div { class: "credit-authors",
                                         "by "
                                         for author in &shaderpack.authors {
-                                            a { href: "{author.link}", class: "credit-author",
-                                                if shaderpack.authors.last().unwrap() == author {
-                                                    {author.name.to_string()}
-                                                } else {
-                                                    {author.name.to_string() + ", "}
+                                            // FIXED: Proper handling of href and author name with comma
+                                            {
+                                                let is_last = author == shaderpack.authors.last().unwrap();
+                                                rsx! {
+                                                    a { 
+                                                        href: author.link.clone(), 
+                                                        class: "credit-author",
+                                                        target: "_blank",
+                                                        rel: "noopener noreferrer",
+                                                        {format!("{}{}", author.name, if !is_last { ", " } else { "" })}
+                                                    }
                                                 }
                                             }
                                         }
@@ -1682,11 +1694,17 @@ fn Credits(mut props: CreditsProps) -> Element {
                                     div { class: "credit-authors",
                                         "by "
                                         for author in &resourcepack.authors {
-                                            a { href: "{author.link}", class: "credit-author",
-                                                if resourcepack.authors.last().unwrap() == author {
-                                                    {author.name.to_string()}
-                                                } else {
-                                                    {author.name.to_string() + ", "}
+                                            // FIXED: Proper handling of href and author name with comma
+                                            {
+                                                let is_last = author == resourcepack.authors.last().unwrap();
+                                                rsx! {
+                                                    a { 
+                                                        href: author.link.clone(), 
+                                                        class: "credit-author",
+                                                        target: "_blank",
+                                                        rel: "noopener noreferrer",
+                                                        {format!("{}{}", author.name, if !is_last { ", " } else { "" })}
+                                                    }
                                                 }
                                             }
                                         }
@@ -1702,11 +1720,17 @@ fn Credits(mut props: CreditsProps) -> Element {
                                     div { class: "credit-authors",
                                         "by "
                                         for author in &include.authors.as_ref().unwrap() {
-                                            a { href: "{author.link}", class: "credit-author",
-                                                if include.authors.as_ref().unwrap().last().unwrap() == author {
-                                                    {author.name.to_string()}
-                                                } else {
-                                                    {author.name.to_string() + ", "}
+                                            // FIXED: Proper handling of href and author name with comma
+                                            {
+                                                let is_last = author == include.authors.as_ref().unwrap().last().unwrap();
+                                                rsx! {
+                                                    a { 
+                                                        href: author.link.clone(), 
+                                                        class: "credit-author",
+                                                        target: "_blank",
+                                                        rel: "noopener noreferrer",
+                                                        {format!("{}{}", author.name, if !is_last { ", " } else { "" })}
+                                                    }
                                                 }
                                             }
                                         }
