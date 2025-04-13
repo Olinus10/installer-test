@@ -8,9 +8,16 @@ pub fn SettingsTab(
     installation_id: String,
     ondelete: EventHandler<()>,
 ) -> Element {
+    // Clone the values we'll need across closures to avoid moved value errors
+    let installation_name = installation.name.clone();
+    let installation_path = installation.installation_path.clone();
+    let installation_id_for_delete = installation_id.clone();
+    let installation_id_for_cache = installation_id.clone();
+    let installation_id_for_repair = installation_id.clone();
+    
     // State for rename dialog
     let mut show_rename_dialog = use_signal(|| false);
-    let mut new_name = use_signal(|| installation.name.clone());
+    let mut new_name = use_signal(|| installation_name.clone());
     let mut rename_error = use_signal(|| Option::<String>::None);
     
     // State for delete confirmation
@@ -22,7 +29,7 @@ pub fn SettingsTab(
     
     // Open folder function
     let open_folder = move |_| {
-        let path = &installation.installation_path;
+        let path = &installation_path;
         debug!("Opening installation folder: {:?}", path);
         
         #[cfg(target_os = "windows")]
@@ -81,7 +88,7 @@ pub fn SettingsTab(
     
     // Handle delete
     let handle_delete = move |_| {
-        let id_to_delete = installation_id.clone();
+        let id_to_delete = installation_id_for_delete.clone();
         is_operating.set(true);
         
         spawn(async move {
@@ -153,7 +160,7 @@ pub fn SettingsTab(
                     
                     div { class: "info-row",
                         div { class: "info-label", "Path:" }
-                        div { class: "info-value truncate-path", "{installation.installation_path.display()}" }
+                        div { class: "info-value truncate-path", "{installation_path.display()}" }
                     }
                 }
             }
@@ -200,7 +207,7 @@ pub fn SettingsTab(
                         class: "advanced-button reset-cache-button",
                         disabled: *is_operating.read(),
                         onclick: move |_| {
-                            debug!("Reset cache clicked for installation: {}", installation.id);
+                            debug!("Reset cache clicked for installation: {}", installation_id_for_cache);
                             // Implementation would go here - for now just a placeholder
                             operation_error.set(Some("This functionality is not yet implemented".to_string()));
                         },
@@ -219,7 +226,7 @@ pub fn SettingsTab(
                         class: "advanced-button repair-button",
                         disabled: *is_operating.read(),
                         onclick: move |_| {
-                            debug!("Repair installation clicked for: {}", installation.id);
+                            debug!("Repair installation clicked for: {}", installation_id_for_repair);
                             // Implementation would go here - for now just a placeholder
                             operation_error.set(Some("This functionality is not yet implemented".to_string()));
                         },
@@ -238,7 +245,7 @@ pub fn SettingsTab(
                         class: "settings-action-button rename-button",
                         disabled: *is_operating.read(),
                         onclick: move |_| {
-                            new_name.set(installation.name.clone());
+                            new_name.set(installation_name.clone());
                             show_rename_dialog.set(true);
                         },
                         span { class: "action-icon", "✏️" }
@@ -352,7 +359,7 @@ pub fn SettingsTab(
                         div { class: "modal-content",
                             p { "Are you sure you want to delete this installation?" }
                             p { class: "delete-warning", "This action cannot be undone!" }
-                            p { "Installation: ", strong { "{installation.name}" } }
+                            p { "Installation: ", strong { "{installation_name}" } }
                         }
                         
                         div { class: "modal-footer",
