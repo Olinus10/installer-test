@@ -1278,7 +1278,29 @@ pub fn InstallationManagementPage(
         debug!("Delete clicked for: {}", installation_id_for_delete);
         onback.call(());
     },
-    onupdate: refresh_installation,
+    onupdate: move |updated_installation| {
+        // Update the installation data in memory
+        // We need to handle this differently since installation_result is a Memo not a Signal
+        spawn(async move {
+            // Reload the installation data
+            match installation::load_installation(&updated_installation.id) {
+                Ok(refreshed) => {
+                    // Also update the installations list
+                    // (This requires passing installations as a prop to InstallationManagementPage)
+                    if let Some(installations_signal) = installation_list.as_ref() {
+                        installations_signal.with_mut(|list| {
+                            if let Some(index) = list.iter().position(|i| i.id == refreshed.id) {
+                                list[index] = refreshed.clone();
+                            }
+                        });
+                    }
+                },
+                Err(e) => {
+                    error!("Failed to reload installation: {}", e);
+                }
+            }
+        });
+    }
 }
                             }
                         },
