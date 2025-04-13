@@ -20,7 +20,7 @@ pub struct IntegratedFeaturesProps {
 }
 
 #[component]
-pub fn IntegratedFeatures(props: IntegratedFeaturesProps) -> Element {
+pub fn IntegratedFeatures(mut props: IntegratedFeaturesProps) -> Element {
     // Create a signal to track expanded categories
     let mut expanded_categories = use_signal(|| Vec::<String>::new());
     
@@ -52,7 +52,7 @@ pub fn IntegratedFeatures(props: IntegratedFeaturesProps) -> Element {
     let no_results = categories.is_empty() && filter.as_ref().map_or(false, |term| !term.is_empty());
     
     // Functions to toggle category expansion
-    let toggle_category = move |category: String| {
+    let mut toggle_category = move |category: String| {
         expanded_categories.with_mut(|cats| {
             if cats.contains(&category) {
                 // Remove to collapse
@@ -65,7 +65,7 @@ pub fn IntegratedFeatures(props: IntegratedFeaturesProps) -> Element {
     };
     
     // Function to toggle all features in a category
-    let toggle_all_in_category = move |category: &str, components: &[ModComponent], enable: bool| {
+    let mut toggle_all_in_category = move |category: &str, components: &[ModComponent], enable: bool| {
         // Get ids for all mods in this category
         let category_ids: Vec<String> = components.iter()
             .map(|comp| comp.id.clone())
