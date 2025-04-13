@@ -3,8 +3,8 @@
   "last_updated": "2025-04-11T12:00:00Z",
   "presets": [
     {
-      "id": "majestic",
-      "name": "Majestic Overhaul",
+      "id": "custom",
+      "name": "Custom Configuration",
       "description": "Customize your own modded experience",
       "icon": "majestic_icon.png",
       "enabled_features": [
