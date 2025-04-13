@@ -658,7 +658,7 @@ fn HomePage(
                     onclose: move |_| {
                         show_creation_dialog.set(false);
                     },
-                    oncreate: move |new_installation| {
+                    oncreate: move |new_installation: Installation| {
                         // Add the new installation to the list
                         installations.with_mut(|list| {
                             list.insert(0, new_installation.clone());
@@ -1298,7 +1298,7 @@ fn InstallationManagementPage(
                 }
             } else {
                 // Fixed: Use a Fragment to collect multiple components
-                sx! {
+                rsx! {
     // Create category sections using imported FeatureCategory component
     {
         categories.iter().map(|(category_name, mods)| {
