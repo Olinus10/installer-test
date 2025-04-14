@@ -11,12 +11,14 @@
     background-color: rgba(0, 0, 0, 0.3);
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 8px;
-    padding: 15px; /* Reduced from 20px */
+    padding: 15px;
     position: relative;
     transition: all 0.3s ease;
     cursor: pointer;
-    min-height: 160px; /* Reduced from 200px */
+    min-height: 160px;
+    overflow: hidden;
 }
+
 
 .preset-card {
     position: relative;
@@ -35,14 +37,30 @@
     border-color: rgba(255, 255, 255, 0.2);
 }
 
-/* Update selected preset style */
+/* MUCH more dramatic selected state */
 .preset-card.selected {
-    background-color: rgba(7, 60, 23, 0.3);
-    border: 2px solid #0a5d23;
-    box-shadow: 0 0 25px rgba(7, 60, 23, 0.6);
-    transform: translateY(-5px);
+    background-color: rgba(7, 60, 23, 0.2);
+    border: 3px solid #0a5d23;
+    box-shadow: 0 0 20px rgba(7, 60, 23, 0.5);
+    transform: translateY(-5px) scale(1.03);
 }
 
+/* Add a glowing animation to selected cards */
+@keyframes selected-card-glow {
+    0% {
+        box-shadow: 0 0 15px rgba(7, 60, 23, 0.3);
+    }
+    50% {
+        box-shadow: 0 0 25px rgba(7, 60, 23, 0.6);
+    }
+    100% {
+        box-shadow: 0 0 15px rgba(7, 60, 23, 0.3);
+    }
+}
+
+.preset-card.selected {
+    animation: selected-card-glow 2s infinite;
+}
 
 .preset-card h4 {
     margin-top: 0;
@@ -126,26 +144,66 @@
     border-color: rgba(255, 255, 255, 0.3);
 }
 
-/* Make trending badge more eye-catching */
+/* Much more eye-catching trending badge */
 .trending-badge {
     position: absolute;
     top: 10px;
     right: 10px;
-    background-color: #ffb900;
+    background: linear-gradient(135deg, #ffb900, #ff7730);
     color: #000;
     font-size: 0.85rem;
     font-weight: bold;
-    padding: 5px 10px;
+    padding: 5px 12px;
     border-radius: 10px;
-    z-index: 2;
+    z-index: 5;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-    animation: pulse 2s infinite;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Add animation to the trending badge */
+@keyframes trending-pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.08); box-shadow: 0 3px 10px rgba(255, 185, 0, 0.4); }
+    100% { transform: scale(1); }
+}
+
+.trending-badge {
+    animation: trending-pulse 2s infinite;
 }
 
 @keyframes pulse {
     0% { transform: scale(1); }
     50% { transform: scale(1.05); }
     100% { transform: scale(1); }
+}
+
+/* Optional: Add a dark overlay for better text contrast */
+.preset-card::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(to bottom, 
+        rgba(0, 0, 0, 0.1) 0%, 
+        rgba(0, 0, 0, 0.3) 100%);
+    pointer-events: none;
+    z-index: 1;
+    opacity: 0.7;
+    transition: opacity 0.3s ease;
+}
+
+.preset-card:hover::after {
+    opacity: 0.5;
+}
+
+.preset-card.selected::after {
+    opacity: 0.4;
+    background: linear-gradient(to bottom, 
+        rgba(7, 60, 23, 0.2) 0%, 
+        rgba(7, 60, 23, 0.4) 100%);
 }
 
 .preset-features-list {
