@@ -49,24 +49,7 @@ pub fn FeaturesTab(
             h2 { "Features & Presets" }
             p { "Choose a preset or customize individual features to match your preferences." }
             
-            // Add search filter
-            div { class: "feature-filter-container",
-                span { class: "feature-filter-icon", "🔍" }
-                input {
-                    class: "feature-filter",
-                    placeholder: "Search for features...",
-                    value: "{filter_text}",
-                    oninput: move |evt| filter_text.set(evt.value().clone()),
-                }
-                
-                if !filter_text.read().is_empty() {
-                    button {
-                        class: "feature-filter-clear",
-                        onclick: move |_| filter_text.set(String::new()),
-                        "×"
-                    }
-                }
-            }
+            
             
             // Presets section
             div { class: "presets-section",
@@ -162,7 +145,25 @@ pub fn FeaturesTab(
                     }
                 }
             }
-            
+// Add search filter
+            div { class: "feature-filter-container",
+                span { class: "feature-filter-icon", "🔍" }
+                input {
+                    class: "feature-filter",
+                    placeholder: "Search for features...",
+                    value: "{filter_text}",
+                    oninput: move |evt| filter_text.set(evt.value().clone()),
+                }
+                
+                if !filter_text.read().is_empty() {
+                    button {
+                        class: "feature-filter-clear",
+                        onclick: move |_| filter_text.set(String::new()),
+                        "×"
+                    }
+                }
+            }
+             
             // Features content - only render if we have a universal manifest
             {
                 if let Some(manifest) = &universal_manifest {
