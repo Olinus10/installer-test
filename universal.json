@@ -167,7 +167,7 @@
       "version": "1.20-6.0",
       "optional": true,
       "default_enabled": false,
-      "category": "Performance",
+      "category": "Optimization",
       "authors": [
         {
           "name": "someaddon",
@@ -184,7 +184,7 @@
       "version": "0.3.2+alpha.0.30+1.21.4",
       "optional": true,
       "default_enabled": false,
-      "category": "Performance",
+      "category": "Optimization",
       "authors": [
         {
           "name": "ishland",
@@ -286,7 +286,7 @@
       "version": "4.0.3-fabric",
       "optional": true,
       "default_enabled": false,
-      "category": "Performance",
+      "category": "Optimization",
       "authors": [
         {
           "name": "motschen",
@@ -354,7 +354,7 @@
       "version": "1.21.4+1.1",
       "optional": true,
       "default_enabled": false,
-      "category": "Performance",
+      "category": "Optimization",
       "authors": [
         {
           "name": "isxander",
@@ -422,7 +422,7 @@
       "version": "1.7.2",
       "optional": true,
       "default_enabled": false,
-      "category": "Performance",
+      "category": "Optimization",
       "authors": [
         {
           "name": "tr7zw",
@@ -439,7 +439,7 @@
       "version": "1.4.0+1.21.4",
       "optional": true,
       "default_enabled": false,
-      "category": "Performance",
+      "category": "Optimization",
       "authors": [
         {
           "name": "Patbox",
@@ -456,7 +456,7 @@
       "version": "0.11.3+1.21.4",
       "optional": true,
       "default_enabled": false,
-      "category": "Performance",
+      "category": "Optimization",
       "authors": [
         {
           "name": "FoundationGames",
@@ -509,7 +509,7 @@
       "source": "modrinth",
       "location": "fabric-api",
       "version": "0.115.0+1.21.4",
-      "optional": true,
+      "optional": false,
       "default_enabled": true,
       "category": "Library",
       "authors": [
@@ -526,7 +526,7 @@
       "source": "modrinth",
       "location": "fabric-language-kotlin",
       "version": "1.13.0+kotlin.2.1.0",
-      "optional": true,
+      "optional": false,
       "default_enabled": true,
       "category": "Library",
       "authors": [
@@ -579,7 +579,7 @@
       "version": "7.1.1-fabric",
       "optional": true,
       "default_enabled": false,
-      "category": "Performance",
+      "category": "Optimization",
       "authors": [
         {
           "name": "malte0811",
@@ -648,7 +648,7 @@
       "version": "0.2.8",
       "optional": true,
       "default_enabled": false,
-      "category": "Performance",
+      "category": "Optimization",
       "authors": [
         {
           "name": "astei",
@@ -665,7 +665,7 @@
       "version": "mc1.21.4-0.14.5-fabric",
       "optional": true,
       "default_enabled": false,
-      "category": "Performance",
+      "category": "Optimization",
       "authors": [
         {
           "name": "2No2Name",
@@ -734,7 +734,7 @@
       "version": "5.20.1+mc1.21.4",
       "optional": true,
       "default_enabled": false,
-      "category": "Performance",
+      "category": "Optimization",
       "authors": [
         {
           "name": "embeddedt",
@@ -785,7 +785,7 @@
       "version": "1.2.3",
       "optional": true,
       "default_enabled": false,
-      "category": "Performance",
+      "category": "Optimization",
       "authors": [
         {
           "name": "FX",
@@ -904,7 +904,7 @@
       "version": "0.2.5+1.21.4",
       "optional": true,
       "default_enabled": false,
-      "category": "Performance",
+      "category": "Optimization",
       "authors": [
         {
           "name": "fzzyhmstrs",
@@ -1007,7 +1007,7 @@
       "version": "0.1.2+beta.1+fabric.6d46f24",
       "optional": true,
       "default_enabled": false,
-      "category": "Performance",
+      "category": "Optimization",
       "authors": [
         {
           "name": "ishland",
@@ -1024,7 +1024,7 @@
       "version": "mc1.21.4-0.6.6-fabric",
       "optional": false,
       "default_enabled": true,
-      "category": "Performance",
+      "category": "Optimization",
       "authors": [
         {
           "name": "IMS",
@@ -1211,7 +1211,7 @@
       "version": "1.5.0",
       "optional": true,
       "default_enabled": false,
-      "category": "Performance",
+      "category": "Optimization",
       "authors": [
         {
           "name": "Anthus",
