@@ -115,7 +115,7 @@ pub fn FeaturesTab(
                         {
                             let preset_id = preset.id.clone();
                             let is_selected = selected_preset.read().as_ref().map_or(false, |id| id == &preset_id);
-                            let apply_preset_clone = apply_preset.clone();
+                            let mut apply_preset_clone = apply_preset.clone();
                             
                             rsx! {
                                 div {
