@@ -109,8 +109,16 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
+    padding: 12px 15px;
     cursor: pointer;
-    padding-right: 40px;
+    background-color: rgba(0, 0, 0, 0.2);
+    border-radius: 8px;
+    margin-bottom: 10px;
+    transition: background-color 0.2s ease;
+}
+
+.category-header:hover {
+    background-color: rgba(0, 0, 0, 0.3);
 }
 
 .category-header h3 {
@@ -132,18 +140,18 @@
     max-height: 2000px;
 }
 
+/* Larger category expand/collapse button */
 .category-toggle-indicator {
-    position: absolute;
-    right: 15px;
-    top: 20px;
-    transition: transform 0.3s ease;
-    width: 24px;
-    height: 24px;
+    width: 30px;
+    height: 30px;
     display: flex;
-    justify-content: center;
     align-items: center;
+    justify-content: center;
     background-color: rgba(0, 0, 0, 0.3);
     border-radius: 50%;
+    transition: transform 0.3s ease;
+    font-size: 1rem;
+    margin-left: 10px;
 }
 
 .category-toggle-indicator.expanded {
