@@ -1,97 +1,65 @@
-/* Enhanced preset styles */
+/* Complete redesign of preset cards */
 .presets-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); /* Reduced from 300px */
-    gap: 15px; /* Reduced from 20px */
-    margin-top: 15px;
-    margin-bottom: 30px;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 20px;
+    margin: 25px 0 35px 0;
 }
 
+/* Base card styling */
 .preset-card {
-    background-color: rgba(0, 0, 0, 0.3);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 8px;
-    padding: 20px;
+    background: linear-gradient(145deg, rgba(25, 25, 30, 0.7), rgba(15, 15, 20, 0.9));
+    border-radius: 12px;
+    padding: 22px;
+    transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
     position: relative;
-    transition: all 0.3s ease;
+    min-height: 200px;
     cursor: pointer;
-    min-height: 180px;
     overflow: hidden;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
     display: flex;
     flex-direction: column;
 }
 
-.preset-card {
-    position: relative;
-    overflow: hidden;
-}
-
+/* Card content layout */
 .preset-card-content {
     position: relative;
-    z-index: 2;
-    flex-grow: 1;
+    z-index: 3;
     display: flex;
     flex-direction: column;
+    height: 100%;
 }
 
+/* Fancy hover effects */
 .preset-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3), 0 0 20px rgba(255, 255, 255, 0.1);
-    background-color: rgba(0, 0, 0, 0.4);
-    border-color: rgba(255, 255, 255, 0.2);
+    transform: translateY(-8px);
+    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.4);
 }
 
-/* Selected state with green highlight and subtle pulsing */
-.preset-card.selected {
-    background-color: rgba(7, 60, 23, 0.2);
-    border: 2px solid #0a5d23;
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.4), 0 0 20px rgba(7, 60, 23, 0.4);
+.preset-card:hover h4 {
+    color: #ffffff;
+    transform: translateY(-2px);
 }
 
-/* Pulsing animation for selected cards - subtle and elegant */
-@keyframes selected-glow {
-    0% { box-shadow: 0 5px 15px rgba(0, 0, 0, 0.4), 0 0 15px rgba(7, 60, 23, 0.3); }
-    50% { box-shadow: 0 5px 15px rgba(0, 0, 0, 0.4), 0 0 25px rgba(7, 60, 23, 0.5); }
-    100% { box-shadow: 0 5px 15px rgba(0, 0, 0, 0.4), 0 0 15px rgba(7, 60, 23, 0.3); }
-}
 
-.preset-card.selected {
-    animation: selected-glow 3s infinite ease-in-out;
-}
-/* Selection indicator 
-.selection-indicator {
-    position: absolute;
-    top: 15px;
-    left: 15px;
-    width: 30px;
-    height: 30px;
-    background-color: #0a5d23;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: white;
-    font-weight: bold;
-    font-size: 1.2rem;
-    z-index: 10;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-}*/
-
-/* Fix positioning - push title down for trending badge */
+/* Card title styling */
 .preset-card h4 {
-    margin-top: 6px;
-    margin-bottom: 10px;
-    font-size: 1.2rem;
-    padding-right: 30px; /* Make room for badge */
+    font-size: 1.3rem;
+    margin: 0 0 12px 0;
+    color: #ffffff;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    padding-right: 35px; /* Space for badges */
+    transition: transform 0.3s ease, color 0.3s ease;
 }
 
-/* Description styling - fixed height to prevent shifting */
+/* Card description */
 .preset-card p {
-    margin-bottom: 12px;
     color: rgba(255, 255, 255, 0.8);
-    font-size: 0.9rem;
-    line-height: 1.4;
+    font-size: 0.95rem;
+    line-height: 1.5;
     flex-grow: 1;
+    margin-bottom: 15px;
     overflow: hidden;
     display: -webkit-box;
     -webkit-line-clamp: 3;
@@ -99,16 +67,110 @@
 }
 
 
-/* Feature count badge and author positioned at bottom */
+/* Card background accent */
+.preset-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.preset-card:hover::before {
+    opacity: 1;
+}
+
+/* Hover shine effect */
+.preset-card::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+        90deg,
+        transparent,
+        rgba(255, 255, 255, 0.05),
+        transparent
+    );
+    z-index: 2;
+    transition: left 0.7s ease-in-out;
+}
+
+.preset-card:hover::after {
+    left: 100%;
+}
+
+/* SELECTED STATE - Dramatic and clear */
+.preset-card.selected {
+    background: linear-gradient(145deg, rgba(7, 60, 23, 0.7), rgba(5, 40, 15, 0.9));
+    box-shadow: 0 10px 25px rgba(7, 60, 23, 0.6);
+    border: 2px solid #0a5d23;
+    transform: translateY(-8px) scale(1.02);
+}
+
+.preset-card.selected::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, transparent, #0a5d23, transparent);
+    opacity: 1;
+}
+
+/* Selected indicator with checkmark */
+.preset-card.selected::after {
+    content: '✓';
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background-color: #0a5d23;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    font-weight: bold;
+    z-index: 5;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    animation: none;
+    left: auto;
+}
+
+/* Animated border for selected cards */
+@keyframes border-pulse {
+    0% { border-color: rgba(10, 93, 35, 0.6); }
+    50% { border-color: rgba(10, 93, 35, 1); }
+    100% { border-color: rgba(10, 93, 35, 0.6); }
+}
+
+.preset-card.selected {
+    animation: border-pulse 3s infinite;
+}
+
+
+
+/* Feature count badge */
 .preset-features-count {
-    display: inline-block;
-    background-color: rgba(0, 0, 0, 0.5);
-    padding: 4px 10px;
-    border-radius: 15px;
+    background-color: rgba(0, 0, 0, 0.6);
+    color: rgba(255, 255, 255, 0.9);
+    padding: 5px 10px;
+    border-radius: 20px;
     font-size: 0.8rem;
-    margin-top: auto;
-    border: 1px solid rgba(255, 255, 255, 0.1);
     align-self: flex-start;
+    margin-top: auto;
+    transition: all 0.3s ease;
+    border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .preset-card-overlay {
@@ -122,6 +184,7 @@
     border-radius: 8px;
 }
 
+/* Author credit */
 .preset-author {
     font-style: italic;
     font-size: 0.8rem;
@@ -172,58 +235,64 @@
     border-color: rgba(255, 255, 255, 0.3);
 }
 
-/* Trending badge repositioned to avoid overlap with text */
+/* TRENDING PRESET - Extra prominent */
 .trending-badge {
     position: absolute;
-    top: 12px;
-    right: 12px;
-    background: linear-gradient(135deg, #f7d358, #e6b422);
-    color: rgba(0, 0, 0, 0.8);
-    font-size: 0.75rem;
+    top: -12px;
+    right: 15px;
+    background: linear-gradient(135deg, #ffb302, #ff7730);
+    color: #000;
     font-weight: bold;
-    padding: 4px 10px;
-    border-radius: 20px;
+    font-size: 0.8rem;
+    padding: 7px 15px;
+    border-radius: 0 0 10px 10px;
+    box-shadow: 0 4px 10px rgba(255, 179, 0, 0.3);
     z-index: 5;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
 }
 
-
-/* Add animation to the trending badge */
-@keyframes trending-pulse {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.08); box-shadow: 0 3px 10px rgba(255, 185, 0, 0.4); }
-    100% { transform: scale(1); }
+/* Trending card enhancements */
+.preset-card:has(.trending-badge) {
+    background: linear-gradient(145deg, rgba(40, 30, 10, 0.7), rgba(30, 25, 5, 0.9));
+    border: 1px solid rgba(255, 179, 0, 0.3);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4), 0 0 20px rgba(255, 179, 0, 0.15);
 }
 
-.trending-badge {
-    animation: trending-pulse 2s infinite;
+.preset-card:has(.trending-badge):hover {
+    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.5), 0 0 30px rgba(255, 179, 0, 0.25);
 }
 
-@keyframes pulse {
+/* Subtle glow animation for trending cards */
+@keyframes trending-glow {
+    0% { box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4), 0 0 20px rgba(255, 179, 0, 0.15); }
+    50% { box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4), 0 0 30px rgba(255, 179, 0, 0.3); }
+    100% { box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4), 0 0 20px rgba(255, 179, 0, 0.15); }
+}
+
+.preset-card:has(.trending-badge) {
+    animation: trending-glow 3s infinite;
+}
+
+/* Selected AND trending combined state */
+.preset-card.selected:has(.trending-badge) {
+    background: linear-gradient(145deg, rgba(40, 55, 15, 0.8), rgba(30, 45, 10, 0.9));
+    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.5), 0 0 30px rgba(120, 160, 40, 0.3);
+    border: 2px solid #85b035;
+}
+
+/* Badge animations */
+@keyframes badge-pulse {
     0% { transform: scale(1); }
     50% { transform: scale(1.05); }
     100% { transform: scale(1); }
 }
 
-/* Subtle golden glow for trending cards */
-.preset-card:has(.trending-badge) {
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3), 0 0 15px rgba(230, 180, 34, 0.2);
+.trending-badge {
+    animation: badge-pulse 2s infinite;
 }
 
-.preset-card:has(.trending-badge):hover {
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3), 0 0 25px rgba(230, 180, 34, 0.3);
-}
-
-/* Make the header take up less vertical space for trending badge */
-.preset-card-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    margin-bottom: 12px;
-    min-height: 30px; /* Ensure consistent height */
-}
-
-/* Optional: Add a dark overlay for better text contrast */
+/* Optional: Add a dark overlay for better text contrast 
 .preset-card::after {
     content: '';
     position: absolute;
@@ -238,11 +307,7 @@
     z-index: 1;
     opacity: 0.7;
     transition: opacity 0.3s ease;
-}
-
-.preset-card:hover::after {
-    opacity: 0.5;
-}
+}*/
 
 .preset-card.selected::after {
     opacity: 0.4;
