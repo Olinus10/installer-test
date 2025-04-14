@@ -11,14 +11,15 @@
     background-color: rgba(0, 0, 0, 0.3);
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 8px;
-    padding: 15px;
+    padding: 20px;
     position: relative;
     transition: all 0.3s ease;
     cursor: pointer;
-    min-height: 160px;
+    min-height: 180px;
     overflow: hidden;
+    display: flex;
+    flex-direction: column;
 }
-
 
 .preset-card {
     position: relative;
@@ -28,41 +29,36 @@
 .preset-card-content {
     position: relative;
     z-index: 2;
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
 }
 
 .preset-card:hover {
     transform: translateY(-5px);
-    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3), 0 0 20px rgba(255, 255, 255, 0.1);
     background-color: rgba(0, 0, 0, 0.4);
     border-color: rgba(255, 255, 255, 0.2);
 }
 
-/* MUCH more dramatic selected state */
+/* Selected state with green highlight and subtle pulsing */
 .preset-card.selected {
     background-color: rgba(7, 60, 23, 0.2);
-    border: 3px solid #0a5d23;
-    box-shadow: 0 0 20px rgba(7, 60, 23, 0.5);
-    transform: translateY(-5px) scale(1.03);
+    border: 2px solid #0a5d23;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.4), 0 0 20px rgba(7, 60, 23, 0.4);
 }
 
-/* Add a glowing animation to selected cards */
-@keyframes selected-card-glow {
-    0% {
-        box-shadow: 0 0 15px rgba(7, 60, 23, 0.3);
-    }
-    50% {
-        box-shadow: 0 0 25px rgba(7, 60, 23, 0.6);
-    }
-    100% {
-        box-shadow: 0 0 15px rgba(7, 60, 23, 0.3);
-    }
+/* Pulsing animation for selected cards - subtle and elegant */
+@keyframes selected-glow {
+    0% { box-shadow: 0 5px 15px rgba(0, 0, 0, 0.4), 0 0 15px rgba(7, 60, 23, 0.3); }
+    50% { box-shadow: 0 5px 15px rgba(0, 0, 0, 0.4), 0 0 25px rgba(7, 60, 23, 0.5); }
+    100% { box-shadow: 0 5px 15px rgba(0, 0, 0, 0.4), 0 0 15px rgba(7, 60, 23, 0.3); }
 }
 
 .preset-card.selected {
-    animation: selected-card-glow 2s infinite;
+    animation: selected-glow 3s infinite ease-in-out;
 }
-
-/* Selection indicator */
+/* Selection indicator 
 .selection-indicator {
     position: absolute;
     top: 15px;
@@ -79,28 +75,40 @@
     font-size: 1.2rem;
     z-index: 10;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-}
+}*/
 
+/* Fix positioning - push title down for trending badge */
 .preset-card h4 {
-    margin-top: 0;
-    margin-bottom: 8px; /* Reduced from 10px */
-    font-size: 1.2rem; /* Slightly smaller */
+    margin-top: 6px;
+    margin-bottom: 10px;
+    font-size: 1.2rem;
+    padding-right: 30px; /* Make room for badge */
 }
 
+/* Description styling - fixed height to prevent shifting */
 .preset-card p {
-    margin-bottom: 10px; /* Reduced from 15px */
+    margin-bottom: 12px;
     color: rgba(255, 255, 255, 0.8);
-    font-size: 0.9rem; /* Slightly smaller */
+    font-size: 0.9rem;
+    line-height: 1.4;
+    flex-grow: 1;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
 }
 
+
+/* Feature count badge and author positioned at bottom */
 .preset-features-count {
     display: inline-block;
     background-color: rgba(0, 0, 0, 0.5);
     padding: 4px 10px;
     border-radius: 15px;
     font-size: 0.8rem;
-    margin-top: 8px;
+    margin-top: auto;
     border: 1px solid rgba(255, 255, 255, 0.1);
+    align-self: flex-start;
 }
 
 .preset-card-overlay {
@@ -116,9 +124,10 @@
 
 .preset-author {
     font-style: italic;
-    font-size: 0.9rem;
+    font-size: 0.8rem;
     color: rgba(255, 255, 255, 0.6);
-    margin-bottom: 15px;
+    margin-top: 8px;
+    text-align: right;
 }
 
 .apply-preset-button {
@@ -163,22 +172,21 @@
     border-color: rgba(255, 255, 255, 0.3);
 }
 
-/* Much more eye-catching trending badge */
+/* Trending badge repositioned to avoid overlap with text */
 .trending-badge {
     position: absolute;
-    top: 10px;
-    right: 10px;
-    background: linear-gradient(135deg, #ffb900, #ff7730);
-    color: #000;
-    font-size: 0.85rem;
+    top: 12px;
+    right: 12px;
+    background: linear-gradient(135deg, #f7d358, #e6b422);
+    color: rgba(0, 0, 0, 0.8);
+    font-size: 0.75rem;
     font-weight: bold;
-    padding: 5px 12px;
-    border-radius: 10px;
+    padding: 4px 10px;
+    border-radius: 20px;
     z-index: 5;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
 }
+
 
 /* Add animation to the trending badge */
 @keyframes trending-pulse {
@@ -195,6 +203,24 @@
     0% { transform: scale(1); }
     50% { transform: scale(1.05); }
     100% { transform: scale(1); }
+}
+
+/* Subtle golden glow for trending cards */
+.preset-card:has(.trending-badge) {
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3), 0 0 15px rgba(230, 180, 34, 0.2);
+}
+
+.preset-card:has(.trending-badge):hover {
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3), 0 0 25px rgba(230, 180, 34, 0.3);
+}
+
+/* Make the header take up less vertical space for trending badge */
+.preset-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 12px;
+    min-height: 30px; /* Ensure consistent height */
 }
 
 /* Optional: Add a dark overlay for better text contrast */
