@@ -267,27 +267,28 @@ fn render_features_by_category(
                     
                     rsx! {
                         div { class: "feature-category",
-                            // Category header
-                            div { class: "category-header",
+                            // Category header - ENTIRE HEADER IS CLICKABLE
+                            div { 
+                                class: "category-header",
+                                onclick: {
+                                    let category_key = category_key.clone();
+                                    move |_| {
+                                        expanded_categories.with_mut(|cats| {
+                                            if cats.contains(&category_key) {
+                                                cats.retain(|c| c != &category_key);
+                                            } else {
+                                                cats.push(category_key.clone());
+                                            }
+                                        });
+                                    }
+                                },
+                                
                                 div { class: "category-title-section",
-                                    onclick: {
-                                        let category_key = category_key.clone();
-                                        move |_| {
-                                            expanded_categories.with_mut(|cats| {
-                                                if cats.contains(&category_key) {
-                                                    cats.retain(|c| c != &category_key);
-                                                } else {
-                                                    cats.push(category_key.clone());
-                                                }
-                                            });
-                                        }
-                                    },
-                                    
                                     h3 { class: "category-name", "{category_name}" }
                                     span { class: "category-count", "{enabled_count}/{components.len()}" }
                                 }
                                 
-                                // Toggle all button
+                                // Toggle all button - has separate click handler
                                 {
                                     let components_clone = components.clone();
                                     let _category_name_clone = category_name.clone();
@@ -300,7 +301,10 @@ fn render_features_by_category(
                                             } else {
                                                 "category-toggle-all"
                                             },
-                                            onclick: move |_| {
+                                            onclick: move |evt| {
+                                                // Stop propagation to prevent header's click handler
+                                                evt.stop_propagation();
+                                                
                                                 // Toggle all in category
                                                 enabled_features.with_mut(|features| {
                                                     if are_all_enabled {
@@ -328,29 +332,14 @@ fn render_features_by_category(
                                     }
                                 }
                                 
-                                // Expand/collapse indicator
-                                {
-                                    let category_key_clone = category_key.clone();
-                                    
-                                    rsx! {
-                                        div { 
-                                            class: if is_expanded {
-                                                "category-toggle expanded"
-                                            } else {
-                                                "category-toggle"
-                                            },
-                                            onclick: move |_| {
-                                                expanded_categories.with_mut(|cats| {
-                                                    if cats.contains(&category_key_clone) {
-                                                        cats.retain(|c| c != &category_key_clone);
-                                                    } else {
-                                                        cats.push(category_key_clone.clone());
-                                                    }
-                                                });
-                                            },
-                                            "▼"
-                                        }
-                                    }
+                                // Expand/collapse indicator - larger, more visible
+                                div { 
+                                    class: if is_expanded {
+                                        "category-toggle-indicator expanded"
+                                    } else {
+                                        "category-toggle-indicator"
+                                    },
+                                    "▼"
                                 }
                             }
                             
