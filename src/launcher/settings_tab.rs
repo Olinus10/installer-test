@@ -39,66 +39,98 @@ pub fn SettingsTab(
     let mut is_operating = use_signal(|| false);
     let mut operation_error = use_signal(|| Option::<String>::None);
     
-    // Open folder function - now uses the cloned path
-let installation_path_for_folder = installation.installation_path.clone();
-let open_folder = move |_| {
-    let path = &installation_path_for_folder;
-    debug!("Opening installation folder: {:?}", path);
-    
-    #[cfg(target_os = "windows")]
-    let result = std::process::Command::new("explorer")
-        .arg(path)
-        .spawn();
+    // Open folder function - enhanced with debugging and path checks
+    let installation_path_for_folder = installation.installation_path.clone();
+    let open_folder = move |_| {
+        let path = &installation_path_for_folder;
         
-    #[cfg(target_os = "macos")]
-    let result = std::process::Command::new("open")
-        .arg(path)
-        .spawn();
+        // Add extensive debugging for path troubleshooting
+        debug!("Opening installation folder: {:?}", path);
+        debug!("Path exists: {}", path.exists());
+        debug!("Path is directory: {}", path.is_dir());
+        debug!("Path parent: {:?}", path.parent());
+        debug!("Absolute path: {:?}", path.canonicalize().ok());
         
-    #[cfg(target_os = "linux")]
-    let result = std::process::Command::new("xdg-open")
-        .arg(path)
-        .spawn();
+        // Check if path exists
+        if !path.exists() {
+            debug!("Installation path does not exist: {:?}", path);
+            
+            // Try to create the directory
+            match std::fs::create_dir_all(path) {
+                Ok(_) => debug!("Created missing installation directory"),
+                Err(e) => {
+                    debug!("Failed to create installation directory: {}", e);
+                    operation_error.set(Some(format!("Folder does not exist and could not be created: {}", e)));
+                    return;
+                }
+            }
+        }
         
-    #[cfg(not(any(target_os = "windows", target_os = "macos", target_os = "linux")))]
-    let result = Err(std::io::Error::new(std::io::ErrorKind::Other, "Unsupported platform"));
-    
-    if let Err(e) = result {
-        debug!("Failed to open installation folder: {}", e);
-        operation_error.set(Some(format!("Failed to open folder: {}", e)));
-    }
-};
+        // Verify it's a directory
+        if !path.is_dir() {
+            debug!("Installation path is not a directory: {:?}", path);
+            operation_error.set(Some(format!("Path is not a directory: {:?}", path)));
+            return;
+        }
+        
+        // Launch appropriate command based on OS
+        #[cfg(target_os = "windows")]
+        let result = std::process::Command::new("explorer")
+            .arg(path)
+            .spawn();
+            
+        #[cfg(target_os = "macos")]
+        let result = std::process::Command::new("open")
+            .arg(path)
+            .spawn();
+            
+        #[cfg(target_os = "linux")]
+        let result = std::process::Command::new("xdg-open")
+            .arg(path)
+            .spawn();
+            
+        #[cfg(not(any(target_os = "windows", target_os = "macos", target_os = "linux")))]
+        let result = Err(std::io::Error::new(std::io::ErrorKind::Other, "Unsupported platform"));
+        
+        // Handle command result
+        if let Err(e) = result {
+            debug!("Failed to open installation folder: {}", e);
+            operation_error.set(Some(format!("Failed to open folder: {}", e)));
+        } else {
+            debug!("Successfully opened folder");
+        }
+    };
     
     // Handle rename
     let installation_for_rename = installation.clone();
     let handle_rename = move |_| {
-    let mut installation_copy = installation_for_rename.clone();
-    installation_copy.name = new_name.read().clone();
-    
-    // Validate name
-    if installation_copy.name.trim().is_empty() {
-        rename_error.set(Some("Installation name cannot be empty".to_string()));
-        return;
-    }
-    
-    is_operating.set(true);
-    
-    // Save changes
-    match installation_copy.save() {
-        Ok(_) => {
-            debug!("Renamed installation to: {}", installation_copy.name);
-            show_rename_dialog.set(false);
-            is_operating.set(false);
-            // Call the update handler with the updated installation
-            onupdate.call(installation_copy);
-        },
-        Err(e) => {
-            debug!("Failed to rename installation: {}", e);
-            rename_error.set(Some(format!("Failed to rename installation: {}", e)));
-            is_operating.set(false);
+        let mut installation_copy = installation_for_rename.clone();
+        installation_copy.name = new_name.read().clone();
+        
+        // Validate name
+        if installation_copy.name.trim().is_empty() {
+            rename_error.set(Some("Installation name cannot be empty".to_string()));
+            return;
         }
-    }
-};
+        
+        is_operating.set(true);
+        
+        // Save changes
+        match installation_copy.save() {
+            Ok(_) => {
+                debug!("Renamed installation to: {}", installation_copy.name);
+                show_rename_dialog.set(false);
+                is_operating.set(false);
+                // Call the update handler with the updated installation
+                onupdate.call(installation_copy);
+            },
+            Err(e) => {
+                debug!("Failed to rename installation: {}", e);
+                rename_error.set(Some(format!("Failed to rename installation: {}", e)));
+                is_operating.set(false);
+            }
+        }
+    };
     
     // Handle delete
     let handle_delete = move |_| {
