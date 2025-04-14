@@ -1019,56 +1019,49 @@ pub fn InstallationManagementPage(
     
     // State for modification tracking
     let mut has_changes = use_signal(|| false);
-    let mut enabled_features = use_signal(|| installation.enabled_features.clone());
-    let mut memory_allocation = use_signal(|| installation.memory_allocation);
-    let mut java_args = use_signal(|| installation.java_args.clone());
-    let mut selected_preset = use_signal(|| Option::<String>::None);
+    let enabled_features = use_signal(|| installation.enabled_features.clone());
+    let memory_allocation = use_signal(|| installation.memory_allocation);
+    let java_args = use_signal(|| installation.java_args.clone());
+    let selected_preset = use_signal(|| Option::<String>::None);
     
     // State for tracking modifications in different areas 
     let mut features_modified = use_signal(|| false);
     let mut performance_modified = use_signal(|| false);
     
     // Filter text for feature search
-    let mut filter_text = use_signal(|| String::new());
+    let filter_text = use_signal(|| String::new());
 
-    let refresh_installation = move |updated_installation: Installation| {
-    // Update the current installation data
-    installations.with_mut(|list| {
-    if let Some(index) = list.iter().position(|i| i.id == updated_installation.id) {
-        list[index] = updated_installation.clone();
-    }
-});
-    
-    // Also update the list of installations
-    installations.with_mut(|list| {
-        // Find and replace the installation
-        if let Some(index) = list.iter().position(|i| i.id == updated_installation.id) {
-            list[index] = updated_installation;
-        }
-    });
-};
-
-let update_installation = move |updated: Installation| {
-    // Update in the installations list
-    installations.with_mut(|list| {
-        if let Some(index) = list.iter().position(|i| i.id == updated.id) {
-            list[index] = updated.clone();
-        }
-    });
-    
-    // Reload the current view
-    spawn(async move {
-        match installation::load_installation(&updated.id) {
-            Ok(_refreshed) => {
-                // The list update above already updates the installation
-                // No need to do anything extra here
-            },
-            Err(e) => {
-                debug!("Failed to reload installation: {}", e);
+    // Function to refresh installation data
+    let _refresh_installation = move |updated_installation: Installation| {
+        // Update the current installation data
+        installations.with_mut(|list| {
+            if let Some(index) = list.iter().position(|i| i.id == updated_installation.id) {
+                list[index] = updated_installation.clone();
             }
-        }
-    });
-};
+        });
+    };
+    
+    // Function to update installation
+    let _update_installation = move |updated: Installation| {
+        // Update in the installations list
+        installations.with_mut(|list| {
+            if let Some(index) = list.iter().position(|i| i.id == updated.id) {
+                list[index] = updated.clone();
+            }
+        });
+        
+        // Reload the current view
+        spawn(async move {
+            match installation::load_installation(&updated.id) {
+                Ok(_refreshed) => {
+                    // The list has already been updated
+                },
+                Err(e) => {
+                    debug!("Failed to reload installation: {}", e);
+                }
+            }
+        });
+    };
     
     // Load universal manifest for features information
     let universal_manifest = use_resource(move || async {
@@ -1298,31 +1291,22 @@ let update_installation = move |updated: Installation| {
                         "settings" => {
                             rsx! {
                                 SettingsTab {
-    installation: installation.clone(),
-    installation_id: installation_id_for_delete.clone(),
-    ondelete: move |_| {
-        // Handle delete functionality
-        debug!("Delete clicked for: {}", installation_id_for_delete);
-        onback.call(());
-    },
-    onupdate: move |updated_installation: Installation| {
-        // Update the installation data
-        installations.with_mut(|list| {
-            if let Some(index) = list.iter().position(|i| i.id == updated_installation.id) {
-                list[index] = updated_installation.clone();
-            }
-        });
-    }
-}
-                    });
-                },
-                Err(e) => {
-                    error!("Failed to reload installation: {}", e);
-                }
-            }
-        });
-    }
-}
+                                    installation: installation.clone(),
+                                    installation_id: installation_id_for_delete.clone(),
+                                    ondelete: move |_| {
+                                        // Handle delete functionality
+                                        debug!("Delete clicked for: {}", installation_id_for_delete);
+                                        onback.call(());
+                                    },
+                                    onupdate: move |updated_installation: Installation| {
+                                        // Update the installation data in the list
+                                        installations.with_mut(|list| {
+                                            if let Some(index) = list.iter().position(|i| i.id == updated_installation.id) {
+                                                list[index] = updated_installation.clone();
+                                            }
+                                        });
+                                    }
+                                }
                             }
                         },
                         _ => rsx! { div { "Unknown tab selected" } }
