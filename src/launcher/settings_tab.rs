@@ -41,65 +41,70 @@ pub fn SettingsTab(
     
     // Open folder function - enhanced with debugging and path checks
     let installation_path_for_folder = installation.installation_path.clone();
-    let open_folder = move |_| {
-        let path = &installation_path_for_folder;
-        
-        // Add extensive debugging for path troubleshooting
-        debug!("Opening installation folder: {:?}", path);
-        debug!("Path exists: {}", path.exists());
-        debug!("Path is directory: {}", path.is_dir());
-        debug!("Path parent: {:?}", path.parent());
-        debug!("Absolute path: {:?}", path.canonicalize().ok());
-        
-        // Check if path exists
-        if !path.exists() {
-            debug!("Installation path does not exist: {:?}", path);
-            
-            // Try to create the directory
-            match std::fs::create_dir_all(path) {
-                Ok(_) => debug!("Created missing installation directory"),
-                Err(e) => {
-                    debug!("Failed to create installation directory: {}", e);
-                    operation_error.set(Some(format!("Folder does not exist and could not be created: {}", e)));
-                    return;
-                }
-            }
+   let open_folder = move |_| {
+    let mut path = installation_path_for_folder.clone();
+    
+    // Add extensive debugging for path troubleshooting
+    debug!("Opening installation folder: {:?}", path);
+    debug!("Path exists: {}", path.exists());
+    debug!("Path is directory: {}", path.is_dir());
+    debug!("Path parent: {:?}", path.parent());
+    
+    // Normalize the path by converting to a canonical path
+    // This ensures proper path separators for the platform
+    match path.canonicalize() {
+        Ok(canonical) => {
+            debug!("Canonical path: {:?}", canonical);
+            path = canonical;
+        },
+        Err(e) => {
+            debug!("Failed to canonicalize path: {}", e);
+            // Continue with the original path
         }
+    }
+    
+    debug!("Final path to open: {:?}", path);
+    
+    // Check if path exists
+    if !path.exists() {
+        debug!("Installation path does not exist: {:?}", path);
+        operation_error.set(Some(format!("Folder does not exist: {:?}", path)));
+        return;
+    }
+    
+    // Launch appropriate command based on OS
+    #[cfg(target_os = "windows")]
+    let result = {
+        // Convert to a proper Windows-style path string
+        let path_str = path.to_string_lossy().replace("/", "\\");
+        debug!("Windows path string: {}", path_str);
         
-        // Verify it's a directory
-        if !path.is_dir() {
-            debug!("Installation path is not a directory: {:?}", path);
-            operation_error.set(Some(format!("Path is not a directory: {:?}", path)));
-            return;
-        }
-        
-        // Launch appropriate command based on OS
-        #[cfg(target_os = "windows")]
-        let result = std::process::Command::new("explorer")
-            .arg(path)
-            .spawn();
-            
-        #[cfg(target_os = "macos")]
-        let result = std::process::Command::new("open")
-            .arg(path)
-            .spawn();
-            
-        #[cfg(target_os = "linux")]
-        let result = std::process::Command::new("xdg-open")
-            .arg(path)
-            .spawn();
-            
-        #[cfg(not(any(target_os = "windows", target_os = "macos", target_os = "linux")))]
-        let result = Err(std::io::Error::new(std::io::ErrorKind::Other, "Unsupported platform"));
-        
-        // Handle command result
-        if let Err(e) = result {
-            debug!("Failed to open installation folder: {}", e);
-            operation_error.set(Some(format!("Failed to open folder: {}", e)));
-        } else {
-            debug!("Successfully opened folder");
-        }
+        std::process::Command::new("explorer")
+            .arg(&path_str)
+            .spawn()
     };
+    
+    #[cfg(target_os = "macos")]
+    let result = std::process::Command::new("open")
+        .arg(path)
+        .spawn();
+        
+    #[cfg(target_os = "linux")]
+    let result = std::process::Command::new("xdg-open")
+        .arg(path)
+        .spawn();
+        
+    #[cfg(not(any(target_os = "windows", target_os = "macos", target_os = "linux")))]
+    let result = Err(std::io::Error::new(std::io::ErrorKind::Other, "Unsupported platform"));
+    
+    // Handle command result
+    if let Err(e) = result {
+        debug!("Failed to open installation folder: {}", e);
+        operation_error.set(Some(format!("Failed to open folder: {}", e)));
+    } else {
+        debug!("Successfully opened folder");
+    }
+};
     
     // Handle rename
     let installation_for_rename = installation.clone();
