@@ -95,53 +95,51 @@ pub fn FeaturesTab(
                     
                     // Available presets - skip the "custom" preset since we handle it separately
                     for preset in presets.iter().filter(|p| p.id != "custom") {
-                        {
-                            let preset_id = preset.id.clone();
-                            let is_selected = selected_preset.read().as_ref().map_or(false, |id| id == &preset_id);
-                            let mut apply_preset_clone = apply_preset.clone();
-                            
-                            rsx! {
-                                div {
-        class: if is_selected {
-            "preset-card selected"
-        } else {
-            "preset-card"
-        },
-        // Apply background if available
-        style: if let Some(bg) = &preset.background {
-            format!("background-image: url('{}'); background-size: cover; background-position: center;", bg)
-        } else {
-            String::new()
-        },
-        onclick: move |_| {
-            apply_preset_clone(preset_id.clone());
-        },
+    {
+        let preset_id = preset.id.clone();
+        let is_selected = selected_preset.read().as_ref().map_or(false, |id| id == &preset_id);
+        let mut apply_preset_clone = apply_preset.clone();
+        let has_trending = preset.trending.unwrap_or(false);
         
-        // Dark overlay for text readability
-        div { class: "preset-card-overlay" }
-        
-        div { class: "preset-card-content",
-            // Selection indicator
-            if is_selected {
-                div { class: "selection-indicator", "✓" }
-            }
-            
-            // Trending badge if applicable
-            if preset.trending.unwrap_or(false) {
-                span { class: "trending-badge", "Popular" }
-            }
-            
-            h4 { "{preset.name}" }
-            p { "{preset.description}" }
-            
-            // Feature count badge
-            span { class: "preset-features-count",
-                "{preset.enabled_features.len()} features"
-            }
-            
-            // Author if available
-            if let Some(author) = &preset.author {
-                div { class: "preset-author", "By {author}" }
+        rsx! {
+            div {
+                class: if is_selected {
+                    "preset-card selected"
+                } else {
+                    "preset-card"
+                },
+                // Apply background if available
+                style: if let Some(bg) = &preset.background {
+                    format!("background-image: url('{}'); background-size: cover; background-position: center;", bg)
+                } else {
+                    String::new()
+                },
+                onclick: move |_| {
+                    apply_preset_clone(preset_id.clone());
+                },
+                
+                // Dark overlay for text readability
+                div { class: "preset-card-overlay" }
+                
+                div { class: "preset-card-content",
+                    div { class: "preset-card-header",
+                        // Trending badge if applicable
+                        if has_trending {
+                            span { class: "trending-badge", "Popular" }
+                        }
+                    }
+                    
+                    h4 { "{preset.name}" }
+                    p { "{preset.description}" }
+                    
+                    // Feature count badge
+                    span { class: "preset-features-count",
+                        "{preset.enabled_features.len()} features"
+                    }
+                    
+                    // Author if available
+                    if let Some(author) = &preset.author {
+                        div { class: "preset-author", "By {author}" }
                                         }
                                     }
                                 }
