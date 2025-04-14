@@ -1306,20 +1306,14 @@ let update_installation = move |updated: Installation| {
         onback.call(());
     },
     onupdate: move |updated_installation: Installation| {
-        // Update the installation data in memory
-        // We need to handle this differently since installation_result is a Memo not a Signal
-        spawn(async move {
-            // Reload the installation data
-            match installation::load_installation(&updated_installation.id) {
-                Ok(refreshed) => {
-                    // Also update the installations list
-                    // (This requires passing installations as a prop to InstallationManagementPage)
-                    installations.with_mut(|list| {
-                        installations.with_mut(|list| {
-    if let Some(index) = list.iter().position(|i| i.id == refreshed.id) {
-        list[index] = refreshed.clone();
+        // Update the installation data
+        installations.with_mut(|list| {
+            if let Some(index) = list.iter().position(|i| i.id == updated_installation.id) {
+                list[index] = updated_installation.clone();
+            }
+        });
     }
-});
+}
                     });
                 },
                 Err(e) => {
