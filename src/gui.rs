@@ -1048,28 +1048,27 @@ pub fn InstallationManagementPage(
     });
 };
 
-    let update_installation = move |updated: Installation| {
-        // Update in the installations list
-        installations.with_mut(|list| {
-            if let Some(index) = list.iter().position(|i| i.id == updated.id) {
-                list[index] = updated.clone();
+let update_installation = move |updated: Installation| {
+    // Update in the installations list
+    installations.with_mut(|list| {
+        if let Some(index) = list.iter().position(|i| i.id == updated.id) {
+            list[index] = updated.clone();
+        }
+    });
+    
+    // Reload the current view
+    spawn(async move {
+        match installation::load_installation(&updated.id) {
+            Ok(_refreshed) => {
+                // The list update above already updates the installation
+                // No need to do anything extra here
+            },
+            Err(e) => {
+                debug!("Failed to reload installation: {}", e);
             }
-        });
-        
-        // Reload the current view
-        spawn(async move {
-            match installation::load_installation(&updated.id) {
-                Ok(refreshed) => {
-                    // Update the current view
-                    // This requires refactoring to use a Signal instead of a Memo for installation_result
-                    // For now, we're relying on the list update to refresh things
-                },
-                Err(e) => {
-                    debug!("Failed to reload installation: {}", e);
-                }
-            }
-        });
-    };
+        }
+    });
+};
     
     // Load universal manifest for features information
     let universal_manifest = use_resource(move || async {
