@@ -88,12 +88,16 @@ pub fn FeaturesTab(
                     
                     // Select/Selected button
                     button {
-                        class: "select-preset-button",
-                        // No onclick needed since the whole card is clickable
-                        if selected_preset.read().is_none() {
-                            "SELECTED"
-                        } else {
-                            "SELECT PRESET"
+    class: if is_selected && has_trending {
+        "select-preset-button trending-selected-button"
+    } else {
+        "select-preset-button"
+    },
+    // No onclick needed since the whole card is clickable
+    if is_selected {
+        "SELECTED"
+    } else {
+        "SELECT"
                         }
                     }
                 }
