@@ -82,7 +82,7 @@ pub fn FeaturesTab(
                     }
                     
                     div { class: "preset-card-content",
-                        h4 { "Custom Configuration" }
+                        h4 { "CUSTOM OVERHAUL" }
                         p { "Start with your current selection and customize everything yourself." }
                     }
                     
