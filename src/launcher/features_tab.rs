@@ -101,7 +101,7 @@ pub fn FeaturesTab(
                 if is_selected {
                     "SELECTED"
                 } else {
-                    "SELECT PRESET"
+                    "SELECT"
                 }
             }
         }
