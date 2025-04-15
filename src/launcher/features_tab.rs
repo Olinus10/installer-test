@@ -61,7 +61,7 @@ pub fn FeaturesTab(
         "preset-card"
     },
 
-    "has-trending": if has_trending { "true" } else { "false" },
+    "has-trending": "false",
     // Apply custom preset background if available
     style: if let Some(preset) = custom_preset {
         if let Some(bg) = &preset.background {
@@ -125,6 +125,8 @@ pub fn FeaturesTab(
                                 } else {
                                     "preset-card"
                                 },
+
+                                "has-trending": if has_trending { "true" } else { "false" },
                                 // Apply background if available
                                 style: if let Some(bg) = &preset.background {
                                     format!("background-image: url('{}'); background-size: cover; background-position: center;", bg)
