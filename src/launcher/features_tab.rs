@@ -136,7 +136,7 @@ pub fn FeaturesTab(
                     span { class: "preset-features-count",
                         "{preset.enabled_features.len()} features"
                     }
-                                        }
+                                        
                                     }
                                 }
                             }
