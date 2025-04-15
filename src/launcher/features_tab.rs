@@ -240,8 +240,18 @@ fn render_features_by_category(
     // Create a signal to track expanded categories
     let mut expanded_categories = use_signal(|| Vec::<String>::new());
     
+    // Track if optional features section is expanded
+    let mut features_expanded = use_signal(|| true); // Default to expanded
+
     // Check if no results match the filter
     let no_results = categories.is_empty() && !filter.is_empty();
+    
+    // Count total features and enabled features
+    let total_features = categories.values().flat_map(|comps| comps).count();
+    let enabled_count = categories.values()
+        .flat_map(|comps| comps)
+        .filter(|comp| enabled_features.read().contains(&comp.id))
+        .count();
     
     // If no results found
     if no_results {
@@ -252,190 +262,223 @@ fn render_features_by_category(
         };
     }
     
-    // Render categories
+    // Render with collapsible wrapper
     rsx! {
-        div { class: "feature-categories",
-            for (category_name, components) in categories {
-                {
-                    let category_key = category_name.clone();
-                    let is_expanded = expanded_categories.read().contains(&category_key) 
-                                    || filter.is_empty() == false; // Auto-expand when filtering
-                    
-                    // Calculate how many components are enabled
-                    let enabled_count = enabled_features.read().iter()
-                        .filter(|id| components.iter().any(|comp| &comp.id == *id))
-                        .count();
-                    
-                    let are_all_enabled = enabled_count == components.len();
-                    
-                    rsx! {
-                        div { class: "feature-category",
-                            // Category header - ENTIRE HEADER IS CLICKABLE
-                            div { 
-                                class: "category-header",
-                                onclick: {
-                                    let category_key = category_key.clone();
-                                    move |_| {
-                                        expanded_categories.with_mut(|cats| {
-                                            if cats.contains(&category_key) {
-                                                cats.retain(|c| c != &category_key);
-                                            } else {
-                                                cats.push(category_key.clone());
-                                            }
-                                        });
-                                    }
-                                },
-                                
-                                div { class: "category-title-section",
-                                    h3 { class: "category-name", "{category_name}" }
-                                    span { class: "category-count", "{enabled_count}/{components.len()}" }
-                                }
-                                
-                                // Toggle all button - has separate click handler
-                                {
-                                    let components_clone = components.clone();
-                                    let _category_name_clone = category_name.clone();
-                                    let mut enabled_features = enabled_features.clone();
-                                    
-                                    rsx! {
-                                        button {
-                                            class: if are_all_enabled {
-                                                "category-toggle-all disabled"
-                                            } else {
-                                                "category-toggle-all"
-                                            },
-                                            onclick: move |evt| {
-                                                // Stop propagation to prevent header's click handler
-                                                evt.stop_propagation();
-                                                
-                                                // Toggle all in category
-                                                enabled_features.with_mut(|features| {
-                                                    if are_all_enabled {
-                                                        // Disable all
-                                                        for comp in &components_clone {
-                                                            features.retain(|id| id != &comp.id);
-                                                        }
+        div { class: "optional-features-wrapper",
+            // Collapsible header for all features
+            div { 
+                class: "optional-features-header",
+                onclick: move |_| features_expanded.set(!*features_expanded.read()),
+                
+                h2 { class: "optional-features-title",
+                    "Optional Features"
+                    span { class: "features-count-badge",
+                        "{enabled_count}/{total_features}"
+                    }
+                }
+                
+                div { 
+                    class: if *features_expanded.read() {
+                        "expand-indicator expanded"
+                    } else {
+                        "expand-indicator"
+                    },
+                    "▼"
+                }
+            }
+            
+            // Collapsible content with all categories
+            div { 
+                class: if *features_expanded.read() {
+                    "optional-features-content expanded"
+                } else {
+                    "optional-features-content"
+                },
+                
+                // Render categories
+                div { class: "feature-categories",
+                    for (category_name, components) in categories {
+                        {
+                            let category_key = category_name.clone();
+                            let is_expanded = expanded_categories.read().contains(&category_key) 
+                                          || filter.is_empty() == false; // Auto-expand when filtering
+                            
+                            // Calculate how many components are enabled
+                            let enabled_count = enabled_features.read().iter()
+                                .filter(|id| components.iter().any(|comp| &comp.id == *id))
+                                .count();
+                            
+                            let are_all_enabled = enabled_count == components.len();
+                            
+                            rsx! {
+                                div { class: "feature-category",
+                                    // Category header - ENTIRE HEADER IS CLICKABLE
+                                    div { 
+                                        class: "category-header",
+                                        onclick: {
+                                            let category_key = category_key.clone();
+                                            move |_| {
+                                                expanded_categories.with_mut(|cats| {
+                                                    if cats.contains(&category_key) {
+                                                        cats.retain(|c| c != &category_key);
                                                     } else {
-                                                        // Enable all
-                                                        for comp in &components_clone {
-                                                            if !features.contains(&comp.id) {
-                                                                features.push(comp.id.clone());
-                                                            }
-                                                        }
+                                                        cats.push(category_key.clone());
                                                     }
                                                 });
-                                            },
-                                            
-                                            if are_all_enabled {
-                                                "Disable All"
-                                            } else {
-                                                "Enable All"
                                             }
+                                        },
+                                        
+                                        div { class: "category-title-section",
+                                            h3 { class: "category-name", "{category_name}" }
+                                            span { class: "category-count", "{enabled_count}/{components.len()}" }
                                         }
-                                    }
-                                }
-                                
-                                // Expand/collapse indicator - larger, more visible
-                                div { 
-                                    class: if is_expanded {
-                                        "category-toggle-indicator expanded"
-                                    } else {
-                                        "category-toggle-indicator"
-                                    },
-                                    "▼"
-                                }
-                            }
-                            
-                            // Category content (expandable)
-                            div { 
-                                class: if is_expanded {
-                                    "category-content expanded"
-                                } else {
-                                    "category-content"
-                                },
-                                
-                                // Feature cards grid
-                                div { class: "feature-cards-grid",
-                                    for component in components {
+                                        
+                                        // Toggle all button - has separate click handler
                                         {
-                                            let component_id = component.id.clone();
-                                            let is_enabled = enabled_features.read().contains(&component_id);
-                                            let mut toggle_func = toggle_feature.clone();
+                                            let components_clone = components.clone();
+                                            let mut enabled_features = enabled_features.clone();
                                             
                                             rsx! {
-                                                div { 
-                                                    class: if is_enabled {
-                                                        "feature-card feature-enabled"
+                                                button {
+                                                    class: if are_all_enabled {
+                                                        "category-toggle-all all-enabled"
                                                     } else {
-                                                        "feature-card feature-disabled"
+                                                        "category-toggle-all all-disabled"
+                                                    },
+                                                    onclick: move |evt| {
+                                                        // Stop propagation to prevent header's click handler
+                                                        evt.stop_propagation();
+                                                        
+                                                        // Toggle all in category
+                                                        enabled_features.with_mut(|features| {
+                                                            if are_all_enabled {
+                                                                // Disable all
+                                                                for comp in &components_clone {
+                                                                    features.retain(|id| id != &comp.id);
+                                                                }
+                                                            } else {
+                                                                // Enable all
+                                                                for comp in &components_clone {
+                                                                    if !features.contains(&comp.id) {
+                                                                        features.push(comp.id.clone());
+                                                                    }
+                                                                }
+                                                            }
+                                                        });
                                                     },
                                                     
-                                                    div { class: "feature-card-header",
-                                                        h3 { class: "feature-card-title", "{component.name}" }
-                                                        
-                                                        label {
+                                                    if are_all_enabled {
+                                                        "All Enabled"
+                                                    } else {
+                                                        "All Disabled"
+                                                    }
+                                                }
+                                            }
+                                        }
+                                        
+                                        // Expand/collapse indicator - larger, more visible
+                                        div { 
+                                            class: if is_expanded {
+                                                "category-toggle-indicator expanded"
+                                            } else {
+                                                "category-toggle-indicator"
+                                            },
+                                            "▼"
+                                        }
+                                    }
+                                    
+                                    // Category content (expandable)
+                                    div { 
+                                        class: if is_expanded {
+                                            "category-content expanded"
+                                        } else {
+                                            "category-content"
+                                        },
+                                        
+                                        // Feature cards grid
+                                        div { class: "feature-cards-grid",
+                                            for component in components {
+                                                {
+                                                    let component_id = component.id.clone();
+                                                    let is_enabled = enabled_features.read().contains(&component_id);
+                                                    let mut toggle_func = toggle_feature.clone();
+                                                    
+                                                    rsx! {
+                                                        div { 
                                                             class: if is_enabled {
-                                                                "feature-toggle-button enabled"
+                                                                "feature-card feature-enabled"
                                                             } else {
-                                                                "feature-toggle-button disabled"
-                                                            },
-                                                            onclick: move |_| {
-                                                                toggle_func(component_id.clone());
+                                                                "feature-card feature-disabled"
                                                             },
                                                             
-                                                            if is_enabled {
-                                                                "Enabled"
-                                                            } else {
-                                                                "Disabled"
-                                                            }
-                                                        }
-                                                    }
-                                                    
-                                                    // Description display
-                                                    if let Some(description) = &component.description {
-                                                        div { class: "feature-card-description", "{description}" }
-                                                    }
-                                                    
-                                                    // Dependencies display
-                                                    if let Some(deps) = &component.dependencies {
-                                                        if !deps.is_empty() {
-                                                            div { class: "feature-dependencies",
-                                                                "Requires: ", 
-                                                                span { class: "dependency-list", 
-                                                                    {deps.join(", ")}
+                                                            div { class: "feature-card-header",
+                                                                h3 { class: "feature-card-title", "{component.name}" }
+                                                                
+                                                                label {
+                                                                    class: if is_enabled {
+                                                                        "feature-toggle-button enabled"
+                                                                    } else {
+                                                                        "feature-toggle-button disabled"
+                                                                    },
+                                                                    onclick: move |_| {
+                                                                        toggle_func(component_id.clone());
+                                                                    },
+                                                                    
+                                                                    if is_enabled {
+                                                                        "Enabled"
+                                                                    } else {
+                                                                        "Disabled"
+                                                                    }
                                                                 }
                                                             }
-                                                        }
-                                                    }
-                                                    
-                                                    // Incompatibilities display
-                                                    if let Some(incompats) = &component.incompatibilities {
-                                                        if !incompats.is_empty() {
-                                                            div { class: "feature-incompatibilities",
-                                                                "Conflicts with: ", 
-                                                                span { class: "incompatibility-list", 
-                                                                    {incompats.join(", ")}
-                                                                }
+                                                            
+                                                            // Description display
+                                                            if let Some(description) = &component.description {
+                                                                div { class: "feature-card-description", "{description}" }
                                                             }
-                                                        }
-                                                    }
-                                                    
-                                                    // Authors display
-                                                    if !component.authors.is_empty() {
-                                                        div { class: "feature-authors",
-                                                            "By: ",
-                                                            for (i, author) in component.authors.iter().enumerate() {
-                                                                {
-                                                                    let is_last = i == component.authors.len() - 1;
-                                                                    rsx! {
-                                                                        a {
-                                                                            class: "author-link",
-                                                                            href: "{author.link}",
-                                                                            target: "_blank",
-                                                                            "{author.name}"
+                                                            
+                                                            // Dependencies display
+                                                            if let Some(deps) = &component.dependencies {
+                                                                if !deps.is_empty() {
+                                                                    div { class: "feature-dependencies",
+                                                                        "Requires: ", 
+                                                                        span { class: "dependency-list", 
+                                                                            {deps.join(", ")}
                                                                         }
-                                                                        if !is_last {
-                                                                            ", "
+                                                                    }
+                                                                }
+                                                            }
+                                                            
+                                                            // Incompatibilities display
+                                                            if let Some(incompats) = &component.incompatibilities {
+                                                                if !incompats.is_empty() {
+                                                                    div { class: "feature-incompatibilities",
+                                                                        "Conflicts with: ", 
+                                                                        span { class: "incompatibility-list", 
+                                                                            {incompats.join(", ")}
+                                                                        }
+                                                                    }
+                                                                }
+                                                            }
+                                                            
+                                                            // Authors display
+                                                            if !component.authors.is_empty() {
+                                                                div { class: "feature-authors",
+                                                                    "By: ",
+                                                                    for (i, author) in component.authors.iter().enumerate() {
+                                                                        {
+                                                                            let is_last = i == component.authors.len() - 1;
+                                                                            rsx! {
+                                                                                a {
+                                                                                    class: "author-link",
+                                                                                    href: "{author.link}",
+                                                                                    target: "_blank",
+                                                                                    "{author.name}"
+                                                                                }
+                                                                                if !is_last {
+                                                                                    ", "
+                                                                                }
+                                                                            }
                                                                         }
                                                                     }
                                                                 }
