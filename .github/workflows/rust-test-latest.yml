@@ -19,8 +19,11 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v3
 
-    - name: Setup sccache (GitHub Cache)
-      uses: mozilla-actions/sccache-action@v0.0.3
+    - name: Install latest sccache (GHA cache supported)
+      run: |
+        curl -L -o sccache.zip https://github.com/mozilla/sccache/releases/download/v0.7.7/sccache-v0.7.7-x86_64-pc-windows-msvc.zip
+        tar -xf sccache.zip
+        echo "${{ github.workspace }}\\sccache-v0.7.7-x86_64-pc-windows-msvc" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
     - name: Cache Cargo registry
       uses: actions/cache@v3
@@ -38,7 +41,7 @@ jobs:
         restore-keys: |
           cargo-git-${{ runner.os }}-
 
-    - name: Build with sccache + ci profile
+    - name: Build with sccache
       run: cargo build --profile ci --bin wynncraft-overhaul-installer --verbose
 
     - name: Show sccache stats
