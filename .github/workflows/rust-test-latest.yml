@@ -18,8 +18,11 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v3
 
-    - name: Install latest sccache
-      run: cargo install sccache --force
+    - name: Download prebuilt sccache binary
+      run: |
+        Invoke-WebRequest https://github.com/mozilla/sccache/releases/download/v0.8.0/sccache-v0.8.0-x86_64-pc-windows-msvc.tar.gz -OutFile sccache.tar.gz
+        tar -xzf sccache.tar.gz
+        echo "${{ github.workspace }}/sccache-v0.8.0-x86_64-pc-windows-msvc" | Out-File -Append -Encoding ascii $env:GITHUB_PATH
 
     - name: Cache sccache
       uses: actions/cache@v3
@@ -45,7 +48,7 @@ jobs:
         restore-keys: |
           cargo-git-${{ runner.os }}-
 
-    - name: Build with sccache + fast profile
+    - name: Build with sccache + ci profile
       run: cargo build --profile ci --bin wynncraft-overhaul-installer --verbose
       env:
         RUSTC_WRAPPER: sccache
