@@ -7,6 +7,7 @@
     perspective: 1000px; /* For 3D effects */
 }
 
+/* Fix for the 1px outline issue */
 .preset-card {
     background: linear-gradient(145deg, rgba(25, 25, 30, 0.8), rgba(15, 15, 20, 0.95));
     border-radius: 12px;
@@ -19,9 +20,8 @@
     box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
     display: flex;
     flex-direction: column;
-    transform-style: preserve-3d; /* Enable 3D effects */
-    perspective: 800px; /* Add perspective */
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    transform-style: preserve-3d;
+    border: 1px solid rgba(0, 0, 0, 0.2); /* Darker border color to hide any potential gap */
 }
 
 
@@ -136,7 +136,7 @@
     z-index: 5;
 }
 
-/* Clear overlay for better contrast */
+/* Also ensure the overlay covers the entire card with no gaps */
 .preset-card-overlay {
     position: absolute;
     top: 0;
@@ -145,29 +145,30 @@
     bottom: 0;
     background: rgba(0, 0, 0, 0.4);
     z-index: 1;
-    border-radius: 12px;
+    border-radius: 11px; /* Slightly smaller than card to avoid edge artifacts */
+    margin: 1px; /* Small margin to ensure it sits inside the border */
 }
 
 /* Selected state */
 .preset-card.selected {
     background: #0a3d16; /* Solid green background */
     box-shadow: 0 10px 25px rgba(7, 60, 23, 0.6), 0 0 30px rgba(7, 60, 23, 0.8);
-    border: 2px solid #0a5d23;
+    border: 2px solid rgba(7, 60, 23, 0.8); /* Slightly darker border color */
     transform: translateY(-12px) scale(1.05);
     z-index: 5;
 }
 
 .preset-card.selected .select-preset-button {
-    background-color: white;
-    color: #073c17;
-    content: "SELECTED";
+    background-color: white !important;
+    color: #0a3d16;
+    border: none;
 }
 
 /* Override for trending card when selected */
 .preset-card.selected:has(.trending-badge) {
     background: #0a3d16; /* Same strong green background */
     box-shadow: 0 10px 25px rgba(7, 60, 23, 0.6), 0 0 30px rgba(7, 60, 23, 0.8);
-    border: 2px solid #0a5d23;
+    border: 2px solid rgba(181, 137, 20, 0.8); /* Golden border for trending */
 }
 
 /* Much stronger glow animation for selected cards */
@@ -255,8 +256,9 @@
 
 
 /* Selected button for trending card */
+/* Override specifically for trending cards */
 .preset-card.selected:has(.trending-badge) .select-preset-button {
-    background-color: white; /* Ensure the background is white */
-    color: #b58c14; /* Golden text color */
-    border: none; /* Remove any border that might be interfering */
+    background-color: white !important; 
+    color: #b58c14 !important;
+    border: none !important;
 }
