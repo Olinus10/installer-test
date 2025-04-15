@@ -349,46 +349,48 @@ rsx! {
                                         
                                         // Toggle all button - has separate click handler
                                         {
-                                            let components_clone = components.clone();
-                                            let mut enabled_features = enabled_features.clone();
-                                            
-                                            rsx! {
-                                                button {
-                                                    class: if are_all_enabled {
-                                                        "category-toggle-all all-enabled"
-                                                    } else {
-                                                        "category-toggle-all all-disabled"
-                                                    },
-                                                    onclick: move |evt| {
-                                                        // Stop propagation to prevent header's click handler
-                                                        evt.stop_propagation();
-                                                        
-                                                        // Toggle all in category
-                                                        enabled_features.with_mut(|features| {
-                                                            if are_all_enabled {
-                                                                // Disable all
-                                                                for comp in &components_clone {
-                                                                    features.retain(|id| id != &comp.id);
-                                                                }
-                                                            } else {
-                                                                // Enable all
-                                                                for comp in &components_clone {
-                                                                    if !features.contains(&comp.id) {
-                                                                        features.push(comp.id.clone());
-                                                                    }
-                                                                }
-                                                            }
-                                                        });
-                                                    },
-                                                    
-                                                    if are_all_enabled {
-                                                        "All Enabled"
-                                                    } else {
-                                                        "All Disabled"
-                                                    }
-                                                }
-                                            }
-                                        }
+    let components_clone = components.clone();
+    let mut enabled_features = enabled_features.clone();
+    
+    rsx! {
+        button {
+            class: if are_all_enabled {
+                "category-toggle-all toggle-disable"
+            } else {
+                "category-toggle-all toggle-enable"
+            },
+            onclick: move |evt| {
+                // Stop propagation to prevent header's click handler
+                evt.stop_propagation();
+                
+                // Toggle all in category
+                enabled_features.with_mut(|features| {
+                    if are_all_enabled {
+                        // Disable all
+                        for comp in &components_clone {
+                            features.retain(|id| id != &comp.id);
+                        }
+                    } else {
+                        // Enable all
+                        for comp in &components_clone {
+                            if !features.contains(&comp.id) {
+                                features.push(comp.id.clone());
+                            }
+                        }
+                    }
+                });
+            },
+            
+            if are_all_enabled {
+                "Disable All" // User will disable all when clicked
+            } else if enabled_count > 0 {
+                "Enable All" // User will enable all when clicked
+            } else {
+                "Enable All" // User will enable all when clicked
+            }
+        }
+    }
+}
                                         
                                         // Expand/collapse indicator - larger, more visible
                                         div { 
