@@ -35,32 +35,30 @@
     font-size: 0.8rem;
 }
 
-* Toggle All Button Improvements */
-/* Improved All Enabled/Disabled button styling */
+/* All Enabled/Disabled button styling */
 .category-toggle-all {
-    background-color: transparent;
+    background-color: rgba(0, 0, 0, 0.4);
     border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: 6px;
-    padding: 6px 12px;
+    border-radius: 20px;
+    padding: 6px 15px;
+    font-family: "REGULAR_FONT";
     font-size: 0.85rem;
+    color: white;
+    letter-spacing: 0.5px;
     cursor: pointer;
     transition: all 0.2s ease;
-    min-width: 100px;
+    min-width: 110px;
     text-align: center;
-    font-family: "REGULAR_FONT"; /* Add consistent font */
-    letter-spacing: 0.05em;
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
 }
 
 .category-toggle-all.all-enabled {
     background-color: rgba(7, 60, 23, 0.6);
-    color: white;
     border-color: rgba(7, 60, 23, 0.8);
 }
 
 .category-toggle-all.all-disabled {
     background-color: rgba(217, 82, 72, 0.6);
-    color: white;
     border-color: rgba(217, 82, 72, 0.8);
 }
 
