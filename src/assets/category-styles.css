@@ -81,14 +81,14 @@
 .category-toggle-indicator {
     position: absolute;
     right: 15px;
-    width: 30px; /* Increased from 24px */
-    height: 30px; /* Increased from 24px */
+    width: 36px; /* Much larger */
+    height: 36px; /* Much larger */
     display: flex;
     justify-content: center;
     align-items: center;
     background-color: rgba(0, 0, 0, 0.3);
     border-radius: 50%;
-    font-size: 18px; /* Larger font size for the arrow */
+    font-size: 22px; /* Larger font size for the arrow */
     transition: transform 0.3s ease;
 }
 
@@ -112,29 +112,37 @@
     padding: 15px 0;
 }
 
-/* Main Optional Features wrapper */
+/* Optional Features wrapper improvements */
 .optional-features-wrapper {
     background-color: rgba(0, 0, 0, 0.2);
     border-radius: 10px;
     margin: 20px 0 30px 0;
     border-left: 4px solid rgba(7, 60, 23, 0.7);
+    padding: 15px 20px;
 }
+
 
 .optional-features-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 20px;
     cursor: pointer;
     position: relative;
+    margin-bottom: 15px;
+    padding: 10px 0;
 }
 
 .optional-features-title {
-    font-size: 1.5rem;
+    font-size: 1.6rem;
     margin: 0;
+    color: #fce8f6;
+    font-family: "HEADER_FONT";
+}
+
+.optional-features-controls {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 15px;
 }
 
 /* Make features count badge use the same font as other counters */
@@ -162,17 +170,19 @@
 }
 
 /* Top-level expand indicator */
+/* Much larger expand/collapse indicators */
 .expand-indicator {
-    font-size: 20px; /* Increased from 1.2rem */
-    transition: transform 0.3s ease;
-    width: 30px;
-    height: 30px;
+    font-size: 24px; /* Significantly larger */
+    width: 36px;
+    height: 36px;
     display: flex;
     justify-content: center;
     align-items: center;
     background-color: rgba(0, 0, 0, 0.3);
     border-radius: 50%;
+    transition: transform 0.3s ease;
 }
+
 .expand-indicator.expanded {
     transform: rotate(180deg);
 }
