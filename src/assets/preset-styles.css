@@ -293,3 +293,21 @@
 .preset-card p {
     color: rgba(255, 255, 255, 0.8) !important;
 }
+
+.preset-card.selected:has(.trending-badge) .select-preset-button {
+    background-color: white !important; 
+    color: #b58c14 !important;
+    border: none !important;
+    box-shadow: 0 0 15px rgba(255, 179, 0, 0.3) !important;
+}
+
+/* Make sure it works during initial load */
+.presets-grid .preset-card.selected:has(.trending-badge) .select-preset-button {
+    background-color: white !important;
+}
+
+/* Add a specific style for this button to help with CSS specificity */
+.trending-selected-button {
+    background-color: white !important;
+    color: #b58c14 !important;
+}
