@@ -4,7 +4,7 @@
   "presets": [
     {
       "id": "custom",
-      "name": "Custom Configuration",
+      "name": "CUSTOM OVERHAUL",
       "description": "Customize your own modded experience",
       "icon": "majestic_icon.png",
       "enabled_features": [
@@ -19,7 +19,7 @@
     },
     {
       "id": "majestic",
-      "name": "Majestic Overhaul",
+      "name": "MAJESTIC OVERHAUL",
       "description": "A fully immersive experience with beautiful graphics and enhanced gameplay",
       "author": "Wynncraft Overhaul Team",
       "icon": "majestic_icon.png",
@@ -130,7 +130,7 @@
     },
     {
       "id": "performance",
-      "name": "Optimized Overhaul",
+      "name": "OPTIMIZED OVERHAUL",
       "description": "Nothing immersive, just FPS boosts for maximum performance",
       "author": "Wynncraft Overhaul Team",
       "icon": "performance_icon.png",
