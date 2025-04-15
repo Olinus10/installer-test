@@ -52,12 +52,13 @@
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
 }
 
-.category-toggle-all.all-enabled {
+
+.category-toggle-all.toggle-enable {
     background-color: rgba(7, 60, 23, 0.6);
     border-color: rgba(7, 60, 23, 0.8);
 }
 
-.category-toggle-all.all-disabled {
+.category-toggle-all.toggle-disable {
     background-color: rgba(217, 82, 72, 0.6);
     border-color: rgba(217, 82, 72, 0.8);
 }
