@@ -41,7 +41,6 @@
     transform: translateY(-2px);
 }
 
-
 /* Card title styling */
 .preset-card h4 {
     font-size: 1.3rem;
@@ -65,100 +64,6 @@
     -webkit-line-clamp: 3;
     -webkit-box-orient: vertical;
 }
-
-
-/* Card background accent */
-.preset-card::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 3px;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-    opacity: 0;
-    transition: opacity 0.3s ease;
-}
-
-.preset-card:hover::before {
-    opacity: 1;
-}
-
-/* Hover shine effect */
-.preset-card::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: -100%;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(
-        90deg,
-        transparent,
-        rgba(255, 255, 255, 0.05),
-        transparent
-    );
-    z-index: 2;
-    transition: left 0.7s ease-in-out;
-}
-
-.preset-card:hover::after {
-    left: 100%;
-}
-
-/* SELECTED STATE - Dramatic and clear */
-.preset-card.selected {
-    background: linear-gradient(145deg, rgba(7, 60, 23, 0.7), rgba(5, 40, 15, 0.9));
-    box-shadow: 0 10px 25px rgba(7, 60, 23, 0.6);
-    border: 2px solid #0a5d23;
-    transform: translateY(-8px) scale(1.02);
-}
-
-.preset-card.selected::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 3px;
-    background: linear-gradient(90deg, transparent, #0a5d23, transparent);
-    opacity: 1;
-}
-
-/* Selected indicator with checkmark */
-.preset-card.selected::after {
-    content: '✓';
-    position: absolute;
-    top: 15px;
-    right: 15px;
-    width: 26px;
-    height: 26px;
-    border-radius: 50%;
-    background-color: #0a5d23;
-    color: white;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 16px;
-    font-weight: bold;
-    z-index: 5;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-    animation: none;
-    left: auto;
-}
-
-/* Animated border for selected cards */
-@keyframes border-pulse {
-    0% { border-color: rgba(10, 93, 35, 0.6); }
-    50% { border-color: rgba(10, 93, 35, 1); }
-    100% { border-color: rgba(10, 93, 35, 0.6); }
-}
-
-.preset-card.selected {
-    animation: border-pulse 3s infinite;
-}
-
-
 
 /* Feature count badge */
 .preset-features-count {
@@ -184,55 +89,42 @@
     border-radius: 8px;
 }
 
-/* Author credit */
-.preset-author {
-    font-style: italic;
-    font-size: 0.8rem;
-    color: rgba(255, 255, 255, 0.6);
-    margin-top: 8px;
-    text-align: right;
+/* SELECTED STATE - Dramatic and clear */
+.preset-card.selected {
+    background: linear-gradient(145deg, rgba(7, 60, 23, 0.7), rgba(5, 40, 15, 0.9));
+    box-shadow: 0 10px 25px rgba(7, 60, 23, 0.6);
+    border: 2px solid #0a5d23;
+    transform: translateY(-8px) scale(1.02);
 }
 
-.apply-preset-button {
-    background-color: rgba(7, 60, 23, 0.7);
-    color: white;
-    border: none;
-    border-radius: 4px;
-    padding: 8px 16px;
-    margin-top: 10px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    font-family: "REGULAR_FONT";
+.preset-card.selected::after {
+    content: '✓';
     position: absolute;
-    bottom: 15px;
+    top: 15px;
     right: 15px;
-}
-
-.apply-preset-button:hover {
-    background-color: rgba(7, 60, 23, 0.9);
-    transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
-}
-
-.preview-preset-button {
-    background-color: rgba(0, 0, 0, 0.4);
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background-color: #0a5d23;
     color: white;
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: 4px;
-    padding: 8px 16px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    font-family: "REGULAR_FONT";
-    position: absolute;
-    bottom: 15px;
-    left: 15px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    font-weight: bold;
+    z-index: 5;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
-.preview-preset-button:hover {
-    background-color: rgba(0, 0, 0, 0.6);
-    transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
-    border-color: rgba(255, 255, 255, 0.3);
+/* Animated border for selected cards */
+@keyframes border-pulse {
+    0% { border-color: rgba(10, 93, 35, 0.6); }
+    50% { border-color: rgba(10, 93, 35, 1); }
+    100% { border-color: rgba(10, 93, 35, 0.6); }
+}
+
+.preset-card.selected {
+    animation: border-pulse 3s infinite;
 }
 
 /* TRENDING PRESET - Extra prominent */
@@ -274,13 +166,6 @@
     animation: trending-glow 3s infinite;
 }
 
-/* Selected AND trending combined state */
-.preset-card.selected:has(.trending-badge) {
-    background: linear-gradient(145deg, rgba(40, 55, 15, 0.8), rgba(30, 45, 10, 0.9));
-    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.5), 0 0 30px rgba(120, 160, 40, 0.3);
-    border: 2px solid #85b035;
-}
-
 /* Badge animations */
 @keyframes badge-pulse {
     0% { transform: scale(1); }
@@ -290,111 +175,4 @@
 
 .trending-badge {
     animation: badge-pulse 2s infinite;
-}
-
-/* Optional: Add a dark overlay for better text contrast 
-.preset-card::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: linear-gradient(to bottom, 
-        rgba(0, 0, 0, 0.1) 0%, 
-        rgba(0, 0, 0, 0.3) 100%);
-    pointer-events: none;
-    z-index: 1;
-    opacity: 0.7;
-    transition: opacity 0.3s ease;
-}*/
-
-.preset-features-list {
-    max-height: 400px;
-    overflow-y: auto;
-}
-
-.preset-features-list ul {
-    padding-left: 20px;
-    margin: 0;
-}
-
-.preset-features-list li {
-    margin-bottom: 6px;
-    padding-left: 5px;
-}
-
-.presets-explanation {
-    padding: 15px 20px;
-    background-color: rgba(7, 60, 23, 0.1);
-    border-left: 3px solid #0a5d23;
-    border-radius: 0 4px 4px 0;
-    margin-top: 20px;
-    color: rgba(255, 255, 255, 0.9);
-}
-
-/* Tab modifications */
-.installation-tabs .tab-counter {
-    display: inline-block;
-    background-color: rgba(0, 0, 0, 0.3);
-    border-radius: 15px;
-    padding: 0 8px;
-    margin-left: 6px;
-    font-size: 0.8rem;
-    line-height: 1.5;
-}
-
-.tab-button.active .tab-counter {
-    background-color: rgba(7, 60, 23, 0.6);
-}
-
-/* Feature filter search box */
-.feature-filter-container {
-    display: flex;
-    align-items: center;
-    margin-bottom: 20px;
-    background-color: rgba(0, 0, 0, 0.3);
-    border-radius: 6px;
-    padding: 8px 15px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.feature-filter {
-    flex-grow: 1;
-    background-color: transparent;
-    border: none;
-    color: white;
-    padding: 8px;
-    font-family: "REGULAR_FONT";
-    font-size: 1rem;
-}
-
-.feature-filter:focus {
-    outline: none;
-}
-
-.feature-filter::placeholder {
-    color: rgba(255, 255, 255, 0.5);
-}
-
-.feature-filter-icon {
-    color: rgba(255, 255, 255, 0.5);
-    font-size: 1.2rem;
-    margin-right: 8px;
-}
-
-.feature-filter-clear {
-    background: none;
-    border: none;
-    color: rgba(255, 255, 255, 0.5);
-    cursor: pointer;
-    padding: 0 8px;
-    font-size: 1.2rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.feature-filter-clear:hover {
-    color: white;
 }
