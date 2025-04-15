@@ -311,3 +311,10 @@
     background-color: white !important;
     color: #b58c14 !important;
 }
+
+.preset-card.selected[has-trending="true"] .select-preset-button {
+    background-color: white !important;
+    color: #b58c14 !important;
+    border: none !important;
+    box-shadow: 0 0 15px rgba(255, 179, 0, 0.3) !important;
+}
