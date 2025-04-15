@@ -157,11 +157,22 @@ pub fn FeaturesTab(
                                 
                                 // Select/Selected button
                                 button {
-                                    class: "select-preset-button",
-                                    // No onclick needed since the whole card is clickable
-                                    if is_selected {
-                                        "SELECTED"
-                                    } else {
+    class: if is_selected {
+        if has_trending {
+            "select-preset-button trending-selected-button"
+        } else {
+            "select-preset-button selected-button"
+        }
+    } else {
+        if has_trending {
+            "select-preset-button trending-button"
+        } else {
+            "select-preset-button"
+        }
+    },
+    if is_selected {
+        "SELECTED"
+    } else {
                                         "SELECT"
                                     }
                                 }
@@ -290,7 +301,7 @@ fn render_features_by_category(
         div { class: "optional-features-wrapper",
             // Section header with divider style
             div { class: "section-divider with-title", 
-    span { class: "divider-title", "OPTIONAL FEATURES" }
+    span { class: "divider-title", "FEATURES" }
 }
 
 // Description first
