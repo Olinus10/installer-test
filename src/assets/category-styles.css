@@ -141,12 +141,12 @@
     text-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
 }
 
-/* Optional features description */
+/* Optional features description should come before the counter */
 .optional-features-description {
     text-align: center;
     color: rgba(255, 255, 255, 0.8);
     font-size: 1rem;
-    margin: 10px auto 20px auto;
+    margin: 10px auto;
     max-width: 700px;
 }
 
@@ -197,18 +197,22 @@
     gap: 15px;
 }
 
-/* Update the features count badge to be centered */
+/* Features count container styling */
+.features-count-container {
+    text-align: center;
+    margin: 10px 0;
+}
+
 .features-count-badge {
+    display: inline-block;
     background-color: rgba(7, 60, 23, 0.6);
     color: white;
     padding: 5px 15px;
     border-radius: 20px;
     font-size: 0.9rem;
     font-family: "REGULAR_FONT";
-    display: inline-block;
-    margin-top: 5px;
+    margin: 0 auto;
 }
-
 
 .optional-features-content {
     overflow: hidden;
