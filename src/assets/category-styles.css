@@ -143,6 +143,47 @@
     margin: 0 0 15px 0;
 }
 
+/* Prominent expand/collapse button */
+.expand-collapse-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(7, 60, 23, 0.5);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 20px;
+    padding: 8px 20px;
+    font-family: "REGULAR_FONT";
+    font-size: 0.95rem;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    margin: 0 auto 20px auto;
+    width: fit-content;
+    min-width: 180px;
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.3);
+}
+
+.expand-collapse-button:hover {
+    background: rgba(7, 60, 23, 0.7);
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.4);
+}
+
+.button-icon {
+    margin-right: 8px;
+    font-size: 16px;
+    transition: transform 0.3s ease;
+}
+
+.expand-icon {
+    transform: translateY(2px);
+}
+
+.collapse-icon {
+    transform: translateY(-2px);
+}
+
 .optional-features-controls {
     display: flex;
     align-items: center;
