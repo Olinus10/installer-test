@@ -89,3 +89,106 @@
 .category-content.expanded {
     max-height: 2000px;
 }
+
+/* Main features section with expandable wrapper */
+.features-tab {
+    padding: 15px 0;
+}
+
+/* Main Optional Features wrapper */
+.optional-features-wrapper {
+    background-color: rgba(0, 0, 0, 0.2);
+    border-radius: 10px;
+    margin: 20px 0 30px 0;
+    border-left: 4px solid rgba(7, 60, 23, 0.7);
+}
+
+.optional-features-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px;
+    cursor: pointer;
+    position: relative;
+}
+
+.optional-features-title {
+    font-size: 1.5rem;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.features-count-badge {
+    background-color: rgba(7, 60, 23, 0.6);
+    color: white;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 0.9rem;
+    font-weight: normal;
+}
+
+.optional-features-content {
+    overflow: hidden;
+    max-height: 0;
+    transition: max-height 0.7s ease;
+    padding: 0 20px;
+}
+
+.optional-features-content.expanded {
+    max-height: 10000px;
+    padding: 0 20px 20px 20px;
+}
+
+/* Expand/collapse indicators */
+.expand-indicator {
+    font-size: 1.2rem;
+    transition: transform 0.3s ease;
+}
+
+.expand-indicator.expanded {
+    transform: rotate(180deg);
+}
+
+/* Feature filter search box */
+.feature-filter-container {
+    display: flex;
+    align-items: center;
+    margin-bottom: 20px;
+    background-color: rgba(0, 0, 0, 0.3);
+    border-radius: 6px;
+    padding: 8px 15px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.feature-filter {
+    flex-grow: 1;
+    background-color: transparent;
+    border: none;
+    color: white;
+    padding: 8px;
+}
+
+.feature-filter:focus {
+    outline: none;
+}
+
+.feature-filter-icon {
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 1.2rem;
+    margin-right: 8px;
+}
+
+.feature-filter-clear {
+    background: none;
+    border: none;
+    color: rgba(255, 255, 255, 0.5);
+    cursor: pointer;
+    padding: 0 8px;
+    font-size: 1.2rem;
+}
+
+.feature-filter-clear:hover {
+    color: white;
+}
