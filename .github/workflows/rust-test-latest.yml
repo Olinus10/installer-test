@@ -1,4 +1,4 @@
-name: rust-rest-latest
+name: rust-test-latest
 
 on:
   push:
@@ -8,50 +8,46 @@ on:
 
 env:
   CARGO_TERM_COLOR: always
-  RUSTC_WRAPPER: sccache
-  SCCACHE_GHA_ENABLED: "true"
 
 jobs:
   build:
     runs-on: windows-2022
-
     steps:
-    - name: Checkout code
+    - name: Checkout repository
       uses: actions/checkout@v3
 
-    - name: Install Rust
-      uses: actions-rs/toolchain@v1
+    - name: Install sccache
+      run: cargo install sccache
+
+    - name: Cache sccache
+      uses: actions/cache@v3
       with:
-        toolchain: stable
-        profile: minimal
-        override: true
-
-    - name: Setup GitHub-native sccache
-      uses: mozilla-actions/sccache-action@v0.0.3
-
-    - name: Cache Cargo registry
+        path: |
+          ~/.cache/sccache
+        key: sccache-windows-${{ hashFiles('**/Cargo.lock') }}
+        restore-keys: |
+          sccache-windows-
+    - name: Cache cargo registry
       uses: actions/cache@v3
       with:
         path: ~/.cargo/registry
-        key: cargo-registry-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}
+        key: cargo-registry-windows-${{ hashFiles('**/Cargo.lock') }}
         restore-keys: |
-          cargo-registry-${{ runner.os }}-
-
-    - name: Cache Cargo git index
+          cargo-registry-windows-
+    - name: Cache cargo index
       uses: actions/cache@v3
       with:
         path: ~/.cargo/git
-        key: cargo-git-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}
+        key: cargo-git-windows-${{ hashFiles('**/Cargo.lock') }}
         restore-keys: |
-          cargo-git-${{ runner.os }}-
+          cargo-git-windows-
+    - name: Build project
+      run: cargo build --verbose --release
+      env:
+        RUSTC_WRAPPER: sccache
+        CARGO_TERM_COLOR: always
 
-    - name: Build release
-      run: cargo build --release --verbose
-
-    - name: Show sccache stats
-      run: sccache --show-stats
-
-    - name: Upload binary
+    - name: Upload Windows executable
       uses: actions/upload-artifact@v4
       with:
         name: wynncraft-installer
