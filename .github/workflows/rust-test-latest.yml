@@ -19,11 +19,19 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v3
 
-    - name: Install latest sccache (GHA cache supported)
+    - name: Install latest sccache (with GHA support)
       run: |
         curl -L -o sccache.zip https://github.com/mozilla/sccache/releases/download/v0.7.7/sccache-v0.7.7-x86_64-pc-windows-msvc.zip
         tar -xf sccache.zip
         echo "${{ github.workspace }}\\sccache-v0.7.7-x86_64-pc-windows-msvc" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+
+    - name: Inject GHA cache env vars
+      uses: actions/cache/save@v3
+      with:
+        path: |
+          target
+        key: dummy-key-${{ runner.os }}-${{ github.run_id }}
+      continue-on-error: true
 
     - name: Cache Cargo registry
       uses: actions/cache@v3
