@@ -60,6 +60,8 @@ pub fn FeaturesTab(
     } else {
         "preset-card"
     },
+
+    "has-trending": if has_trending { "true" } else { "false" },
     // Apply custom preset background if available
     style: if let Some(preset) = custom_preset {
         if let Some(bg) = &preset.background {
@@ -260,7 +262,7 @@ fn render_features_by_category(
     let mut expanded_categories = use_signal(|| Vec::<String>::new());
     
     // Track if optional features section is expanded
-    let mut features_expanded = use_signal(|| true); // Default to expanded
+    let mut features_expanded = use_signal(|| false); // Default to expanded
 
     // Check if no results match the filter
     let no_results = categories.is_empty() && !filter.is_empty();
