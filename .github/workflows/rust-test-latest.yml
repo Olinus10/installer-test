@@ -16,22 +16,18 @@ jobs:
     runs-on: windows-2022
 
     steps:
-    - name: Checkout repository
+    - name: Checkout code
       uses: actions/checkout@v3
 
-    - name: Install latest sccache (with GHA support)
-      run: |
-        curl -L -o sccache.zip https://github.com/mozilla/sccache/releases/download/v0.7.7/sccache-v0.7.7-x86_64-pc-windows-msvc.zip
-        tar -xf sccache.zip
-        echo "${{ github.workspace }}\\sccache-v0.7.7-x86_64-pc-windows-msvc" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
-
-    - name: Inject GHA cache env vars
-      uses: actions/cache/save@v3
+    - name: Set up Rust
+      uses: actions-rs/toolchain@v1
       with:
-        path: |
-          target
-        key: dummy-key-${{ runner.os }}-${{ github.run_id }}
-      continue-on-error: true
+        toolchain: stable
+        profile: minimal
+        override: true
+
+    - name: Enable sccache with GitHub Actions cache
+      uses: mozilla-actions/sccache-action@v0.0.3
 
     - name: Cache Cargo registry
       uses: actions/cache@v3
@@ -49,14 +45,14 @@ jobs:
         restore-keys: |
           cargo-git-${{ runner.os }}-
 
-    - name: Build with sccache
-      run: cargo build --profile ci --bin wynncraft-overhaul-installer --verbose
+    - name: Build in release mode with sccache
+      run: cargo build --release --verbose
 
     - name: Show sccache stats
       run: sccache --show-stats
 
-    - name: Upload Windows executable
+    - name: Upload executable
       uses: actions/upload-artifact@v4
       with:
         name: wynncraft-installer
-        path: target/ci/wynncraft-overhaul-installer.exe
+        path: target/release/wynncraft-overhaul-installer.exe
