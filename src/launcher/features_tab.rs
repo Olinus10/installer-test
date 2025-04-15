@@ -1,9 +1,6 @@
-// features_tab.rs - Complete fixed version
 use dioxus::prelude::*;
 use crate::universal::{ModComponent, UniversalManifest};
 use crate::preset::{Preset, find_preset_by_id};
-// Remove unused import
-// use crate::launcher::integrated_features::IntegratedFeatures;
 
 #[component]
 pub fn FeaturesTab(
@@ -46,7 +43,7 @@ pub fn FeaturesTab(
     
     rsx! {
         div { class: "features-tab",
-            // Simplified PRESETS section
+            // Simplified PRESETS section header
             div { class: "section-divider with-title", 
                 span { class: "divider-title", "PRESETS" }
             }
@@ -79,13 +76,24 @@ pub fn FeaturesTab(
                     
                     div { class: "preset-card-overlay" }
                     
+                    // Feature count badge in top right
+                    span { class: "preset-features-count",
+                        "{enabled_features.read().len()} features selected"
+                    }
+                    
                     div { class: "preset-card-content",
                         h4 { "Custom Configuration" }
                         p { "Start with your current selection and customize everything yourself." }
-                        
-                        // Feature count badge
-                        span { class: "preset-features-count",
-                            "{enabled_features.read().len()} features selected"
+                    }
+                    
+                    // Select/Selected button
+                    button {
+                        class: "select-preset-button",
+                        // No onclick needed since the whole card is clickable
+                        if selected_preset.read().is_none() {
+                            "SELECTED"
+                        } else {
+                            "SELECT PRESET"
                         }
                     }
                 }
@@ -99,52 +107,52 @@ pub fn FeaturesTab(
                         let has_trending = preset.trending.unwrap_or(false);
                         
                         rsx! {
-    div {
-        class: if is_selected {
-            "preset-card selected"
-        } else {
-            "preset-card"
-        },
-        // Apply background if available
-        style: if let Some(bg) = &preset.background {
-            format!("background-image: url('{}'); background-size: cover; background-position: center;", bg)
-        } else {
-            String::new()
-        },
-        onclick: move |_| {
-            apply_preset_clone(preset_id.clone());
-        },
-        
-        // Feature count badge in top right
-        span { class: "preset-features-count",
-            "{preset.enabled_features.len()} features"
-        }
-        
-        // Trending badge in top left
-        if has_trending {
-            span { class: "trending-badge", "Popular" }
-        }
-        
-        // Dark overlay for text readability
-        div { class: "preset-card-overlay" }
-        
-        div { class: "preset-card-content",
-            h4 { "{preset.name}" }
-            p { "{preset.description}" }
-        }
-        
-        // Select/Selected button
-        button {
-            class: "select-preset-button",
-            // No onclick needed since the whole card is clickable
-            if is_selected {
-                "SELECTED"
-            } else {
-                "SELECT"
-            }
-        }
-    }
-}
+                            div {
+                                class: if is_selected {
+                                    "preset-card selected"
+                                } else {
+                                    "preset-card"
+                                },
+                                // Apply background if available
+                                style: if let Some(bg) = &preset.background {
+                                    format!("background-image: url('{}'); background-size: cover; background-position: center;", bg)
+                                } else {
+                                    String::new()
+                                },
+                                onclick: move |_| {
+                                    apply_preset_clone(preset_id.clone());
+                                },
+                                
+                                // Feature count badge in top right
+                                span { class: "preset-features-count",
+                                    "{preset.enabled_features.len()} features"
+                                }
+                                
+                                // Trending badge in top left
+                                if has_trending {
+                                    span { class: "trending-badge", "Popular" }
+                                }
+                                
+                                // Dark overlay for text readability
+                                div { class: "preset-card-overlay" }
+                                
+                                div { class: "preset-card-content",
+                                    h4 { "{preset.name}" }
+                                    p { "{preset.description}" }
+                                }
+                                
+                                // Select/Selected button
+                                button {
+                                    class: "select-preset-button",
+                                    // No onclick needed since the whole card is clickable
+                                    if is_selected {
+                                        "SELECTED"
+                                    } else {
+                                        "SELECT PRESET"
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -264,50 +272,51 @@ fn render_features_by_category(
     }
     
     // Render with collapsible wrapper
-rsx! {
-    div { class: "optional-features-wrapper",
-        // Section header
-        div { class: "optional-features-header",
-            h3 { class: "optional-features-title", "Optional Features" }
-            
-            // Features count badge moved to header
-            span { class: "features-count-badge",
-                "{enabled_count}/{total_features} features enabled"
+    rsx! {
+        div { class: "optional-features-wrapper",
+            // Section header with divider style
+            div { class: "section-divider with-title", 
+                span { class: "divider-title", "OPTIONAL FEATURES" }
             }
-        }
-        
-        // Optional features description
-        p { class: "optional-features-description",
-            "Customize individual features to create your perfect experience."
-        }
-        
-        // Centered expand/collapse button
-        button { 
-            class: "expand-collapse-button",
-            onclick: move |_| {
-                let current_expanded = *features_expanded.read();
-                features_expanded.set(!current_expanded);
-            },
             
-            // Icon and text change based on state
-            if *features_expanded.read() {
-                // Collapse state
-                span { class: "button-icon collapse-icon", "▲" }
-                "Collapse Features"
-            } else {
-                // Expand state
-                span { class: "button-icon expand-icon", "▼" }
-                "Expand Features"
+            // Features count and description
+            div { class: "features-count-container",
+                span { class: "features-count-badge",
+                    "{enabled_count}/{total_features} features enabled"
+                }
             }
-        }
-        
-        // Collapsible content with all categories
-        div { 
-            class: if *features_expanded.read() {
-                "optional-features-content expanded"
-            } else {
-                "optional-features-content"
-            },
+            
+            p { class: "optional-features-description",
+                "Customize individual features to create your perfect experience."
+            }
+            
+            // Centered expand/collapse button
+            button { 
+                class: "expand-collapse-button",
+                onclick: move |_| {
+                    let current_expanded = *features_expanded.read();
+                    features_expanded.set(!current_expanded);
+                },
+                
+                // Icon and text change based on state
+                if *features_expanded.read() {
+                    // Collapse state
+                    span { class: "button-icon collapse-icon", "▲" }
+                    "Collapse Features"
+                } else {
+                    // Expand state
+                    span { class: "button-icon expand-icon", "▼" }
+                    "Expand Features"
+                }
+            }
+            
+            // Collapsible content with all categories
+            div { 
+                class: if *features_expanded.read() {
+                    "optional-features-content expanded"
+                } else {
+                    "optional-features-content"
+                },
                 
                 // Render categories
                 div { class: "feature-categories",
@@ -349,48 +358,48 @@ rsx! {
                                         
                                         // Toggle all button - has separate click handler
                                         {
-    let components_clone = components.clone();
-    let mut enabled_features = enabled_features.clone();
-    
-    rsx! {
-        button {
-            class: if are_all_enabled {
-                "category-toggle-all toggle-disable"
-            } else {
-                "category-toggle-all toggle-enable"
-            },
-            onclick: move |evt| {
-                // Stop propagation to prevent header's click handler
-                evt.stop_propagation();
-                
-                // Toggle all in category
-                enabled_features.with_mut(|features| {
-                    if are_all_enabled {
-                        // Disable all
-                        for comp in &components_clone {
-                            features.retain(|id| id != &comp.id);
-                        }
-                    } else {
-                        // Enable all
-                        for comp in &components_clone {
-                            if !features.contains(&comp.id) {
-                                features.push(comp.id.clone());
-                            }
-                        }
-                    }
-                });
-            },
-            
-            if are_all_enabled {
-                "Disable All" // User will disable all when clicked
-            } else if enabled_count > 0 {
-                "Enable All" // User will enable all when clicked
-            } else {
-                "Enable All" // User will enable all when clicked
-            }
-        }
-    }
-}
+                                            let components_clone = components.clone();
+                                            let mut enabled_features = enabled_features.clone();
+                                            
+                                            rsx! {
+                                                button {
+                                                    class: if are_all_enabled {
+                                                        "category-toggle-all toggle-disable"
+                                                    } else {
+                                                        "category-toggle-all toggle-enable"
+                                                    },
+                                                    onclick: move |evt| {
+                                                        // Stop propagation to prevent header's click handler
+                                                        evt.stop_propagation();
+                                                        
+                                                        // Toggle all in category
+                                                        enabled_features.with_mut(|features| {
+                                                            if are_all_enabled {
+                                                                // Disable all
+                                                                for comp in &components_clone {
+                                                                    features.retain(|id| id != &comp.id);
+                                                                }
+                                                            } else {
+                                                                // Enable all
+                                                                for comp in &components_clone {
+                                                                    if !features.contains(&comp.id) {
+                                                                        features.push(comp.id.clone());
+                                                                    }
+                                                                }
+                                                            }
+                                                        });
+                                                    },
+                                                    
+                                                    if are_all_enabled {
+                                                        "Disable All" // User will disable all when clicked
+                                                    } else if enabled_count > 0 {
+                                                        "Enable All" // User will enable all when clicked
+                                                    } else {
+                                                        "Enable All" // User will enable all when clicked
+                                                    }
+                                                }
+                                            }
+                                        }
                                         
                                         // Expand/collapse indicator - larger, more visible
                                         div { 
