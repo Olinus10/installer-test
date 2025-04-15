@@ -120,13 +120,12 @@
 }
 
 
+/* Optional Features header styling */
 .optional-features-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    cursor: pointer;
-    position: relative;
-    margin-bottom: 15px;
+    margin-bottom: 10px;
     padding: 10px 0;
 }
 
@@ -135,6 +134,13 @@
     margin: 0;
     color: #fce8f6;
     font-family: "HEADER_FONT";
+}
+
+.optional-features-description {
+    text-align: center;
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 1rem;
+    margin: 0 0 15px 0;
 }
 
 .optional-features-controls {
