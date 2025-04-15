@@ -2967,3 +2967,45 @@ a:hover {
 .category-toggle-all.disabled {
     background-color: rgba(217, 82, 72, 0.7); /* Red background */
 }
+
+/* Section divider and description styles */
+.section-divider.with-title {
+    margin-top: 30px;
+    margin-bottom: 10px;
+}
+
+.section-description {
+    margin: 0 0 20px 0;
+    text-align: center;
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 1rem;
+    max-width: 700px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+/* Optional features header redesign */
+.optional-features-header {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    padding: 10px 20px;
+    cursor: pointer;
+    position: relative;
+    margin-bottom: 15px;
+}
+
+.optional-features-controls {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+/* Make divider title consistent */
+.divider-title {
+    font-size: 1.4rem;
+    letter-spacing: 0.08em;
+    color: #fce8f6;
+    text-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
+    font-family: "HEADER_FONT";
+}
