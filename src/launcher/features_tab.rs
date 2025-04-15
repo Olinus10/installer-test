@@ -267,25 +267,28 @@ fn render_features_by_category(
         div { class: "optional-features-wrapper",
             // Collapsible header for all features
             div { 
-                class: "optional-features-header",
-                onclick: move |_| features_expanded.set(!*features_expanded.read()),
-                
-                h2 { class: "optional-features-title",
-                    "Optional Features"
-                    span { class: "features-count-badge",
-                        "{enabled_count}/{total_features}"
-                    }
-                }
-                
-                div { 
-                    class: if *features_expanded.read() {
-                        "expand-indicator expanded"
-                    } else {
-                        "expand-indicator"
-                    },
-                    "▼"
-                }
-            }
+    class: "optional-features-header",
+    onclick: move |_| {
+        let current_expanded = *features_expanded.read();
+        features_expanded.set(!current_expanded);
+    },
+    
+    h2 { class: "optional-features-title",
+        "Optional Features"
+        span { class: "features-count-badge",
+            "{enabled_count}/{total_features}"
+        }
+    }
+    
+    div { 
+        class: if *features_expanded.read() {
+            "expand-indicator expanded"
+        } else {
+            "expand-indicator"
+        },
+        "▼"
+    }
+}
             
             // Collapsible content with all categories
             div { 
