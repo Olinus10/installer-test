@@ -318,3 +318,24 @@
     border: none !important;
     box-shadow: 0 0 15px rgba(255, 179, 0, 0.3) !important;
 }
+
+
+/* Normal selected button */
+.selected-button {
+    background-color: white !important;
+    color: #0a3d16 !important;
+}
+
+/* Trending non-selected button */
+.trending-button {
+    background: linear-gradient(135deg, #d4a017, #b78500) !important;
+    color: #000 !important;
+}
+
+/* Trending selected button - most specific case */
+.trending-selected-button {
+    background-color: white !important;
+    color: #b58c14 !important;
+    border: none !important;
+    box-shadow: 0 0 15px rgba(255, 179, 0, 0.3) !important;
+}
