@@ -19,14 +19,14 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v3
 
-    - name: Set up Rust
+    - name: Install Rust
       uses: actions-rs/toolchain@v1
       with:
         toolchain: stable
         profile: minimal
         override: true
 
-    - name: Set up sccache (modern GitHub Actions cache backend)
+    - name: Setup GitHub-native sccache
       uses: mozilla-actions/sccache-action@v0.0.3
 
     - name: Cache Cargo registry
@@ -45,13 +45,13 @@ jobs:
         restore-keys: |
           cargo-git-${{ runner.os }}-
 
-    - name: Build in release mode
+    - name: Build release
       run: cargo build --release --verbose
 
     - name: Show sccache stats
       run: sccache --show-stats
 
-    - name: Upload executable
+    - name: Upload binary
       uses: actions/upload-artifact@v4
       with:
         name: wynncraft-installer
