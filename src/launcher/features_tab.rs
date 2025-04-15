@@ -136,10 +136,6 @@ pub fn FeaturesTab(
                     span { class: "preset-features-count",
                         "{preset.enabled_features.len()} features"
                     }
-                    
-                    // Author if available
-                    if let Some(author) = &preset.author {
-                        div { class: "preset-author", "By {author}" }
                                         }
                                     }
                                 }
