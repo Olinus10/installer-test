@@ -280,19 +280,20 @@ fn render_features_by_category(
         div { class: "optional-features-wrapper",
             // Section header with divider style
             div { class: "section-divider with-title", 
-                span { class: "divider-title", "OPTIONAL FEATURES" }
-            }
-            
-            // Features count and description
-            div { class: "features-count-container",
-                span { class: "features-count-badge",
-                    "{enabled_count}/{total_features} features enabled"
-                }
-            }
-            
-            p { class: "optional-features-description",
-                "Customize individual features to create your perfect experience."
-            }
+    span { class: "divider-title", "OPTIONAL FEATURES" }
+}
+
+// Description first
+p { class: "optional-features-description",
+    "Customize individual features to create your perfect experience."
+}
+
+// Then features count badge
+div { class: "features-count-container",
+    span { class: "features-count-badge",
+        "{enabled_count}/{total_features} features enabled"
+    }
+}
             
             // Centered expand/collapse button
             button { 
