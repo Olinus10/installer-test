@@ -36,16 +36,20 @@
 }
 
 * Toggle All Button Improvements */
+/* Improved All Enabled/Disabled button styling */
 .category-toggle-all {
     background-color: transparent;
     border: 1px solid rgba(255, 255, 255, 0.2);
     border-radius: 6px;
     padding: 6px 12px;
-    font-size: 0.8rem;
+    font-size: 0.85rem;
     cursor: pointer;
     transition: all 0.2s ease;
     min-width: 100px;
     text-align: center;
+    font-family: "REGULAR_FONT"; /* Add consistent font */
+    letter-spacing: 0.05em;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
 }
 
 .category-toggle-all.all-enabled {
@@ -73,19 +77,19 @@
     background-color: rgba(217, 82, 72, 0.8);
 }
 
-/* Expand/collapse indicator - larger, more visible */
+/* Larger expand/collapse indicators */
 .category-toggle-indicator {
     position: absolute;
     right: 15px;
-    top: 20px;
-    transition: transform 0.3s ease;
-    width: 24px;
-    height: 24px;
+    width: 30px; /* Increased from 24px */
+    height: 30px; /* Increased from 24px */
     display: flex;
     justify-content: center;
     align-items: center;
     background-color: rgba(0, 0, 0, 0.3);
     border-radius: 50%;
+    font-size: 18px; /* Larger font size for the arrow */
+    transition: transform 0.3s ease;
 }
 
 .category-toggle-indicator.expanded {
@@ -133,13 +137,16 @@
     gap: 10px;
 }
 
+/* Make features count badge use the same font as other counters */
 .features-count-badge {
     background-color: rgba(7, 60, 23, 0.6);
     color: white;
     padding: 3px 10px;
     border-radius: 20px;
-    font-size: 0.9rem;
+    font-size: 0.8rem;
     font-weight: normal;
+    font-family: "REGULAR_FONT"; /* Match the font of other counters */
+    letter-spacing: 0.05em;
 }
 
 .optional-features-content {
@@ -154,12 +161,18 @@
     padding: 0 20px 20px 20px;
 }
 
-/* Expand/collapse indicators */
+/* Top-level expand indicator */
 .expand-indicator {
-    font-size: 1.2rem;
+    font-size: 20px; /* Increased from 1.2rem */
     transition: transform 0.3s ease;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: rgba(0, 0, 0, 0.3);
+    border-radius: 50%;
 }
-
 .expand-indicator.expanded {
     transform: rotate(180deg);
 }
