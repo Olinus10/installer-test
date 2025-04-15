@@ -55,52 +55,58 @@ pub fn FeaturesTab(
             div { class: "presets-grid",
                 // Custom preset (no preset)
                 div { 
-                    class: if selected_preset.read().is_none() {
-                        "preset-card selected"
-                    } else {
-                        "preset-card"
-                    },
-                    // Apply custom preset background if available
-                    style: if let Some(preset) = custom_preset {
-                        if let Some(bg) = &preset.background {
-                            format!("background-image: url('{}'); background-size: cover; background-position: center;", bg)
-                        } else {
-                            String::new()
-                        }
-                    } else {
-                        String::new()
-                    },
-                    onclick: move |_| {
-                        selected_preset.set(None);
-                    },
-                    
-                    div { class: "preset-card-overlay" }
-                    
-                    // Feature count badge in top right
-                    span { class: "preset-features-count",
-                        "{enabled_features.read().len()} features selected"
-                    }
-                    
-                    div { class: "preset-card-content",
-                        h4 { "CUSTOM OVERHAUL" }
-                        p { "Start with your current selection and customize everything yourself." }
-                    }
-                    
-                    // Select/Selected button
-                    button {
-    class: if is_selected && has_trending {
-        "select-preset-button trending-selected-button"
+    class: if selected_preset.read().is_none() {
+        "preset-card selected"
     } else {
-        "select-preset-button"
+        "preset-card"
     },
-    // No onclick needed since the whole card is clickable
-    if is_selected {
-        "SELECTED"
+    // Apply custom preset background if available
+    style: if let Some(preset) = custom_preset {
+        if let Some(bg) = &preset.background {
+            format!("background-image: url('{}'); background-size: cover; background-position: center;", bg)
+        } else {
+            String::new()
+        }
     } else {
-        "SELECT"
-                        }
-                    }
+        String::new()
+    },
+    onclick: move |_| {
+        selected_preset.set(None);
+    },
+    
+    div { class: "preset-card-overlay" }
+    
+    // Feature count badge in top right
+    span { class: "preset-features-count",
+        "{enabled_features.read().len()} features selected"
+    }
+    
+    div { class: "preset-card-content",
+        h4 { "Custom Configuration" }
+        p { "Start with your current selection and customize everything yourself." }
+    }
+    
+    // Select/Selected button - properly defined variables
+    {
+        let is_selected = selected_preset.read().is_none();
+        let has_trending = false; // Custom preset is never trending
+        
+        rsx! {
+            button {
+                class: if is_selected && has_trending {
+                    "select-preset-button trending-selected-button"
+                } else {
+                    "select-preset-button"
+                },
+                if is_selected {
+                    "SELECTED"
+                } else {
+                    "SELECT PRESET"
                 }
+            }
+        }
+    }
+}
                 
                 // Available presets - skip the "custom" preset since we handle it separately
                 for preset in presets.iter().filter(|p| p.id != "custom") {
