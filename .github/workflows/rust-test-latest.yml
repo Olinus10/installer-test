@@ -7,28 +7,22 @@ on:
     branches: [ "master" ]
 
 env:
+  SCCACHE_GHA_ENABLED: "true"
+  RUSTC_WRAPPER: "sccache"
   CARGO_TERM_COLOR: always
 
 jobs:
   build:
     runs-on: windows-2022
+
     steps:
     - name: Checkout repository
       uses: actions/checkout@v3
 
-    - name: Install sccache
-      run: cargo install sccache
+    - name: Setup sccache
+      uses: mozilla-actions/sccache-action@v0.0.3
 
-    - name: Cache sccache
-      uses: actions/cache@v3
-      with:
-        path: |
-          ~/.cache/sccache
-        key: sccache-windows-${{ hashFiles('**/Cargo.lock') }}
-        restore-keys: |
-          sccache-windows-
-
-    - name: Cache cargo registry
+    - name: Cache Cargo registry
       uses: actions/cache@v3
       with:
         path: ~/.cargo/registry
@@ -36,7 +30,7 @@ jobs:
         restore-keys: |
           cargo-registry-windows-
 
-    - name: Cache cargo index
+    - name: Cache Cargo git index
       uses: actions/cache@v3
       with:
         path: ~/.cargo/git
@@ -44,11 +38,11 @@ jobs:
         restore-keys: |
           cargo-git-windows-
 
-    - name: Build project
-      run: cargo build --verbose --release
-      env:
-        RUSTC_WRAPPER: sccache
-        CARGO_TERM_COLOR: always
+    - name: Build project (release)
+      run: cargo build --release --verbose
+
+    - name: Show sccache stats
+      run: sccache --show-stats
 
     - name: Upload Windows executable
       uses: actions/upload-artifact@v4
