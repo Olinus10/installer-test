@@ -46,97 +46,90 @@ pub fn FeaturesTab(
     
     rsx! {
         div { class: "features-tab",
-            h2 { "Features & Presets" }
-            p { "Choose a preset or customize individual features to match your preferences." }
+            // Simplified PRESETS section
+            div { class: "section-divider with-title", 
+                span { class: "divider-title", "PRESETS" }
+            }
             
+            p { class: "section-description", 
+                "Choose a preset configuration or customize individual features below."
+            }
             
-            
-            // Presets section
-            div { class: "presets-section",
-                h3 { "Presets" }
-                p { class: "presets-description", 
-                    "Choose a preset configuration or customize individual features below."
-                }
-                
-                div { class: "presets-grid",
-                    // Custom preset (no preset)
-                    div { 
-                        class: if selected_preset.read().is_none() {
-                            "preset-card selected"
-                        } else {
-                            "preset-card"
-                        },
-                        // Apply custom preset background if available
-                        style: if let Some(preset) = custom_preset {
-                            if let Some(bg) = &preset.background {
-                                format!("background-image: url('{}'); background-size: cover; background-position: center;", bg)
-                            } else {
-                                String::new()
-                            }
+            div { class: "presets-grid",
+                // Custom preset (no preset)
+                div { 
+                    class: if selected_preset.read().is_none() {
+                        "preset-card selected"
+                    } else {
+                        "preset-card"
+                    },
+                    // Apply custom preset background if available
+                    style: if let Some(preset) = custom_preset {
+                        if let Some(bg) = &preset.background {
+                            format!("background-image: url('{}'); background-size: cover; background-position: center;", bg)
                         } else {
                             String::new()
-                        },
-                        onclick: move |_| {
-                            selected_preset.set(None);
-                        },
+                        }
+                    } else {
+                        String::new()
+                    },
+                    onclick: move |_| {
+                        selected_preset.set(None);
+                    },
+                    
+                    div { class: "preset-card-overlay" }
+                    
+                    div { class: "preset-card-content",
+                        h4 { "Custom Configuration" }
+                        p { "Start with your current selection and customize everything yourself." }
                         
-                        div { class: "preset-card-overlay" }
-                        
-                        div { class: "preset-card-content",
-                            h4 { "Custom Configuration" }
-                            p { "Start with your current selection and customize everything yourself." }
-                            
-                            // Feature count badge
-                            span { class: "preset-features-count",
-                                "{enabled_features.read().len()} features selected"
-                            }
+                        // Feature count badge
+                        span { class: "preset-features-count",
+                            "{enabled_features.read().len()} features selected"
                         }
                     }
-                    
-                    // Available presets - skip the "custom" preset since we handle it separately
-                    for preset in presets.iter().filter(|p| p.id != "custom") {
-    {
-        let preset_id = preset.id.clone();
-        let is_selected = selected_preset.read().as_ref().map_or(false, |id| id == &preset_id);
-        let mut apply_preset_clone = apply_preset.clone();
-        let has_trending = preset.trending.unwrap_or(false);
-        
-        rsx! {
-            div {
-                class: if is_selected {
-                    "preset-card selected"
-                } else {
-                    "preset-card"
-                },
-                // Apply background if available
-                style: if let Some(bg) = &preset.background {
-                    format!("background-image: url('{}'); background-size: cover; background-position: center;", bg)
-                } else {
-                    String::new()
-                },
-                onclick: move |_| {
-                    apply_preset_clone(preset_id.clone());
-                },
+                }
                 
-                // Dark overlay for text readability
-                div { class: "preset-card-overlay" }
-                
-                div { class: "preset-card-content",
-                    div { class: "preset-card-header",
-                        // Trending badge if applicable
-                        if has_trending {
-                            span { class: "trending-badge", "Popular" }
-                        }
-                    }
-                    
-                    h4 { "{preset.name}" }
-                    p { "{preset.description}" }
-                    
-                    // Feature count badge
-                    span { class: "preset-features-count",
-                        "{preset.enabled_features.len()} features"
-                    }
-                                        
+                // Available presets - skip the "custom" preset since we handle it separately
+                for preset in presets.iter().filter(|p| p.id != "custom") {
+                    {
+                        let preset_id = preset.id.clone();
+                        let is_selected = selected_preset.read().as_ref().map_or(false, |id| id == &preset_id);
+                        let mut apply_preset_clone = apply_preset.clone();
+                        let has_trending = preset.trending.unwrap_or(false);
+                        
+                        rsx! {
+                            div {
+                                class: if is_selected {
+                                    "preset-card selected"
+                                } else {
+                                    "preset-card"
+                                },
+                                // Apply background if available
+                                style: if let Some(bg) = &preset.background {
+                                    format!("background-image: url('{}'); background-size: cover; background-position: center;", bg)
+                                } else {
+                                    String::new()
+                                },
+                                onclick: move |_| {
+                                    apply_preset_clone(preset_id.clone());
+                                },
+                                
+                                // Trending badge
+                                if has_trending {
+                                    span { class: "trending-badge", "Popular" }
+                                }
+                                
+                                // Dark overlay for text readability
+                                div { class: "preset-card-overlay" }
+                                
+                                div { class: "preset-card-content",
+                                    h4 { "{preset.name}" }
+                                    p { "{preset.description}" }
+                                    
+                                    // Feature count badge
+                                    span { class: "preset-features-count",
+                                        "{preset.enabled_features.len()} features"
                                     }
                                 }
                             }
@@ -144,7 +137,8 @@ pub fn FeaturesTab(
                     }
                 }
             }
-// Add search filter
+            
+            // Add search filter - right before optional features
             div { class: "feature-filter-container",
                 span { class: "feature-filter-icon", "🔍" }
                 input {
@@ -261,30 +255,38 @@ fn render_features_by_category(
     // Render with collapsible wrapper
     rsx! {
         div { class: "optional-features-wrapper",
-            // Collapsible header for all features
-            div { 
-    class: "optional-features-header",
-    onclick: move |_| {
-        let current_expanded = *features_expanded.read();
-        features_expanded.set(!current_expanded);
-    },
+    // Section divider with title
+    div { class: "section-divider with-title", 
+        span { class: "divider-title", "OPTIONAL FEATURES" }
+    }
     
-    h2 { class: "optional-features-title",
-        "Optional Features"
-        span { class: "features-count-badge",
-            "{enabled_count}/{total_features}"
+    p { class: "section-description", 
+        "Customize individual features to create your perfect experience."
+    }
+    
+    // Collapsible header
+    div { 
+        class: "optional-features-header",
+        onclick: move |_| {
+            let current_expanded = *features_expanded.read();
+            features_expanded.set(!current_expanded);
+        },
+        
+        div { class: "optional-features-controls",
+            span { class: "features-count-badge",
+                "{enabled_count}/{total_features} features enabled"
+            }
+            
+            div { 
+                class: if *features_expanded.read() {
+                    "expand-indicator expanded"
+                } else {
+                    "expand-indicator"
+                },
+                "▼"
+            }
         }
     }
-    
-    div { 
-        class: if *features_expanded.read() {
-            "expand-indicator expanded"
-        } else {
-            "expand-indicator"
-        },
-        "▼"
-    }
-}
             
             // Collapsible content with all categories
             div { 
