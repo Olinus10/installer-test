@@ -256,6 +256,7 @@
 
 /* Selected button for trending card */
 .preset-card.selected:has(.trending-badge) .select-preset-button {
-    background-color: white;
-    color: #b58c14;
+    background-color: white; /* Ensure the background is white */
+    color: #b58c14; /* Golden text color */
+    border: none; /* Remove any border that might be interfering */
 }
