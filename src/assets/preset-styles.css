@@ -10,7 +10,7 @@
 .preset-card {
     background: linear-gradient(145deg, rgba(25, 25, 30, 0.8), rgba(15, 15, 20, 0.95));
     border-radius: 12px;
-    padding: 0; /* Remove padding as we'll handle it in the inner elements */
+    padding: 0;
     transition: all 0.4s cubic-bezier(0.175, 0.84, 0.44, 1);
     position: relative;
     min-height: 220px;
@@ -19,9 +19,11 @@
     box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
     display: flex;
     flex-direction: column;
-    transform-style: preserve-3d;
+    transform-style: preserve-3d; /* Enable 3D effects */
+    perspective: 800px; /* Add perspective */
     border: 1px solid rgba(255, 255, 255, 0.1);
 }
+
 
 /* Content area takes up most of card */
 .preset-card-content {
@@ -46,13 +48,20 @@
     color: white;
     border: none;
     border-radius: 20px;
-    padding: 8px 20px;
+    padding: 10px 25px; /* Larger padding */
     font-family: "REGULAR_FONT";
-    font-size: 0.9rem;
+    font-size: 1rem; /* Larger font */
     font-weight: bold;
     letter-spacing: 1px;
     transition: all 0.3s ease;
     z-index: 5;
+    min-width: 150px; /* Ensure minimum width */
+}
+
+.preset-card:hover {
+    transform: translateY(-10px) scale(1.03) rotateX(5deg); /* 3D rotation */
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+    border-color: rgba(255, 255, 255, 0.3);
 }
 
 /* Golden button for trending cards */
@@ -65,10 +74,15 @@
     background: linear-gradient(135deg, #e6b017, #cc9500);
 }
 
-/* Fancy hover effects - more dramatic with 3D */
+/* Enhanced hover effects for buttons */
 .preset-card:hover .select-preset-button {
     background-color: rgba(7, 60, 23, 0.9);
     transform: translateX(-50%) translateY(-3px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.4);
+}
+
+.preset-card:has(.trending-badge):hover .select-preset-button {
+    background: linear-gradient(135deg, #e6b017, #cc9500);
     box-shadow: 0 5px 15px rgba(0, 0, 0, 0.4);
 }
 
@@ -224,10 +238,10 @@
         #0f5d23,
         #0a3d16
     );
-    animation: background-swoosh 6s infinite linear;
+    animation: background-swoosh 6s infinite cubic-bezier(0.45, 0.05, 0.55, 0.95);
 }
 
-/* Selected trending card */
+/* Selected trending card - with better swoosh and proper button styling */
 .preset-card.selected:has(.trending-badge) {
     background-size: 200% 200%;
     background-image: linear-gradient(
@@ -236,10 +250,12 @@
         #b58c14,
         #8e6c0e
     );
-    animation: background-swoosh 6s infinite linear;
+    animation: background-swoosh 6s infinite cubic-bezier(0.45, 0.05, 0.55, 0.95);
 }
 
+
+/* Selected button for trending card */
 .preset-card.selected:has(.trending-badge) .select-preset-button {
     background-color: white;
-    color: #8e6c0e;
+    color: #b58c14;
 }
