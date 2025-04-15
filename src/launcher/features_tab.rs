@@ -72,9 +72,26 @@ pub fn FeaturesTab(
     } else {
         String::new()
     },
-    onclick: move |_| {
-        selected_preset.set(None);
-    },
+onclick: move |_| {
+    // First clear the preset selection
+    selected_preset.set(None);
+    
+    // Then reset enabled features to defaults
+    enabled_features.with_mut(|features| {
+        // Start with the default feature
+        features.clear();
+        features.push("default".to_string());
+        
+        // Add default features from the manifest
+        if let Some(manifest) = &universal_manifest {
+            for feat in &manifest.features {
+                if feat.default {
+                    features.push(feat.id.clone());
+                }
+            }
+        }
+    });
+},
     
     div { class: "preset-card-overlay" }
     
