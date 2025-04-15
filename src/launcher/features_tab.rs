@@ -264,48 +264,50 @@ fn render_features_by_category(
     }
     
     // Render with collapsible wrapper
-    rsx! {
-        div { class: "optional-features-wrapper",
-    // Section divider with title
-    div { class: "section-divider with-title", 
-        span { class: "divider-title", "OPTIONAL FEATURES" }
-    }
-    
-    p { class: "section-description", 
-        "Customize individual features to create your perfect experience."
-    }
-    
-    // Collapsible header
-    div { 
-        class: "optional-features-header",
-        onclick: move |_| {
-            let current_expanded = *features_expanded.read();
-            features_expanded.set(!current_expanded);
-        },
-        
-        div { class: "optional-features-controls",
+rsx! {
+    div { class: "optional-features-wrapper",
+        // Section header
+        div { class: "optional-features-header",
+            h3 { class: "optional-features-title", "Optional Features" }
+            
+            // Features count badge moved to header
             span { class: "features-count-badge",
                 "{enabled_count}/{total_features} features enabled"
             }
+        }
+        
+        // Optional features description
+        p { class: "optional-features-description",
+            "Customize individual features to create your perfect experience."
+        }
+        
+        // Centered expand/collapse button
+        button { 
+            class: "expand-collapse-button",
+            onclick: move |_| {
+                let current_expanded = *features_expanded.read();
+                features_expanded.set(!current_expanded);
+            },
             
-            div { 
-                class: if *features_expanded.read() {
-                    "expand-indicator expanded"
-                } else {
-                    "expand-indicator"
-                },
-                "▼"
+            // Icon and text change based on state
+            if *features_expanded.read() {
+                // Collapse state
+                span { class: "button-icon collapse-icon", "▲" }
+                "Collapse Features"
+            } else {
+                // Expand state
+                span { class: "button-icon expand-icon", "▼" }
+                "Expand Features"
             }
         }
-    }
-            
-            // Collapsible content with all categories
-            div { 
-                class: if *features_expanded.read() {
-                    "optional-features-content expanded"
-                } else {
-                    "optional-features-content"
-                },
+        
+        // Collapsible content with all categories
+        div { 
+            class: if *features_expanded.read() {
+                "optional-features-content expanded"
+            } else {
+                "optional-features-content"
+            },
                 
                 // Render categories
                 div { class: "feature-categories",
