@@ -7,9 +7,8 @@ on:
     branches: [ "master" ]
 
 env:
-  SCCACHE_GHA_ENABLED: "true"
-  RUSTC_WRAPPER: "sccache"
   CARGO_TERM_COLOR: always
+  SCCACHE_GHA_ENABLED: "true"
 
 jobs:
   build:
@@ -19,7 +18,7 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v3
 
-    - name: Install latest sccache (0.8+)
+    - name: Install latest sccache
       run: cargo install sccache --force
 
     - name: Cache sccache
@@ -46,8 +45,12 @@ jobs:
         restore-keys: |
           cargo-git-${{ runner.os }}-
 
-    - name: Build project with CI profile
+    - name: Build with sccache + fast profile
       run: cargo build --profile ci --bin wynncraft-overhaul-installer --verbose
+      env:
+        RUSTC_WRAPPER: sccache
+        CARGO_TERM_COLOR: always
+        SCCACHE_GHA_ENABLED: "true"
 
     - name: Show sccache stats
       run: sccache --show-stats
