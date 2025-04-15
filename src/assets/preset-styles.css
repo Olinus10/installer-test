@@ -9,7 +9,7 @@
 
 /* Base card styling */
 .preset-card {
-    background: linear-gradient(145deg, rgba(25, 25, 30, 0.7), rgba(15, 15, 20, 0.9));
+    background: linear-gradient(145deg, rgba(25, 25, 30, 0.8), rgba(15, 15, 20, 0.95));
     border-radius: 12px;
     padding: 22px;
     transition: all 0.4s cubic-bezier(0.175, 0.84, 0.44, 1);
@@ -21,6 +21,7 @@
     display: flex;
     flex-direction: column;
     transform-style: preserve-3d;
+    border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 /* Card content layout */
@@ -36,11 +37,7 @@
 .preset-card:hover {
     transform: translateY(-10px) scale(1.03) rotateX(5deg);
     box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
-}
-
-.preset-card:hover h4 {
-    color: #ffffff;
-    transform: translateY(-2px);
+    border-color: rgba(255, 255, 255, 0.3);
 }
 
 /* Card title styling */
@@ -50,8 +47,7 @@
     color: #ffffff;
     font-weight: 600;
     letter-spacing: 0.5px;
-    padding-right: 35px; /* Space for badges */
-    transition: transform 0.3s ease, color 0.3s ease;
+    transition: none; /* Remove text animation */
 }
 
 /* Card description */
@@ -65,6 +61,7 @@
     display: -webkit-box;
     -webkit-line-clamp: 3;
     -webkit-box-orient: vertical;
+    transition: none; /* Remove text animation */
 }
 
 /* Feature count badge */
@@ -76,103 +73,80 @@
     font-size: 0.8rem;
     align-self: flex-start;
     margin-top: auto;
-    transition: all 0.3s ease;
     border: 1px solid rgba(255, 255, 255, 0.1);
+    transition: none; /* Remove animation */
 }
 
+/* Trending badge integrated into card like feature count */
+.trending-badge {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    background: linear-gradient(135deg, #ffb302, #ff7730);
+    color: #000;
+    font-weight: bold;
+    font-size: 0.8rem;
+    padding: 5px 10px;
+    border-radius: 20px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+    z-index: 5;
+}
+
+/* Clear overlay for better contrast */
 .preset-card-overlay {
     position: absolute;
     top: 0;
     left: 0;
     right: 0;
     bottom: 0;
-    background-color: rgba(0, 0, 0, 0.7);
+    background: rgba(0, 0, 0, 0.4);
     z-index: 1;
-    border-radius: 8px;
+    border-radius: 12px;
 }
 
-/* SELECTED STATE - Dramatic and clear */
+/* SELECTED STATE - Dramatic and clear with strong green tint */
 .preset-card.selected {
-    background: linear-gradient(145deg, rgba(7, 60, 23, 0.7), rgba(5, 40, 15, 0.9));
-    box-shadow: 0 10px 25px rgba(7, 60, 23, 0.6);
+    background: #0a3d16; /* Solid green background for stronger visual */
+    box-shadow: 0 10px 25px rgba(7, 60, 23, 0.6), 0 0 30px rgba(7, 60, 23, 0.8);
     border: 2px solid #0a5d23;
     transform: translateY(-12px) scale(1.05);
     z-index: 5;
 }
 
-/* Remove the checkmark and use a better selection indicator */
-.preset-card.selected::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    border-radius: 12px;
-    box-shadow: 0 0 20px rgba(7, 60, 23, 0.8);
-    pointer-events: none;
-    z-index: 2;
+/* Override for trending card when selected */
+.preset-card.selected:has(.trending-badge) {
+    background: #0a3d16; /* Same strong green background */
+    box-shadow: 0 10px 25px rgba(7, 60, 23, 0.6), 0 0 30px rgba(7, 60, 23, 0.8);
+    border: 2px solid #0a5d23;
 }
 
-/* Animated glowing effect for selected cards */
+/* Much stronger glow animation for selected cards */
 @keyframes selected-glow {
-    0% { box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5), 0 0 20px rgba(7, 60, 23, 0.4); }
-    50% { box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), 0 0 40px rgba(7, 60, 23, 0.8); }
-    100% { box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5), 0 0 20px rgba(7, 60, 23, 0.4); }
-}
-
-/* Swooshing effect for selected cards */
-@keyframes selected-swoosh {
-    0% { background-position: 0% 50%; }
-    50% { background-position: 100% 50%; }
-    100% { background-position: 0% 50%; }
+    0% { box-shadow: 0 10px 25px rgba(7, 60, 23, 0.6), 0 0 20px rgba(7, 60, 23, 0.4); }
+    50% { box-shadow: 0 10px 30px rgba(7, 60, 23, 0.8), 0 0 50px rgba(7, 60, 23, 0.9); }
+    100% { box-shadow: 0 10px 25px rgba(7, 60, 23, 0.6), 0 0 20px rgba(7, 60, 23, 0.4); }
 }
 
 .preset-card.selected {
     animation: selected-glow 3s infinite ease-in-out;
-    background-size: 200% 200%;
-    background-image: linear-gradient(
-        135deg, 
-        rgba(7, 60, 23, 0.7),
-        rgba(10, 80, 30, 0.8),
-        rgba(7, 60, 23, 0.7)
-    );
-    animation: selected-swoosh 6s infinite ease-in-out, selected-glow 3s infinite ease-in-out;
 }
 
-/* TRENDING PRESET - Extra prominent, sits above the card */
-.trending-badge {
-    position: absolute;
-    top: -15px;
-    right: 20px;
-    background: linear-gradient(135deg, #ffb302, #ff7730);
-    color: #000;
-    font-weight: bold;
-    font-size: 0.8rem;
-    padding: 7px 15px;
-    border-radius: 6px;
-    box-shadow: 0 4px 10px rgba(255, 179, 0, 0.3);
-    z-index: 10; /* Ensure it sits above everything */
-    text-transform: uppercase;
-    letter-spacing: 0.8px;
-    transform: translateY(-5px);
+/* Override overlay for selected cards to make green more visible */
+.preset-card.selected .preset-card-overlay {
+    background: rgba(7, 60, 23, 0.2); /* Much lighter overlay to show green */
 }
 
 /* Trending card enhancements */
 .preset-card:has(.trending-badge) {
-    background: linear-gradient(145deg, rgba(40, 30, 10, 0.7), rgba(30, 25, 5, 0.9));
+    background: linear-gradient(145deg, rgba(40, 30, 10, 0.8), rgba(30, 25, 5, 0.95));
     border: 1px solid rgba(255, 179, 0, 0.3);
     box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4), 0 0 20px rgba(255, 179, 0, 0.15);
-}
-
-.preset-card:has(.trending-badge):hover {
-    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.5), 0 0 30px rgba(255, 179, 0, 0.25);
 }
 
 /* Subtle glow animation for trending cards */
 @keyframes trending-glow {
     0% { box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4), 0 0 20px rgba(255, 179, 0, 0.15); }
-    50% { box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4), 0 0 30px rgba(255, 179, 0, 0.3); }
+    50% { box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4), 0 0 30px rgba(255, 179, 0, 0.4); }
     100% { box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4), 0 0 20px rgba(255, 179, 0, 0.15); }
 }
 
@@ -180,11 +154,11 @@
     animation: trending-glow 3s infinite;
 }
 
-/* Badge animations */
+/* Badge animations - more subtle */
 @keyframes badge-pulse {
-    0% { transform: scale(1) translateY(-5px); }
-    50% { transform: scale(1.05) translateY(-8px); }
-    100% { transform: scale(1) translateY(-5px); }
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
 }
 
 .trending-badge {
