@@ -99,41 +99,52 @@ pub fn FeaturesTab(
                         let has_trending = preset.trending.unwrap_or(false);
                         
                         rsx! {
-                            div {
-                                class: if is_selected {
-                                    "preset-card selected"
-                                } else {
-                                    "preset-card"
-                                },
-                                // Apply background if available
-                                style: if let Some(bg) = &preset.background {
-                                    format!("background-image: url('{}'); background-size: cover; background-position: center;", bg)
-                                } else {
-                                    String::new()
-                                },
-                                onclick: move |_| {
-                                    apply_preset_clone(preset_id.clone());
-                                },
-                                
-                                // Trending badge
-                                if has_trending {
-                                    span { class: "trending-badge", "Popular" }
-                                }
-                                
-                                // Dark overlay for text readability
-                                div { class: "preset-card-overlay" }
-                                
-                                div { class: "preset-card-content",
-                                    h4 { "{preset.name}" }
-                                    p { "{preset.description}" }
-                                    
-                                    // Feature count badge
-                                    span { class: "preset-features-count",
-                                        "{preset.enabled_features.len()} features"
-                                    }
-                                }
-                            }
-                        }
+    div {
+        class: if is_selected {
+            "preset-card selected"
+        } else {
+            "preset-card"
+        },
+        // Apply background if available
+        style: if let Some(bg) = &preset.background {
+            format!("background-image: url('{}'); background-size: cover; background-position: center;", bg)
+        } else {
+            String::new()
+        },
+        onclick: move |_| {
+            apply_preset_clone(preset_id.clone());
+        },
+        
+        // Feature count badge in top right
+        span { class: "preset-features-count",
+            "{preset.enabled_features.len()} features"
+        }
+        
+        // Trending badge in top left
+        if has_trending {
+            span { class: "trending-badge", "Popular" }
+        }
+        
+        // Dark overlay for text readability
+        div { class: "preset-card-overlay" }
+        
+        div { class: "preset-card-content",
+            h4 { "{preset.name}" }
+            p { "{preset.description}" }
+        }
+        
+        // Select/Selected button
+        button {
+            class: "select-preset-button",
+            // No onclick needed since the whole card is clickable
+            if is_selected {
+                "SELECTED"
+            } else {
+                "SELECT"
+            }
+        }
+    }
+}
                     }
                 }
             }
