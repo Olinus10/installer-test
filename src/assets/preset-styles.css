@@ -262,3 +262,34 @@
     color: #b58c14 !important;
     border: none !important;
 }
+
+/* Fix for text flickering during hover transition */
+.preset-card-content, 
+.preset-card h4, 
+.preset-card p {
+    /* Disable transitions for these text elements */
+    transition: none !important; 
+    /* Ensure text color stays consistent */
+    color: #ffffff !important; 
+    /* Disable any transform animations that might be affecting the text */
+    transform: none !important;
+    /* Prevent any animation on these elements */
+    animation: none !important;
+    /* Ensure the text doesn't move during hover */
+    position: relative;
+    z-index: 5;
+}
+
+/* Still allow hover effect on the card itself */
+.preset-card {
+    transition: all 0.4s cubic-bezier(0.175, 0.84, 0.44, 1);
+}
+
+.preset-card:hover {
+    transform: translateY(-10px) scale(1.03) rotateX(5deg);
+}
+
+/* Ensure description text stays slightly darker for contrast */
+.preset-card p {
+    color: rgba(255, 255, 255, 0.8) !important;
+}
