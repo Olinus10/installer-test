@@ -219,11 +219,14 @@
     max-height: 0;
     transition: max-height 0.7s ease;
     padding: 0 20px;
+    opacity: 0;
+    transition: max-height 0.7s ease, opacity 0.3s ease;
 }
 
 .optional-features-content.expanded {
     max-height: 10000px;
     padding: 0 20px 20px 20px;
+    opacity: 1;
 }
 
 /* Top-level expand indicator */
