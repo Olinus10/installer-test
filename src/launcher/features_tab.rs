@@ -164,26 +164,28 @@ onclick: move |_| {
                                 }
                                 
                                 // Select/Selected button
-                                button {
-    class: if is_selected {
-        if has_trending {
-            "select-preset-button trending-selected-button"
-        } else {
-            "select-preset-button selected-button"
-        }
+                                {
+    let button_class = "select-preset-button";
+    let button_style = if is_selected {
+        // Inline CSS to force the styling
+        "background-color: white !important; color: #b58c14 !important;"
     } else {
-        if has_trending {
-            "select-preset-button trending-button"
-        } else {
-            "select-preset-button"
+        // Normal styling for non-selected state
+        ""
+    };
+    
+    rsx! {
+        button {
+            class: button_class,
+            style: button_style,
+            if is_selected {
+                "SELECTED"
+            } else {
+                "SELECT"
+            }
         }
-    },
-    if is_selected {
-        "SELECTED"
-    } else {
-                                        "SELECT"
-                                    }
-                                }
+    }
+}
                             }
                         }
                     }
