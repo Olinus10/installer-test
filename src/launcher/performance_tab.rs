@@ -172,7 +172,7 @@ pub fn PerformanceTab(
         
         // Show success message briefly
         show_apply_success.set(true);
-        let success_signal = show_apply_success.clone();
+        let mut success_signal = show_apply_success.clone();
         
         // Hide success message after 3 seconds
         spawn(async move {
