@@ -81,9 +81,9 @@ div {
     div { class: "preset-card-overlay" }
     
     // Feature count badge in top right
-    span { class: "preset-features-count",
-        "{enabled_features.read().len()} features selected"
-    }
+      // span { class: "preset-features-count",
+    //       "{enabled_features.read().len()} features selected"
+   //    }
     
     div { class: "preset-card-content",
         h4 { "CUSTOM OVERHAUL" }
