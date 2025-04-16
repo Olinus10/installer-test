@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 use std::fs;
 use serde_json::{Value, json};
-use log::debug;
+use log::{debug, warn};
 
 // Default optimized JVM args
 pub const DEFAULT_JVM_ARGS: &str = "-XX:+UseG1GC -XX:+UnlockExperimentalVMOptions -XX:G1NewSizePercent=20 -XX:G1ReservePercent=20 -XX:MaxGCPauseMillis=50 -XX:G1HeapRegionSize=32M -Xmx4G";
@@ -148,4 +148,162 @@ pub fn get_jvm_args(profile_id: &str) -> Result<String, String> {
     // Return default if not found
     debug!("No specific JVM args found, using default: {}", DEFAULT_JVM_ARGS);
     Ok(DEFAULT_JVM_ARGS.to_string())
+}
+
+pub fn update_memory_allocation(installation_id: &str, memory_mb: i32) -> Result<(), String> {
+    debug!("Updating memory allocation for {} to {}MB", installation_id, memory_mb);
+    
+    // Load current JVM args
+    let current_args = match get_jvm_args(installation_id) {
+        Ok(args) => args,
+        Err(e) => {
+            warn!("Failed to get current JVM args: {}", e);
+            // Use default args if we can't get the current ones
+            "-XX:+UseG1GC -XX:+UnlockExperimentalVMOptions -XX:G1NewSizePercent=20 -XX:G1ReservePercent=20 -XX:MaxGCPauseMillis=50 -XX:G1HeapRegionSize=32M".to_string()
+        }
+    };
+    
+    // Parse existing args to remove any Xmx parameter
+    let mut parts: Vec<&str> = current_args.split_whitespace().collect();
+    parts.retain(|part| !part.starts_with("-Xmx"));
+    
+    // Format the new memory parameter
+    let memory_param = if memory_mb >= 1024 {
+        // Use GB format for readability if >= 1GB
+        format!("-Xmx{}G", memory_mb / 1024)
+    } else {
+        format!("-Xmx{}M", memory_mb)
+    };
+    
+    // Add the new memory parameter
+    parts.push(&memory_param);
+    
+    // Join all parts back together
+    let updated_args = parts.join(" ");
+    
+    debug!("Updated JVM args: {}", updated_args);
+    
+    // Save the updated args
+    save_jvm_args(installation_id, &updated_args)
+}
+
+// Get the JVM args for an installation
+pub fn get_jvm_args(installation_id: &str) -> Result<String, String> {
+    let app_data = get_app_data_dir();
+    let installation_dir = app_data.join(format!(".WC_OVHL/installations/{}", installation_id));
+    
+    // First try to read from the installation's config
+    let config_path = installation_dir.join("installation.json");
+    if config_path.exists() {
+        match fs::read_to_string(&config_path) {
+            Ok(content) => {
+                match serde_json::from_str::<serde_json::Value>(&content) {
+                    Ok(json) => {
+                        if let Some(java_args) = json["java_args"].as_str() {
+                            return Ok(java_args.to_string());
+                        }
+                    },
+                    Err(e) => warn!("Failed to parse installation config: {}", e)
+                }
+            },
+            Err(e) => warn!("Failed to read installation config: {}", e)
+        }
+    }
+
+    // Fallback to default if not found
+    Ok("-XX:+UseG1GC -XX:+UnlockExperimentalVMOptions -XX:G1NewSizePercent=20 -XX:G1ReservePercent=20 -XX:MaxGCPauseMillis=50 -XX:G1HeapRegionSize=32M -Xmx4G".to_string())
+}
+
+// Save JVM args for an installation
+fn save_jvm_args(installation_id: &str, args: &str) -> Result<(), String> {
+    let app_data = get_app_data_dir();
+    let installation_dir = app_data.join(format!(".WC_OVHL/installations/{}", installation_id));
+    
+    // Make sure directory exists
+    fs::create_dir_all(&installation_dir)
+        .map_err(|e| format!("Failed to create installation directory: {}", e))?;
+    
+    // Try to update the installation's config file
+    let config_path = installation_dir.join("installation.json");
+    if config_path.exists() {
+        match fs::read_to_string(&config_path) {
+            Ok(content) => {
+                match serde_json::from_str::<serde_json::Value>(&content) {
+                    Ok(mut json) => {
+                        if let Some(obj) = json.as_object_mut() {
+                            obj.insert("java_args".to_string(), serde_json::Value::String(args.to_string()));
+                            
+                            match serde_json::to_string_pretty(&json) {
+                                Ok(updated_json) => {
+                                    match fs::write(&config_path, updated_json) {
+                                        Ok(_) => {
+                                            debug!("Updated JVM args in installation config");
+                                            return Ok(());
+                                        },
+                                        Err(e) => warn!("Failed to write updated config: {}", e)
+                                    }
+                                },
+                                Err(e) => warn!("Failed to serialize updated config: {}", e)
+                            }
+                        }
+                    },
+                    Err(e) => warn!("Failed to parse installation config: {}", e)
+                }
+            },
+            Err(e) => warn!("Failed to read installation config: {}", e)
+        }
+    }
+    
+    // If we couldn't update the config file, save to a separate file
+    let args_path = installation_dir.join("jvm_args.txt");
+    match fs::write(&args_path, args) {
+        Ok(_) => {
+            debug!("Saved JVM args to separate file");
+            Ok(())
+        },
+        Err(e) => Err(format!("Failed to save JVM args: {}", e))
+    }
+}
+
+// Helper to get app data directory
+fn get_app_data_dir() -> PathBuf {
+    if cfg!(target_os = "windows") {
+        dirs::config_dir().unwrap_or_else(|| PathBuf::from("."))
+    } else if cfg!(target_os = "macos") {
+        dirs::config_dir().unwrap_or_else(|| PathBuf::from("."))
+    } else {
+        // Linux
+        dirs::home_dir().unwrap_or_else(|| PathBuf::from("."))
+    }
+}
+
+// Extract current memory value from JVM args
+pub fn extract_memory_from_args(args: &str) -> Option<i32> {
+    let parts: Vec<&str> = args.split_whitespace().collect();
+    
+    for part in parts {
+        if part.starts_with("-Xmx") {
+            let mem_str = &part[4..]; // Remove "-Xmx" prefix
+            
+            // Check for GB format
+            if mem_str.ends_with('G') || mem_str.ends_with('g') {
+                if let Ok(gb) = mem_str[..mem_str.len()-1].parse::<i32>() {
+                    return Some(gb * 1024); // Convert GB to MB
+                }
+            }
+            // Check for MB format
+            else if mem_str.ends_with('M') || mem_str.ends_with('m') {
+                if let Ok(mb) = mem_str[..mem_str.len()-1].parse::<i32>() {
+                    return Some(mb);
+                }
+            }
+            // Try parsing as just a number (assumed MB)
+            else if let Ok(mb) = mem_str.parse::<i32>() {
+                return Some(mb);
+            }
+        }
+    }
+    
+    // Default to 4GB if not found
+    Some(4 * 1024)
 }
