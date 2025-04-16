@@ -238,7 +238,7 @@ for preset in presets.iter().filter(|p| p.id != "custom") {
         }
     }
 }
-            
+}            
             // Add search filter - right before optional features
             div { class: "feature-filter-container",
                 span { class: "feature-filter-icon", "🔍" }
