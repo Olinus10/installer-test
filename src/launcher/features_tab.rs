@@ -37,6 +37,10 @@ pub fn FeaturesTab(
         // Clear selected preset when features are manually changed
         selected_preset.set(None);
     };
+    let mut custom_button_hover = use_signal(|| false);
+    let mut trending_button_hover = use_signal(Vec::<String>::new);
+    let mut regular_button_hover = use_signal(Vec::<String>::new);
+
     
     // Find custom preset for the "Custom Configuration" card
     let custom_preset = presets.iter().find(|p| p.id == "custom");
@@ -92,39 +96,28 @@ div {
         
         rsx! {
             button {
-                class: "select-preset-button",
-                style: if is_selected {
-                    // When selected, white with green text
-                    "background-color: white !important; color: #0a3d16 !important; border: none !important; position: absolute; bottom: 15px; left: 50%; transform: translateX(-50%); border-radius: 20px; padding: 10px 25px; font-family: 'REGULAR_FONT'; font-size: 1rem; font-weight: bold; letter-spacing: 1px; min-width: 150px; z-index: 5;"
-                } else {
-                    // When not selected, green button
-                    "background-color: rgba(7, 60, 23, 0.7) !important; color: white !important; border: none !important; position: absolute; bottom: 15px; left: 50%; transform: translateX(-50%); border-radius: 20px; padding: 10px 25px; font-family: 'REGULAR_FONT'; font-size: 1rem; font-weight: bold; letter-spacing: 1px; min-width: 150px; z-index: 5;"
-                },
-                // Handle hover state manually
-                onmouseover: move |evt| {
-                    if let Some(target) = evt.target_element() {
-                        if is_selected {
-                            // Don't change styling on hover when selected
-                        } else {
-                            // Regular card hover
-                            target.set_attribute("style", "background-color: rgba(10, 80, 30, 0.9) !important; color: white !important; border: none !important; position: absolute; bottom: 15px; left: 50%; transform: translateX(-50%) translateY(-3px); border-radius: 20px; padding: 10px 25px; font-family: 'REGULAR_FONT'; font-size: 1rem; font-weight: bold; letter-spacing: 1px; min-width: 150px; z-index: 5; box-shadow: 0 5px 15px rgba(0, 0, 0, 0.4) !important;").ok();
-                        }
-                    }
-                },
-                onmouseout: move |evt| {
-                    if let Some(target) = evt.target_element() {
-                        if is_selected {
-                            // Reset to selected style
-                            target.set_attribute("style", "background-color: white !important; color: #0a3d16 !important; border: none !important; position: absolute; bottom: 15px; left: 50%; transform: translateX(-50%); border-radius: 20px; padding: 10px 25px; font-family: 'REGULAR_FONT'; font-size: 1rem; font-weight: bold; letter-spacing: 1px; min-width: 150px; z-index: 5;").ok();
-                        } else {
-                            // Reset to normal style
-                            target.set_attribute("style", "background-color: rgba(7, 60, 23, 0.7) !important; color: white !important; border: none !important; position: absolute; bottom: 15px; left: 50%; transform: translateX(-50%); border-radius: 20px; padding: 10px 25px; font-family: 'REGULAR_FONT'; font-size: 1rem; font-weight: bold; letter-spacing: 1px; min-width: 150px; z-index: 5;").ok();
-                        }
-                    }
-                },
-                if is_selected {
-                    "SELECTED"
-                } else {
+        class: "select-preset-button",
+        style: {
+            let is_selected = selected_preset.read().is_none();
+            let is_hovered = *custom_button_hover.read();
+            
+            if is_selected {
+                // Selected state - white with green text
+                "background-color: white !important; color: #0a3d16 !important; border: none !important;"
+            } else if is_hovered {
+                // Hover state - brighter green with lift effect
+                "background-color: rgba(10, 80, 30, 0.9) !important; color: white !important; transform: translateX(-50%) translateY(-3px) !important; box-shadow: 0 5px 15px rgba(0, 0, 0, 0.4) !important;"
+            } else {
+                // Normal state - green
+                "background-color: rgba(7, 60, 23, 0.7) !important; color: white !important;"
+            }
+        },
+        onmouseenter: move |_| custom_button_hover.set(true),
+        onmouseleave: move |_| custom_button_hover.set(false),
+        
+        if selected_preset.read().is_none() {
+            "SELECTED"
+        } else {
                     "SELECT"
                 }
             }
@@ -139,6 +132,14 @@ for preset in presets.iter().filter(|p| p.id != "custom") {
         let is_selected = selected_preset.read().as_ref().map_or(false, |id| id == &preset_id);
         let mut apply_preset_clone = apply_preset.clone();
         let has_trending = preset.trending.unwrap_or(false);
+        
+        // Track if this specific button is being hovered
+        let button_id = preset_id.clone();
+        let is_button_hovered = if has_trending {
+            trending_button_hover.read().contains(&button_id)
+        } else {
+            regular_button_hover.read().contains(&button_id)
+        };
         
         rsx! {
             div {
@@ -178,56 +179,49 @@ for preset in presets.iter().filter(|p| p.id != "custom") {
                 // Select/Selected button with comprehensive inline styling
                 button {
                     class: "select-preset-button",
-                    style: if is_selected {
-                        if has_trending {
-                            // Selected trending button - white with gold text
-                            "background-color: white !important; color: #b58c14 !important; border: none !important; position: absolute; bottom: 15px; left: 50%; transform: translateX(-50%); border-radius: 20px; padding: 10px 25px; font-family: 'REGULAR_FONT'; font-size: 1rem; font-weight: bold; letter-spacing: 1px; min-width: 150px; z-index: 5; box-shadow: 0 0 15px rgba(255, 179, 0, 0.3) !important;"
-                        } else {
-                            // Selected regular button - white with green text
-                            "background-color: white !important; color: #0a3d16 !important; border: none !important; position: absolute; bottom: 15px; left: 50%; transform: translateX(-50%); border-radius: 20px; padding: 10px 25px; font-family: 'REGULAR_FONT'; font-size: 1rem; font-weight: bold; letter-spacing: 1px; min-width: 150px; z-index: 5;"
-                        }
-                    } else {
-                        if has_trending {
-                            // Non-selected trending button - gold
-                            "background: linear-gradient(135deg, #d4a017, #b78500) !important; color: black !important; border: none !important; position: absolute; bottom: 15px; left: 50%; transform: translateX(-50%); border-radius: 20px; padding: 10px 25px; font-family: 'REGULAR_FONT'; font-size: 1rem; font-weight: bold; letter-spacing: 1px; min-width: 150px; z-index: 5;"
-                        } else {
-                            // Non-selected regular button - green
-                            "background-color: rgba(7, 60, 23, 0.7) !important; color: white !important; border: none !important; position: absolute; bottom: 15px; left: 50%; transform: translateX(-50%); border-radius: 20px; padding: 10px 25px; font-family: 'REGULAR_FONT'; font-size: 1rem; font-weight: bold; letter-spacing: 1px; min-width: 150px; z-index: 5;"
-                        }
-                    },
-                    // Handle hover states with JavaScript
-                    onmouseover: move |evt| {
-                        if let Some(target) = evt.target_element() {
-                            if is_selected {
-                                // Don't change styling on hover when selected
-                            } else if has_trending {
-                                // Trending card hover - slightly brighter gold
-                                target.set_attribute("style", "background: linear-gradient(135deg, #e6b017, #cc9500) !important; color: black !important; border: none !important; position: absolute; bottom: 15px; left: 50%; transform: translateX(-50%) translateY(-3px); border-radius: 20px; padding: 10px 25px; font-family: 'REGULAR_FONT'; font-size: 1rem; font-weight: bold; letter-spacing: 1px; min-width: 150px; z-index: 5; box-shadow: 0 5px 15px rgba(0, 0, 0, 0.4) !important;").ok();
+                    style: {
+                        if is_selected {
+                            if has_trending {
+                                // Selected trending button - white with gold text
+                                "background-color: white !important; color: #b58c14 !important; border: none !important; box-shadow: 0 0 15px rgba(255, 179, 0, 0.3) !important;"
                             } else {
-                                // Regular card hover - slightly brighter green
-                                target.set_attribute("style", "background-color: rgba(10, 80, 30, 0.9) !important; color: white !important; border: none !important; position: absolute; bottom: 15px; left: 50%; transform: translateX(-50%) translateY(-3px); border-radius: 20px; padding: 10px 25px; font-family: 'REGULAR_FONT'; font-size: 1rem; font-weight: bold; letter-spacing: 1px; min-width: 150px; z-index: 5; box-shadow: 0 5px 15px rgba(0, 0, 0, 0.4) !important;").ok();
+                                // Selected regular button - white with green text
+                                "background-color: white !important; color: #0a3d16 !important; border: none !important;"
+                            }
+                        } else if is_button_hovered {
+                            if has_trending {
+                                // Hovering over trending button - brighter gold
+                                "background: linear-gradient(135deg, #e6b017, #cc9500) !important; color: black !important; transform: translateX(-50%) translateY(-3px) !important; box-shadow: 0 5px 15px rgba(0, 0, 0, 0.4) !important;"
+                            } else {
+                                // Hovering over regular button - brighter green
+                                "background-color: rgba(10, 80, 30, 0.9) !important; color: white !important; transform: translateX(-50%) translateY(-3px) !important; box-shadow: 0 5px 15px rgba(0, 0, 0, 0.4) !important;"
+                            }
+                        } else {
+                            if has_trending {
+                                // Normal trending button - gold
+                                "background: linear-gradient(135deg, #d4a017, #b78500) !important; color: black !important;"
+                            } else {
+                                // Normal regular button - green
+                                "background-color: rgba(7, 60, 23, 0.7) !important; color: white !important;"
                             }
                         }
                     },
-                    onmouseout: move |evt| {
-                        if let Some(target) = evt.target_element() {
-                            if is_selected {
-                                // Reset to selected style on mouse out
-                                if has_trending {
-                                    target.set_attribute("style", "background-color: white !important; color: #b58c14 !important; border: none !important; position: absolute; bottom: 15px; left: 50%; transform: translateX(-50%); border-radius: 20px; padding: 10px 25px; font-family: 'REGULAR_FONT'; font-size: 1rem; font-weight: bold; letter-spacing: 1px; min-width: 150px; z-index: 5; box-shadow: 0 0 15px rgba(255, 179, 0, 0.3) !important;").ok();
-                                } else {
-                                    target.set_attribute("style", "background-color: white !important; color: #0a3d16 !important; border: none !important; position: absolute; bottom: 15px; left: 50%; transform: translateX(-50%); border-radius: 20px; padding: 10px 25px; font-family: 'REGULAR_FONT'; font-size: 1rem; font-weight: bold; letter-spacing: 1px; min-width: 150px; z-index: 5;").ok();
-                                }
-                            } else {
-                                // Reset to normal style on mouse out
-                                if has_trending {
-                                    target.set_attribute("style", "background: linear-gradient(135deg, #d4a017, #b78500) !important; color: black !important; border: none !important; position: absolute; bottom: 15px; left: 50%; transform: translateX(-50%); border-radius: 20px; padding: 10px 25px; font-family: 'REGULAR_FONT'; font-size: 1rem; font-weight: bold; letter-spacing: 1px; min-width: 150px; z-index: 5;").ok();
-                                } else {
-                                    target.set_attribute("style", "background-color: rgba(7, 60, 23, 0.7) !important; color: white !important; border: none !important; position: absolute; bottom: 15px; left: 50%; transform: translateX(-50%); border-radius: 20px; padding: 10px 25px; font-family: 'REGULAR_FONT'; font-size: 1rem; font-weight: bold; letter-spacing: 1px; min-width: 150px; z-index: 5;").ok();
-                                }
-                            }
+                    // Track hover state using the button ID
+                    onmouseenter: move |_| {
+                        if has_trending {
+                            trending_button_hover.with_mut(|ids| ids.push(button_id.clone()));
+                        } else {
+                            regular_button_hover.with_mut(|ids| ids.push(button_id.clone()));
                         }
                     },
+                    onmouseleave: move |_| {
+                        if has_trending {
+                            trending_button_hover.with_mut(|ids| ids.retain(|id| id != &button_id));
+                        } else {
+                            regular_button_hover.with_mut(|ids| ids.retain(|id| id != &button_id));
+                        }
+                    },
+                    
                     if is_selected {
                         "SELECTED"
                     } else {
