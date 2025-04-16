@@ -1,11 +1,40 @@
-/* Category Styles for Features */
+/* Enhanced feature categories */
 .feature-category {
     background-color: rgba(0, 0, 0, 0.3);
     border-radius: 10px;
-    padding: 15px 20px;
+    margin-bottom: 15px;
     border-left: 3px solid rgba(7, 60, 23, 0.8);
-    margin-bottom: 20px;
-    position: relative;
+    overflow: hidden;
+    transition: all 0.3s ease;
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.2);
+}
+
+.feature-category:hover {
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+}
+
+/* Improve spacing between categories */
+.feature-categories {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+/* Fade-in animation for features when they appear */
+@keyframes fade-in-up {
+    0% {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.optional-features-content.expanded .feature-category {
+    animation: fade-in-up 0.5s ease-out forwards;
+    animation-delay: calc(var(--index, 0) * 0.05s);
 }
 
 /* ENTIRE HEADER IS CLICKABLE */
@@ -35,7 +64,7 @@
     font-size: 0.8rem;
 }
 
-/* All Enabled/Disabled button styling */
+/* Enhanced category toggle-all button */
 .category-toggle-all {
     background-color: rgba(0, 0, 0, 0.4);
     border: 1px solid rgba(255, 255, 255, 0.2);
@@ -46,7 +75,7 @@
     color: white;
     letter-spacing: 0.5px;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: all 0.3s ease;
     min-width: 110px;
     text-align: center;
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
@@ -68,32 +97,34 @@
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
 }
 
-.category-toggle-all.all-enabled:hover {
+.category-toggle-all.toggle-enable:hover {
     background-color: rgba(7, 60, 23, 0.8);
 }
 
-.category-toggle-all.all-disabled:hover {
+.category-toggle-all.toggle-disable:hover {
     background-color: rgba(217, 82, 72, 0.8);
 }
 
-/* Larger expand/collapse indicators */
+/* Category toggle indicators */
 .category-toggle-indicator {
-    position: absolute;
-    right: 15px;
-    width: 36px; /* Much larger */
-    height: 36px; /* Much larger */
+    width: 36px;
+    height: 36px;
     display: flex;
     justify-content: center;
     align-items: center;
-    background-color: rgba(0, 0, 0, 0.3);
+    background-color: rgba(0, 0, 0, 0.4);
     border-radius: 50%;
-    font-size: 22px; /* Larger font size for the arrow */
-    transition: transform 0.3s ease;
+    font-size: 18px;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .category-toggle-indicator.expanded {
     transform: rotate(180deg);
+    background-color: rgba(7, 60, 23, 0.3);
 }
+
 
 /* Category content animation */
 .category-content {
@@ -155,32 +186,55 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background: rgba(7, 60, 23, 0.7);
+    background: linear-gradient(to right, rgba(7, 60, 23, 0.8), rgba(7, 60, 23, 0.6));
     color: white;
     border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: 20px;
-    padding: 10px 25px;
+    border-radius: 25px;
+    padding: 12px 30px;
     font-family: "REGULAR_FONT";
-    font-size: 1rem;
+    font-size: 1.1rem;
     font-weight: bold;
     letter-spacing: 1px;
     transition: all 0.3s ease;
-    margin: 0 auto 20px auto;
+    margin: 15px auto 25px auto;
     width: fit-content;
-    min-width: 180px;
+    min-width: 200px;
     box-shadow: 0 3px 8px rgba(0, 0, 0, 0.3);
     cursor: pointer;
+    position: relative;
+    overflow: hidden;
+}
+
+/* Add shine effect to the button */
+.expand-collapse-button::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+        90deg, 
+        transparent, 
+        rgba(255, 255, 255, 0.2), 
+        transparent
+    );
+    transition: all 0.6s ease;
+}
+
+.expand-collapse-button:hover::before {
+    left: 100%;
 }
 
 .expand-collapse-button:hover {
-    background: rgba(7, 60, 23, 0.9);
-    transform: translateY(-2px);
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.4);
+    background: linear-gradient(to right, rgba(7, 60, 23, 0.9), rgba(7, 60, 23, 0.7));
+    transform: translateY(-3px);
+    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.4), 0 0 15px rgba(7, 60, 23, 0.3);
 }
 
 .button-icon {
-    margin-right: 8px;
-    font-size: 16px;
+    margin-right: 10px;
+    font-size: 18px;
     transition: transform 0.3s ease;
 }
 
@@ -191,6 +245,7 @@
 .collapse-icon {
     transform: translateY(-2px);
 }
+
 
 
 
@@ -215,22 +270,24 @@
     font-size: 0.9rem;
     font-family: "REGULAR_FONT";
     margin: 0 auto;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
 }
 
+/* Collapsible content styling */
 .optional-features-content {
     overflow: hidden;
     max-height: 0;
-    transition: max-height 0.7s ease;
-    padding: 0 20px;
+    transition: max-height 0.7s ease, opacity 0.3s ease, padding 0.3s ease;
     opacity: 0;
-    transition: max-height 0.7s ease, opacity 0.3s ease;
+    padding: 0;
 }
 
 .optional-features-content.expanded {
     max-height: 10000px;
-    padding: 0 20px 20px 20px;
+    padding: 20px 0;
     opacity: 1;
 }
+
 
 /* Top-level expand indicator */
 /* Much larger expand/collapse indicators */
@@ -259,6 +316,12 @@
     border-radius: 6px;
     padding: 8px 15px;
     border: 1px solid rgba(255, 255, 255, 0.1);
+    transition: all 0.3s ease;
+}
+
+.feature-filter-container:focus-within {
+    border-color: rgba(7, 60, 23, 0.7);
+    box-shadow: 0 0 0 2px rgba(7, 60, 23, 0.3);
 }
 
 .feature-filter {
@@ -278,6 +341,7 @@
 
 .feature-filter::placeholder {
     color: rgba(255, 255, 255, 0.5);
+    font-family: "REGULAR_FONT";
 }
 
 /* Search animation */
@@ -293,14 +357,18 @@
     }
 }
 
+.feature-filter-container:focus-within {
+    animation: search-pulse 1.5s ease-out;
+}
+
 .feature-filter:focus {
     animation: search-pulse 1.5s ease-out;
 }
 
 .feature-filter-icon {
-    color: rgba(255, 255, 255, 0.5);
-    font-size: 1.2rem;
-    margin-right: 8px;
+    margin-right: 10px;
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 1.1rem;
 }
 
 .feature-filter-clear {
@@ -310,8 +378,30 @@
     cursor: pointer;
     padding: 0 8px;
     font-size: 1.2rem;
+    transition: all 0.2s ease;
 }
 
 .feature-filter-clear:hover {
     color: white;
+}
+
+/* Responsive design for smaller screens */
+@media (max-width: 768px) {
+    .category-header {
+        flex-direction: column;
+        gap: 10px;
+        align-items: flex-start;
+    }
+    
+    .category-toggle-all {
+        align-self: flex-end;
+    }
+    
+    .feature-cards-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .expand-collapse-button {
+        width: 100%;
+    }
 }
