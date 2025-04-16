@@ -371,7 +371,7 @@ pub fn FeaturesTab(
         }
     }
 }
-}
+}}
 
 // Helper function to render features by category
 fn render_features_by_category(
