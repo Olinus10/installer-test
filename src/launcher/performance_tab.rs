@@ -1,14 +1,103 @@
 use dioxus::prelude::*;
+use std::process::Command;
+
+// Helper function to get system memory
+fn get_system_memory() -> Option<i32> {
+    #[cfg(target_os = "windows")]
+    {
+        // Use wmic command on Windows
+        if let Ok(output) = Command::new("wmic")
+            .args(&["computersystem", "get", "TotalPhysicalMemory"])
+            .output() 
+        {
+            if let Ok(output_str) = String::from_utf8(output.stdout) {
+                // Parse the output to get total memory in bytes
+                if let Some(mem_str) = output_str.lines().nth(1) {
+                    if let Ok(mem_bytes) = mem_str.trim().parse::<u64>() {
+                        // Convert bytes to MB
+                        return Some((mem_bytes / (1024 * 1024)) as i32);
+                    }
+                }
+            }
+        }
+    }
+    
+    #[cfg(target_os = "linux")]
+    {
+        // Use /proc/meminfo on Linux
+        if let Ok(meminfo) = std::fs::read_to_string("/proc/meminfo") {
+            for line in meminfo.lines() {
+                if line.starts_with("MemTotal:") {
+                    if let Some(mem_kb_str) = line.split_whitespace().nth(1) {
+                        if let Ok(mem_kb) = mem_kb_str.parse::<u64>() {
+                            // Convert KB to MB
+                            return Some((mem_kb / 1024) as i32);
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    #[cfg(target_os = "macos")]
+    {
+        // Use sysctl on macOS
+        if let Ok(output) = Command::new("sysctl")
+            .args(&["-n", "hw.memsize"])
+            .output() 
+        {
+            if let Ok(output_str) = String::from_utf8(output.stdout) {
+                if let Ok(mem_bytes) = output_str.trim().parse::<u64>() {
+                    // Convert bytes to MB
+                    return Some((mem_bytes / (1024 * 1024)) as i32);
+                }
+            }
+        }
+    }
+    
+    // Default fallback
+    None
+}
+
+// Format memory value for display
+fn format_memory_display(memory_mb: i32) -> String {
+    if memory_mb >= 1024 {
+        format!("{:.1} GB", memory_mb as f32 / 1024.0)
+    } else {
+        format!("{} MB", memory_mb)
+    }
+}
 
 #[component]
 pub fn PerformanceTab(
     memory_allocation: Signal<i32>,
     java_args: Signal<String>,
 ) -> Element {
-    // Recommended memory values (in MB)
-    let min_memory = 1024;  // 1GB
-    let max_memory = 16384; // 16GB
-    let step = 512;         // 512MB increments
+    // Memory resource that attempts to determine system RAM
+    let system_memory = use_resource(|| async {
+        get_system_memory()
+    });
+    
+    // Default memory boundaries
+    let min_memory = 1024;  // Minimum 1GB
+    let max_memory = match system_memory.read().as_ref() {
+        Some(total_memory) => {
+            // Cap at 8GB or 70% of system memory, whichever is less
+            let max_allowed = 8 * 1024; // 8GB in MB
+            let seventy_percent = (total_memory * 70) / 100;
+            
+            std::cmp::min(max_allowed, seventy_percent)
+        },
+        None => 8 * 1024, // Default to 8GB max if we can't detect system memory
+    };
+    
+    let step = 512; // 512MB steps
+    
+    // Store original value for comparison to detect changes
+    let original_memory = use_memo(move || memory_allocation.read().clone());
+    
+    // State for displaying success message after apply
+    let mut show_apply_success = use_signal(|| false);
     
     // Memory markers
     let markers = [
@@ -16,46 +105,96 @@ pub fn PerformanceTab(
         ("2GB", 2048),
         ("4GB", 4096),
         ("8GB", 8192),
-        ("16GB", 16384),
     ];
-
-    // Java preset options
-    let presets = [
-        (
-            "Optimized G1GC (Recommended)", 
-            "-XX:+UseG1GC -XX:+ParallelRefProcEnabled -XX:MaxGCPauseMillis=200 -XX:+UnlockExperimentalVMOptions -XX:+DisableExplicitGC -XX:+AlwaysPreTouch -XX:G1NewSizePercent=30 -XX:G1MaxNewSizePercent=40 -XX:G1HeapRegionSize=8M -XX:G1ReservePercent=20 -XX:G1HeapWastePercent=5 -XX:G1MixedGCCountTarget=4 -XX:InitiatingHeapOccupancyPercent=15 -XX:G1MixedGCLiveThresholdPercent=90 -XX:G1RSetUpdatingPauseTimePercent=5 -XX:SurvivorRatio=32 -XX:+PerfDisableSharedMem -XX:MaxTenuringThreshold=1"
-        ),
-        (
-            "Shenandoah GC (High-End Systems)",
-            "-XX:+UseShenandoahGC -XX:ShenandoahGCHeuristics=compact -XX:+UseNUMA -XX:+AlwaysPreTouch -XX:+DisableExplicitGC"
-        ),
-        (
-            "Default (No Arguments)",
-            ""
-        ),
-    ];
-
+    
+    // Memory recommendations based on system memory
+    let recommended_memory = match system_memory.read().as_ref() {
+        Some(total_memory) => {
+            // Recommend about half of system memory, but max 6GB
+            let half_memory = total_memory / 2;
+            std::cmp::min(6 * 1024, half_memory)
+        },
+        None => 4096, // Default to 4GB if we can't detect
+    };
+    
+    // Format system memory for display
+    let system_memory_display = match system_memory.read().as_ref() {
+        Some(mem) => format_memory_display(*mem),
+        None => "Unknown".to_string(),
+    };
+    
+    // Handler for applying memory changes
+    let apply_memory = move |_| {
+        let current_memory = *memory_allocation.read();
+        
+        // Updated java args with the new memory setting
+        let updated_args = {
+            let args = java_args.read().clone();
+            
+            // Parse existing args to remove any Xmx parameter
+            let mut parts: Vec<&str> = args.split_whitespace().collect();
+            parts.retain(|part| !part.starts_with("-Xmx"));
+            
+            // Add the new memory parameter
+            let memory_param = if current_memory >= 1024 {
+                format!("-Xmx{}G", current_memory / 1024)
+            } else {
+                format!("-Xmx{}M", current_memory)
+            };
+            
+            parts.push(&memory_param);
+            parts.join(" ")
+        };
+        
+        // Update the java args
+        java_args.set(updated_args);
+        
+        // Show success message briefly
+        show_apply_success.set(true);
+        let success_signal = show_apply_success.clone();
+        
+        // Hide success message after 3 seconds
+        spawn(async move {
+            async_std::task::sleep(std::time::Duration::from_secs(3)).await;
+            success_signal.set(false);
+        });
+    };
+    
+    // Calculate if memory has been changed from original
+    let memory_changed = *memory_allocation.read() != *original_memory.read();
+    
     rsx! {
         div { class: "performance-tab",
             h2 { "Performance Settings" }
-            p { "Adjust memory allocation and Java arguments to optimize performance." }
+            p { "Adjust memory allocation for Minecraft to optimize performance." }
             
-            div { class: "performance-section",
-                // Memory Allocation
-                div { class: "form-group memory-section",
-                    h3 { "Memory Allocation" }
+            div { class: "performance-section memory-section",
+                h3 { "Memory Allocation" }
+                
+                // System memory info
+                div { class: "system-memory-info",
+                    "System Memory: ",
+                    span { class: "system-memory-value", "{system_memory_display}" }
+                }
+                
+                // Current memory display with percentage indicator
+                div { class: "current-memory-display",
+                    "Current allocation: ",
+                    span { class: "memory-value", "{format_memory_display(*memory_allocation.read())}" }
                     
-                    div { class: "current-memory-display",
-                        "Current allocation: "
-                        span { class: "memory-value", "{memory_allocation}MB" }
-                        
-                        // Format as GB if >= 1024MB
-                        if *memory_allocation.read() >= 1024 {
-                            span { class: "memory-gb", " ({(*memory_allocation.read() as f32 / 1024.0):.1}GB)" }
+                    // Show percentage of system memory if available
+                    if let Some(sys_mem) = system_memory.read().as_ref() {
+                        {
+                            let percentage = (*memory_allocation.read() as f32 / *sys_mem as f32) * 100.0;
+                            rsx! {
+                                span { class: "memory-percentage", " ({percentage:.1}% of system memory)" }
+                            }
                         }
                     }
-                    
-                    // Memory slider
+                }
+                
+                // Memory slider with improved design
+                div { class: "memory-slider-container",
                     input {
                         r#type: "range",
                         min: "{min_memory}",
@@ -73,52 +212,48 @@ pub fn PerformanceTab(
                     // Memory markers below slider
                     div { class: "memory-markers",
                         for (label, value) in markers {
-                            div { 
-                                class: "memory-marker",
-                                style: "position: relative; left: {(value - min_memory) as f32 / (max_memory - min_memory) as f32 * 100.0}%",
-                                "{label}"
-                            }
-                        }
-                    }
-                    
-                    p { class: "memory-recommendation",
-                        "Recommended: Allocate about half of your system's available RAM, but no more than 8GB for most situations."
-                    }
-                }
-                
-                // Java Arguments
-                div { class: "form-group java-args-section",
-                    h3 { "Java Arguments" }
-                    p { class: "java-args-description",
-                        "These arguments control how Java runs Minecraft. Advanced users can customize these."
-                    }
-                    
-                    textarea {
-                        id: "java-args",
-                        rows: "4",
-                        value: "{java_args}",
-                        oninput: move |evt| java_args.set(evt.value().clone()),
-                        class: "java-args-input"
-                    }
-                    
-                    // Preset buttons
-                    div { class: "java-args-presets",
-                        h4 { "Suggested Arguments" }
-                        
-                        div { class: "java-preset-buttons",
-                            for (label, args) in presets {
-                                {
-                                    let args_clone = args.to_string();
-                                    rsx! {
-                                        button {
-                                            class: "java-preset-button",
-                                            onclick: move |_| java_args.set(args_clone.clone()),
-                                            "{label}"
-                                        }
-                                    }
+                            if value <= *max_memory.read() {
+                                div { 
+                                    class: "memory-marker",
+                                    style: "position: absolute; left: calc(0% + ({value - min_memory} as f32 / ({max_memory} - {min_memory}) as f32 * 100.0)%)",
+                                    "{label}"
                                 }
                             }
                         }
+                    }
+                }
+                
+                // Apply button for memory changes
+                div { class: "memory-apply-container",
+                    button {
+                        class: if memory_changed { 
+                            "memory-apply-button changed" 
+                        } else { 
+                            "memory-apply-button" 
+                        },
+                        disabled: !memory_changed,
+                        onclick: apply_memory,
+                        "Apply Memory Changes"
+                    }
+                    
+                    // Success message
+                    if *show_apply_success.read() {
+                        div { class: "apply-success-message", "Memory settings applied successfully!" }
+                    }
+                }
+                
+                p { class: "memory-recommendation",
+                    if system_memory.read().is_some() {
+                        {format!("Recommended: {} ({} of your system memory)", 
+                            format_memory_display(recommended_memory), 
+                            if *system_memory.read().as_ref().unwrap() > 0 {
+                                format!("~{}%", (recommended_memory as f32 / *system_memory.read().as_ref().unwrap() as f32 * 100.0) as i32)
+                            } else {
+                                "N/A".to_string()
+                            }
+                        )}
+                    } else {
+                        "Recommended: 4GB for most situations"
                     }
                 }
             }
