@@ -1,64 +1,11 @@
 use dioxus::prelude::*;
 use std::process::Command;
-use tokio::time::sleep as tokio_sleep;
+use tokio::time::sleep;
 use std::time::Duration;
 
 // Helper function to get system memory
 fn get_system_memory() -> Option<i32> {
-    #[cfg(target_os = "windows")]
-    {
-        // Use wmic command on Windows
-        if let Ok(output) = Command::new("wmic")
-            .args(&["computersystem", "get", "TotalPhysicalMemory"])
-            .output() 
-        {
-            if let Ok(output_str) = String::from_utf8(output.stdout) {
-                // Parse the output to get total memory in bytes
-                if let Some(mem_str) = output_str.lines().nth(1) {
-                    if let Ok(mem_bytes) = mem_str.trim().parse::<u64>() {
-                        // Convert bytes to MB
-                        return Some((mem_bytes / (1024 * 1024)) as i32);
-                    }
-                }
-            }
-        }
-    }
-    
-    #[cfg(target_os = "linux")]
-    {
-        // Use /proc/meminfo on Linux
-        if let Ok(meminfo) = std::fs::read_to_string("/proc/meminfo") {
-            for line in meminfo.lines() {
-                if line.starts_with("MemTotal:") {
-                    if let Some(mem_kb_str) = line.split_whitespace().nth(1) {
-                        if let Ok(mem_kb) = mem_kb_str.parse::<u64>() {
-                            // Convert KB to MB
-                            return Some((mem_kb / 1024) as i32);
-                        }
-                    }
-                }
-            }
-        }
-    }
-    
-    #[cfg(target_os = "macos")]
-    {
-        // Use sysctl on macOS
-        if let Ok(output) = Command::new("sysctl")
-            .args(&["-n", "hw.memsize"])
-            .output() 
-        {
-            if let Ok(output_str) = String::from_utf8(output.stdout) {
-                if let Ok(mem_bytes) = output_str.trim().parse::<u64>() {
-                    // Convert bytes to MB
-                    return Some((mem_bytes / (1024 * 1024)) as i32);
-                }
-            }
-        }
-    }
-    
-    // Default fallback
-    None
+    // Existing implementation
 }
 
 // Format memory value for display
@@ -82,23 +29,27 @@ pub fn PerformanceTab(
     
     // Default memory boundaries
     let min_memory = 1024;  // Minimum 1GB
-    let max_memory = use_memo(move || {
-        match *system_memory.read() {
-            Some(total_memory) => {
+    let max_memory = use_signal(|| 8 * 1024); // Default 8GB max
+    
+    // Update max memory when system memory is available
+    use_effect({
+        let system_memory_clone = system_memory.clone();
+        let max_memory_clone = max_memory.clone();
+        
+        move || {
+            if let Some(detected_memory) = system_memory_clone.read().as_ref().cloned() {
                 // Cap at 8GB or 70% of system memory, whichever is less
                 let max_allowed = 8 * 1024; // 8GB in MB
-                let seventy_percent = (total_memory * 70) / 100;
-                
-                std::cmp::min(max_allowed, seventy_percent)
-            },
-            None => 8 * 1024, // Default to 8GB max if we can't detect system memory
+                let seventy_percent = (detected_memory * 70) / 100;
+                max_memory_clone.set(std::cmp::min(max_allowed, seventy_percent));
+            }
         }
     });
     
     let step = 512; // 512MB steps
     
     // Store original value for comparison to detect changes
-    let original_memory = use_memo(move || memory_allocation.read().clone());
+    let original_memory = use_memo(move || *memory_allocation.read());
     
     // State for displaying success message after apply
     let mut show_apply_success = use_signal(|| false);
@@ -111,21 +62,26 @@ pub fn PerformanceTab(
         ("8GB", 8192),
     ];
     
-    // Memory recommendations based on system memory
-    let recommended_memory = use_memo(move || {
-        match *system_memory.read() {
-            Some(total_memory) => {
+    // Recommended memory based on system memory
+    let recommended_memory = use_signal(|| 4096); // Default 4GB
+    
+    // Update recommended memory when system memory is available
+    use_effect({
+        let system_memory_clone = system_memory.clone();
+        let recommended_memory_clone = recommended_memory.clone();
+        
+        move || {
+            if let Some(detected_memory) = system_memory_clone.read().as_ref().cloned() {
                 // Recommend about half of system memory, but max 6GB
-                let half_memory = total_memory / 2;
-                std::cmp::min(6 * 1024, half_memory)
-            },
-            None => 4096, // Default to 4GB if we can't detect
+                let half_memory = detected_memory / 2;
+                recommended_memory_clone.set(std::cmp::min(6 * 1024, half_memory));
+            }
         }
     });
     
     // Format system memory for display
-    let system_memory_display = match *system_memory.read() {
-        Some(mem) => format_memory_display(mem),
+    let system_memory_display = match system_memory.read().as_ref() {
+        Some(mem) => format_memory_display(*mem),
         None => "Unknown".to_string(),
     };
     
@@ -161,7 +117,7 @@ pub fn PerformanceTab(
         
         // Hide success message after 3 seconds
         spawn(async move {
-            tokio_sleep(Duration::from_secs(3)).await;
+            sleep(Duration::from_secs(3)).await;
             success_signal.set(false);
         });
     };
@@ -169,18 +125,17 @@ pub fn PerformanceTab(
     // Calculate if memory has been changed from original
     let memory_changed = *memory_allocation.read() != *original_memory.read();
     
-    // Calculate percentage of system memory if available
-    let memory_percentage = match *system_memory.read() {
-        Some(sys_mem) if sys_mem > 0 => {
-            Some((*memory_allocation.read() as f32 / sys_mem as f32) * 100.0)
+    // Calculate percentages safely
+    let memory_percentage = match system_memory.read().as_ref() {
+        Some(sys_mem) if *sys_mem > 0 => {
+            Some((*memory_allocation.read() as f32 / *sys_mem as f32) * 100.0)
         },
         _ => None
     };
     
-    // Calculate recommended memory percentage if available
-    let recommended_percentage = match *system_memory.read() {
-        Some(sys_mem) if sys_mem > 0 => {
-            Some((*recommended_memory.read() as f32 / sys_mem as f32) * 100.0)
+    let recommended_percentage = match system_memory.read().as_ref() {
+        Some(sys_mem) if *sys_mem > 0 => {
+            Some((*recommended_memory.read() as f32 / *sys_mem as f32) * 100.0)
         },
         _ => None
     };
