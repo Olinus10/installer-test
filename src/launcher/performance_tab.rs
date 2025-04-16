@@ -125,21 +125,21 @@ pub fn PerformanceTab(
     let recommended_memory = use_signal(|| 4096); // Default 4GB
     
     // Update recommended memory when system memory is available
-use_effect({
-    let detected_memory = detected_memory.clone();
-    let mut recommended_memory = recommended_memory.clone();
-    
-    move || {
-        if let Some(mem) = *detected_memory.read() {
-            // Always recommend at most 4GB (4096MB)
-            // Calculate half of system memory
-            let half_memory = mem / 2;
-            
-            // Cap at 4GB max as requested
-            recommended_memory.set(std::cmp::min(4 * 1024, half_memory));
+    use_effect({
+        let detected_memory = detected_memory.clone();
+        let mut recommended_memory = recommended_memory.clone();
+        
+        move || {
+            if let Some(mem) = *detected_memory.read() {
+                // Always recommend at most 4GB (4096MB)
+                // Calculate half of system memory
+                let half_memory = mem / 2;
+                
+                // Cap at 4GB max as requested
+                recommended_memory.set(std::cmp::min(4 * 1024, half_memory));
+            }
         }
-    }
-});
+    });
     // Format system memory for display
     let system_memory_display = match *detected_memory.read() {
         Some(mem) => format_memory_display(mem),
@@ -201,6 +201,32 @@ use_effect({
         _ => None
     };
     
+    // Create memory markers elements
+    let memory_marker_elements = markers.iter().enumerate().map(|(index, (label, value))| {
+        if *value <= *max_memory.read() {
+            // Calculate percentage position
+            let percentage = ((*value - min_memory) as f32 / (*max_memory.read() - min_memory) as f32) * 100.0;
+            
+            // Apply specific adjustments based on marker position
+            let margin_adjustment = match index {
+                0 => "margin-left: 0%",         // First marker
+                3 => "margin-left: -40px",      // Last marker (8GB)
+                _ => "",                        // Middle markers
+            };
+            
+            rsx! {
+                div { 
+                    key: "{label}",
+                    class: "memory-marker",
+                    style: "left: {percentage}%; {margin_adjustment}",
+                    "{label}"
+                }
+            }
+        } else {
+            rsx! { Fragment {} }
+        }
+    });
+    
     rsx! {
         div { class: "performance-tab",
             h2 { "Performance Settings" }
@@ -247,29 +273,10 @@ use_effect({
                     }
                     
                     // Memory markers below slider
-                    iv { class: "memory-markers",
-    for (index, (label, value)) in markers.iter().enumerate() {
-        if value <= *max_memory.read() {
-            // Calculate percentage position
-            let percentage = ((value - min_memory) as f32 / (*max_memory.read() - min_memory) as f32) * 100.0;
-            
-            // Apply specific adjustments based on marker position
-            let margin_adjustment = match index {
-                0 => "margin-left: 0%",         // First marker
-                3 => "margin-left: -40px",      // Last marker (8GB)
-                _ => "",                        // Middle markers
-            };
-            
-            rsx! {
-                div { 
-                    class: "memory-marker",
-                    style: "left: {percentage}%; {margin_adjustment}",
-                    "{label}"
+                    div { class: "memory-markers",
+                        {memory_marker_elements}
+                    }
                 }
-            }
-        }
-    }
-}
                 
                 // Apply button for memory changes
                 div { class: "memory-apply-container",
@@ -291,22 +298,21 @@ use_effect({
                 }
                 
                 p { class: "memory-recommendation",
-    if detected_memory.read().is_some() {
-        {
-            let rec_text = format!("Recommended: {}", format_memory_display(*recommended_memory.read()));
-            
-            if let Some(percentage) = recommended_percentage {
-                format!("{} (~{}% of your system memory, max 4GB)", rec_text, percentage as i32)
-            } else {
-                format!("{} (max 4GB)", rec_text)
-            }
-        }
-    } else {
-        "Recommended: Up to 4GB for optimal performance"
+                    {
+                        if detected_memory.read().is_some() {
+                            let rec_text = format!("Recommended: {}", format_memory_display(*recommended_memory.read()));
+                            
+                            if let Some(percentage) = recommended_percentage {
+                                format!("{} (~{}% of your system memory, max 4GB)", rec_text, percentage as i32)
+                            } else {
+                                format!("{} (max 4GB)", rec_text)
+                            }
+                        } else {
+                            "Recommended: Up to 4GB for optimal performance".to_string()
+                        }
                     }
                 }
             }
         }
     }
-}
 }
