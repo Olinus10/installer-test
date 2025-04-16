@@ -182,43 +182,45 @@ for preset in presets.iter().filter(|p| p.id != "custom") {
                     style: {
                         if is_selected {
                             if has_trending {
-                                // Selected trending button - white with gold text
                                 "background-color: white !important; color: #b58c14 !important; border: none !important; box-shadow: 0 0 15px rgba(255, 179, 0, 0.3) !important;"
                             } else {
-                                // Selected regular button - white with green text
                                 "background-color: white !important; color: #0a3d16 !important; border: none !important;"
                             }
                         } else if is_button_hovered {
                             if has_trending {
-                                // Hovering over trending button - brighter gold
                                 "background: linear-gradient(135deg, #e6b017, #cc9500) !important; color: black !important; transform: translateX(-50%) translateY(-3px) !important; box-shadow: 0 5px 15px rgba(0, 0, 0, 0.4) !important;"
                             } else {
-                                // Hovering over regular button - brighter green
                                 "background-color: rgba(10, 80, 30, 0.9) !important; color: white !important; transform: translateX(-50%) translateY(-3px) !important; box-shadow: 0 5px 15px rgba(0, 0, 0, 0.4) !important;"
                             }
                         } else {
                             if has_trending {
-                                // Normal trending button - gold
                                 "background: linear-gradient(135deg, #d4a017, #b78500) !important; color: black !important;"
                             } else {
-                                // Normal regular button - green
                                 "background-color: rgba(7, 60, 23, 0.7) !important; color: white !important;"
                             }
                         }
                     },
-                    // Track hover state using the button ID
-                    onmouseenter: move |_| {
-                        if has_trending {
-                            trending_button_hover.with_mut(|ids| ids.push(button_id.clone()));
-                        } else {
-                            regular_button_hover.with_mut(|ids| ids.push(button_id.clone()));
+                    // Clone the button_id for each closure
+                    onmouseenter: {
+                        let button_id_enter = button_id.clone();
+                        let has_trending_enter = has_trending;
+                        move |_| {
+                            if has_trending_enter {
+                                trending_button_hover.with_mut(|ids| ids.push(button_id_enter.clone()));
+                            } else {
+                                regular_button_hover.with_mut(|ids| ids.push(button_id_enter.clone()));
+                            }
                         }
                     },
-                    onmouseleave: move |_| {
-                        if has_trending {
-                            trending_button_hover.with_mut(|ids| ids.retain(|id| id != &button_id));
-                        } else {
-                            regular_button_hover.with_mut(|ids| ids.retain(|id| id != &button_id));
+                    onmouseleave: {
+                        let button_id_leave = button_id.clone();
+                        let has_trending_leave = has_trending;
+                        move |_| {
+                            if has_trending_leave {
+                                trending_button_hover.with_mut(|ids| ids.retain(|id| id != &button_id_leave));
+                            } else {
+                                regular_button_hover.with_mut(|ids| ids.retain(|id| id != &button_id_leave));
+                            }
                         }
                     },
                     
