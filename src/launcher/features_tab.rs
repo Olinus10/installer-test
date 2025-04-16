@@ -76,20 +76,11 @@ onclick: move |_| {
     // First clear the preset selection
     selected_preset.set(None);
     
-    // Then reset enabled features to defaults
+    // Then reset enabled features to just the default
     enabled_features.with_mut(|features| {
-        // Start with the default feature
+        // Start with just the default feature
         features.clear();
         features.push("default".to_string());
-        
-        // Add default features from the manifest
-        if let Some(manifest) = &universal_manifest {
-            for feat in &manifest.features {
-                if feat.default {
-                    features.push(feat.id.clone());
-                }
-            }
-        }
     });
 },
     
