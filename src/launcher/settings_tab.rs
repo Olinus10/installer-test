@@ -180,37 +180,31 @@ pub fn SettingsTab(
                 
                 div { class: "info-grid",
                     div { class: "info-row",
-                        div { class: "info-label", "Name:" }
-                        div { class: "info-value", "{installation_name}" }
+                        div { class: "info-label", "Name: ", "info-value", "{installation_name}" }
                     }
                     
                     div { class: "info-row",
-                        div { class: "info-label", "Created:" }
-                        div { class: "info-value", "{created_at.format(\"%B %d, %Y\")}" }
+                        div { class: "info-label", "Created: ", "info-value", "{created_at.format(\"%B %d, %Y\")}" }
                     }
                     
                     div { class: "info-row",
-                        div { class: "info-label", "Last Used:" }
-                        div { class: "info-value", "{last_used.format(\"%B %d, %Y\")}" }
+                        div { class: "info-label", "Last Used: ", "info-value", "{last_used.format(\"%B %d, %Y\")}"  }
                     }
                     
                     div { class: "info-row",
-                        div { class: "info-label", "Minecraft:" }
-                        div { class: "info-value", "{minecraft_version}" }
+                        div { class: "info-label", "Minecraft: ", "info-value", "{minecraft_version}" }
                     }
                     
                     div { class: "info-row",
-                        div { class: "info-label", "Loader:" }
-                        div { class: "info-value", "{loader_type} {loader_version}" }
+                        div { class: "info-label", "Loader: ", "info-value", "{loader_type} {loader_version}"  }
                     }
                     
                     div { class: "info-row",
-                        div { class: "info-label", "Launcher:" }
-                        div { class: "info-value", "{launcher_type}" }
+                        div { class: "info-label", "Launcher: ", "info-value", "{launcher_type}" }
                     }
                     
                     div { class: "info-row",
-                        div { class: "info-label", "Path:" }
+                        div { class: "info-label", "Path: " }
                         div { class: "info-value truncate-path", "{installation_path_display}" }
                     }
                 }
