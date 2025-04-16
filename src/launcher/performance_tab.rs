@@ -1,5 +1,7 @@
 use dioxus::prelude::*;
 use std::process::Command;
+use tokio::time::sleep as tokio_sleep;
+use std::time::Duration;
 
 // Helper function to get system memory
 fn get_system_memory() -> Option<i32> {
@@ -80,16 +82,18 @@ pub fn PerformanceTab(
     
     // Default memory boundaries
     let min_memory = 1024;  // Minimum 1GB
-    let max_memory = match system_memory.read().as_ref() {
-        Some(total_memory) => {
-            // Cap at 8GB or 70% of system memory, whichever is less
-            let max_allowed = 8 * 1024; // 8GB in MB
-            let seventy_percent = (total_memory * 70) / 100;
-            
-            std::cmp::min(max_allowed, seventy_percent)
-        },
-        None => 8 * 1024, // Default to 8GB max if we can't detect system memory
-    };
+    let max_memory = use_memo(move || {
+        match *system_memory.read() {
+            Some(total_memory) => {
+                // Cap at 8GB or 70% of system memory, whichever is less
+                let max_allowed = 8 * 1024; // 8GB in MB
+                let seventy_percent = (total_memory * 70) / 100;
+                
+                std::cmp::min(max_allowed, seventy_percent)
+            },
+            None => 8 * 1024, // Default to 8GB max if we can't detect system memory
+        }
+    });
     
     let step = 512; // 512MB steps
     
@@ -108,18 +112,20 @@ pub fn PerformanceTab(
     ];
     
     // Memory recommendations based on system memory
-    let recommended_memory = match system_memory.read().as_ref() {
-        Some(total_memory) => {
-            // Recommend about half of system memory, but max 6GB
-            let half_memory = total_memory / 2;
-            std::cmp::min(6 * 1024, half_memory)
-        },
-        None => 4096, // Default to 4GB if we can't detect
-    };
+    let recommended_memory = use_memo(move || {
+        match *system_memory.read() {
+            Some(total_memory) => {
+                // Recommend about half of system memory, but max 6GB
+                let half_memory = total_memory / 2;
+                std::cmp::min(6 * 1024, half_memory)
+            },
+            None => 4096, // Default to 4GB if we can't detect
+        }
+    });
     
     // Format system memory for display
-    let system_memory_display = match system_memory.read().as_ref() {
-        Some(mem) => format_memory_display(*mem),
+    let system_memory_display = match *system_memory.read() {
+        Some(mem) => format_memory_display(mem),
         None => "Unknown".to_string(),
     };
     
@@ -155,13 +161,29 @@ pub fn PerformanceTab(
         
         // Hide success message after 3 seconds
         spawn(async move {
-            async_std::task::sleep(std::time::Duration::from_secs(3)).await;
+            tokio_sleep(Duration::from_secs(3)).await;
             success_signal.set(false);
         });
     };
     
     // Calculate if memory has been changed from original
     let memory_changed = *memory_allocation.read() != *original_memory.read();
+    
+    // Calculate percentage of system memory if available
+    let memory_percentage = match *system_memory.read() {
+        Some(sys_mem) if sys_mem > 0 => {
+            Some((*memory_allocation.read() as f32 / sys_mem as f32) * 100.0)
+        },
+        _ => None
+    };
+    
+    // Calculate recommended memory percentage if available
+    let recommended_percentage = match *system_memory.read() {
+        Some(sys_mem) if sys_mem > 0 => {
+            Some((*recommended_memory.read() as f32 / sys_mem as f32) * 100.0)
+        },
+        _ => None
+    };
     
     rsx! {
         div { class: "performance-tab",
@@ -183,9 +205,8 @@ pub fn PerformanceTab(
                     span { class: "memory-value", "{format_memory_display(*memory_allocation.read())}" }
                     
                     // Show percentage of system memory if available
-                    if let Some(sys_mem) = system_memory.read().as_ref() {
+                    if let Some(percentage) = memory_percentage {
                         {
-                            let percentage = (*memory_allocation.read() as f32 / *sys_mem as f32) * 100.0;
                             rsx! {
                                 span { class: "memory-percentage", " ({percentage:.1}% of system memory)" }
                             }
@@ -198,7 +219,7 @@ pub fn PerformanceTab(
                     input {
                         r#type: "range",
                         min: "{min_memory}",
-                        max: "{max_memory}",
+                        max: "{*max_memory.read()}",
                         step: "{step}",
                         value: "{*memory_allocation.read()}",
                         oninput: move |evt| {
@@ -215,7 +236,7 @@ pub fn PerformanceTab(
                             if value <= *max_memory.read() {
                                 div { 
                                     class: "memory-marker",
-                                    style: "position: absolute; left: calc(0% + ({value - min_memory} as f32 / ({max_memory} - {min_memory}) as f32 * 100.0)%)",
+                                    style: "position: absolute; left: calc(0% + ({(value - min_memory) as f32 / (*max_memory.read() - min_memory) as f32 * 100.0}%))",
                                     "{label}"
                                 }
                             }
@@ -244,14 +265,15 @@ pub fn PerformanceTab(
                 
                 p { class: "memory-recommendation",
                     if system_memory.read().is_some() {
-                        {format!("Recommended: {} ({} of your system memory)", 
-                            format_memory_display(recommended_memory), 
-                            if *system_memory.read().as_ref().unwrap() > 0 {
-                                format!("~{}%", (recommended_memory as f32 / *system_memory.read().as_ref().unwrap() as f32 * 100.0) as i32)
+                        {
+                            let rec_text = format!("Recommended: {}", format_memory_display(*recommended_memory.read()));
+                            
+                            if let Some(percentage) = recommended_percentage {
+                                format!("{} (~{}% of your system memory)", rec_text, percentage as i32)
                             } else {
-                                "N/A".to_string()
+                                rec_text
                             }
-                        )}
+                        }
                     } else {
                         "Recommended: 4GB for most situations"
                     }
