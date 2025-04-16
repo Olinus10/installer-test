@@ -1115,7 +1115,8 @@
           "name": "FlashyReese",
           "link": "https://modrinth.com/user/FlashyReese"
         }
-      ]
+      ],
+      "dependencies": ["sodium"]
     },
     {
       "id": "sound-physics-remastered",
