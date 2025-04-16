@@ -836,7 +836,7 @@
       "version": "1.9.1",
       "optional": true,
       "default_enabled": false,
-      "category": "PLAYER",
+      "category": "ANIMATIONS",
       "authors": [
         {
           "name": "tr7zw",
