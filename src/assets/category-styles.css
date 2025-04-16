@@ -37,24 +37,32 @@
     animation-delay: calc(var(--index, 0) * 0.05s);
 }
 
-/* ENTIRE HEADER IS CLICKABLE */
+/* Fix category headers */
 .category-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    padding: 15px 50px 15px 15px; /* Add more padding on the right for the toggle indicator */
     cursor: pointer;
-    padding-right: 40px;
+    position: relative;
+    width: 100%;
+    box-sizing: border-box;
 }
 
 .category-title-section {
     display: flex;
     align-items: center;
     gap: 10px;
+    flex-grow: 1;
+    overflow: hidden;
 }
 
 .category-name {
     margin: 0;
     font-size: 1.2rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .category-count {
@@ -62,6 +70,7 @@
     padding: 3px 8px;
     border-radius: 20px;
     font-size: 0.8rem;
+    flex-shrink: 0;
 }
 
 /* Enhanced category toggle-all button */
@@ -105,26 +114,28 @@
     background-color: rgba(217, 82, 72, 0.8);
 }
 
-/* Category toggle indicators */
+
 .category-toggle-indicator {
-    width: 36px;
-    height: 36px;
+    position: absolute;
+    right: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 32px;
+    height: 32px;
     display: flex;
     justify-content: center;
     align-items: center;
     background-color: rgba(0, 0, 0, 0.4);
     border-radius: 50%;
     font-size: 18px;
-    transition: all 0.3s ease;
+    transition: transform 0.3s ease;
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    z-index: 2;
 }
 
 .category-toggle-indicator.expanded {
-    transform: rotate(180deg);
-    background-color: rgba(7, 60, 23, 0.3);
+    transform: translateY(-50%) rotate(180deg);
 }
-
 
 /* Category content animation */
 .category-content {
