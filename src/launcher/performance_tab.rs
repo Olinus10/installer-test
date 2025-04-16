@@ -88,12 +88,12 @@ pub fn PerformanceTab(
     
     // Default memory boundaries
     let min_memory = 1024;  // Minimum 1GB
-    let mut max_memory = use_signal(|| 8 * 1024); // Default 8GB max
+    let max_memory = use_signal(|| 8 * 1024); // Default 8GB max
     
     // Update max memory when system memory is available
     use_effect({
         let detected_memory = detected_memory.clone();
-        let max_memory = max_memory.clone();
+        let mut max_memory = max_memory.clone();
         
         move || {
             if let Some(mem) = *detected_memory.read() {
@@ -122,12 +122,12 @@ pub fn PerformanceTab(
     ];
     
     // Recommended memory based on system memory
-    let mut recommended_memory = use_signal(|| 4096); // Default 4GB
+    let recommended_memory = use_signal(|| 4096); // Default 4GB
     
     // Update recommended memory when system memory is available
     use_effect({
         let detected_memory = detected_memory.clone();
-        let recommended_memory = recommended_memory.clone();
+        let mut recommended_memory = recommended_memory.clone();
         
         move || {
             if let Some(mem) = *detected_memory.read() {
