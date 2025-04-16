@@ -549,10 +549,7 @@ fn HomePage(
             
             if has_installations {
                 // Regular home page with installations
-                // Welcome header
-                div { class: "welcome-header",
-                    h1 { "Welcome to Wynncraft Overhaul" }
-                }
+
                 
                 // Statistics display
                 StatisticsDisplay {}
@@ -632,7 +629,7 @@ fn HomePage(
             } else {
                 // First-time user experience
                 div { class: "welcome-container first-time",
-                    h1 { "Welcome to Wynncraft Overhaul" }
+                    h1 { "Welcome to the MAJESTIC OVERHAUL" }
                     p { "Enhance your Wynncraft experience with optimized performance and improved visuals." }
                     
                     // Statistics for first-time users too
