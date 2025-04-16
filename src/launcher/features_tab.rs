@@ -37,17 +37,21 @@ pub fn FeaturesTab(
         // Clear selected preset when features are manually changed
         selected_preset.set(None);
     };
+    
+    // Button hover states
     let mut custom_button_hover = use_signal(|| false);
     let mut trending_button_hover = use_signal(Vec::<String>::new);
     let mut regular_button_hover = use_signal(Vec::<String>::new);
-
+    
+    // Features section expanded state
+    let mut features_expanded = use_signal(|| true); // Default to expanded
     
     // Find custom preset for the "Custom Configuration" card
     let custom_preset = presets.iter().find(|p| p.id == "custom");
     
     rsx! {
         div { class: "features-tab",
-            // Simplified PRESETS section header
+            // PRESETS section header
             div { class: "section-divider with-title", 
                 span { class: "divider-title", "PRESETS" }
             }
@@ -56,237 +60,298 @@ pub fn FeaturesTab(
                 "Choose a preset configuration or customize individual features below."
             }
             
+            // Presets grid
             div { class: "presets-grid",
-                // Custom preset (no preset)
-div { 
-    class: if selected_preset.read().is_none() {
-        "preset-card selected"
-    } else {
-        "preset-card"
-    },
-    // Apply custom preset background if available
-    style: if let Some(preset) = custom_preset {
-        if let Some(bg) = &preset.background {
-            format!("background-image: url('{}'); background-size: cover; background-position: center;", bg)
-        } else {
-            String::new()
-        }
-    } else {
-        String::new()
-    },
-    onclick: move |_| {
-        selected_preset.set(None);
-    },
-    
-    div { class: "preset-card-overlay" }
-    
-    // Feature count badge in top right
-      // span { class: "preset-features-count",
-    //       "{enabled_features.read().len()} features selected"
-   //    }
-    
-    div { class: "preset-card-content",
-        h4 { "CUSTOM OVERHAUL" }
-        p { "Start with your current selection and customize everything yourself." }
-    }
-    
-    // Select/Selected button with direct inline styling
-    {
-        let is_selected = selected_preset.read().is_none();
-        
-        rsx! {
-            button {
-        class: "select-preset-button",
-        style: {
-            let is_selected = selected_preset.read().is_none();
-            let is_hovered = *custom_button_hover.read();
-            
-            if is_selected {
-                // Selected state - white with green text
-                "background-color: white !important; color: #0a3d16 !important; border: none !important;"
-            } else if is_hovered {
-                // Hover state - brighter green with lift effect
-                "background-color: rgba(10, 80, 30, 0.9) !important; color: white !important; transform: translateX(-50%) translateY(-3px) !important; box-shadow: 0 5px 15px rgba(0, 0, 0, 0.4) !important;"
-            } else {
-                // Normal state - green
-                "background-color: rgba(7, 60, 23, 0.7) !important; color: white !important;"
-            }
-        },
-        onmouseenter: move |_| custom_button_hover.set(true),
-        onmouseleave: move |_| custom_button_hover.set(false),
-        
-        if selected_preset.read().is_none() {
-            "SELECTED"
-        } else {
-                    "SELECT"
+                // Custom preset (no preset selected)
+                div { 
+                    class: if selected_preset.read().is_none() {
+                        "preset-card selected"
+                    } else {
+                        "preset-card"
+                    },
+                    // Apply custom preset background if available
+                    style: if let Some(preset) = custom_preset {
+                        if let Some(bg) = &preset.background {
+                            format!("background-image: url('{}'); background-size: cover; background-position: center;", bg)
+                        } else {
+                            String::new()
+                        }
+                    } else {
+                        String::new()
+                    },
+                    onclick: move |_| {
+                        selected_preset.set(None);
+                    },
+                    
+                    div { class: "preset-card-overlay" }
+                    
+                    // Feature count badge in top right
+                    span { class: "preset-features-count",
+                        "{enabled_features.read().len()} features selected"
+                    }
+                    
+                    div { class: "preset-card-content",
+                        h4 { "CUSTOM OVERHAUL" }
+                        p { "Start with your current selection and customize everything yourself." }
+                    }
+                    
+                    // Select/Selected button
+                    {
+                        let is_selected = selected_preset.read().is_none();
+                        
+                        rsx! {
+                            button {
+                                class: "select-preset-button",
+                                style: {
+                                    let is_selected = selected_preset.read().is_none();
+                                    let is_hovered = *custom_button_hover.read();
+                                    
+                                    if is_selected {
+                                        // Selected state - white with green text
+                                        "background-color: white !important; color: #0a3d16 !important; border: none !important;"
+                                    } else if is_hovered {
+                                        // Hover state - brighter green with lift effect
+                                        "background-color: rgba(10, 80, 30, 0.9) !important; color: white !important; transform: translateX(-50%) translateY(-3px) !important; box-shadow: 0 5px 15px rgba(0, 0, 0, 0.4) !important;"
+                                    } else {
+                                        // Normal state - green
+                                        "background-color: rgba(7, 60, 23, 0.7) !important; color: white !important;"
+                                    }
+                                },
+                                onmouseenter: move |_| custom_button_hover.set(true),
+                                onmouseleave: move |_| custom_button_hover.set(false),
+                                
+                                if is_selected {
+                                    "SELECTED"
+                                } else {
+                                    "SELECT"
+                                }
+                            }
+                        }
+                    }
                 }
-            }
-        }
-    }
-}
                 
                 // Available presets - skip the "custom" preset since we handle it separately
-for preset in presets.iter().filter(|p| p.id != "custom") {
-    {
-        let preset_id = preset.id.clone();
-        let is_selected = selected_preset.read().as_ref().map_or(false, |id| id == &preset_id);
-        let mut apply_preset_clone = apply_preset.clone();
-        let has_trending = preset.trending.unwrap_or(false);
-        
-        // Track if this specific button is being hovered
-        let button_id = preset_id.clone();
-        let is_button_hovered = if has_trending {
-            trending_button_hover.read().contains(&button_id)
-        } else {
-            regular_button_hover.read().contains(&button_id)
-        };
-        
-        rsx! {
-            div {
-                class: if is_selected {
-                    "preset-card selected"
-                } else {
-                    "preset-card"
-                },
-                // Apply background if available
-                style: if let Some(bg) = &preset.background {
-                    format!("background-image: url('{}'); background-size: cover; background-position: center;", bg)
-                } else {
-                    String::new()
-                },
-                onclick: move |_| {
-                    apply_preset_clone(preset_id.clone());
-                },
-                
-                // Feature count badge in top right
-                span { class: "preset-features-count",
-                    "{preset.enabled_features.len()} features"
-                }
-                
-                // Trending badge in top left
-                if has_trending {
-                    span { class: "trending-badge", "Popular" }
-                }
-                
-                // Dark overlay for text readability
-                div { class: "preset-card-overlay" }
-                
-                div { class: "preset-card-content",
-                    h4 { "{preset.name}" }
-                    p { "{preset.description}" }
-                }
-                
-                // Select/Selected button with comprehensive inline styling
-                button {
-                    class: "select-preset-button",
-                    style: {
-                        if is_selected {
-                            if has_trending {
-                                "background-color: white !important; color: #b58c14 !important; border: none !important; box-shadow: 0 0 15px rgba(255, 179, 0, 0.3) !important;"
-                            } else {
-                                "background-color: white !important; color: #0a3d16 !important; border: none !important;"
-                            }
-                        } else if is_button_hovered {
-                            if has_trending {
-                                "background: linear-gradient(135deg, #e6b017, #cc9500) !important; color: black !important; transform: translateX(-50%) translateY(-3px) !important; box-shadow: 0 5px 15px rgba(0, 0, 0, 0.4) !important;"
-                            } else {
-                                "background-color: rgba(10, 80, 30, 0.9) !important; color: white !important; transform: translateX(-50%) translateY(-3px) !important; box-shadow: 0 5px 15px rgba(0, 0, 0, 0.4) !important;"
-                            }
+                for preset in presets.iter().filter(|p| p.id != "custom") {
+                    {
+                        let preset_id = preset.id.clone();
+                        let is_selected = selected_preset.read().as_ref().map_or(false, |id| id == &preset_id);
+                        let mut apply_preset_clone = apply_preset.clone();
+                        let has_trending = preset.trending.unwrap_or(false);
+                        
+                        // Track if this specific button is being hovered
+                        let button_id = preset_id.clone();
+                        let is_button_hovered = if has_trending {
+                            trending_button_hover.read().contains(&button_id)
                         } else {
-                            if has_trending {
-                                "background: linear-gradient(135deg, #d4a017, #b78500) !important; color: black !important;"
-                            } else {
-                                "background-color: rgba(7, 60, 23, 0.7) !important; color: white !important;"
+                            regular_button_hover.read().contains(&button_id)
+                        };
+                        
+                        rsx! {
+                            div {
+                                class: if is_selected {
+                                    "preset-card selected"
+                                } else {
+                                    "preset-card"
+                                },
+                                // Apply background if available
+                                style: if let Some(bg) = &preset.background {
+                                    format!("background-image: url('{}'); background-size: cover; background-position: center;", bg)
+                                } else {
+                                    String::new()
+                                },
+                                onclick: move |_| {
+                                    apply_preset_clone(preset_id.clone());
+                                },
+                                
+                                // Feature count badge in top right
+                                span { class: "preset-features-count",
+                                    "{preset.enabled_features.len()} features"
+                                }
+                                
+                                // Trending badge in top left
+                                if has_trending {
+                                    span { class: "trending-badge", "Popular" }
+                                }
+                                
+                                // Dark overlay for text readability
+                                div { class: "preset-card-overlay" }
+                                
+                                div { class: "preset-card-content",
+                                    h4 { "{preset.name}" }
+                                    p { "{preset.description}" }
+                                }
+                                
+                                // Select/Selected button with comprehensive inline styling
+                                button {
+                                    class: "select-preset-button",
+                                    style: {
+                                        if is_selected {
+                                            if has_trending {
+                                                "background-color: white !important; color: #b58c14 !important; border: none !important; box-shadow: 0 0 15px rgba(255, 179, 0, 0.3) !important;"
+                                            } else {
+                                                "background-color: white !important; color: #0a3d16 !important; border: none !important;"
+                                            }
+                                        } else if is_button_hovered {
+                                            if has_trending {
+                                                "background: linear-gradient(135deg, #e6b017, #cc9500) !important; color: black !important; transform: translateX(-50%) translateY(-3px) !important; box-shadow: 0 5px 15px rgba(0, 0, 0, 0.4) !important;"
+                                            } else {
+                                                "background-color: rgba(10, 80, 30, 0.9) !important; color: white !important; transform: translateX(-50%) translateY(-3px) !important; box-shadow: 0 5px 15px rgba(0, 0, 0, 0.4) !important;"
+                                            }
+                                        } else {
+                                            if has_trending {
+                                                "background: linear-gradient(135deg, #d4a017, #b78500) !important; color: black !important;"
+                                            } else {
+                                                "background-color: rgba(7, 60, 23, 0.7) !important; color: white !important;"
+                                            }
+                                        }
+                                    },
+                                    // Clone the button_id for each closure
+                                    onmouseenter: {
+                                        let button_id_enter = button_id.clone();
+                                        let has_trending_enter = has_trending;
+                                        move |_| {
+                                            if has_trending_enter {
+                                                trending_button_hover.with_mut(|ids| ids.push(button_id_enter.clone()));
+                                            } else {
+                                                regular_button_hover.with_mut(|ids| ids.push(button_id_enter.clone()));
+                                            }
+                                        }
+                                    },
+                                    onmouseleave: {
+                                        let button_id_leave = button_id.clone();
+                                        let has_trending_leave = has_trending;
+                                        move |_| {
+                                            if has_trending_leave {
+                                                trending_button_hover.with_mut(|ids| ids.retain(|id| id != &button_id_leave));
+                                            } else {
+                                                regular_button_hover.with_mut(|ids| ids.retain(|id| id != &button_id_leave));
+                                            }
+                                        }
+                                    },
+                                    
+                                    if is_selected {
+                                        "SELECTED"
+                                    } else {
+                                        "SELECT"
+                                    }
+                                }
                             }
                         }
-                    },
-                    // Clone the button_id for each closure
-                    onmouseenter: {
-                        let button_id_enter = button_id.clone();
-                        let has_trending_enter = has_trending;
-                        move |_| {
-                            if has_trending_enter {
-                                trending_button_hover.with_mut(|ids| ids.push(button_id_enter.clone()));
-                            } else {
-                                regular_button_hover.with_mut(|ids| ids.push(button_id_enter.clone()));
-                            }
-                        }
-                    },
-                    onmouseleave: {
-                        let button_id_leave = button_id.clone();
-                        let has_trending_leave = has_trending;
-                        move |_| {
-                            if has_trending_leave {
-                                trending_button_hover.with_mut(|ids| ids.retain(|id| id != &button_id_leave));
-                            } else {
-                                regular_button_hover.with_mut(|ids| ids.retain(|id| id != &button_id_leave));
-                            }
-                        }
-                    },
-                    
-                    if is_selected {
-                        "SELECTED"
-                    } else {
-                        "SELECT"
                     }
                 }
             }
-        }
-    }
-}
-}            
-            // Add search filter - right before optional features
-            div { class: "feature-filter-container",
-                span { class: "feature-filter-icon", "🔍" }
-                input {
-                    class: "feature-filter",
-                    placeholder: "Search for features...",
-                    value: "{filter_text}",
-                    oninput: move |evt| filter_text.set(evt.value().clone()),
+
+            // FEATURES section
+            div { class: "optional-features-wrapper",
+                // Section header with divider style
+                div { class: "section-divider with-title", 
+                    span { class: "divider-title", "FEATURES" }
                 }
                 
-                if !filter_text.read().is_empty() {
-                    button {
-                        class: "feature-filter-clear",
-                        onclick: move |_| filter_text.set(String::new()),
-                        "×"
+                // Description for features section
+                p { class: "section-description", 
+                    "Customize individual features to create your perfect experience."
+                }
+                
+                // Add search filter at the top
+                div { class: "feature-filter-container",
+                    span { class: "feature-filter-icon", "🔍" }
+                    input {
+                        class: "feature-filter",
+                        placeholder: "Search for features...",
+                        value: "{filter_text}",
+                        oninput: move |evt| filter_text.set(evt.value().clone()),
+                    }
+                    
+                    if !filter_text.read().is_empty() {
+                        button {
+                            class: "feature-filter-clear",
+                            onclick: move |_| filter_text.set(String::new()),
+                            "×"
+                        }
                     }
                 }
-            }
-             
-            // Features content - only render if we have a universal manifest
-            {
-                if let Some(manifest) = &universal_manifest {
-                    // Get all optional mods
-                    let optional_mods: Vec<ModComponent> = manifest.mods.iter()
-                        .filter(|m| m.optional)
-                        .cloned()
-                        .collect();
+                
+                // Features count badge
+                div { class: "features-count-container",
+                    span { class: "features-count-badge",
+                        if let Some(manifest) = &universal_manifest {
+                            let total_features = manifest.mods.iter().chain(
+                                manifest.shaderpacks.iter()).chain(
+                                manifest.resourcepacks.iter())
+                                .filter(|m| m.optional).count();
+                                
+                            let enabled_count = enabled_features.read().len();
+                            
+                            rsx! { "{enabled_count}/{total_features} features enabled" }
+                        } else {
+                            rsx! { "Loading features..." }
+                        }
+                    }
+                }
+                
+                // Centered expand/collapse button with improved styling
+                button { 
+                    class: "expand-collapse-button",
+                    onclick: move |_| {
+                        let current_expanded = *features_expanded.read();
+                        features_expanded.set(!current_expanded);
+                    },
                     
-                    // Get all optional shaderpacks and resourcepacks too
-                    let optional_shaderpacks: Vec<ModComponent> = manifest.shaderpacks.iter()
-                        .filter(|m| m.optional)
-                        .cloned()
-                        .collect();
+                    // Icon and text change based on state
+                    if *features_expanded.read() {
+                        // Collapse state
+                        span { class: "button-icon collapse-icon", "▲" }
+                        "Collapse Features"
+                    } else {
+                        // Expand state
+                        span { class: "button-icon expand-icon", "▼" }
+                        "Expand Features"
+                    }
+                }
+                
+                // Features content - only render if we have a universal manifest
+                div { 
+                    class: if *features_expanded.read() {
+                        "optional-features-content expanded"
+                    } else {
+                        "optional-features-content"
+                    },
                     
-                    let optional_resourcepacks: Vec<ModComponent> = manifest.resourcepacks.iter()
-                        .filter(|m| m.optional)
-                        .cloned()
-                        .collect();
-                    
-                    // Combine all optional components
-                    let mut all_components = Vec::new();
-                    all_components.extend(optional_mods);
-                    all_components.extend(optional_shaderpacks);
-                    all_components.extend(optional_resourcepacks);
-                    
-                    // Display features by category
-                    render_features_by_category(all_components, enabled_features.clone(), filter_text.clone(), toggle_feature)
-                } else {
-                    rsx! {
-                        div { class: "loading-container",
-                            div { class: "loading-spinner" }
-                            div { class: "loading-text", "Loading features..." }
+                    {
+                        if let Some(manifest) = &universal_manifest {
+                            // Get all optional mods
+                            let optional_mods: Vec<ModComponent> = manifest.mods.iter()
+                                .filter(|m| m.optional)
+                                .cloned()
+                                .collect();
+                            
+                            // Get all optional shaderpacks and resourcepacks too
+                            let optional_shaderpacks: Vec<ModComponent> = manifest.shaderpacks.iter()
+                                .filter(|m| m.optional)
+                                .cloned()
+                                .collect();
+                            
+                            let optional_resourcepacks: Vec<ModComponent> = manifest.resourcepacks.iter()
+                                .filter(|m| m.optional)
+                                .cloned()
+                                .collect();
+                            
+                            // Combine all optional components
+                            let mut all_components = Vec::new();
+                            all_components.extend(optional_mods);
+                            all_components.extend(optional_shaderpacks);
+                            all_components.extend(optional_resourcepacks);
+                            
+                            // Display features by category
+                            render_features_by_category(all_components, enabled_features.clone(), filter_text.clone(), toggle_feature)
+                        } else {
+                            rsx! {
+                                div { class: "loading-container",
+                                    div { class: "loading-spinner" }
+                                    div { class: "loading-text", "Loading features..." }
+                                }
+                            }
                         }
                     }
                 }
@@ -327,9 +392,6 @@ fn render_features_by_category(
     // Create a signal to track expanded categories
     let mut expanded_categories = use_signal(|| Vec::<String>::new());
     
-    // Track if optional features section is expanded
-    let mut features_expanded = use_signal(|| false); // Default to expanded
-
     // Check if no results match the filter
     let no_results = categories.is_empty() && !filter.is_empty();
     
@@ -349,240 +411,179 @@ fn render_features_by_category(
         };
     }
     
-    // Render with collapsible wrapper
+    // Render categories
     rsx! {
-        div { class: "optional-features-wrapper",
-            // Section header with divider style
-            div { class: "section-divider with-title", 
-    span { class: "divider-title", "FEATURES" }
-}
-
-// Description first
-p { class: "optional-features-description",
-    "Customize individual features to create your perfect experience."
-}
-
-// Then features count badge
-div { class: "features-count-container",
-    span { class: "features-count-badge",
-        "{enabled_count}/{total_features} features enabled"
-    }
-}
-            
-            // Centered expand/collapse button
-            button { 
-                class: "expand-collapse-button",
-                onclick: move |_| {
-                    let current_expanded = *features_expanded.read();
-                    features_expanded.set(!current_expanded);
-                },
-                
-                // Icon and text change based on state
-                if *features_expanded.read() {
-                    // Collapse state
-                    span { class: "button-icon collapse-icon", "▲" }
-                    "Collapse Features"
-                } else {
-                    // Expand state
-                    span { class: "button-icon expand-icon", "▼" }
-                    "Expand Features"
-                }
-            }
-            
-            // Collapsible content with all categories
-            div { 
-                class: if *features_expanded.read() {
-                    "optional-features-content expanded"
-                } else {
-                    "optional-features-content"
-                },
-                
-                // Render categories
-                div { class: "feature-categories",
-                    for (category_name, components) in categories {
-                        {
-                            let category_key = category_name.clone();
-                            let is_expanded = expanded_categories.read().contains(&category_key) 
-                                          || filter.is_empty() == false; // Auto-expand when filtering
-                            
-                            // Calculate how many components are enabled
-                            let enabled_count = enabled_features.read().iter()
-                                .filter(|id| components.iter().any(|comp| &comp.id == *id))
-                                .count();
-                            
-                            let are_all_enabled = enabled_count == components.len();
-                            
-                            rsx! {
-                                div { class: "feature-category",
-                                    // Category header - ENTIRE HEADER IS CLICKABLE
-                                    div { 
-                                        class: "category-header",
-                                        onclick: {
-                                            let category_key = category_key.clone();
-                                            move |_| {
-                                                expanded_categories.with_mut(|cats| {
-                                                    if cats.contains(&category_key) {
-                                                        cats.retain(|c| c != &category_key);
+        div { class: "feature-categories",
+            for (category_name, components) in categories {
+                {
+                    let category_key = category_name.clone();
+                    let is_expanded = expanded_categories.read().contains(&category_key) 
+                                 || filter.is_empty() == false; // Auto-expand when filtering
+                    
+                    // Calculate how many components are enabled
+                    let enabled_count = enabled_features.read().iter()
+                        .filter(|id| components.iter().any(|comp| &comp.id == *id))
+                        .count();
+                    
+                    let are_all_enabled = enabled_count == components.len();
+                    
+                    rsx! {
+                        div { class: "feature-category",
+                            // Category header - ENTIRE HEADER IS CLICKABLE
+                            div { 
+                                class: "category-header",
+                                onclick: {
+                                    let category_key = category_key.clone();
+                                    move |_| {
+                                        expanded_categories.with_mut(|cats| {
+                                            if cats.contains(&category_key) {
+                                                cats.retain(|c| c != &category_key);
+                                            } else {
+                                                cats.push(category_key.clone());
+                                            }
+                                        });
+                                    }
+                                },
+                                
+                                div { class: "category-title-section",
+                                    h3 { class: "category-name", "{category_name}" }
+                                    span { class: "category-count", "{enabled_count}/{components.len()}" }
+                                }
+                                
+                                // Toggle all button - has separate click handler
+                                {
+                                    let components_clone = components.clone();
+                                    let mut enabled_features = enabled_features.clone();
+                                    
+                                    rsx! {
+                                        button {
+                                            class: if are_all_enabled {
+                                                "category-toggle-all toggle-disable"
+                                            } else {
+                                                "category-toggle-all toggle-enable"
+                                            },
+                                            onclick: move |evt| {
+                                                // Stop propagation to prevent header's click handler
+                                                evt.stop_propagation();
+                                                
+                                                // Toggle all in category
+                                                enabled_features.with_mut(|features| {
+                                                    if are_all_enabled {
+                                                        // Disable all
+                                                        for comp in &components_clone {
+                                                            features.retain(|id| id != &comp.id);
+                                                        }
                                                     } else {
-                                                        cats.push(category_key.clone());
+                                                        // Enable all
+                                                        for comp in &components_clone {
+                                                            if !features.contains(&comp.id) {
+                                                                features.push(comp.id.clone());
+                                                            }
+                                                        }
                                                     }
                                                 });
-                                            }
-                                        },
-                                        
-                                        div { class: "category-title-section",
-                                            h3 { class: "category-name", "{category_name}" }
-                                            span { class: "category-count", "{enabled_count}/{components.len()}" }
-                                        }
-                                        
-                                        // Toggle all button - has separate click handler
-                                        {
-                                            let components_clone = components.clone();
-                                            let mut enabled_features = enabled_features.clone();
-                                            
-                                            rsx! {
-                                                button {
-                                                    class: if are_all_enabled {
-                                                        "category-toggle-all toggle-disable"
-                                                    } else {
-                                                        "category-toggle-all toggle-enable"
-                                                    },
-                                                    onclick: move |evt| {
-                                                        // Stop propagation to prevent header's click handler
-                                                        evt.stop_propagation();
-                                                        
-                                                        // Toggle all in category
-                                                        enabled_features.with_mut(|features| {
-                                                            if are_all_enabled {
-                                                                // Disable all
-                                                                for comp in &components_clone {
-                                                                    features.retain(|id| id != &comp.id);
-                                                                }
-                                                            } else {
-                                                                // Enable all
-                                                                for comp in &components_clone {
-                                                                    if !features.contains(&comp.id) {
-                                                                        features.push(comp.id.clone());
-                                                                    }
-                                                                }
-                                                            }
-                                                        });
-                                                    },
-                                                    
-                                                    if are_all_enabled {
-                                                        "Disable All" // User will disable all when clicked
-                                                    } else if enabled_count > 0 {
-                                                        "Enable All" // User will enable all when clicked
-                                                    } else {
-                                                        "Enable All" // User will enable all when clicked
-                                                    }
-                                                }
-                                            }
-                                        }
-                                        
-                                        // Expand/collapse indicator - larger, more visible
-                                        div { 
-                                            class: if is_expanded {
-                                                "category-toggle-indicator expanded"
-                                            } else {
-                                                "category-toggle-indicator"
                                             },
-                                            "▼"
+                                            
+                                            if are_all_enabled {
+                                                "Disable All" // User will disable all when clicked
+                                            } else if enabled_count > 0 {
+                                                "Enable All" // User will enable all when clicked
+                                            } else {
+                                                "Enable All" // User will enable all when clicked
+                                            }
                                         }
                                     }
-                                    
-                                    // Category content (expandable)
-                                    div { 
-                                        class: if is_expanded {
-                                            "category-content expanded"
-                                        } else {
-                                            "category-content"
-                                        },
-                                        
-                                        // Feature cards grid
-                                        div { class: "feature-cards-grid",
-                                            for component in components {
-                                                {
-                                                    let component_id = component.id.clone();
-                                                    let is_enabled = enabled_features.read().contains(&component_id);
-                                                    let mut toggle_func = toggle_feature.clone();
+                                }
+                                
+                                // Expand/collapse indicator - larger, more visible
+                                div { 
+                                    class: if is_expanded {
+                                        "category-toggle-indicator expanded"
+                                    } else {
+                                        "category-toggle-indicator"
+                                    },
+                                    "▼"
+                                }
+                            }
+                            
+                            // Category content (expandable)
+                            div { 
+                                class: if is_expanded {
+                                    "category-content expanded"
+                                } else {
+                                    "category-content"
+                                },
+                                
+                                // Feature cards grid
+                                div { class: "feature-cards-grid",
+                                    for component in components {
+                                        {
+                                            let component_id = component.id.clone();
+                                            let is_enabled = enabled_features.read().contains(&component_id);
+                                            let mut toggle_func = toggle_feature.clone();
+                                            
+                                            rsx! {
+                                                div { 
+                                                    class: if is_enabled {
+                                                        "feature-card feature-enabled"
+                                                    } else {
+                                                        "feature-card feature-disabled"
+                                                    },
                                                     
-                                                    rsx! {
-                                                        div { 
+                                                    div { class: "feature-card-header",
+                                                        h3 { class: "feature-card-title", "{component.name}" }
+                                                        
+                                                        label {
                                                             class: if is_enabled {
-                                                                "feature-card feature-enabled"
+                                                                "feature-toggle-button enabled"
                                                             } else {
-                                                                "feature-card feature-disabled"
+                                                                "feature-toggle-button disabled"
+                                                            },
+                                                            onclick: move |_| {
+                                                                toggle_func(component_id.clone());
                                                             },
                                                             
-                                                            div { class: "feature-card-header",
-                                                                h3 { class: "feature-card-title", "{component.name}" }
-                                                                
-                                                                label {
-                                                                    class: if is_enabled {
-                                                                        "feature-toggle-button enabled"
-                                                                    } else {
-                                                                        "feature-toggle-button disabled"
-                                                                    },
-                                                                    onclick: move |_| {
-                                                                        toggle_func(component_id.clone());
-                                                                    },
-                                                                    
-                                                                    if is_enabled {
-                                                                        "Enabled"
-                                                                    } else {
-                                                                        "Disabled"
-                                                                    }
+                                                            if is_enabled {
+                                                                "Enabled"
+                                                            } else {
+                                                                "Disabled"
+                                                            }
+                                                        }
+                                                    }
+                                                    
+                                                    // Description display
+                                                    if let Some(description) = &component.description {
+                                                        div { class: "feature-card-description", "{description}" }
+                                                    }
+                                                    
+                                                    // Dependencies display
+                                                    if let Some(deps) = &component.dependencies {
+                                                        if !deps.is_empty() {
+                                                            div { class: "feature-dependencies",
+                                                                "Requires: ", 
+                                                                span { class: "dependency-list", 
+                                                                    {deps.join(", ")}
                                                                 }
                                                             }
-                                                            
-                                                            // Description display
-                                                            if let Some(description) = &component.description {
-                                                                div { class: "feature-card-description", "{description}" }
-                                                            }
-                                                            
-                                                            // Dependencies display
-                                                            if let Some(deps) = &component.dependencies {
-                                                                if !deps.is_empty() {
-                                                                    div { class: "feature-dependencies",
-                                                                        "Requires: ", 
-                                                                        span { class: "dependency-list", 
-                                                                            {deps.join(", ")}
+                                                        }
+                                                    }
+                                                    
+                                                    // Authors display
+                                                    if !component.authors.is_empty() {
+                                                        div { class: "feature-authors",
+                                                            "By: ",
+                                                            for (i, author) in component.authors.iter().enumerate() {
+                                                                {
+                                                                    let is_last = i == component.authors.len() - 1;
+                                                                    rsx! {
+                                                                        a {
+                                                                            class: "author-link",
+                                                                            href: "{author.link}",
+                                                                            target: "_blank",
+                                                                            "{author.name}"
                                                                         }
-                                                                    }
-                                                                }
-                                                            }
-                                                            
-                                                            // Incompatibilities display
-                                                            if let Some(incompats) = &component.incompatibilities {
-                                                                if !incompats.is_empty() {
-                                                                    div { class: "feature-incompatibilities",
-                                                                        "Conflicts with: ", 
-                                                                        span { class: "incompatibility-list", 
-                                                                            {incompats.join(", ")}
-                                                                        }
-                                                                    }
-                                                                }
-                                                            }
-                                                            
-                                                            // Authors display
-                                                            if !component.authors.is_empty() {
-                                                                div { class: "feature-authors",
-                                                                    "By: ",
-                                                                    for (i, author) in component.authors.iter().enumerate() {
-                                                                        {
-                                                                            let is_last = i == component.authors.len() - 1;
-                                                                            rsx! {
-                                                                                a {
-                                                                                    class: "author-link",
-                                                                                    href: "{author.link}",
-                                                                                    target: "_blank",
-                                                                                    "{author.name}"
-                                                                                }
-                                                                                if !is_last {
-                                                                                    ", "
-                                                                                }
-                                                                            }
+                                                                        if !is_last {
+                                                                            ", "
                                                                         }
                                                                     }
                                                                 }
