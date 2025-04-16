@@ -243,130 +243,128 @@ pub fn FeaturesTab(
 
             // FEATURES section
             div { class: "optional-features-wrapper",
-                // Section header with divider style
-                div { class: "section-divider with-title", 
-                    span { class: "divider-title", "FEATURES" }
+    // Section header with divider style
+    div { class: "section-divider with-title", 
+        span { class: "divider-title", "FEATURES" }
+    }
+    
+    // Description for features section
+    p { class: "section-description", 
+        "Customize individual features to create your perfect experience."
+    }
+    
+    // Features count badge
+    div { class: "features-count-container",
+        span { class: "features-count-badge",
+            {
+                if let Some(manifest) = &universal_manifest {
+                    // Get all optional components
+                    let optional_mods = manifest.mods.iter()
+                        .filter(|m| m.optional)
+                        .count();
+                        
+                    let optional_shaderpacks = manifest.shaderpacks.iter()
+                        .filter(|m| m.optional)
+                        .count();
+                        
+                    let optional_resourcepacks = manifest.resourcepacks.iter()
+                        .filter(|m| m.optional)
+                        .count();
+                        
+                    // Calculate total features
+                    let total_features = optional_mods + optional_shaderpacks + optional_resourcepacks;
+                    
+                    // Calculate enabled features
+                    let enabled_count = enabled_features.read().len();
+                    
+                    rsx! { "{enabled_count}/{total_features} features enabled" }
+                } else {
+                    rsx! { "Loading features..." }
                 }
-                
-                // Description for features section
-                p { class: "section-description", 
-                    "Customize individual features to create your perfect experience."
-                }
-                
-                // Add search filter at the top
-                div { class: "feature-filter-container",
-                    span { class: "feature-filter-icon", "🔍" }
-                    input {
-                        class: "feature-filter",
-                        placeholder: "Search for features...",
-                        value: "{filter_text}",
-                        oninput: move |evt| filter_text.set(evt.value().clone()),
-                    }
-                    
-                    if !filter_text.read().is_empty() {
-                        button {
-                            class: "feature-filter-clear",
-                            onclick: move |_| filter_text.set(String::new()),
-                            "×"
-                        }
-                    }
-                }
-                
-                // Features count badge
-                div { class: "features-count-container",
-                    span { class: "features-count-badge",
-{
-            if let Some(manifest) = &universal_manifest {
-                // Get all optional components
-                let optional_mods = manifest.mods.iter()
-                    .filter(|m| m.optional)
-                    .count();
-                    
-                let optional_shaderpacks = manifest.shaderpacks.iter()
-                    .filter(|m| m.optional)
-                    .count();
-                    
-                let optional_resourcepacks = manifest.resourcepacks.iter()
-                    .filter(|m| m.optional)
-                    .count();
-                    
-                // Calculate total features
-                let total_features = optional_mods + optional_shaderpacks + optional_resourcepacks;
-                
-                // Calculate enabled features
-                let enabled_count = enabled_features.read().len();
-                
-                rsx! { "{enabled_count}/{total_features} features enabled" }
-            } else {
-                rsx! { "Loading features..." }
             }
         }
     }
-}
-                
-                // Centered expand/collapse button with improved styling
-                button { 
-                    class: "expand-collapse-button",
-                    onclick: move |_| {
-                        let current_expanded = *features_expanded.read();
-                        features_expanded.set(!current_expanded);
-                    },
-                    
-                    // Icon and text change based on state
-                    if *features_expanded.read() {
-                        // Collapse state
-                        span { class: "button-icon collapse-icon", "▲" }
-                        "Collapse Features"
-                    } else {
-                        // Expand state
-                        span { class: "button-icon expand-icon", "▼" }
-                        "Expand Features"
-                    }
+    
+    // Centered expand/collapse button with improved styling
+    button { 
+        class: "expand-collapse-button",
+        onclick: move |_| {
+            let current_expanded = *features_expanded.read();
+            features_expanded.set(!current_expanded);
+        },
+        
+        // Icon and text change based on state
+        if *features_expanded.read() {
+            // Collapse state
+            span { class: "button-icon collapse-icon", "▲" }
+            "Collapse Features"
+        } else {
+            // Expand state
+            span { class: "button-icon expand-icon", "▼" }
+            "Expand Features"
+        }
+    }
+    
+    // Collapsible content - search INSIDE this section
+    div { 
+        class: if *features_expanded.read() {
+            "optional-features-content expanded"
+        } else {
+            "optional-features-content"
+        },
+        
+        // Search filter at the top of expanded features section
+        div { class: "feature-filter-container",
+            span { class: "feature-filter-icon", "🔍" }
+            input {
+                class: "feature-filter",
+                placeholder: "Search for features...",
+                value: "{filter_text}",
+                oninput: move |evt| filter_text.set(evt.value().clone()),
+            }
+            
+            if !filter_text.read().is_empty() {
+                button {
+                    class: "feature-filter-clear",
+                    onclick: move |_| filter_text.set(String::new()),
+                    "×"
                 }
+            }
+        }
+        
+        // Features content - only render if we have a universal manifest
+        {
+            if let Some(manifest) = &universal_manifest {
+                // Get all optional mods
+                let optional_mods: Vec<ModComponent> = manifest.mods.iter()
+                    .filter(|m| m.optional)
+                    .cloned()
+                    .collect();
                 
-                // Features content - only render if we have a universal manifest
-                div { 
-                    class: if *features_expanded.read() {
-                        "optional-features-content expanded"
-                    } else {
-                        "optional-features-content"
-                    },
-                    
-                    {
-                        if let Some(manifest) = &universal_manifest {
-                            // Get all optional mods
-                            let optional_mods: Vec<ModComponent> = manifest.mods.iter()
-                                .filter(|m| m.optional)
-                                .cloned()
-                                .collect();
-                            
-                            // Get all optional shaderpacks and resourcepacks too
-                            let optional_shaderpacks: Vec<ModComponent> = manifest.shaderpacks.iter()
-                                .filter(|m| m.optional)
-                                .cloned()
-                                .collect();
-                            
-                            let optional_resourcepacks: Vec<ModComponent> = manifest.resourcepacks.iter()
-                                .filter(|m| m.optional)
-                                .cloned()
-                                .collect();
-                            
-                            // Combine all optional components
-                            let mut all_components = Vec::new();
-                            all_components.extend(optional_mods);
-                            all_components.extend(optional_shaderpacks);
-                            all_components.extend(optional_resourcepacks);
-                            
-                            // Display features by category
-                            render_features_by_category(all_components, enabled_features.clone(), filter_text.clone(), toggle_feature)
-                        } else {
-                            rsx! {
-                                div { class: "loading-container",
-                                    div { class: "loading-spinner" }
-                                    div { class: "loading-text", "Loading features..." }
-                                }
-                            }
-                        }
+                // Get all optional shaderpacks and resourcepacks too
+                let optional_shaderpacks: Vec<ModComponent> = manifest.shaderpacks.iter()
+                    .filter(|m| m.optional)
+                    .cloned()
+                    .collect();
+                
+                let optional_resourcepacks: Vec<ModComponent> = manifest.resourcepacks.iter()
+                    .filter(|m| m.optional)
+                    .cloned()
+                    .collect();
+                
+                // Combine all optional components
+                let mut all_components = Vec::new();
+                all_components.extend(optional_mods);
+                all_components.extend(optional_shaderpacks);
+                all_components.extend(optional_resourcepacks);
+                
+                // Display features by category
+                render_features_by_category(all_components, enabled_features.clone(), filter_text.clone(), toggle_feature)
+            } else {
+                rsx! {
+                    div { class: "loading-container",
+                        div { class: "loading-spinner" }
+                        div { class: "loading-text", "Loading features..." }
                     }
                 }
             }
