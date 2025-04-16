@@ -276,10 +276,12 @@ pub fn FeaturesTab(
                 div { class: "features-count-container",
                     span { class: "features-count-badge",
                         if let Some(manifest) = &universal_manifest {
-                            let total_features = manifest.mods.iter().chain(
-                                manifest.shaderpacks.iter()).chain(
-                                manifest.resourcepacks.iter())
-                                .filter(|m| m.optional).count();
+                            let total_features = {
+    manifest.mods.iter().chain(
+        manifest.shaderpacks.iter()).chain(
+        manifest.resourcepacks.iter())
+        .filter(|m| m.optional).count()
+};
                                 
                             let enabled_count = enabled_features.read().len();
                             
