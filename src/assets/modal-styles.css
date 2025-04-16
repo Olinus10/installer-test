@@ -321,135 +321,265 @@
     border-left: 3px solid rgba(7, 60, 23, 0.8);
 }
 
-.memory-section h3,
-.java-args-section h3 {
-    margin-top: 0;
-    margin-bottom: 15px;
-    font-size: 1.3rem;
+/* Enhanced Memory Section Styles */
+.memory-section {
+    background-color: rgba(0, 0, 0, 0.3);
+    border-radius: 10px;
+    padding: 25px;
+    border-left: 4px solid rgba(7, 60, 23, 0.8);
+    margin-bottom: 30px;
 }
 
+.memory-section h3 {
+    margin-top: 0;
+    margin-bottom: 15px;
+    font-size: 1.4rem;
+}
+
+/* System memory info display */
+.system-memory-info {
+    font-size: 1rem;
+    margin-bottom: 15px;
+    background-color: rgba(0, 0, 0, 0.2);
+    padding: 10px 15px;
+    border-radius: 6px;
+    display: inline-block;
+}
+
+.system-memory-value {
+    font-weight: bold;
+    color: #fce8f6;
+}
+
+/* Current memory display with improved styling */
 .current-memory-display {
-    font-size: 1.1rem;
-    margin-bottom: 20px;
+    font-size: 1.3rem;
+    margin-bottom: 25px;
     text-align: center;
+    background-color: rgba(7, 60, 23, 0.1);
+    padding: 15px;
+    border-radius: 8px;
+    border: 1px solid rgba(7, 60, 23, 0.3);
 }
 
 .memory-value {
     font-weight: bold;
-    color: #4abb6e;
+    font-size: 1.6rem;
+    background: linear-gradient(180deg, #fce8f6 0%, #d8b8d0 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
 }
 
-.memory-gb {
+.memory-percentage {
     font-size: 0.9rem;
     color: rgba(255, 255, 255, 0.7);
 }
 
+/* Improved slider container */
+.memory-slider-container {
+    width: 100%;
+    margin: 30px 0;
+    position: relative;
+}
+
+/* Enhance the memory slider */
 .memory-slider {
     width: 100%;
-    height: 10px;
+    height: 14px;
     -webkit-appearance: none;
     appearance: none;
     background: rgba(0, 0, 0, 0.3);
-    border-radius: 5px;
     outline: none;
-    margin: 20px 0;
+    border-radius: 7px;
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.5);
+    cursor: pointer;
+    margin-bottom: 25px;
 }
 
 .memory-slider::-webkit-slider-thumb {
     -webkit-appearance: none;
     appearance: none;
-    width: 20px;
-    height: 20px;
+    width: 24px;
+    height: 24px;
     border-radius: 50%;
-    background: #0a5d23;
+    background: linear-gradient(145deg, #0a5d23, #073c17);
     cursor: pointer;
-    box-shadow: 0 0 8px rgba(7, 60, 23, 0.6);
+    box-shadow: 0 0 10px rgba(7, 60, 23, 0.8), 0 2px 5px rgba(0, 0, 0, 0.4);
     border: 2px solid rgba(255, 255, 255, 0.7);
+    position: relative;
+    z-index: 2;
+    transition: all 0.2s ease;
+}
+
+.memory-slider::-webkit-slider-thumb:hover {
+    background: linear-gradient(145deg, #0c6d29, #0a5d23);
+    box-shadow: 0 0 15px rgba(7, 60, 23, 1), 0 3px 8px rgba(0, 0, 0, 0.5);
+    transform: scale(1.1);
 }
 
 .memory-slider::-moz-range-thumb {
-    width: 20px;
-    height: 20px;
+    width: 24px;
+    height: 24px;
     border-radius: 50%;
-    background: #0a5d23;
+    background: linear-gradient(145deg, #0a5d23, #073c17);
     cursor: pointer;
-    box-shadow: 0 0 8px rgba(7, 60, 23, 0.6);
+    box-shadow: 0 0 10px rgba(7, 60, 23, 0.8), 0 2px 5px rgba(0, 0, 0, 0.4);
     border: 2px solid rgba(255, 255, 255, 0.7);
+    position: relative;
+    z-index: 2;
+    transition: all 0.2s ease;
 }
 
+.memory-slider::-moz-range-thumb:hover {
+    background: linear-gradient(145deg, #0c6d29, #0a5d23);
+    box-shadow: 0 0 15px rgba(7, 60, 23, 1), 0 3px 8px rgba(0, 0, 0, 0.5);
+    transform: scale(1.1);
+}
+
+/* Custom track styling with gradient */
+.memory-slider::-webkit-slider-runnable-track {
+    width: 100%;
+    height: 14px;
+    cursor: pointer;
+    background: linear-gradient(90deg, rgba(7, 60, 23, 0.8), rgba(7, 60, 23, 0.3));
+    border-radius: 7px;
+}
+
+.memory-slider::-moz-range-track {
+    width: 100%;
+    height: 14px;
+    cursor: pointer;
+    background: linear-gradient(90deg, rgba(7, 60, 23, 0.8), rgba(7, 60, 23, 0.3));
+    border-radius: 7px;
+}
+
+/* Memory markers with improved positioning */
 .memory-markers {
-    display: flex;
-    justify-content: space-between;
-    font-size: 0.8rem;
-    color: rgba(255, 255, 255, 0.6);
-    margin-bottom: 10px;
+    position: relative;
+    height: 35px;
+    width: 100%;
+    margin-top: -20px;
 }
 
 .memory-marker {
     text-align: center;
+    font-size: 0.85rem;
+    color: rgba(255, 255, 255, 0.8);
+    white-space: nowrap;
+    width: 40px;
+    margin-left: -20px;
     position: absolute;
-    transform: translateX(-50%);
+    top: 0;
 }
 
-.memory-recommendation {
+/* Apply button container */
+.memory-apply-container {
+    text-align: center;
+    margin-top: 10px;
+    margin-bottom: 15px;
+    position: relative;
+}
+
+/* Apply button styling */
+.memory-apply-button {
+    background-color: rgba(7, 60, 23, 0.5);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 6px;
+    padding: 12px 25px;
+    font-family: "REGULAR_FONT";
+    font-size: 1rem;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    letter-spacing: 0.5px;
+    opacity: 0.7;
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.3);
+}
+
+.memory-apply-button:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    transform: none !important;
+    box-shadow: none !important;
+}
+
+.memory-apply-button.changed {
+    opacity: 1;
+    animation: button-pulse 2s infinite;
+}
+
+.memory-apply-button:not(:disabled):hover {
+    background-color: rgba(7, 60, 23, 0.9);
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.4);
+}
+
+/* Success message styling */
+.apply-success-message {
+    position: absolute;
+    top: -40px;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: rgba(7, 60, 23, 0.8);
+    color: white;
+    padding: 8px 15px;
+    border-radius: 6px;
     font-size: 0.9rem;
-    color: rgba(255, 255, 255, 0.7);
+    animation: fade-in-out 3s forwards;
+    white-space: nowrap;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.4);
+}
+
+/* Recommendation text */
+.memory-recommendation {
+    font-size: 0.95rem;
+    color: rgba(255, 255, 255, 0.8);
     font-style: italic;
     margin-top: 15px;
     text-align: center;
-}
-
-.java-args-description {
-    font-size: 0.95rem;
-    margin-bottom: 15px;
-}
-
-.java-args-input {
-    width: 100%;
-    height: 100px;
     padding: 10px;
-    background-color: rgba(0, 0, 0, 0.4);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: 4px;
-    color: white;
-    font-family: monospace;
-    font-size: 0.9rem;
-    resize: vertical;
+    background-color: rgba(0, 0, 0, 0.2);
+    border-radius: 6px;
+    border-left: 3px solid rgba(7, 60, 23, 0.6);
 }
 
-.java-args-input:focus {
-    outline: none;
-    border-color: rgba(7, 60, 23, 0.6);
-    box-shadow: 0 0 0 2px rgba(7, 60, 23, 0.3);
+/* Animations */
+@keyframes button-pulse {
+    0% {
+        box-shadow: 0 0 0 0 rgba(7, 60, 23, 0.5);
+    }
+    70% {
+        box-shadow: 0 0 0 10px rgba(7, 60, 23, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(7, 60, 23, 0);
+    }
 }
 
-.java-args-presets h4 {
-    margin-top: 20px;
-    font-size: 1.1rem;
+@keyframes fade-in-out {
+    0% {
+        opacity: 0;
+        transform: translate(-50%, 10px);
+    }
+    10% {
+        opacity: 1;
+        transform: translate(-50%, 0);
+    }
+    80% {
+        opacity: 1;
+        transform: translate(-50%, 0);
+    }
+    100% {
+        opacity: 0;
+        transform: translate(-50%, -10px);
+    }
 }
 
-.java-preset-buttons {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 10px;
-    margin-top: 10px;
-}
-
-.java-preset-button {
-    padding: 10px;
-    background-color: rgba(7, 60, 23, 0.5);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: 4px;
-    color: white;
-    font-family: "REGULAR_FONT";
-    cursor: pointer;
-    transition: all 0.2s ease;
-}
-
-.java-preset-button:hover {
-    background-color: rgba(7, 60, 23, 0.7);
-    transform: translateY(-2px);
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+/* Remove the Java arguments section as requested */
+.java-args-section {
+    display: none;
 }
 
 /* Modal buttons */
