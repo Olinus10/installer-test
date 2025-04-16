@@ -31,7 +31,7 @@
       "version": "0.18.0",
       "optional": true,
       "default_enabled": false,
-      "category": "Content",
+      "category": "RECORDING",
       "authors": [
         {
           "name": "Moulberry",
@@ -48,7 +48,7 @@
       "version": "1.7.4",
       "optional": true,
       "default_enabled": false,
-      "category": "Player",
+      "category": "PLAYER",
       "authors": [
         {
           "name": "tr7zw",
@@ -57,15 +57,15 @@
       ]
     },
     {
-      "id": "ambientsounds",
-      "name": "AmbientSounds",
-      "description": "Adds immersive ambient sounds",
+      "id": "ambientSOUND",
+      "name": "AmbientSOUND",
+      "description": "Adds immersive ambient SOUND",
       "source": "modrinth",
-      "location": "ambientsounds",
+      "location": "ambientSOUND",
       "version": "6.1.3",
       "optional": true,
       "default_enabled": false,
-      "category": "Audio",
+      "category": "SOUND",
       "authors": [
         {
           "name": "creativemd",
@@ -82,7 +82,7 @@
       "version": "15.0.1+fabric",
       "optional": false,
       "default_enabled": true,
-      "category": "Library",
+      "category": "LIBRARY",
       "authors": [
         {
           "name": "MaxNeedsSnacks",
@@ -116,7 +116,7 @@
       "version": "1.0.5",
       "optional": true,
       "default_enabled": false,
-      "category": "Visual",
+      "category": "IMMERSIVE",
       "authors": [
         {
           "name": "commander",
@@ -133,7 +133,7 @@
       "version": "13.0.0",
       "optional": true,
       "default_enabled": false,
-      "category": "Settings",
+      "category": "OPTIONS",
       "authors": [
         {
           "name": "TreyRuffy",
@@ -150,7 +150,7 @@
       "version": "5.2.6+mc1.21.4",
       "optional": true,
       "default_enabled": false,
-      "category": "Visual",
+      "category": "IMMERSIVE",
       "authors": [
         {
           "name": "Johni0702",
@@ -167,7 +167,7 @@
       "version": "1.20-6.0",
       "optional": true,
       "default_enabled": false,
-      "category": "Optimization",
+      "category": "OPTIMIZATION",
       "authors": [
         {
           "name": "someaddon",
@@ -184,7 +184,7 @@
       "version": "0.3.2+alpha.0.30+1.21.4",
       "optional": true,
       "default_enabled": false,
-      "category": "Optimization",
+      "category": "OPTIMIZATION",
       "authors": [
         {
           "name": "ishland",
@@ -201,7 +201,7 @@
       "version": "1.5.4+1.21.4",
       "optional": true,
       "default_enabled": false,
-      "category": "Player",
+      "category": "PLAYER",
       "authors": [
         {
           "name": "caelthecolher",
@@ -218,7 +218,7 @@
       "version": "1.0.6",
       "optional": true,
       "default_enabled": false,
-      "category": "Settings",
+      "category": "ANIMATIONS",
       "authors": [
         {
           "name": "Ezzenix",
@@ -235,7 +235,7 @@
       "version": "0.10.2+1.21.4-and-above",
       "optional": false,
       "default_enabled": true,
-      "category": "Library",
+      "category": "LIBRARY",
       "authors": [
         {
           "name": "enjarai",
@@ -252,7 +252,7 @@
       "version": "17.0.144+fabric",
       "optional": false,
       "default_enabled": true,
-      "category": "Libary",
+      "category": "LIBRARY",
       "authors": [
         {
           "name": "shedaniel",
@@ -269,7 +269,7 @@
       "version": "22.0.3",
       "optional": true,
       "default_enabled": false,
-      "category": "Settings",
+      "category": "OPTIONS",
       "authors": [
         {
           "name": "jaredlll08",
@@ -286,7 +286,7 @@
       "version": "4.0.3-fabric",
       "optional": true,
       "default_enabled": false,
-      "category": "Optimization",
+      "category": "OPTIMIZATION",
       "authors": [
         {
           "name": "motschen",
@@ -297,13 +297,13 @@
     {
       "id": "cupboard-fabric-1.21-2.9.jar",
       "name": "Cupboard",
-      "description": "Library mod",
+      "description": "LIBRARY mod",
       "source": "ddl",
       "location": "https://mediafiles.forgecdn.net/files/6114/706/cupboard-fabric-1.21-2.9.jar",
       "version": "2.9",
       "optional": false,
       "default_enabled": true,
-      "category": "Library",
+      "category": "LIBRARY",
       "authors": [
         {
           "name": "someaddon",
@@ -320,7 +320,7 @@
       "version": "3.0.0+1.21.4",
       "optional": true,
       "default_enabled": false,
-      "category": "Other",
+      "category": "MISC",
       "authors": [
         {
           "name": "PepperCode1",
@@ -331,13 +331,13 @@
     {
       "id": "creativecore",
       "name": "CreativeCore",
-      "description": "Core library mod",
+      "description": "Core LIBRARY mod",
       "source": "modrinth",
       "location": "creativecore",
       "version": "2.12.22",
       "optional": false,
       "default_enabled": true,
-      "category": "Library",
+      "category": "LIBRARY",
       "authors": [
         {
           "name": "creativemd",
@@ -354,7 +354,7 @@
       "version": "1.21.4+1.1",
       "optional": true,
       "default_enabled": false,
-      "category": "Optimization",
+      "category": "OPTIMIZATION",
       "authors": [
         {
           "name": "isxander",
@@ -388,7 +388,7 @@
       "version": "2.4.1",
       "optional": true,
       "default_enabled": false,
-      "category": "Other",
+      "category": "MISC",
       "authors": [
         {
           "name": "Traben",
@@ -405,7 +405,7 @@
       "version": "6.2.10",
       "optional": true,
       "default_enabled": false,
-      "category": "Other",
+      "category": "MISC",
       "authors": [
         {
           "name": "Traben",
@@ -422,7 +422,7 @@
       "version": "1.7.2",
       "optional": true,
       "default_enabled": false,
-      "category": "Optimization",
+      "category": "OPTIMIZATION",
       "authors": [
         {
           "name": "tr7zw",
@@ -439,7 +439,7 @@
       "version": "1.4.0+1.21.4",
       "optional": true,
       "default_enabled": false,
-      "category": "Optimization",
+      "category": "OPTIMIZATION",
       "authors": [
         {
           "name": "Patbox",
@@ -456,7 +456,7 @@
       "version": "0.11.3+1.21.4",
       "optional": true,
       "default_enabled": false,
-      "category": "Optimization",
+      "category": "OPTIMIZATION",
       "authors": [
         {
           "name": "FoundationGames",
@@ -473,7 +473,7 @@
       "version": "1.4.3-r5.3-fabric",
       "optional": true,
       "default_enabled": false,
-      "category": "Visual",
+      "category": "SHADERS",
       "authors": [
         {
           "name": "SpacEagle17",
@@ -494,7 +494,7 @@
       "version": "2.4.8",
       "optional": true,
       "default_enabled": false,
-      "category": "Player",
+      "category": "ANIMATIONS",
       "authors": [
         {
           "name": "tr7zw",
@@ -505,13 +505,13 @@
     {
       "id": "fabric-api",
       "name": "Fabric API",
-      "description": "Library mod for fabric loader",
+      "description": "LIBRARY mod for fabric loader",
       "source": "modrinth",
       "location": "fabric-api",
       "version": "0.115.0+1.21.4",
       "optional": false,
       "default_enabled": true,
-      "category": "Library",
+      "category": "LIBRARY",
       "authors": [
         {
           "name": "modmuss50",
@@ -528,7 +528,7 @@
       "version": "1.13.0+kotlin.2.1.0",
       "optional": false,
       "default_enabled": true,
-      "category": "Library",
+      "category": "LIBRARY",
       "authors": [
         {
           "name": "modmuss50",
@@ -545,7 +545,7 @@
       "version": "1.16.6+1.21.4",
       "optional": true,
       "default_enabled": false,
-      "category": "Visual",
+      "category": "IMMERSIVE",
       "authors": [
         {
           "name": "Fourmisain",
@@ -556,13 +556,13 @@
     {
       "id": "fzzy-config",
       "name": "Fzzy Config",
-      "description": "Config library for mods",
+      "description": "Config LIBRARY for mods",
       "source": "modrinth",
       "location": "fzzy-config",
       "version": "0.6.3+1.21.3",
       "optional": false,
       "default_enabled": true,
-      "category": "Library",
+      "category": "LIBRARY",
       "authors": [
         {
           "name": "fzzyhmstrs",
@@ -579,7 +579,7 @@
       "version": "7.1.1-fabric",
       "optional": true,
       "default_enabled": false,
-      "category": "Optimization",
+      "category": "OPTIMIZATION",
       "authors": [
         {
           "name": "malte0811",
@@ -596,7 +596,7 @@
       "version": "v21.4.1-1.21.4-Fabric",
       "optional": false,
       "default_enabled": true,
-      "category": "Library",
+      "category": "LIBRARY",
       "authors": [
         {
           "name": "Fuzs",
@@ -607,13 +607,13 @@
     {
       "id": "iceberg",
       "name": "Iceberg",
-      "description": "Library mod",
+      "description": "LIBRARY mod",
       "source": "modrinth",
       "location": "iceberg",
       "version": "1.2.13",
       "optional": false,
       "default_enabled": true,
-      "category": "Library",
+      "category": "LIBRARY",
       "authors": [
         {
           "name": "Grend",
@@ -630,7 +630,7 @@
       "version": "1.8.5+1.21.4-fabric",
       "optional": true,
       "default_enabled": false,
-      "category": "Visual",
+      "category": "SHADERS",
       "authors": [
         {
           "name": "IMS",
@@ -648,7 +648,7 @@
       "version": "0.2.8",
       "optional": true,
       "default_enabled": false,
-      "category": "Optimization",
+      "category": "OPTIMIZATION",
       "authors": [
         {
           "name": "astei",
@@ -665,7 +665,7 @@
       "version": "mc1.21.4-0.14.5-fabric",
       "optional": true,
       "default_enabled": false,
-      "category": "Optimization",
+      "category": "OPTIMIZATION",
       "authors": [
         {
           "name": "2No2Name",
@@ -700,7 +700,7 @@
       "version": "1.8",
       "optional": true,
       "default_enabled": false,
-      "category": "Settings",
+      "category": "OPTIONS",
       "authors": [
         {
           "name": "hamarb123",
@@ -711,13 +711,13 @@
     {
       "id": "midnightlib",
       "name": "MidnightLib",
-      "description": "Library mod",
+      "description": "LIBRARY mod",
       "source": "modrinth",
       "location": "midnightlib",
       "version": "1.6.6-fabric",
       "optional": false,
       "default_enabled": true,
-      "category": "Library",
+      "category": "LIBRARY",
       "authors": [
         {
           "name": "Motschen",
@@ -734,7 +734,7 @@
       "version": "5.20.1+mc1.21.4",
       "optional": true,
       "default_enabled": false,
-      "category": "Optimization",
+      "category": "OPTIMIZATION",
       "authors": [
         {
           "name": "embeddedt",
@@ -751,7 +751,7 @@
       "version": "13.0.0",
       "optional": false,
       "default_enabled": true,
-      "category": "Library",
+      "category": "LIBRARY",
       "authors": [
         {
           "name": "Prospector",
@@ -768,7 +768,7 @@
       "version": "1.3.1",
       "optional": true,
       "default_enabled": false,
-      "category": "Settings",
+      "category": "OPTIONS",
       "authors": [
         {
           "name": "JackFred2",
@@ -785,7 +785,7 @@
       "version": "1.2.3",
       "optional": true,
       "default_enabled": false,
-      "category": "Optimization",
+      "category": "OPTIMIZATION",
       "authors": [
         {
           "name": "FX",
@@ -796,13 +796,13 @@
     {
       "id": "mru",
       "name": "MRU",
-      "description": "API library for mods",
+      "description": "API LIBRARY for mods",
       "source": "modrinth",
       "location": "mru",
       "version": "1.0.7+1.21.3-fabric",
       "optional": false,
       "default_enabled": true,
-      "category": "Library",
+      "category": "LIBRARY",
       "authors": [
         {
           "name": "mineblock11",
@@ -819,7 +819,7 @@
       "version": "1.3.0",
       "optional": true,
       "default_enabled": false,
-      "category": "Settings",
+      "category": "OPTIONS",
       "authors": [
         {
           "name": "Space Walker",
@@ -836,7 +836,7 @@
       "version": "1.9.1",
       "optional": true,
       "default_enabled": false,
-      "category": "Player",
+      "category": "PLAYER",
       "authors": [
         {
           "name": "tr7zw",
@@ -853,7 +853,7 @@
       "version": "1.2.0-1.21",
       "optional": false,
       "default_enabled": true,
-      "category": "Other",
+      "category": "MISC",
       "authors": [
         {
           "name": "commander",
@@ -864,13 +864,13 @@
     {
       "id": "owo-lib",
       "name": "oωo (owo-lib)",
-      "description": "Library mod",
+      "description": "LIBRARY mod",
       "source": "modrinth",
       "location": "owo-lib",
       "version": "0.12.20+1.21.4",
       "optional": false,
       "default_enabled": true,
-      "category": "Library",
+      "category": "LIBRARY",
       "authors": [
         {
           "name": "glisco",
@@ -887,7 +887,7 @@
       "version": "3.0.8",
       "optional": true,
       "default_enabled": false,
-      "category": "Visual",
+      "category": "IMMERSIVE",
       "authors": [
         {
           "name": "PigCart",
@@ -898,13 +898,13 @@
     {
       "id": "particle-core",
       "name": "Particle Core",
-      "description": "Core library for particle effects",
+      "description": "Core LIBRARY for particle effects",
       "source": "modrinth",
       "location": "particle-core",
       "version": "0.2.5+1.21.4",
       "optional": true,
       "default_enabled": false,
-      "category": "Optimization",
+      "category": "OPTIMIZATION",
       "authors": [
         {
           "name": "fzzyhmstrs",
@@ -921,7 +921,7 @@
       "version": "1.1.1+1.21.4",
       "optional": true,
       "default_enabled": false,
-      "category": "Visual",
+      "category": "IMMERSIVE",
       "authors": [
         {
           "name": "Chai",
@@ -938,7 +938,7 @@
       "version": "1.10.4+1.21.4",
       "optional": true,
       "default_enabled": false,
-      "category": "Audio",
+      "category": "SOUND",
       "authors": [
         {
           "name": "Sollace",
@@ -955,7 +955,7 @@
       "version": "1.0.10",
       "optional": false,
       "default_enabled": true,
-      "category": "Library",
+      "category": "LIBRARY",
       "authors": [
         {
           "name": "Grend",
@@ -972,7 +972,7 @@
       "version": "mc1.21.4-1.8.3+fabric",
       "optional": true,
       "default_enabled": true,
-      "category": "Settings",
+      "category": "OPTIONS",
       "authors": [
         {
           "name": "FlashyReese",
@@ -1007,7 +1007,7 @@
       "version": "0.1.2+beta.1+fabric.6d46f24",
       "optional": true,
       "default_enabled": false,
-      "category": "Optimization",
+      "category": "OPTIMIZATION",
       "authors": [
         {
           "name": "ishland",
@@ -1024,7 +1024,7 @@
       "version": "mc1.21.4-0.6.6-fabric",
       "optional": false,
       "default_enabled": true,
-      "category": "Optimization",
+      "category": "OPTIMIZATION",
       "authors": [
         {
           "name": "IMS",
@@ -1034,14 +1034,14 @@
     },
     {
       "id": "sound",
-      "name": "Sounds",
+      "name": "Sound",
       "description": "Sound enhancement mod",
       "source": "modrinth",
       "location": "sound",
       "version": "2.3.2+1.21.4-fabric",
       "optional": true,
       "default_enabled": false,
-      "category": "Audio",
+      "category": "SOUND",
       "authors": [
         {
           "name": "mineblock11",
@@ -1058,7 +1058,7 @@
       "version": "1.0.3",
       "optional": true,
       "default_enabled": false,
-      "category": "Settings",
+      "category": "OPTIONS",
       "authors": [
         {
           "name": "jaredlll08",
@@ -1075,7 +1075,7 @@
       "version": "1.0.2-1.21",
       "optional": true,
       "default_enabled": false,
-      "category": "Settings",
+      "category": "MISC",
       "authors": [
         {
           "name": "commander",
@@ -1092,7 +1092,7 @@
       "version": "1.21.4-4.8.0+fabric",
       "optional": true,
       "default_enabled": false,
-      "category": "Player",
+      "category": "PLAYER",
       "authors": [
         {
           "name": "Exopandora",
@@ -1109,7 +1109,7 @@
       "version": "mc1.21.4-0.6.1+fabric",
       "optional": true,
       "default_enabled": true,
-      "category": "Settings",
+      "category": "OPTIONS",
       "authors": [
         {
           "name": "FlashyReese",
@@ -1126,7 +1126,7 @@
       "version": "fabric-1.21.4-1.4.8",
       "optional": true,
       "default_enabled": false,
-      "category": "Audio",
+      "category": "SOUND",
       "authors": [
         {
           "name": "henkelmax",
@@ -1143,7 +1143,7 @@
       "version": "1.10.121-fabric",
       "optional": true,
       "default_enabled": true,
-      "category": "Settings",
+      "category": "MISC",
       "authors": [
         {
           "name": "lucko",
@@ -1160,7 +1160,7 @@
       "version": "2.5.1+1.21.3",
       "optional": false,
       "default_enabled": true,
-      "category": "Library",
+      "category": "LIBRARY",
       "authors": [
         {
           "name": "Patbox",
@@ -1188,13 +1188,13 @@
     {
       "id": "ukulib",
       "name": "ukulib",
-      "description": "Library mod",
+      "description": "LIBRARY mod",
       "source": "modrinth",
       "location": "ukulib",
       "version": "1.6.0+1.21.4",
       "optional": false,
       "default_enabled": true,
-      "category": "Library",
+      "category": "LIBRARY",
       "authors": [
         {
           "name": "uku",
@@ -1211,7 +1211,7 @@
       "version": "1.5.0",
       "optional": true,
       "default_enabled": false,
-      "category": "Optimization",
+      "category": "OPTIMIZATION",
       "authors": [
         {
           "name": "Anthus",
@@ -1228,7 +1228,7 @@
       "version": "0.7.9+1.21.4",
       "optional": true,
       "default_enabled": false,
-      "category": "Visual",
+      "category": "IMMERSIVE",
       "authors": [
         {
           "name": "PinkGoosik",
@@ -1245,7 +1245,7 @@
       "version": "0.3.1+1.21.2",
       "optional": true,
       "default_enabled": false,
-      "category": "Settings",
+      "category": "OPTIONS",
       "authors": [
         {
           "name": "GravityIO",
@@ -1262,7 +1262,7 @@
       "version": "1.5.1",
       "optional": true,
       "default_enabled": false,
-      "category": "Player",
+      "category": "PLAYER",
       "authors": [
         {
           "name": "tr7zw",
@@ -1279,7 +1279,7 @@
       "version": "v1.10.4",
       "optional": true,
       "default_enabled": false,
-      "category": "Audio",
+      "category": "SOUND",
       "authors": [
         {
           "name": "Kmaxi",
@@ -1296,7 +1296,7 @@
       "version": "v3.0.8",
       "optional": true,
       "default_enabled": false,
-      "category": "Wynntils",
+      "category": "WYNNTILS",
       "authors": [
         {
           "name": "wynntils",
@@ -1313,7 +1313,7 @@
       "version": "0.2.2-1.21.4",
       "optional": true,
       "default_enabled": false,
-      "category": "Visual",
+      "category": "IMMERSIVE",
       "authors": [
         {
           "name": "Commander",
@@ -1330,7 +1330,7 @@
       "version": "1.0.0-1.21",
       "optional": true,
       "default_enabled": false,
-      "category": "Wynntils",
+      "category": "WYNNTILS",
       "authors": [
         {
           "name": "commander",
@@ -1348,7 +1348,7 @@
       "version": "1.2.1",
       "optional": true,
       "default_enabled": false,
-      "category": "Settings",
+      "category": "IMMERSIVE",
       "authors": [
         {
           "name": "Lucaslah",
@@ -1366,7 +1366,7 @@
       "version": "1.21.4+fabric+4.2.7",
       "optional": true,
       "default_enabled": false,
-      "category": "Player",
+      "category": "PLAYER",
       "authors": [
         {
           "name": "YourDailyModder",
@@ -1383,7 +1383,7 @@
       "version": "0.1.2",
       "optional": false,
       "default_enabled": true,
-      "category": "Settings",
+      "category": "OPTIONS",
       "authors": [
         {
           "name": "shedaniel",
@@ -1394,13 +1394,13 @@
     {
       "id": "yacl",
       "name": "YetAnotherConfigfabricLib",
-      "description": "Configuration library",
+      "description": "Configuration LIBRARY",
       "source": "modrinth",
       "location": "yacl",
       "version": "3.6.2+1.21.4-fabric",
       "optional": false,
       "default_enabled": true,
-      "category": "Library",
+      "category": "LIBRARY",
       "authors": [
         {
           "name": "isxander",
@@ -1417,7 +1417,7 @@
       "version": "2.14.2+1.21.3",
       "optional": true,
       "default_enabled": false,
-      "category": "Other",
+      "category": "MISC",
       "authors": [
         {
           "name": "isxander",
@@ -1437,7 +1437,7 @@
       "version": "1.8",
       "optional": true,
       "default_enabled": false,
-      "category": "Visual",
+      "category": "TEXTUREPACKS",
       "authors": [
         {
           "name": "JoeFly",
@@ -1454,7 +1454,7 @@
       "version": "3.1",
       "optional": true,
       "default_enabled": false,
-      "category": "Audio",
+      "category": "TEXTUREPACKS",
       "authors": [
         {
           "name": "VillagerFilms",
@@ -1471,7 +1471,7 @@
       "version": "2.0.0",
       "optional": true,
       "default_enabled": false,
-      "category": "Visual",
+      "category": "TEXTUREPACKS",
       "authors": [
         {
           "name": "Focal_Salt",
@@ -1488,7 +1488,7 @@
       "version": "1.20.1",
       "optional": true,
       "default_enabled": false,
-      "category": "Visual",
+      "category": "TEXTUREPACKS",
       "authors": [
         {
           "name": "hottubbug",
@@ -1505,7 +1505,7 @@
       "version": "DJN2",
       "optional": true,
       "default_enabled": false,
-      "category": "Visual",
+      "category": "TEXTUREPACKS",
       "authors": [
         {
           "name": "Rythew",
@@ -1522,7 +1522,7 @@
       "version": "FLC9",
       "optional": true,
       "default_enabled": false,
-      "category": "Visual",
+      "category": "TEXTUREPACKS",
       "authors": [
         {
           "name": "Rythew",
@@ -1539,7 +1539,7 @@
       "version": "2.1.1",
       "optional": true,
       "default_enabled": false,
-      "category": "Visual",
+      "category": "TEXTUREPACKS",
       "authors": [
         {
           "name": "Rythew",
@@ -1548,15 +1548,15 @@
       ]
     },
     {
-      "id": "tras-fresh-player",
+      "id": "tras-fresh-PLAYER",
       "name": "Fresh Moves",
       "description": "Enhanced player animations",
       "source": "modrinth",
-      "location": "tras-fresh-player",
+      "location": "tras-fresh-PLAYER",
       "version": "3.1.1",
       "optional": true,
       "default_enabled": false,
-      "category": "Player",
+      "category": "TEXTUREPACKS",
       "authors": [
         {
           "name": "TrasTick",
@@ -1577,7 +1577,7 @@
       "version": "r5.3",
       "optional": true,
       "default_enabled": false,
-      "category": "Visual",
+      "category": "SHADERS",
       "authors": [
         {
           "name": "EminGT",
