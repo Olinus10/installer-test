@@ -154,7 +154,7 @@ pub fn update_memory_allocation(installation_id: &str, memory_mb: i32) -> Result
     debug!("Updating memory allocation for {} to {}MB", installation_id, memory_mb);
     
     // Load current JVM args
-    let current_args = match get_jvm_args(installation_id) {
+    let current_args = match get_installation_jvm_args(installation_id) {
         Ok(args) => args,
         Err(e) => {
             warn!("Failed to get current JVM args: {}", e);
@@ -188,7 +188,7 @@ pub fn update_memory_allocation(installation_id: &str, memory_mb: i32) -> Result
 }
 
 // Get the JVM args for an installation
-pub fn get_jvm_args(installation_id: &str) -> Result<String, String> {
+pub fn get_installation_jvm_args(installation_id: &str) -> Result<String, String> {
     let app_data = get_app_data_dir();
     let installation_dir = app_data.join(format!(".WC_OVHL/installations/{}", installation_id));
     
