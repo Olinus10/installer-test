@@ -1136,7 +1136,7 @@
     },
     {
       "id": "spark",
-      "name": "spark",
+      "name": "Spark",
       "description": "Performance profiling tool",
       "source": "modrinth",
       "location": "spark",
