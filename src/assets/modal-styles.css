@@ -321,7 +321,7 @@
     border-left: 3px solid rgba(7, 60, 23, 0.8);
 }
 
-/* Enhanced Memory Section Styles */
+/* Memory section container */
 .memory-section {
     background-color: rgba(0, 0, 0, 0.3);
     border-radius: 10px;
@@ -329,6 +329,7 @@
     border-left: 4px solid rgba(7, 60, 23, 0.8);
     margin-bottom: 30px;
 }
+
 
 .memory-section h3 {
     margin-top: 0;
@@ -351,7 +352,7 @@
     color: #fce8f6;
 }
 
-/* Current memory display with improved styling */
+/* Enhanced display for memory allocation */
 .current-memory-display {
     font-size: 1.3rem;
     margin-bottom: 25px;
@@ -371,37 +372,39 @@
     background-clip: text;
 }
 
+
 .memory-percentage {
     font-size: 0.9rem;
     color: rgba(255, 255, 255, 0.7);
 }
 
-/* Improved slider container */
+/* Slider container with more padding */
 .memory-slider-container {
     width: 100%;
-    margin: 30px 0;
+    margin: 35px 0 45px 0; /* More vertical space */
     position: relative;
 }
 
-/* Enhance the memory slider */
+/* Enhanced slider appearance */
 .memory-slider {
     width: 100%;
-    height: 14px;
+    height: 18px; /* Taller slider */
     -webkit-appearance: none;
     appearance: none;
     background: rgba(0, 0, 0, 0.3);
     outline: none;
-    border-radius: 7px;
+    border-radius: 9px;
     box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.5);
     cursor: pointer;
-    margin-bottom: 25px;
+    margin-bottom: 35px; /* More space for markers */
 }
 
+/* Larger slider thumb */
 .memory-slider::-webkit-slider-thumb {
     -webkit-appearance: none;
     appearance: none;
-    width: 24px;
-    height: 24px;
+    width: 28px; /* Larger thumb */
+    height: 28px; /* Larger thumb */
     border-radius: 50%;
     background: linear-gradient(145deg, #0a5d23, #073c17);
     cursor: pointer;
@@ -419,8 +422,8 @@
 }
 
 .memory-slider::-moz-range-thumb {
-    width: 24px;
-    height: 24px;
+    width: 28px; /* Larger thumb */
+    height: 28px; /* Larger thumb */
     border-radius: 50%;
     background: linear-gradient(145deg, #0a5d23, #073c17);
     cursor: pointer;
@@ -454,12 +457,12 @@
     border-radius: 7px;
 }
 
-/* Memory markers with improved positioning */
+/* Fixed memory markers */
 .memory-markers {
     position: relative;
-    height: 35px;
-    width: 100%;
-    margin-top: -20px;
+    height: 40px; /* More height for markers */
+    width: 96%; /* Slightly narrower than container to prevent overflow */
+    margin: -20px auto 0 auto; /* Centered and adjusted position */
 }
 
 .memory-marker {
@@ -467,8 +470,6 @@
     font-size: 0.85rem;
     color: rgba(255, 255, 255, 0.8);
     white-space: nowrap;
-    width: 40px;
-    margin-left: -20px;
     position: absolute;
     top: 0;
 }
@@ -476,20 +477,18 @@
 /* Apply button container */
 .memory-apply-container {
     text-align: center;
-    margin-top: 10px;
-    margin-bottom: 15px;
+    margin: 25px 0;
     position: relative;
 }
 
-/* Apply button styling */
 .memory-apply-button {
-    background-color: rgba(7, 60, 23, 0.5);
+    background: linear-gradient(to right, rgba(7, 60, 23, 0.6), rgba(7, 60, 23, 0.8));
     color: white;
     border: 1px solid rgba(255, 255, 255, 0.2);
     border-radius: 6px;
-    padding: 12px 25px;
+    padding: 12px 30px;
     font-family: "REGULAR_FONT";
-    font-size: 1rem;
+    font-size: 1.1rem;
     font-weight: bold;
     cursor: pointer;
     transition: all 0.3s ease;
@@ -511,7 +510,7 @@
 }
 
 .memory-apply-button:not(:disabled):hover {
-    background-color: rgba(7, 60, 23, 0.9);
+    background: linear-gradient(to right, rgba(7, 60, 23, 0.8), rgba(7, 60, 23, 1));
     transform: translateY(-2px);
     box-shadow: 0 5px 15px rgba(0, 0, 0, 0.4);
 }
@@ -526,10 +525,11 @@
     color: white;
     padding: 8px 15px;
     border-radius: 6px;
-    font-size: 0.9rem;
+    font-size: 0.95rem;
     animation: fade-in-out 3s forwards;
     white-space: nowrap;
     box-shadow: 0 3px 10px rgba(0, 0, 0, 0.4);
+    z-index: 5;
 }
 
 /* Recommendation text */
@@ -545,7 +545,7 @@
     border-left: 3px solid rgba(7, 60, 23, 0.6);
 }
 
-/* Animations */
+/* Keyframe animations */
 @keyframes button-pulse {
     0% {
         box-shadow: 0 0 0 0 rgba(7, 60, 23, 0.5);
