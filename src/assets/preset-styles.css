@@ -70,9 +70,10 @@
     color: #000;
 }
 
+/*
 .preset-card:has(.trending-badge):hover {
     background: linear-gradient(135deg, #e6b017, #cc9500);
-}
+} */
 
 /* Enhanced hover effects for buttons */
 .preset-card:hover .select-preset-button {
