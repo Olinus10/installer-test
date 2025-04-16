@@ -180,27 +180,27 @@ pub fn SettingsTab(
                 
                 div { class: "info-grid",
                     div { class: "info-row",
-                        div { class: "info-label", "Name: ", "info-value", "{installation_name}" }
+                        div { class: "info-label", "Name: ", "{installation_name}" }
                     }
                     
                     div { class: "info-row",
-                        div { class: "info-label", "Created: ", "info-value", "{created_at.format(\"%B %d, %Y\")}" }
+                        div { class: "info-label", "Created: ", "{created_at.format(\"%B %d, %Y\")}" }
                     }
                     
                     div { class: "info-row",
-                        div { class: "info-label", "Last Used: ", "info-value", "{last_used.format(\"%B %d, %Y\")}"  }
+                        div { class: "info-label", "Last Used: ", "{last_used.format(\"%B %d, %Y\")}"  }
                     }
                     
                     div { class: "info-row",
-                        div { class: "info-label", "Minecraft: ", "info-value", "{minecraft_version}" }
+                        div { class: "info-label", "Minecraft: ", "{minecraft_version}" }
                     }
                     
                     div { class: "info-row",
-                        div { class: "info-label", "Loader: ", "info-value", "{loader_type} {loader_version}"  }
+                        div { class: "info-label", "Loader: ", "{loader_type} {loader_version}"  }
                     }
                     
                     div { class: "info-row",
-                        div { class: "info-label", "Launcher: ", "info-value", "{launcher_type}" }
+                        div { class: "info-label", "Launcher: ", "{launcher_type}" }
                     }
                     
                     div { class: "info-row",
