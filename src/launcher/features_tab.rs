@@ -54,14 +54,12 @@ pub fn FeaturesTab(
             
             div { class: "presets-grid",
                 // Custom preset (no preset)
-                div { 
+div { 
     class: if selected_preset.read().is_none() {
         "preset-card selected"
     } else {
         "preset-card"
     },
-
-    "has-trending": "false",
     // Apply custom preset background if available
     style: if let Some(preset) = custom_preset {
         if let Some(bg) = &preset.background {
@@ -72,17 +70,9 @@ pub fn FeaturesTab(
     } else {
         String::new()
     },
-onclick: move |_| {
-    // First clear the preset selection
-    selected_preset.set(None);
-    
-    // Then reset enabled features to just the default
-    enabled_features.with_mut(|features| {
-        // Start with just the default feature
-        features.clear();
-        features.push("default".to_string());
-    });
-},
+    onclick: move |_| {
+        selected_preset.set(None);
+    },
     
     div { class: "preset-card-overlay" }
     
@@ -92,21 +82,45 @@ onclick: move |_| {
     }
     
     div { class: "preset-card-content",
-        h4 { "CUSTOM OVERHAUL" }
+        h4 { "Custom Configuration" }
         p { "Start with your current selection and customize everything yourself." }
     }
     
-    // Select/Selected button - properly defined variables
+    // Select/Selected button with direct inline styling
     {
         let is_selected = selected_preset.read().is_none();
-        let has_trending = false; // Custom preset is never trending
         
         rsx! {
             button {
-                class: if is_selected && has_trending {
-                    "select-preset-button trending-selected-button"
+                class: "select-preset-button",
+                style: if is_selected {
+                    // When selected, white with green text
+                    "background-color: white !important; color: #0a3d16 !important; border: none !important; position: absolute; bottom: 15px; left: 50%; transform: translateX(-50%); border-radius: 20px; padding: 10px 25px; font-family: 'REGULAR_FONT'; font-size: 1rem; font-weight: bold; letter-spacing: 1px; min-width: 150px; z-index: 5;"
                 } else {
-                    "select-preset-button"
+                    // When not selected, green button
+                    "background-color: rgba(7, 60, 23, 0.7) !important; color: white !important; border: none !important; position: absolute; bottom: 15px; left: 50%; transform: translateX(-50%); border-radius: 20px; padding: 10px 25px; font-family: 'REGULAR_FONT'; font-size: 1rem; font-weight: bold; letter-spacing: 1px; min-width: 150px; z-index: 5;"
+                },
+                // Handle hover state manually
+                onmouseover: move |evt| {
+                    if let Some(target) = evt.target_element() {
+                        if is_selected {
+                            // Don't change styling on hover when selected
+                        } else {
+                            // Regular card hover
+                            target.set_attribute("style", "background-color: rgba(10, 80, 30, 0.9) !important; color: white !important; border: none !important; position: absolute; bottom: 15px; left: 50%; transform: translateX(-50%) translateY(-3px); border-radius: 20px; padding: 10px 25px; font-family: 'REGULAR_FONT'; font-size: 1rem; font-weight: bold; letter-spacing: 1px; min-width: 150px; z-index: 5; box-shadow: 0 5px 15px rgba(0, 0, 0, 0.4) !important;").ok();
+                        }
+                    }
+                },
+                onmouseout: move |evt| {
+                    if let Some(target) = evt.target_element() {
+                        if is_selected {
+                            // Reset to selected style
+                            target.set_attribute("style", "background-color: white !important; color: #0a3d16 !important; border: none !important; position: absolute; bottom: 15px; left: 50%; transform: translateX(-50%); border-radius: 20px; padding: 10px 25px; font-family: 'REGULAR_FONT'; font-size: 1rem; font-weight: bold; letter-spacing: 1px; min-width: 150px; z-index: 5;").ok();
+                        } else {
+                            // Reset to normal style
+                            target.set_attribute("style", "background-color: rgba(7, 60, 23, 0.7) !important; color: white !important; border: none !important; position: absolute; bottom: 15px; left: 50%; transform: translateX(-50%); border-radius: 20px; padding: 10px 25px; font-family: 'REGULAR_FONT'; font-size: 1rem; font-weight: bold; letter-spacing: 1px; min-width: 150px; z-index: 5;").ok();
+                        }
+                    }
                 },
                 if is_selected {
                     "SELECTED"
@@ -119,78 +133,111 @@ onclick: move |_| {
 }
                 
                 // Available presets - skip the "custom" preset since we handle it separately
-                for preset in presets.iter().filter(|p| p.id != "custom") {
-                    {
-                        let preset_id = preset.id.clone();
-                        let is_selected = selected_preset.read().as_ref().map_or(false, |id| id == &preset_id);
-                        let mut apply_preset_clone = apply_preset.clone();
-                        let has_trending = preset.trending.unwrap_or(false);
-                        
-                        rsx! {
-                            div {
-                                class: if is_selected {
-                                    "preset-card selected"
-                                } else {
-                                    "preset-card"
-                                },
-
-                                "has-trending": if has_trending { "true" } else { "false" },
-                                // Apply background if available
-                                style: if let Some(bg) = &preset.background {
-                                    format!("background-image: url('{}'); background-size: cover; background-position: center;", bg)
-                                } else {
-                                    String::new()
-                                },
-                                onclick: move |_| {
-                                    apply_preset_clone(preset_id.clone());
-                                },
-                                
-                                // Feature count badge in top right
-                                span { class: "preset-features-count",
-                                    "{preset.enabled_features.len()} features"
-                                }
-                                
-                                // Trending badge in top left
+for preset in presets.iter().filter(|p| p.id != "custom") {
+    {
+        let preset_id = preset.id.clone();
+        let is_selected = selected_preset.read().as_ref().map_or(false, |id| id == &preset_id);
+        let mut apply_preset_clone = apply_preset.clone();
+        let has_trending = preset.trending.unwrap_or(false);
+        
+        rsx! {
+            div {
+                class: if is_selected {
+                    "preset-card selected"
+                } else {
+                    "preset-card"
+                },
+                // Apply background if available
+                style: if let Some(bg) = &preset.background {
+                    format!("background-image: url('{}'); background-size: cover; background-position: center;", bg)
+                } else {
+                    String::new()
+                },
+                onclick: move |_| {
+                    apply_preset_clone(preset_id.clone());
+                },
+                
+                // Feature count badge in top right
+                span { class: "preset-features-count",
+                    "{preset.enabled_features.len()} features"
+                }
+                
+                // Trending badge in top left
+                if has_trending {
+                    span { class: "trending-badge", "Popular" }
+                }
+                
+                // Dark overlay for text readability
+                div { class: "preset-card-overlay" }
+                
+                div { class: "preset-card-content",
+                    h4 { "{preset.name}" }
+                    p { "{preset.description}" }
+                }
+                
+                // Select/Selected button with comprehensive inline styling
+                button {
+                    class: "select-preset-button",
+                    style: if is_selected {
+                        if has_trending {
+                            // Selected trending button - white with gold text
+                            "background-color: white !important; color: #b58c14 !important; border: none !important; position: absolute; bottom: 15px; left: 50%; transform: translateX(-50%); border-radius: 20px; padding: 10px 25px; font-family: 'REGULAR_FONT'; font-size: 1rem; font-weight: bold; letter-spacing: 1px; min-width: 150px; z-index: 5; box-shadow: 0 0 15px rgba(255, 179, 0, 0.3) !important;"
+                        } else {
+                            // Selected regular button - white with green text
+                            "background-color: white !important; color: #0a3d16 !important; border: none !important; position: absolute; bottom: 15px; left: 50%; transform: translateX(-50%); border-radius: 20px; padding: 10px 25px; font-family: 'REGULAR_FONT'; font-size: 1rem; font-weight: bold; letter-spacing: 1px; min-width: 150px; z-index: 5;"
+                        }
+                    } else {
+                        if has_trending {
+                            // Non-selected trending button - gold
+                            "background: linear-gradient(135deg, #d4a017, #b78500) !important; color: black !important; border: none !important; position: absolute; bottom: 15px; left: 50%; transform: translateX(-50%); border-radius: 20px; padding: 10px 25px; font-family: 'REGULAR_FONT'; font-size: 1rem; font-weight: bold; letter-spacing: 1px; min-width: 150px; z-index: 5;"
+                        } else {
+                            // Non-selected regular button - green
+                            "background-color: rgba(7, 60, 23, 0.7) !important; color: white !important; border: none !important; position: absolute; bottom: 15px; left: 50%; transform: translateX(-50%); border-radius: 20px; padding: 10px 25px; font-family: 'REGULAR_FONT'; font-size: 1rem; font-weight: bold; letter-spacing: 1px; min-width: 150px; z-index: 5;"
+                        }
+                    },
+                    // Handle hover states with JavaScript
+                    onmouseover: move |evt| {
+                        if let Some(target) = evt.target_element() {
+                            if is_selected {
+                                // Don't change styling on hover when selected
+                            } else if has_trending {
+                                // Trending card hover - slightly brighter gold
+                                target.set_attribute("style", "background: linear-gradient(135deg, #e6b017, #cc9500) !important; color: black !important; border: none !important; position: absolute; bottom: 15px; left: 50%; transform: translateX(-50%) translateY(-3px); border-radius: 20px; padding: 10px 25px; font-family: 'REGULAR_FONT'; font-size: 1rem; font-weight: bold; letter-spacing: 1px; min-width: 150px; z-index: 5; box-shadow: 0 5px 15px rgba(0, 0, 0, 0.4) !important;").ok();
+                            } else {
+                                // Regular card hover - slightly brighter green
+                                target.set_attribute("style", "background-color: rgba(10, 80, 30, 0.9) !important; color: white !important; border: none !important; position: absolute; bottom: 15px; left: 50%; transform: translateX(-50%) translateY(-3px); border-radius: 20px; padding: 10px 25px; font-family: 'REGULAR_FONT'; font-size: 1rem; font-weight: bold; letter-spacing: 1px; min-width: 150px; z-index: 5; box-shadow: 0 5px 15px rgba(0, 0, 0, 0.4) !important;").ok();
+                            }
+                        }
+                    },
+                    onmouseout: move |evt| {
+                        if let Some(target) = evt.target_element() {
+                            if is_selected {
+                                // Reset to selected style on mouse out
                                 if has_trending {
-                                    span { class: "trending-badge", "Popular" }
+                                    target.set_attribute("style", "background-color: white !important; color: #b58c14 !important; border: none !important; position: absolute; bottom: 15px; left: 50%; transform: translateX(-50%); border-radius: 20px; padding: 10px 25px; font-family: 'REGULAR_FONT'; font-size: 1rem; font-weight: bold; letter-spacing: 1px; min-width: 150px; z-index: 5; box-shadow: 0 0 15px rgba(255, 179, 0, 0.3) !important;").ok();
+                                } else {
+                                    target.set_attribute("style", "background-color: white !important; color: #0a3d16 !important; border: none !important; position: absolute; bottom: 15px; left: 50%; transform: translateX(-50%); border-radius: 20px; padding: 10px 25px; font-family: 'REGULAR_FONT'; font-size: 1rem; font-weight: bold; letter-spacing: 1px; min-width: 150px; z-index: 5;").ok();
                                 }
-                                
-                                // Dark overlay for text readability
-                                div { class: "preset-card-overlay" }
-                                
-                                div { class: "preset-card-content",
-                                    h4 { "{preset.name}" }
-                                    p { "{preset.description}" }
+                            } else {
+                                // Reset to normal style on mouse out
+                                if has_trending {
+                                    target.set_attribute("style", "background: linear-gradient(135deg, #d4a017, #b78500) !important; color: black !important; border: none !important; position: absolute; bottom: 15px; left: 50%; transform: translateX(-50%); border-radius: 20px; padding: 10px 25px; font-family: 'REGULAR_FONT'; font-size: 1rem; font-weight: bold; letter-spacing: 1px; min-width: 150px; z-index: 5;").ok();
+                                } else {
+                                    target.set_attribute("style", "background-color: rgba(7, 60, 23, 0.7) !important; color: white !important; border: none !important; position: absolute; bottom: 15px; left: 50%; transform: translateX(-50%); border-radius: 20px; padding: 10px 25px; font-family: 'REGULAR_FONT'; font-size: 1rem; font-weight: bold; letter-spacing: 1px; min-width: 150px; z-index: 5;").ok();
                                 }
-                                
-                                // Select/Selected button
-                                {
-    let button_class = "select-preset-button";
-    let button_style = if is_selected {
-        // Inline CSS to force the styling
-        "background-color: white !important; color: #b58c14 !important;"
-    } else {
-        // Normal styling for non-selected state
-        ""
-    };
-    
-    rsx! {
-        button {
-            class: button_class,
-            style: button_style,
-            if is_selected {
-                "SELECTED"
-            } else {
-                "SELECT"
+                            }
+                        }
+                    },
+                    if is_selected {
+                        "SELECTED"
+                    } else {
+                        "SELECT"
+                    }
+                }
             }
         }
     }
 }
-                            }
-                        }
-                    }
-                }
-            }
             
             // Add search filter - right before optional features
             div { class: "feature-filter-container",
