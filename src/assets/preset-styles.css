@@ -74,7 +74,7 @@
     background: linear-gradient(135deg, #e6b017, #cc9500);
 }
 
-/* Enhanced hover effects for buttons 
+/* Enhanced hover effects for buttons */
 .preset-card:hover .select-preset-button {
     background-color: rgba(7, 60, 23, 0.9);
     transform: translateX(-50%) translateY(-3px);
@@ -84,7 +84,7 @@
 .preset-card:has(.trending-badge):hover .select-preset-button {
     background: linear-gradient(135deg, #e6b017, #cc9500);
     box-shadow: 0 5px 15px rgba(0, 0, 0, 0.4);
-} */
+} 
 
 /* Card title styling */
 .preset-card h4 {
