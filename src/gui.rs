@@ -777,7 +777,7 @@ fn StatisticsDisplay() -> Element {
                 span { class: "stat-label", "FPS" }
             }
             div { class: "stat-item",
-                span { class: "stat-value", "100+" }
+                span { class: "stat-value", "50+" }
                 span { class: "stat-label", "MODS" }
             }
             div { class: "stat-item",
