@@ -276,18 +276,30 @@ pub fn FeaturesTab(
                 div { class: "features-count-container",
                     span { class: "features-count-badge",
                         if let Some(manifest) = &universal_manifest {
-                            let total_features = {
-    manifest.mods.iter().chain(
-        manifest.shaderpacks.iter()).chain(
-        manifest.resourcepacks.iter())
-        .filter(|m| m.optional).count()
-};
-                                
-                            let enabled_count = enabled_features.read().len();
-                            
-                            rsx! { "{enabled_count}/{total_features} features enabled" }
-                        } else {
-                            rsx! { "Loading features..." }
+                            if let Some(manifest) = &universal_manifest {
+    // Get all optional components
+    let optional_mods = manifest.mods.iter()
+        .filter(|m| m.optional)
+        .count();
+        
+    let optional_shaderpacks = manifest.shaderpacks.iter()
+        .filter(|m| m.optional)
+        .count();
+        
+    let optional_resourcepacks = manifest.resourcepacks.iter()
+        .filter(|m| m.optional)
+        .count();
+        
+    // Calculate total features
+    let total_features = optional_mods + optional_shaderpacks + optional_resourcepacks;
+    
+    // Calculate enabled features
+    let enabled_count = enabled_features.read().len();
+    
+    rsx! { "{enabled_count}/{total_features} features enabled" }
+} else {
+    rsx! { "Loading features..." }
+}
                         }
                     }
                 }
