@@ -237,7 +237,7 @@ pub fn PerformanceTab(
                 
                 // System memory info
                 div { class: "system-memory-info",
-                    "System Memory: ",
+                    "Your System Memory: ",
                     span { class: "system-memory-value", "{system_memory_display}" }
                 }
                 
@@ -303,7 +303,7 @@ pub fn PerformanceTab(
                             let rec_text = format!("Recommended: {}", format_memory_display(*recommended_memory.read()));
                             
                             if let Some(percentage) = recommended_percentage {
-                                format!("{} (~{}% of your system memory, max 4GB)", rec_text, percentage as i32)
+                                format!("{} (~{}% of your system memory)", rec_text, percentage as i32)
                             } else {
                                 format!("{} (max 4GB)", rec_text)
                             }
