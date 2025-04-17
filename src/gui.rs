@@ -2831,10 +2831,23 @@ let complete_css = format!("{}\n{}\n{}\n{}\n{}",
             
             rsx! {
                 InstallationManagementPage {
-                    installation_id: id,
-                    onback: back_handler,
-                    installations: installations.clone()
+    installation_id: id,
+    onback: move |_| {
+        current_installation_id.set(None);
+        // Refresh the installations list
+        spawn(async {
+            match installation::load_all_installations() {
+                Ok(refreshed) => {
+                    installations.set(refreshed);
+                },
+                Err(e) => {
+                    debug!("Failed to reload installations: {}", e);
                 }
+            }
+        });
+    },
+    installations: installations.clone()
+}
             }
         }
     };
