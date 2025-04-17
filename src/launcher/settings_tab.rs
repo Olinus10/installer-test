@@ -1,6 +1,7 @@
 use dioxus::prelude::*;
 use crate::installation::{Installation, delete_installation};
 use log::{debug, error};
+use std::path::PathBuf;
 
 #[component]
 pub fn SettingsTab(
@@ -138,25 +139,26 @@ pub fn SettingsTab(
     };
     
     // Handle delete
-    let handle_delete = move |_| {
-        let id_to_delete = installation_id_for_delete.clone();
-        is_operating.set(true);
-        
-        spawn(async move {
-            match delete_installation(&id_to_delete) {
-                Ok(_) => {
-                    debug!("Successfully deleted installation: {}", id_to_delete);
-                    // Call the ondelete handler to notify parent component
-                    ondelete.call(());
-                },
-                Err(e) => {
-                    error!("Failed to delete installation: {}", e);
-                    operation_error.set(Some(format!("Failed to delete installation: {}", e)));
-                    is_operating.set(false);
-                }
+   let handle_delete = move |_| {
+    let id_to_delete = installation_id_for_delete.clone();
+    let delete_handler = ondelete.clone();
+    is_operating.set(true);
+    
+    spawn(async move {
+        match delete_installation(&id_to_delete) {
+            Ok(_) => {
+                debug!("Successfully deleted installation: {}", id_to_delete);
+                // Call the ondelete handler to navigate back to home
+                delete_handler.call(());
+            },
+            Err(e) => {
+                error!("Failed to delete installation: {}", e);
+                operation_error.set(Some(format!("Failed to delete installation: {}", e)));
+                is_operating.set(false);
             }
-        });
-    };
+        }
+    });
+};
     
     rsx! {
         div { class: "settings-tab",
@@ -252,10 +254,65 @@ pub fn SettingsTab(
                         class: "advanced-button reset-cache-button",
                         disabled: *is_operating.read(),
                         onclick: move |_| {
-                            debug!("Reset cache clicked for installation: {}", installation_id_for_cache);
-                            // Implementation would go here - for now just a placeholder
-                            operation_error.set(Some("This functionality is not yet implemented".to_string()));
-                        },
+    debug!("Reset cache clicked for installation: {}", installation_id_for_cache);
+    is_operating.set(true);
+    
+    let installation_path_for_cache = installation.installation_path.clone();
+    let mut operation_error_clone = operation_error.clone();
+    let mut is_operating_clone = is_operating.clone();
+    
+    spawn(async move {
+        // Define the folders to clear
+        let cache_folders = [
+            installation_path_for_cache.join("mods"),
+            installation_path_for_cache.join("resourcepacks"),
+            installation_path_for_cache.join("shaderpacks")
+        ];
+        
+        debug!("Clearing cache folders: {:?}", cache_folders);
+        
+        let mut success = true;
+        
+        // Delete the content of each folder
+        for folder in &cache_folders {
+            if folder.exists() {
+                match std::fs::remove_dir_all(folder) {
+                    Ok(_) => {
+                        debug!("Removed folder: {:?}", folder);
+                        // Recreate the empty folder
+                        if let Err(e) = std::fs::create_dir_all(folder) {
+                            error!("Failed to recreate folder {:?}: {}", folder, e);
+                            operation_error_clone.set(Some(format!("Failed to recreate folder: {}", e)));
+                            success = false;
+                            break;
+                        }
+                    },
+                    Err(e) => {
+                        error!("Failed to remove folder {:?}: {}", folder, e);
+                        operation_error_clone.set(Some(format!("Failed to clear cache: {}", e)));
+                        success = false;
+                        break;
+                    }
+                }
+            } else {
+                // Create the folder if it doesn't exist
+                if let Err(e) = std::fs::create_dir_all(folder) {
+                    error!("Failed to create folder {:?}: {}", folder, e);
+                    operation_error_clone.set(Some(format!("Failed to create folder: {}", e)));
+                    success = false;
+                    break;
+                }
+            }
+        }
+        
+        is_operating_clone.set(false);
+        
+        // Display success message if everything went well
+        if success {
+            operation_error_clone.set(Some("Cache successfully reset. You'll need to reinstall the modpack next time you play.".to_string()));
+        }
+    });
+},
                         "Reset Cache"
                     }
                 }
