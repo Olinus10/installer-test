@@ -2830,9 +2830,9 @@ let complete_css = format!("{}\n{}\n{}\n{}\n{}",
             let id = current_installation_id.read().as_ref().unwrap().clone();
             
             rsx! {
-                InstallationManagementPage {
+InstallationManagementPage {
     installation_id: id,
-    onback: move |_| {
+    onback: EventHandler::new(move |_: ()| {
         current_installation_id.set(None);
         // Refresh the installations list
         spawn(async {
@@ -2845,7 +2845,7 @@ let complete_css = format!("{}\n{}\n{}\n{}\n{}",
                 }
             }
         });
-    },
+    }),
     installations: installations.clone()
 }
             }
