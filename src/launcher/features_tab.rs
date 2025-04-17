@@ -44,7 +44,7 @@ pub fn FeaturesTab(
     let mut regular_button_hover = use_signal(Vec::<String>::new);
     
     // Features section expanded state
-    let mut features_expanded = use_signal(|| true); // Default to expanded
+    let mut features_expanded = use_signal(|| false); // Default to expanded
     
     // Find custom preset for the "Custom Configuration" card
     let custom_preset = presets.iter().find(|p| p.id == "custom");
@@ -84,11 +84,6 @@ pub fn FeaturesTab(
                     },
                     
                     div { class: "preset-card-overlay" }
-                    
-                    // Feature count badge in top right
-                    span { class: "preset-features-count",
-                        "{enabled_features.read().len()} features selected"
-                    }
                     
                     div { class: "preset-card-content",
                         h4 { "CUSTOM OVERHAUL" }
