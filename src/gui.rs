@@ -2823,9 +2823,9 @@ let complete_css = format!("{}\n{}\n{}\n{}\n{}",
 }
         } else {
             // Specific installation management page
-            let back_handler = EventHandler::new(move |_| {
-                current_installation_id.set(None);
-            });
+            let back_handler = EventHandler::new(move |_: ()| {
+    current_installation_id.set(None);
+});
             
             let id = current_installation_id.read().as_ref().unwrap().clone();
             
