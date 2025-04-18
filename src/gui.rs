@@ -2836,7 +2836,7 @@ InstallationManagementPage {
         current_installation_id.set(None);
         
         // Clone what we need for the spawned task
-        let installations_clone = installations.clone();
+        let mut installations_clone = installations.clone();
         
         // Now spawn with its own clone
         spawn(async move {
