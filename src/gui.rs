@@ -2834,11 +2834,15 @@ InstallationManagementPage {
     installation_id: id,
     onback: EventHandler::new(move |_: ()| {
         current_installation_id.set(None);
-        // Refresh the installations list
-        spawn(async {
+        
+        // Clone what we need for the spawned task
+        let installations_clone = installations.clone();
+        
+        // Now spawn with its own clone
+        spawn(async move {
             match installation::load_all_installations() {
                 Ok(refreshed) => {
-                    installations.set(refreshed);
+                    installations_clone.set(refreshed);
                 },
                 Err(e) => {
                     debug!("Failed to reload installations: {}", e);
