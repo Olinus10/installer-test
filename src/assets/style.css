@@ -1305,6 +1305,45 @@ a:hover {
   transition: width 0.3s ease;
 }
 
+/* New animations for the button */
+@keyframes button-glow {
+    0% {
+        box-shadow: 0 6px 15px rgba(0, 0, 0, 0.4), 0 0 20px rgba(7, 60, 23, 0.3);
+        text-shadow: 0 0 5px rgba(255, 255, 255, 0.3);
+    }
+    100% {
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.5), 0 0 30px rgba(7, 60, 23, 0.6);
+        text-shadow: 0 0 10px rgba(255, 255, 255, 0.5), 0 0 20px rgba(255, 255, 255, 0.2);
+    }
+}
+
+@keyframes button-scale-pulse {
+    0% {
+        transform: scale(1);
+    }
+    100% {
+        transform: scale(1.03);
+    }
+}
+
+@keyframes button-breathe {
+    0%, 100% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.03);
+    }
+}
+
+@keyframes button-shine {
+    0% {
+        left: -100%;
+    }
+    100% {
+        left: 100%;
+    }
+}
+
 /* Different button states */
 .main-install-button[data-state="processing"] {
   cursor: wait;
