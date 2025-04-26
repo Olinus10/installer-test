@@ -2800,7 +2800,7 @@ let complete_css = format!("{}\n{}\n{}\n{}\n{}\n{}\n{}",
                 HomePage {
                     installations,
                     error_signal: error_signal.clone(),
-                    changelog: use_signal(|| changelog.read().as_ref().cloned().flatten()),
+                    changelog: changelog_signal,
                     current_installation_id: current_installation_id.clone(),
                 }
             }
