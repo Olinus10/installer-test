@@ -407,10 +407,10 @@ fn main() {
 }
 
 #[component]
-fn ChangelogSection(changelog: Option<ChangelogData>) -> Element {
-    if let Some(changelog_data) = changelog {
-        if changelog_data.entries.is_empty() {
-            return None;
+fn ChangelogSection(changelog_data: Option<ChangelogData>) -> Element {
+    if let Some(data) = changelog_data {
+        if data.entries.is_empty() {
+            return rsx! { div { class: "changelog-loading" } };
         }
         
         rsx! {
@@ -420,7 +420,7 @@ fn ChangelogSection(changelog: Option<ChangelogData>) -> Element {
                 }
                 
                 div { class: "changelog-entries",
-                    for (index, entry) in changelog_data.entries.iter().enumerate().take(5) {
+                    for (index, entry) in data.entries.iter().enumerate().take(5) {
                         div { 
                             class: "changelog-entry",
                             "data-importance": "{entry.importance.clone().unwrap_or_else(|| String::from(\"normal\"))}",
@@ -443,14 +443,14 @@ fn ChangelogSection(changelog: Option<ChangelogData>) -> Element {
                             }
                             
                             // Show divider between entries except for the last one
-                            if index < changelog_data.entries.len() - 1 && index < 4 {
+                            if index < data.entries.len() - 1 && index < 4 {
                                 div { class: "entry-divider" }
                             }
                         }
                     }
                     
                     // Show "View all changes" button if more than 5 entries
-                    if changelog_data.entries.len() > 5 {
+                    if data.entries.len() > 5 {
                         div { class: "view-all-changes",
                             button { class: "view-all-button",
                                 "View All Changes"
@@ -522,11 +522,12 @@ fn Footer() -> Element {
 
 // Home Page component with redundancy removed
 #[component]
+#[component]
 fn HomePage(
     installations: Signal<Vec<Installation>>,
     error_signal: Signal<Option<String>>,
-    changelog: Signal<Option<ChangelogData>>,
-    current_installation_id: Signal<Option<String>>, // Add this parameter
+    changelog_data: Option<ChangelogData>, // Change from Signal to Option
+    current_installation_id: Signal<Option<String>>,
 ) -> Element {
     // State for the installation creation dialog
     let mut show_creation_dialog = use_signal(|| false);
@@ -646,7 +647,7 @@ fn HomePage(
             }
             
             // Recent changes section
-            ChangelogSection { changelog: changelog() }
+            ChangelogSection { changelog_data: changelog_data }
             
             // Footer with Discord button and other info
             Footer {}
@@ -1732,16 +1733,16 @@ fn InstallButton(
     
     rsx! {
         div { class: "install-button-container",
-    div { 
-        class: "button-scale-wrapper",
-        button {
-            class: "main-install-button",
-            disabled: install_disable,
-            "data-state": button_state,
-            onclick: on_submit,
-            
-            span { class: "button-text", "{button_label}" }
-            div { class: "button-progress" }
+            div { 
+                class: "button-scale-wrapper",
+                button {
+                    class: "main-install-button",
+                    disabled: disabled,
+                    "data-state": "{button_state}",
+                    onclick: move |evt| onclick.call(evt),
+                    
+                    span { class: "button-text", "{label}" }
+                    div { class: "button-progress" }
                 }
             }
         }
@@ -2284,23 +2285,23 @@ fn Version(mut props: VersionProps) -> Element {
     };
 
     // Button label based on state
-    let button_label = if !*installed.read() {
-        debug!("Button state: Install");
-        "Install"
-    } else if *update_available.read() {
-        debug!("Button state: Update");
-        "Update"
-    } else if *modify.read() {
-        debug!("Button state: Modify");
-        "Modify"
-    } else {
-        debug!("Button state: Modify (default)");
-        "Modify"
-    };
+let button_label = if !*installed.read() {
+    debug!("Button state: Install");
+    "Install"
+} else if *update_available.read() {
+    debug!("Button state: Update");
+    "Update"
+} else if *modify.read() {
+    debug!("Button state: Modify");
+    "Modify"
+} else {
+    debug!("Button state: Modify (default)");
+    "Modify"
+};
     
     // Button disable logic
-    let install_disable = *installed.read() && !*update_available.read() && !*modify.read();
-    debug!("Button disabled: {}", install_disable);
+let install_disable = *installed.read() && !*update_available.read() && !*modify.read();
+debug!("Button disabled: {}", install_disable);
     
     // Pre-build feature cards to avoid nested RSX macros
     let feature_cards_content = {
@@ -2684,18 +2685,19 @@ pub fn app() -> Element {
     });
     
     // Load changelog
-let changelog = use_resource(move || async {
-    match fetch_changelog("Olinus10/installer-test", &CachedHttpClient::new()).await {
-        Ok(changelog) => {
-            debug!("Successfully loaded changelog with {} entries", changelog.entries.len());
-            Some(changelog)
-        },
-        Err(e) => {
-            error!("Failed to load changelog: {}", e);
-            None
+let changelog_data = use_resource(move || async {
+        debug!("Loading changelog data...");
+        match crate::changelog::fetch_changelog("Olinus10/installer-test", &CachedHttpClient::new()).await {
+            Ok(data) => {
+                debug!("Successfully loaded changelog with {} entries", data.entries.len());
+                Some(data)
+            },
+            Err(e) => {
+                error!("Failed to load changelog: {}", e);
+                None
+            }
         }
-    }
-});
+    });
 
     // Modal context for popups
     let mut modal_context = use_context_provider(ModalContext::default);
@@ -2796,14 +2798,14 @@ let complete_css = format!("{}\n{}\n{}\n{}\n{}\n{}\n{}",
         }
     } else {
         // Main content based on current state
-        if current_installation_id.read().is_none() {
-            // Home page - show installations or welcome screen
-            rsx! {
-                HomePage {
-                    installations,
-                    error_signal: error_signal.clone(),
-                    changelog: changelog_signal,
-                    current_installation_id: current_installation_id.clone(),
+    if current_installation_id.read().is_none() {
+        // Home page - show installations or welcome screen
+        rsx! {
+            HomePage {
+                installations,
+                error_signal: error_signal.clone(),
+                changelog_data: changelog_data.read().as_ref().cloned(), // Pass as Option<ChangelogData>
+                current_installation_id: current_installation_id.clone(),
                 }
             }
         } else if current_installation_id.read().as_ref().map_or(false, |id| id == "new") {
