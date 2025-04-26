@@ -282,23 +282,23 @@ pub fn FeaturesTab(
     
     // Centered expand/collapse button with improved styling
     button { 
-        class: "expand-collapse-button",
-        onclick: move |_| {
-            let current_expanded = *features_expanded.read();
-            features_expanded.set(!current_expanded);
-        },
-        
-        // Icon and text change based on state
-        if *features_expanded.read() {
-            // Collapse state
-            span { class: "button-icon collapse-icon", "▲" }
-            "Collapse Features"
-        } else {
-            // Expand state
-            span { class: "button-icon expand-icon", "▼" }
-            "Expand Features"
-        }
+    class: "expand-collapse-button",
+    onclick: move |_| {
+        let current_expanded = *features_expanded.read();
+        features_expanded.set(!current_expanded);
+    },
+    
+    // Icon and text change based on state
+    if *features_expanded.read() {
+        // Collapse state
+        span { class: "button-icon collapse-icon", "▲" }
+        "Collapse Features"
+    } else {
+        // Expand state
+        span { class: "button-icon expand-icon", "▼" }
+        "Expand Features"
     }
+}
     
     // Collapsible content - search INSIDE this section
     div { 
