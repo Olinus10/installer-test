@@ -676,42 +676,39 @@ button:disabled {
     }
 }
 
-/* Force settings button styles */
+/* Fix for settings tab buttons */
 .settings-section .settings-action-button {
-    padding: 12px 15px !important;
-    background-color: rgba(0, 0, 0, 0.5) !important;
-    border: 1px solid rgba(255, 255, 255, 0.2) !important;
-    border-radius: 8px !important;
-    color: white !important;
-    font-family: "REGULAR_FONT" !important;
-    font-size: 1rem !important;
-    display: flex !important;
-    align-items: center !important;
-    gap: 10px !important;
-    cursor: pointer !important;
+  color: #fce8f6 !important;
+  background-color: rgba(0, 0, 0, 0.5) !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  transition: all 0.3s ease !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
 }
 
 .settings-section .settings-action-button:hover {
-    background-color: rgba(0, 0, 0, 0.7) !important;
-    transform: translateY(-3px) !important;
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3) !important;
+  background-color: rgba(0, 0, 0, 0.7) !important;
+  transform: translateY(-3px) !important;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3) !important;
 }
 
-.settings-section .delete-button {
-    border-color: rgba(217, 82, 72, 0.5) !important;
-}
-
-.settings-section .delete-button:hover {
-    background-color: rgba(217, 82, 72, 0.2) !important;
-    border-color: rgba(217, 82, 72, 0.8) !important;
-}
-
+/* More specific hover states for each button type */
 .settings-section .rename-button:hover {
-    background-color: rgba(7, 60, 23, 0.2) !important;
-    border-color: rgba(7, 60, 23, 0.5) !important;
+  background-color: rgba(7, 60, 23, 0.2) !important;
+  border-color: rgba(7, 60, 23, 0.5) !important;
 }
 
 .settings-section .folder-button:hover {
-    background-color: rgba(74, 85, 162, 0.2) !important;
-    border-color: rgba(74, 85, 162, 0.5) !important;
+  background-color: rgba(74, 85, 162, 0.2) !important;
+  border-color: rgba(74, 85, 162, 0.5) !important;
+}
+
+.settings-section .delete-button {
+  border-color: rgba(217, 82, 72, 0.5) !important;
+}
+
+.settings-section .delete-button:hover {
+  background-color: rgba(217, 82, 72, 0.2) !important;
+  border-color: rgba(217, 82, 72, 0.8) !important;
 }
