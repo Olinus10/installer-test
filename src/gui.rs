@@ -2629,6 +2629,8 @@ pub fn app() -> Element {
     let mut current_installation_id = use_signal(|| Option::<String>::None);
     let mut installations = use_signal(|| props.installations.clone());
 
+    let changelog_signal = use_signal(|| changelog.read().as_ref().cloned());
+    
     // Get launcher configuration
     let launcher = match get_launcher(&config.read().launcher) {
         Ok(l) => Some(l),
