@@ -316,7 +316,7 @@ pub fn SettingsTab(
             "Reset Cache"
         }
     }
-}
+
                 
                 // Repair installation option
                 div { class: "advanced-option",
