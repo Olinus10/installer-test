@@ -1732,17 +1732,16 @@ fn InstallButton(
     
     rsx! {
         div { class: "install-button-container",
-            div { 
-                class: "button-scale-wrapper",
-                style: "animation: button-scale-pulse 3s infinite alternate, button-breathe 4s infinite ease-in-out;",
-                button {
-                    class: "main-install-button",
-                    disabled: disabled,
-                    "data-state": "{button_state}",
-                    onclick: move |evt| onclick.call(evt),
-                    
-                    span { class: "button-text", "{label}" }
-                    div { class: "button-progress" }
+    div { 
+        class: "button-scale-wrapper",
+        button {
+            class: "main-install-button",
+            disabled: install_disable,
+            "data-state": button_state,
+            onclick: on_submit,
+            
+            span { class: "button-text", "{button_label}" }
+            div { class: "button-progress" }
                 }
             }
         }
@@ -2683,18 +2682,18 @@ pub fn app() -> Element {
     });
     
     // Load changelog
-    let changelog = use_resource(move || async {
-        match fetch_changelog("Olinus10/installer-test", &CachedHttpClient::new()).await {
-            Ok(changelog) => {
-                debug!("Successfully loaded changelog with {} entries", changelog.entries.len());
-                Some(changelog)
-            },
-            Err(e) => {
-                error!("Failed to load changelog: {}", e);
-                None
-            }
+let changelog = use_resource(move || async {
+    match fetch_changelog("Olinus10/installer-test", &CachedHttpClient::new()).await {
+        Ok(changelog) => {
+            debug!("Successfully loaded changelog with {} entries", changelog.entries.len());
+            Some(changelog)
+        },
+        Err(e) => {
+            error!("Failed to load changelog: {}", e);
+            None
         }
-    });
+    }
+});
 
     // Modal context for popups
     let mut modal_context = use_context_provider(ModalContext::default);
