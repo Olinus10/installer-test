@@ -2727,7 +2727,8 @@ let complete_css = format!("{}\n{}\n{}\n{}\n{}",
     category_styles, 
     feature_styles, 
     preset_styles, 
-    search_styles
+    search_styles,
+    modal-styles
 );
 
     // Create header component if needed
