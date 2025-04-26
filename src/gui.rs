@@ -522,7 +522,6 @@ fn Footer() -> Element {
 
 // Home Page component with redundancy removed
 #[component]
-#[component]
 fn HomePage(
     installations: Signal<Vec<Installation>>,
     error_signal: Signal<Option<String>>,
@@ -2629,8 +2628,6 @@ pub fn app() -> Element {
     // Installation handling
     let mut current_installation_id = use_signal(|| Option::<String>::None);
     let mut installations = use_signal(|| props.installations.clone());
-
-    let changelog_signal = use_signal(|| changelog.read().as_ref().cloned());
     
     // Get launcher configuration
     let launcher = match get_launcher(&config.read().launcher) {
