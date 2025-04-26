@@ -385,93 +385,101 @@
     position: relative !important;
 }
 
-/* Enhanced slider appearance */
+/* Enhanced performance slider */
+.memory-slider-container {
+  width: 100% !important;
+  margin: 35px 0 45px 0 !important;
+  position: relative !important;
+  padding: 0 !important;
+}
+
+/* Make slider bigger and fill the width */
 .memory-slider {
-    width: 100% !important;
-    height: 18px !important;
-    -webkit-appearance: none !important;
-    appearance: none !important;
-    background: rgba(0, 0, 0, 0.3) !important;
-    outline: none !important;
-    border-radius: 9px !important;
-    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.5) !important;
-    cursor: pointer !important;
-    margin-bottom: 35px !important;
+  width: 100% !important;
+  height: 18px !important; /* Increased height */
+  -webkit-appearance: none !important;
+  appearance: none !important;
+  background: rgba(0, 0, 0, 0.3) !important;
+  outline: none !important;
+  border-radius: 9px !important;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.5) !important;
+  cursor: pointer !important;
+  margin-bottom: 35px !important;
 }
 
 /* Larger slider thumb */
 .memory-slider::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    appearance: none;
-    width: 28px; /* Larger thumb */
-    height: 28px; /* Larger thumb */
-    border-radius: 50%;
-    background: linear-gradient(145deg, #0a5d23, #073c17);
-    cursor: pointer;
-    box-shadow: 0 0 10px rgba(7, 60, 23, 0.8), 0 2px 5px rgba(0, 0, 0, 0.4);
-    border: 2px solid rgba(255, 255, 255, 0.7);
-    position: relative;
-    z-index: 2;
-    transition: all 0.2s ease;
+  -webkit-appearance: none;
+  appearance: none;
+  width: 28px; /* Larger thumb */
+  height: 28px; /* Larger thumb */
+  border-radius: 50%;
+  background: linear-gradient(145deg, #0a5d23, #073c17);
+  cursor: pointer;
+  box-shadow: 0 0 10px rgba(7, 60, 23, 0.8), 0 2px 5px rgba(0, 0, 0, 0.4);
+  border: 2px solid rgba(255, 255, 255, 0.7);
+  position: relative;
+  z-index: 2;
+  transition: all 0.2s ease;
 }
 
 .memory-slider::-webkit-slider-thumb:hover {
-    background: linear-gradient(145deg, #0c6d29, #0a5d23);
-    box-shadow: 0 0 15px rgba(7, 60, 23, 1), 0 3px 8px rgba(0, 0, 0, 0.5);
-    transform: scale(1.1);
+  background: linear-gradient(145deg, #0c6d29, #0a5d23);
+  box-shadow: 0 0 15px rgba(7, 60, 23, 1), 0 3px 8px rgba(0, 0, 0, 0.5);
+  transform: scale(1.1);
 }
 
 .memory-slider::-moz-range-thumb {
-    width: 28px; /* Larger thumb */
-    height: 28px; /* Larger thumb */
-    border-radius: 50%;
-    background: linear-gradient(145deg, #0a5d23, #073c17);
-    cursor: pointer;
-    box-shadow: 0 0 10px rgba(7, 60, 23, 0.8), 0 2px 5px rgba(0, 0, 0, 0.4);
-    border: 2px solid rgba(255, 255, 255, 0.7);
-    position: relative;
-    z-index: 2;
-    transition: all 0.2s ease;
+  width: 28px; /* Larger thumb */
+  height: 28px; /* Larger thumb */
+  border-radius: 50%;
+  background: linear-gradient(145deg, #0a5d23, #073c17);
+  cursor: pointer;
+  box-shadow: 0 0 10px rgba(7, 60, 23, 0.8), 0 2px 5px rgba(0, 0, 0, 0.4);
+  border: 2px solid rgba(255, 255, 255, 0.7);
+  position: relative;
+  z-index: 2;
+  transition: all 0.2s ease;
 }
 
 .memory-slider::-moz-range-thumb:hover {
-    background: linear-gradient(145deg, #0c6d29, #0a5d23);
-    box-shadow: 0 0 15px rgba(7, 60, 23, 1), 0 3px 8px rgba(0, 0, 0, 0.5);
-    transform: scale(1.1);
+  background: linear-gradient(145deg, #0c6d29, #0a5d23);
+  box-shadow: 0 0 15px rgba(7, 60, 23, 1), 0 3px 8px rgba(0, 0, 0, 0.5);
+  transform: scale(1.1);
 }
 
 /* Custom track styling with gradient */
 .memory-slider::-webkit-slider-runnable-track {
-    width: 100%;
-    height: 14px;
-    cursor: pointer;
-    background: linear-gradient(90deg, rgba(7, 60, 23, 0.8), rgba(7, 60, 23, 0.3));
-    border-radius: 7px;
+  width: 100%;
+  height: 14px;
+  cursor: pointer;
+  background: linear-gradient(90deg, rgba(7, 60, 23, 0.8), rgba(7, 60, 23, 0.3));
+  border-radius: 7px;
 }
 
 .memory-slider::-moz-range-track {
-    width: 100%;
-    height: 14px;
-    cursor: pointer;
-    background: linear-gradient(90deg, rgba(7, 60, 23, 0.8), rgba(7, 60, 23, 0.3));
-    border-radius: 7px;
+  width: 100%;
+  height: 14px;
+  cursor: pointer;
+  background: linear-gradient(90deg, rgba(7, 60, 23, 0.8), rgba(7, 60, 23, 0.3));
+  border-radius: 7px;
 }
 
 /* Fixed memory markers */
 .memory-markers {
-    position: relative !important;
-    height: 40px !important;
-    width: 96% !important;
-    margin: -20px auto 0 auto !important;
+  position: relative !important;
+  height: 40px !important;
+  width: 96% !important;
+  margin: -20px auto 0 auto !important;
 }
 
 .memory-marker {
-    text-align: center !important;
-    font-size: 0.85rem !important;
-    color: rgba(255, 255, 255, 0.8) !important;
-    white-space: nowrap !important;
-    position: absolute !important;
-    top: 0 !important;
+  text-align: center !important;
+  font-size: 0.85rem !important;
+  color: rgba(255, 255, 255, 0.8) !important;
+  white-space: nowrap !important;
+  position: absolute !important;
+  top: 0 !important;
 }
 
 /* Apply button container */
