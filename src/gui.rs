@@ -2562,7 +2562,7 @@ fn AppHeader(
                 
                 img { 
                     class: "app-logo", 
-                    src: "/assets/icon.png", 
+                    src: "https://raw.githubusercontent.com/Olinus10/installer-test/master/src/assets/icon.png",
                     alt: "Overhaul Logo"
                 }
                 h1 { class: "app-title", "MAJESTIC OVERHAUL" }
