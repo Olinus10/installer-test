@@ -2801,7 +2801,7 @@ let complete_css = format!("{}\n{}\n{}\n{}\n{}\n{}\n{}",
             HomePage {
                 installations,
                 error_signal: error_signal.clone(),
-                changelog_data: changelog_data.read().as_ref().cloned(), // Pass as Option<ChangelogData>
+                changelog_data: changelog_data.read().as_ref().and_then(|data| data.clone()),
                 current_installation_id: current_installation_id.clone(),
                 }
             }
