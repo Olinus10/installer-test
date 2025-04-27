@@ -2555,14 +2555,14 @@ fn AppHeader(
     // Main render
     rsx! {
         header { class: "app-header",
-            // Logo and title
+            // Logo and title - UPDATED with direct GitHub URL
             div { 
                 class: "app-header-left", 
                 onclick: move |_| on_go_home.call(()),
                 
                 img { 
                     class: "app-logo", 
-                    src: "https://raw.githubusercontent.com/Olinus10/installer-test/master/src/assets/icon.png",
+                    src: "https://raw.githubusercontent.com/Olinus10/installer-test/master/src/assets/icon.png", 
                     alt: "Overhaul Logo"
                 }
                 h1 { class: "app-title", "MAJESTIC OVERHAUL" }
