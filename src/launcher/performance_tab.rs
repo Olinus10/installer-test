@@ -258,25 +258,25 @@ pub fn PerformanceTab(
                 
                 // Memory slider with improved design
                 div { class: "memory-slider-container",
-                    input {
-                        r#type: "range",
-                        min: "{min_memory}",
-                        max: "{*max_memory.read()}",
-                        step: "{step}",
-                        value: "{*memory_allocation.read()}",
-                        oninput: move |evt| {
-                            if let Ok(value) = evt.value().parse::<i32>() {
-                                memory_allocation.set(value);
-                            }
-                        },
-                        class: "memory-slider"
+            input {
+                r#type: "range",
+                min: "{min_memory}",
+                max: "{*max_memory.read()}",
+                step: "{step}",
+                value: "{*memory_allocation.read()}",
+                oninput: move |evt| {
+                    if let Ok(value) = evt.value().parse::<i32>() {
+                        memory_allocation.set(value);
                     }
-                    
-                    // Memory markers below slider
-                    div { class: "memory-markers",
-                        {memory_marker_elements}
-                    }
-                }
+                },
+                class: "memory-slider"
+            }
+            
+            // Memory markers below slider 
+            div { class: "memory-markers",
+                {memory_marker_elements}
+            }
+        }
                 
                 // Apply button for memory changes
                 div { class: "memory-apply-container",
