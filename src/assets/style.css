@@ -3048,3 +3048,25 @@ a:hover {
     text-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
     font-family: "HEADER_FONT";
 }
+
+.path-row {
+    margin-top: 15px;
+    margin-bottom: 15px;
+}
+
+.path-container {
+    background: rgba(0, 0, 0, 0.2);
+    padding: 8px;
+    border-radius: 4px;
+    width: 100%;
+    margin-top: 5px;
+    overflow-x: auto;
+}
+
+.installation-path-code {
+    font-family: monospace;
+    font-size: 0.9em;
+    color: #ddd;
+    white-space: pre-wrap;
+    word-break: break-all;
+}
