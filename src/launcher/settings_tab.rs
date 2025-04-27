@@ -316,7 +316,7 @@ pub fn SettingsTab(
             "Reset Cache"
         }
     }
-            
+     }       
             // Actions section
             div { class: "settings-section actions",
                 h3 { "Actions" }
