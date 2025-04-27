@@ -1,4 +1,4 @@
-/* Modal Styles for Dialogs */
+/* Basic modal overlay and container */
 .modal-overlay {
     position: fixed;
     top: 0;
@@ -34,6 +34,7 @@
     }
 }
 
+/* Modal header, content and footer */
 .modal-header {
     padding: 15px 20px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
@@ -73,130 +74,7 @@
     gap: 10px;
 }
 
-/* Modal Dialog Specific Styles */
-.rename-dialog .rename-error {
-    background-color: rgba(217, 82, 72, 0.2);
-    padding: 10px;
-    border-radius: 4px;
-    margin-bottom: 15px;
-    color: #ff9d93;
-    border-left: 3px solid #d95248;
-}
-
-.delete-dialog .delete-warning {
-    color: #ff9d93;
-    font-weight: bold;
-}
-
-/* Form Group for Modal Dialogs */
-.modal-content .form-group {
-    margin-bottom: 15px;
-}
-
-.modal-content .form-group label {
-    display: block;
-    margin-bottom: 5px;
-    font-weight: bold;
-}
-
-.modal-content .form-group input {
-    width: 100%;
-    padding: 10px;
-    background-color: rgba(0, 0, 0, 0.4);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: 4px;
-    color: white;
-    font-family: "REGULAR_FONT";
-}
-
-.modal-content .form-group input:focus {
-    outline: none;
-    border-color: rgba(7, 60, 23, 0.6);
-    box-shadow: 0 0 0 2px rgba(7, 60, 23, 0.3);
-}
-
-/* Settings Tab Styles */
-.settings-tab {
-    max-width: 900px;
-    margin: 0 auto;
-}
-
-.settings-section {
-    background-color: rgba(0, 0, 0, 0.3);
-    border-radius: 10px;
-    padding: 20px;
-    margin-bottom: 30px;
-    border-left: 3px solid rgba(7, 60, 23, 0.8);
-}
-
-.settings-section h3 {
-    margin-top: 0;
-    margin-bottom: 20px;
-    font-size: 1.3rem;
-    color: #fce8f6;
-}
-
-.info-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-    gap: 15px;
-}
-
-.info-row {
-    display: flex;
-    align-items: baseline;
-    gap: 10px;
-    font-size: 0.95rem;
-}
-
-.info-label {
-    font-weight: bold;
-    color: rgba(255, 255, 255, 0.7);
-    min-width: 80px;
-}
-
-.truncate-path {
-    max-width: 100%;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.stats-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 20px;
-    text-align: center;
-}
-
-.stats-grid .stat-item {
-    background-color: rgba(0, 0, 0, 0.3);
-    padding: 15px;
-    border-radius: 8px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 5px;
-}
-
-.stats-grid .stat-value {
-    font-size: 1.8rem;
-    font-weight: bold;
-    color: #fff;
-}
-
-.stats-grid .stat-label {
-    font-size: 0.9rem;
-    color: rgba(255, 255, 255, 0.6);
-    text-transform: uppercase;
-}
-
-.settings-actions {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 15px;
-}
-
+/* Settings tab styles - keep these */
 .settings-action-button {
     padding: 12px 15px;
     background-color: rgba(0, 0, 0, 0.5);
@@ -209,7 +87,7 @@
     align-items: center;
     gap: 10px;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: all 0.3s ease;
 }
 
 .settings-action-button:hover {
@@ -222,6 +100,7 @@
     font-size: 1.2rem;
 }
 
+/* Button styles for specific action types */
 .delete-button {
     border-color: rgba(217, 82, 72, 0.5);
 }
@@ -241,353 +120,91 @@
     border-color: rgba(74, 85, 162, 0.5);
 }
 
-/* Advanced section styles */
-.advanced-description {
-    margin-bottom: 20px;
-    font-size: 0.95rem;
-    color: rgba(255, 255, 255, 0.8);
-}
-
-.advanced-option {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 15px;
-    background-color: rgba(0, 0, 0, 0.2);
-    border-radius: 8px;
-    margin-bottom: 15px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.advanced-option-info {
-    flex-grow: 1;
-    padding-right: 20px;
-}
-
-.advanced-option-info h4 {
-    margin: 0 0 5px 0;
-    font-size: 1.1rem;
-}
-
-.advanced-option-info p {
-    margin: 0;
-    font-size: 0.9rem;
-    color: rgba(255, 255, 255, 0.7);
-}
-
-.advanced-button {
-    padding: 8px 15px;
-    border-radius: 4px;
-    font-family: "REGULAR_FONT";
-    background-color: rgba(0, 0, 0, 0.5);
-    color: white;
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    cursor: pointer;
-    transition: all 0.2s ease;
-    white-space: nowrap;
-}
-
-.advanced-button:hover {
-    background-color: rgba(0, 0, 0, 0.7);
-    transform: translateY(-2px);
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
-}
-
-.reset-cache-button:hover {
-    background-color: rgba(74, 144, 226, 0.3);
-    border-color: rgba(74, 144, 226, 0.7);
-}
-
-.repair-button:hover {
-    background-color: rgba(240, 180, 41, 0.3);
-    border-color: rgba(240, 180, 41, 0.7);
-}
-
-.settings-error {
-    margin-bottom: 20px;
-}
-
-/* Performance Tab Styles */
-.performance-tab {
-    max-width: 900px;
-    margin: 0 auto;
-}
-
-.performance-section {
-    background-color: rgba(0, 0, 0, 0.3);
-    border-radius: 10px;
-    padding: 20px;
-    margin-bottom: 30px;
-    border-left: 3px solid rgba(7, 60, 23, 0.8);
-}
-
-/* Memory section container */
-.memory-section {
-    background-color: rgba(0, 0, 0, 0.3);
-    border-radius: 10px;
-    padding: 25px;
-    border-left: 4px solid rgba(7, 60, 23, 0.8);
-    margin-bottom: 30px;
-}
-
-
-.memory-section h3 {
-    margin-top: 0;
-    margin-bottom: 15px;
-    font-size: 1.4rem;
-}
-
-/* System memory info display */
-.system-memory-info {
-    font-size: 1rem;
-    margin-bottom: 15px;
-    background-color: rgba(0, 0, 0, 0.2);
-    padding: 10px 15px;
-    border-radius: 6px;
-    display: inline-block;
-}
-
-.system-memory-value {
-    font-weight: bold;
-    color: #fce8f6;
-}
-
-/* Enhanced display for memory allocation */
-.current-memory-display {
-    font-size: 1.3rem;
-    margin-bottom: 25px;
-    text-align: center;
-    background-color: rgba(7, 60, 23, 0.1);
-    padding: 15px;
-    border-radius: 8px;
-    border: 1px solid rgba(7, 60, 23, 0.3);
-}
-
-.memory-value {
-    font-weight: bold;
-    font-size: 1.6rem;
-    background: linear-gradient(180deg, #fce8f6 0%, #d8b8d0 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-}
-
-
-.memory-percentage {
-    font-size: 0.9rem;
-    color: rgba(255, 255, 255, 0.7);
-}
-
-/* Slider container with more padding */
+/* Performance slider styles - keep these */
 .memory-slider-container {
-    width: 100% !important;
-    margin: 35px 0 45px 0 !important;
-    position: relative !important;
-}
-
-/* Enhanced performance slider */
-.memory-slider-container {
-  width: 100% !important;
-  margin: 35px 0 45px 0 !important;
-  position: relative !important;
-  padding: 0 !important;
-}
-
-/* Make slider bigger and fill the width */
-.memory-slider {
-  width: 100% !important;
-  height: 18px !important; /* Increased height */
-  -webkit-appearance: none !important;
-  appearance: none !important;
-  background: rgba(0, 0, 0, 0.3) !important;
-  outline: none !important;
-  border-radius: 9px !important;
-  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.5) !important;
-  cursor: pointer !important;
-  margin-bottom: 35px !important;
-}
-
-/* Larger slider thumb */
-.memory-slider::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  appearance: none;
-  width: 28px; /* Larger thumb */
-  height: 28px; /* Larger thumb */
-  border-radius: 50%;
-  background: linear-gradient(145deg, #0a5d23, #073c17);
-  cursor: pointer;
-  box-shadow: 0 0 10px rgba(7, 60, 23, 0.8), 0 2px 5px rgba(0, 0, 0, 0.4);
-  border: 2px solid rgba(255, 255, 255, 0.7);
-  position: relative;
-  z-index: 2;
-  transition: all 0.2s ease;
-}
-
-.memory-slider::-webkit-slider-thumb:hover {
-  background: linear-gradient(145deg, #0c6d29, #0a5d23);
-  box-shadow: 0 0 15px rgba(7, 60, 23, 1), 0 3px 8px rgba(0, 0, 0, 0.5);
-  transform: scale(1.1);
-}
-
-.memory-slider::-moz-range-thumb {
-  width: 28px; /* Larger thumb */
-  height: 28px; /* Larger thumb */
-  border-radius: 50%;
-  background: linear-gradient(145deg, #0a5d23, #073c17);
-  cursor: pointer;
-  box-shadow: 0 0 10px rgba(7, 60, 23, 0.8), 0 2px 5px rgba(0, 0, 0, 0.4);
-  border: 2px solid rgba(255, 255, 255, 0.7);
-  position: relative;
-  z-index: 2;
-  transition: all 0.2s ease;
-}
-
-.memory-slider::-moz-range-thumb:hover {
-  background: linear-gradient(145deg, #0c6d29, #0a5d23);
-  box-shadow: 0 0 15px rgba(7, 60, 23, 1), 0 3px 8px rgba(0, 0, 0, 0.5);
-  transform: scale(1.1);
-}
-
-/* Custom track styling with gradient */
-.memory-slider::-webkit-slider-runnable-track {
-  width: 100%;
-  height: 14px;
-  cursor: pointer;
-  background: linear-gradient(90deg, rgba(7, 60, 23, 0.8), rgba(7, 60, 23, 0.3));
-  border-radius: 7px;
-}
-
-.memory-slider::-moz-range-track {
-  width: 100%;
-  height: 14px;
-  cursor: pointer;
-  background: linear-gradient(90deg, rgba(7, 60, 23, 0.8), rgba(7, 60, 23, 0.3));
-  border-radius: 7px;
-}
-
-/* Fixed memory markers */
-.memory-markers {
-  position: relative !important;
-  height: 40px !important;
-  width: 96% !important;
-  margin: -20px auto 0 auto !important;
-}
-
-.memory-marker {
-  text-align: center !important;
-  font-size: 0.85rem !important;
-  color: rgba(255, 255, 255, 0.8) !important;
-  white-space: nowrap !important;
-  position: absolute !important;
-  top: 0 !important;
-}
-
-/* Apply button container */
-.memory-apply-container {
-    text-align: center;
-    margin: 25px 0;
+    width: 100%;
+    margin: 35px 0 45px 0;
     position: relative;
 }
 
-.memory-apply-button {
-    background: linear-gradient(to right, rgba(7, 60, 23, 0.6), rgba(7, 60, 23, 0.8));
-    color: white;
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: 6px;
-    padding: 12px 30px;
-    font-family: "REGULAR_FONT";
-    font-size: 1.1rem;
-    font-weight: bold;
+.memory-slider {
+    width: 100%;
+    height: 18px;
+    -webkit-appearance: none;
+    appearance: none;
+    background: rgba(0, 0, 0, 0.3);
+    outline: none;
+    border-radius: 9px;
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.5);
     cursor: pointer;
-    transition: all 0.3s ease;
-    letter-spacing: 0.5px;
-    opacity: 0.7;
-    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.3);
+    margin-bottom: 35px;
 }
 
-.memory-apply-button:disabled {
-    opacity: 0.4;
-    cursor: not-allowed;
-    transform: none !important;
-    box-shadow: none !important;
+.memory-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: linear-gradient(145deg, #0a5d23, #073c17);
+    cursor: pointer;
+    box-shadow: 0 0 10px rgba(7, 60, 23, 0.8), 0 2px 5px rgba(0, 0, 0, 0.4);
+    border: 2px solid rgba(255, 255, 255, 0.7);
+    position: relative;
+    z-index: 2;
+    transition: all 0.2s ease;
 }
 
-.memory-apply-button.changed {
-    opacity: 1;
-    animation: button-pulse 2s infinite;
+.memory-slider::-webkit-slider-thumb:hover {
+    background: linear-gradient(145deg, #0c6d29, #0a5d23);
+    box-shadow: 0 0 15px rgba(7, 60, 23, 1), 0 3px 8px rgba(0, 0, 0, 0.5);
+    transform: scale(1.1);
 }
 
-.memory-apply-button:not(:disabled):hover {
-    background: linear-gradient(to right, rgba(7, 60, 23, 0.8), rgba(7, 60, 23, 1));
-    transform: translateY(-2px);
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.4);
+.memory-slider::-moz-range-thumb {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: linear-gradient(145deg, #0a5d23, #073c17);
+    cursor: pointer;
+    box-shadow: 0 0 10px rgba(7, 60, 23, 0.8), 0 2px 5px rgba(0, 0, 0, 0.4);
+    border: 2px solid rgba(255, 255, 255, 0.7);
+    position: relative;
+    z-index: 2;
+    transition: all 0.2s ease;
 }
 
-/* Success message styling */
-.apply-success-message {
-    position: absolute;
-    top: -40px;
-    left: 50%;
-    transform: translateX(-50%);
-    background-color: rgba(7, 60, 23, 0.8);
-    color: white;
-    padding: 8px 15px;
-    border-radius: 6px;
-    font-size: 0.95rem;
-    animation: fade-in-out 3s forwards;
-    white-space: nowrap;
-    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.4);
-    z-index: 5;
+.memory-slider::-webkit-slider-runnable-track {
+    width: 100%;
+    height: 14px;
+    cursor: pointer;
+    background: linear-gradient(90deg, rgba(7, 60, 23, 0.8), rgba(7, 60, 23, 0.3));
+    border-radius: 7px;
 }
 
-/* Recommendation text */
-.memory-recommendation {
-    font-size: 0.95rem;
-    color: rgba(255, 255, 255, 0.8);
-    font-style: italic;
-    margin-top: 15px;
+.memory-slider::-moz-range-track {
+    width: 100%;
+    height: 14px;
+    cursor: pointer;
+    background: linear-gradient(90deg, rgba(7, 60, 23, 0.8), rgba(7, 60, 23, 0.3));
+    border-radius: 7px;
+}
+
+/* Memory markers */
+.memory-markers {
+    position: relative;
+    height: 40px;
+    width: 96%;
+    margin: -20px auto 0 auto;
+}
+
+.memory-marker {
     text-align: center;
-    padding: 10px;
-    background-color: rgba(0, 0, 0, 0.2);
-    border-radius: 6px;
-    border-left: 3px solid rgba(7, 60, 23, 0.6);
-}
-
-/* Keyframe animations */
-@keyframes button-pulse {
-    0% {
-        box-shadow: 0 0 0 0 rgba(7, 60, 23, 0.5);
-    }
-    70% {
-        box-shadow: 0 0 0 10px rgba(7, 60, 23, 0);
-    }
-    100% {
-        box-shadow: 0 0 0 0 rgba(7, 60, 23, 0);
-    }
-}
-
-@keyframes fade-in-out {
-    0% {
-        opacity: 0;
-        transform: translate(-50%, 10px);
-    }
-    10% {
-        opacity: 1;
-        transform: translate(-50%, 0);
-    }
-    80% {
-        opacity: 1;
-        transform: translate(-50%, 0);
-    }
-    100% {
-        opacity: 0;
-        transform: translate(-50%, -10px);
-    }
-}
-
-/* Remove the Java arguments section as requested */
-.java-args-section {
-    display: none;
+    font-size: 0.85rem;
+    color: rgba(255, 255, 255, 0.8);
+    white-space: nowrap;
+    position: absolute;
+    top: 0;
 }
 
 /* Modal buttons */
@@ -636,79 +253,29 @@
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
 }
 
-/* Disabled button states */
-button:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-    transform: none !important;
-    box-shadow: none !important;
+/* Basic form styles needed for modals */
+.modal-content .form-group {
+    margin-bottom: 15px;
 }
 
-/* Responsive adjustments */
-@media (max-width: 768px) {
-    .info-grid,
-    .settings-actions,
-    .java-preset-buttons {
-        grid-template-columns: 1fr;
-    }
-    
-    .stats-grid {
-        grid-template-columns: repeat(2, 1fr);
-    }
-    
-    .modal-container {
-        width: 90%;
-        min-width: 0;
-    }
-    
-    .advanced-option {
-        flex-direction: column;
-        align-items: flex-start;
-    }
-    
-    .advanced-option-info {
-        padding-right: 0;
-        margin-bottom: 15px;
-    }
-    
-    .advanced-button {
-        align-self: flex-end;
-    }
+.modal-content .form-group label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
 }
 
-/* Fix for settings tab buttons */
-.settings-section .settings-action-button {
-  color: #fce8f6 !important;
-  background-color: rgba(0, 0, 0, 0.5) !important;
-  border: 1px solid rgba(255, 255, 255, 0.2) !important;
-  transition: all 0.3s ease !important;
-  display: flex !important;
-  align-items: center !important;
-  gap: 10px !important;
+.modal-content .form-group input {
+    width: 100%;
+    padding: 10px;
+    background-color: rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+    color: white;
+    font-family: "REGULAR_FONT";
 }
 
-.settings-section .settings-action-button:hover {
-  background-color: rgba(0, 0, 0, 0.7) !important;
-  transform: translateY(-3px) !important;
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3) !important;
-}
-
-/* More specific hover states for each button type */
-.settings-section .rename-button:hover {
-  background-color: rgba(7, 60, 23, 0.2) !important;
-  border-color: rgba(7, 60, 23, 0.5) !important;
-}
-
-.settings-section .folder-button:hover {
-  background-color: rgba(74, 85, 162, 0.2) !important;
-  border-color: rgba(74, 85, 162, 0.5) !important;
-}
-
-.settings-section .delete-button {
-  border-color: rgba(217, 82, 72, 0.5) !important;
-}
-
-.settings-section .delete-button:hover {
-  background-color: rgba(217, 82, 72, 0.2) !important;
-  border-color: rgba(217, 82, 72, 0.8) !important;
+.modal-content .form-group input:focus {
+    outline: none;
+    border-color: rgba(7, 60, 23, 0.6);
+    box-shadow: 0 0 0 2px rgba(7, 60, 23, 0.3);
 }
