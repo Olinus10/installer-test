@@ -206,8 +206,8 @@ pub fn SettingsTab(
                     }
                     
                     div { class: "info-row",
-                        div { class: "info-label", "Path: " }
-                        div { class: "info-value truncate-path", "{installation_path_display}" }
+                    div { class: "info-label", "Path:" }
+                    div { class: "info-value truncate-path", "{installation_path_display}" }
                     }
                 }
             }
