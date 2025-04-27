@@ -407,10 +407,11 @@ fn main() {
 }
 
 #[component]
-fn ChangelogSection(changelog_data: Option<ChangelogData>) -> Element {
-    if let Some(data) = changelog_data {
+fn ChangelogSection(changelog: Option<ChangelogData>) -> Element {
+    if let Some(data) = changelog {
+        // Make sure we still render something even for empty entries
         if data.entries.is_empty() {
-            return rsx! { div { class: "changelog-loading" } };
+            return rsx! { div { class: "changelog-container", "No changelog entries available." } };
         }
         
         rsx! {
@@ -462,7 +463,7 @@ fn ChangelogSection(changelog_data: Option<ChangelogData>) -> Element {
         }
     } else {
         // Return empty div while loading
-        rsx! { div { class: "changelog-loading" } }
+        rsx! { div { class: "changelog-loading", "Loading changelog..." } }
     }
 }
 
@@ -2680,21 +2681,57 @@ pub fn app() -> Element {
             }
         }
     });
+
+    let changelog = use_resource(move || async {
+    debug!("Starting changelog fetch with exact path...");
     
-    // Load changelog
-let changelog_data = use_resource(move || async {
-        debug!("Loading changelog data...");
-        match crate::changelog::fetch_changelog("Olinus10/installer-test", &CachedHttpClient::new()).await {
-            Ok(data) => {
-                debug!("Successfully loaded changelog with {} entries", data.entries.len());
-                Some(data)
-            },
-            Err(e) => {
-                error!("Failed to load changelog: {}", e);
+    // Exact raw content URL to your changelog file
+    let exact_path = "https://raw.githubusercontent.com/Olinus10/installer-test/master/changelog.json";
+    
+    // Create a new HTTP client
+    let http_client = CachedHttpClient::new();
+    
+    // Fetch directly from the exact path
+    match http_client.get_async(exact_path).await {
+        Ok(mut response) => {
+            let status = response.status();
+            debug!("Changelog response status: {}", status);
+            
+            if status.is_success() {
+                match response.text().await {
+                    Ok(text) => {
+                        debug!("Received changelog text, length: {}", text.len());
+                        match serde_json::from_str::<crate::changelog::Changelog>(&text) {
+                            Ok(data) => {
+                                debug!("Successfully parsed changelog: {} entries", data.entries.len());
+                                Some(data)
+                            },
+                            Err(e) => {
+                                debug!("Failed to parse changelog: {}", e);
+                                debug!("First 100 chars of response: {}", if text.len() > 100 { &text[..100] } else { &text });
+                                None
+                            }
+                        }
+                    },
+                    Err(e) => {
+                        debug!("Error reading response: {}", e);
+                        None
+                    }
+                }
+            } else {
+                debug!("Error status code: {}", status);
                 None
             }
+        },
+        Err(e) => {
+            debug!("Error fetching changelog: {}", e);
+            None
         }
-    });
+    }
+});
+
+// Create signal from resource
+let changelog_signal = use_signal(|| changelog.read().as_ref().cloned());
 
     // Modal context for popups
     let mut modal_context = use_context_provider(ModalContext::default);
