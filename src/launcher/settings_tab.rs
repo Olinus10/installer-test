@@ -205,10 +205,12 @@ pub fn SettingsTab(
                         div { class: "info-label", "Launcher: ", "{launcher_type}" }
                     }
                     
-                    div { class: "info-row",
-                    div { class: "info-label", "Path:" }
-                    div { class: "info-value truncate-path", "{installation_path_display}" }
-                    }
+                   div { class: "info-row path-row",
+    div { class: "info-label", "Path:" }
+    div { class: "path-container", 
+        code { class: "installation-path-code", "{installation_path_display}" }
+    }
+}
                 }
             }
             
