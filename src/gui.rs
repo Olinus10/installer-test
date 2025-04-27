@@ -647,28 +647,28 @@ fn HomePage(
             }
             
             // Recent changes section
-            ChangelogSection { changelog_data: changelog_data }
+            ChangelogSection { changelog: changelog_data }
             
             // Footer with Discord button and other info
             Footer {}
             
             // Installation creation dialog
             if *show_creation_dialog.read() {
-    SimplifiedInstallationWizard {
-        onclose: move |_| {
-            show_creation_dialog.set(false);
-        },
-        oncreate: move |new_installation: Installation| {  // Added type annotation here
-            // Add the new installation to the list
-            installations.with_mut(|list| {
-                list.insert(0, new_installation.clone());
-            });
-            
-            // Close the dialog
-            show_creation_dialog.set(false);
-            
-            // Set the current installation to navigate to the installation page
-            current_installation_id.set(Some(new_installation.id));
+                SimplifiedInstallationWizard {
+                    onclose: move |_| {
+                        show_creation_dialog.set(false);
+                    },
+                    oncreate: move |new_installation: Installation| {  // Added type annotation here
+                        // Add the new installation to the list
+                        installations.with_mut(|list| {
+                            list.insert(0, new_installation.clone());
+                        });
+                        
+                        // Close the dialog
+                        show_creation_dialog.set(false);
+                        
+                        // Set the current installation to navigate to the installation page
+                        current_installation_id.set(Some(new_installation.id));
                     }
                 }
             }
@@ -2682,7 +2682,7 @@ pub fn app() -> Element {
         }
     });
 
-    let changelog = use_resource(move || async {
+let changelog_data = use_resource(move || async {
     debug!("Starting changelog fetch with exact path...");
     
     // Exact raw content URL to your changelog file
@@ -2729,9 +2729,6 @@ pub fn app() -> Element {
         }
     }
 });
-
-// Create signal from resource
-let changelog_signal = use_signal(|| changelog.read().as_ref().cloned());
 
     // Modal context for popups
     let mut modal_context = use_context_provider(ModalContext::default);
