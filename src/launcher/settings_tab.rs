@@ -316,27 +316,6 @@ pub fn SettingsTab(
             "Reset Cache"
         }
     }
-
-                
-                // Repair installation option
-                div { class: "advanced-option",
-                    div { class: "advanced-option-info",
-                        h4 { "Repair Installation" }
-                        p { "Attempts to fix a broken installation by verifying and repairing essential files." }
-                    }
-                    
-                    button {
-                        class: "advanced-button repair-button",
-                        disabled: *is_operating.read(),
-                        onclick: move |_| {
-                            debug!("Repair installation clicked for: {}", installation_id_for_repair);
-                            // Implementation would go here - for now just a placeholder
-                            operation_error.set(Some("This functionality is not yet implemented".to_string()));
-                        },
-                        "Repair Installation"
-                    }
-                }
-            }
             
             // Actions section
             div { class: "settings-section actions",
