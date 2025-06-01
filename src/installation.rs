@@ -1,4 +1,4 @@
-// Complete installation.rs with Universal Manifest and Include Support
+// Updated Installation structure in installation.rs
 
 use serde::{Deserialize, Serialize};
 use std::fs;
@@ -12,41 +12,12 @@ use uuid::Uuid;
 use crate::{CachedHttpClient, launcher};
 use crate::preset::Preset;
 use crate::Launcher;
-use crate::universal::UniversalManifest;
 
 #[derive(Debug, Deserialize, Serialize, Default, Clone)]
 pub struct InstallationsIndex {
     pub installations: Vec<String>,  // List of installation IDs
     pub active_installation: Option<String>, // Currently selected installation
     pub last_active: Option<DateTime<Utc>>,
-}
-
-// NEW: Include support structures
-#[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
-pub struct InstallationIncludeData {
-    pub local_includes: Vec<LocalIncludeInfo>,
-    pub remote_includes: Vec<RemoteIncludeInfo>,
-    pub last_include_update: Option<DateTime<Utc>>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-pub struct LocalIncludeInfo {
-    pub id: String,
-    pub name: String,
-    pub location: String,
-    pub installed: bool,
-    pub last_updated: Option<DateTime<Utc>>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-pub struct RemoteIncludeInfo {
-    pub id: String,
-    pub name: String,
-    pub url: String,
-    pub version: String,
-    pub target_path: Option<String>,
-    pub installed: bool,
-    pub last_updated: Option<DateTime<Utc>>,
 }
 
 pub fn get_installations_dir() -> PathBuf {
@@ -121,11 +92,9 @@ pub struct Installation {
     // Last launch info for statistics
     pub last_launch: Option<DateTime<Utc>>,
     pub total_launches: u32,
-    
-    // NEW: Include data for universal manifest support
-    pub include_data: Option<InstallationIncludeData>,
 }
 
+// Update the new_from_preset and new_custom methods
 impl Installation {
     // Create a new installation from a preset
     pub fn new_from_preset(
@@ -171,14 +140,76 @@ impl Installation {
             universal_version,
             last_launch: None,
             total_launches: 0,
-            include_data: Some(InstallationIncludeData {
-                local_includes: Vec::new(),
-                remote_includes: Vec::new(),
-                last_include_update: None,
-            }),
         }
     }
 
+    pub fn save(&self) -> Result<(), String> {
+        let installation_dir = get_installations_dir().join(&self.id);
+        
+        // Create directory if it doesn't exist
+        if !installation_dir.exists() {
+            std::fs::create_dir_all(&installation_dir)
+                .map_err(|e| format!("Failed to create installation directory: {}", e))?;
+        }
+        
+        let config_path = installation_dir.join("installation.json");
+        let config_json = serde_json::to_string_pretty(self)
+            .map_err(|e| format!("Failed to serialize installation: {}", e))?;
+        
+        std::fs::write(config_path, config_json)
+            .map_err(|e| format!("Failed to write installation config: {}", e))
+    }
+    
+    pub async fn install_or_update(&self, http_client: &crate::CachedHttpClient) -> Result<(), String> {
+        // Get the universal manifest
+        let universal_manifest = crate::universal::load_universal_manifest(http_client, None).await
+            .map_err(|e| format!("Failed to load universal manifest: {}", e))?;
+        
+        // Convert universal manifest to regular manifest with our enabled features
+        let manifest = crate::universal::universal_to_manifest(
+            &universal_manifest, 
+            self.enabled_features.clone()
+        );
+        
+        // Create installer profile
+        let launcher = match self.launcher_type.as_str() {
+            "vanilla" => Ok(crate::Launcher::Vanilla(crate::get_app_data())),
+            "multimc" => crate::get_multimc_folder("MultiMC").map(crate::Launcher::MultiMC),
+            "prismlauncher" => crate::get_multimc_folder("PrismLauncher").map(crate::Launcher::MultiMC),
+            _ => Err(format!("Unsupported launcher type: {}", self.launcher_type)),
+        }?;
+        
+        let installer_profile = crate::InstallerProfile {
+            manifest,
+            http_client: http_client.clone(),
+            installed: self.installed,
+            update_available: self.update_available,
+            modpack_source: "Olinus10/installer-test/".to_string(),
+            modpack_branch: "master".to_string(),
+            enabled_features: self.enabled_features.clone(),
+            launcher: Some(launcher),
+            local_manifest: None,
+            changelog: None,
+        };
+        
+        // Install or update based on current state
+        if !self.installed {
+            crate::install(&installer_profile, || {}).await
+        } else {
+            crate::update(&installer_profile, || {}).await
+        }
+    }
+    
+    // Update the play method to increment launch count
+    pub fn record_launch(&mut self) -> Result<(), String> {
+        self.last_launch = Some(chrono::Utc::now());
+        self.total_launches += 1;
+        self.last_used = chrono::Utc::now();
+        
+        // Save the updated installation data
+        self.save()
+    }
+    
     // Custom installation without using a preset
     pub fn new_custom(
         name: String,
@@ -216,258 +247,7 @@ impl Installation {
             universal_version,
             last_launch: None,
             total_launches: 0,
-            include_data: Some(InstallationIncludeData {
-                local_includes: Vec::new(),
-                remote_includes: Vec::new(),
-                last_include_update: None,
-            }),
         }
-    }
-
-    pub fn save(&self) -> Result<(), String> {
-        let installation_dir = get_installations_dir().join(&self.id);
-        
-        // Create directory if it doesn't exist
-        if !installation_dir.exists() {
-            std::fs::create_dir_all(&installation_dir)
-                .map_err(|e| format!("Failed to create installation directory: {}", e))?;
-        }
-        
-        let config_path = installation_dir.join("installation.json");
-        let config_json = serde_json::to_string_pretty(self)
-            .map_err(|e| format!("Failed to serialize installation: {}", e))?;
-        
-        std::fs::write(config_path, config_json)
-            .map_err(|e| format!("Failed to write installation config: {}", e))
-    }
-    
-    pub async fn install_or_update(&mut self, http_client: &crate::CachedHttpClient) -> Result<(), String> {
-        // Get the universal manifest
-        let universal_manifest = crate::universal::load_universal_manifest(http_client, None).await
-            .map_err(|e| format!("Failed to load universal manifest: {}", e))?;
-        
-        // Convert universal manifest to regular manifest with our enabled features
-        let manifest = crate::universal::universal_to_manifest(
-            &universal_manifest, 
-            self.enabled_features.clone()
-        );
-        
-        // Create installer profile
-        let launcher = match self.launcher_type.as_str() {
-            "vanilla" => Ok(crate::Launcher::Vanilla(crate::get_app_data())),
-            "multimc" => crate::get_multimc_folder("MultiMC").map(crate::Launcher::MultiMC),
-            "prismlauncher" => crate::get_multimc_folder("PrismLauncher").map(crate::Launcher::MultiMC),
-            _ => Err(format!("Unsupported launcher type: {}", self.launcher_type)),
-        }?;
-        
-        let installer_profile = crate::InstallerProfile {
-            manifest,
-            http_client: http_client.clone(),
-            installed: self.installed,
-            update_available: self.update_available,
-            modpack_source: "Olinus10/installer-test/".to_string(),
-            modpack_branch: "master".to_string(),
-            enabled_features: self.enabled_features.clone(),
-            launcher: Some(launcher),
-            local_manifest: None,
-            changelog: None,
-        };
-        
-        // Install or update based on current state
-        let result = if !self.installed {
-            crate::install(&installer_profile, || {}).await
-        } else {
-            crate::update(&installer_profile, || {}).await
-        };
-        
-        // Process includes after installation if successful
-        if result.is_ok() {
-            self.process_includes(http_client).await?;
-            self.installed = true;
-            self.update_available = false;
-            self.modified = false;
-            self.save()?;
-        }
-        
-        result
-    }
-    
-    // NEW: Process includes from universal manifest
-    pub async fn process_includes(&mut self, http_client: &CachedHttpClient) -> Result<(), String> {
-        debug!("Processing includes for installation: {}", self.name);
-        
-        // Load universal manifest
-        let universal_manifest = crate::universal::load_universal_manifest(http_client, None).await
-            .map_err(|e| format!("Failed to load universal manifest: {}", e))?;
-        
-        // Initialize include data if not present
-        if self.include_data.is_none() {
-            self.include_data = Some(InstallationIncludeData {
-                local_includes: Vec::new(),
-                remote_includes: Vec::new(),
-                last_include_update: None,
-            });
-        }
-        
-        let include_data = self.include_data.as_mut().unwrap();
-        
-        // Process local includes
-        for include in &universal_manifest.includes {
-            if self.enabled_features.contains(&include.id) {
-                let local_info = LocalIncludeInfo {
-                    id: include.id.clone(),
-                    name: include.name.clone(),
-                    location: include.location.clone(),
-                    installed: true,
-                    last_updated: Some(Utc::now()),
-                };
-                
-                if let Some(existing) = include_data.local_includes.iter_mut().find(|i| i.id == include.id) {
-                    existing.name = include.name.clone();
-                    existing.location = include.location.clone();
-                    existing.last_updated = Some(Utc::now());
-                } else {
-                    include_data.local_includes.push(local_info);
-                }
-                
-                debug!("Processed local include: {}", include.name);
-            }
-        }
-        
-        // Process remote includes
-        for include in &universal_manifest.remote_includes {
-            if self.enabled_features.contains(&include.id) {
-                let mut needs_download = false;
-                
-                if let Some(existing) = include_data.remote_includes.iter_mut().find(|i| i.id == include.id) {
-                    if existing.version != include.version {
-                        existing.version = include.version.clone();
-                        existing.url = include.location.clone();
-                        existing.target_path = include.path.clone();
-                        existing.installed = false;
-                        needs_download = true;
-                    }
-                    existing.name = include.name.clone();
-                } else {
-                    let remote_info = RemoteIncludeInfo {
-                        id: include.id.clone(),
-                        name: include.name.clone(),
-                        url: include.location.clone(),
-                        version: include.version.clone(),
-                        target_path: include.path.clone(),
-                        installed: false,
-                        last_updated: None,
-                    };
-                    include_data.remote_includes.push(remote_info);
-                    needs_download = true;
-                }
-                
-                if needs_download {
-                    self.download_remote_include(include, http_client).await?;
-                    
-                    if let Some(existing) = include_data.remote_includes.iter_mut().find(|i| i.id == include.id) {
-                        existing.installed = true;
-                        existing.last_updated = Some(Utc::now());
-                    }
-                }
-                
-                debug!("Processed remote include: {}", include.name);
-            }
-        }
-        
-        // Clean up disabled includes
-        include_data.local_includes.retain(|i| self.enabled_features.contains(&i.id));
-        include_data.remote_includes.retain(|i| self.enabled_features.contains(&i.id));
-        
-        include_data.last_include_update = Some(Utc::now());
-        
-        Ok(())
-    }
-    
-    // NEW: Download remote include
-    async fn download_remote_include(
-        &self,
-        include: &crate::universal::RemoteIncludeComponent,
-        http_client: &CachedHttpClient,
-    ) -> Result<(), String> {
-        debug!("Downloading remote include: {} from {}", include.name, include.location);
-        
-        let target_path = if let Some(path) = &include.path {
-            self.installation_path.join(path)
-        } else {
-            self.installation_path.clone()
-        };
-        
-        if let Some(parent) = target_path.parent() {
-            std::fs::create_dir_all(parent).map_err(|e| format!("Failed to create directory: {}", e))?;
-        }
-        
-        let mut response = http_client.get_async(&include.location).await
-            .map_err(|e| format!("Failed to download {}: {}", include.name, e))?;
-            
-        let content = response.bytes().await
-            .map_err(|e| format!("Failed to read response for {}: {}", include.name, e))?;
-        
-        if include.location.ends_with(".zip") {
-            self.extract_zip_include(&content, &target_path, &include.name)?;
-        } else {
-            let filename = include.location.split('/').last().unwrap_or("downloaded_file");
-            let file_path = target_path.join(filename);
-            std::fs::write(&file_path, content)
-                .map_err(|e| format!("Failed to write {}: {}", filename, e))?;
-        }
-        
-        debug!("Successfully downloaded and installed: {}", include.name);
-        Ok(())
-    }
-    
-    // NEW: Extract ZIP files
-    fn extract_zip_include(&self, content: &[u8], target_path: &std::path::Path, name: &str) -> Result<(), String> {
-        use std::io::Cursor;
-        use zip::ZipArchive;
-        
-        let cursor = Cursor::new(content);
-        let mut archive = ZipArchive::new(cursor)
-            .map_err(|e| format!("Failed to read zip archive for {}: {}", name, e))?;
-        
-        for i in 0..archive.len() {
-            let mut file = archive.by_index(i)
-                .map_err(|e| format!("Failed to read zip entry {}: {}", i, e))?;
-            
-            let outpath = match file.enclosed_name() {
-                Some(path) => target_path.join(path),
-                None => continue,
-            };
-            
-            if file.name().ends_with('/') {
-                std::fs::create_dir_all(&outpath)
-                    .map_err(|e| format!("Failed to create directory {}: {}", outpath.display(), e))?;
-            } else {
-                if let Some(parent) = outpath.parent() {
-                    std::fs::create_dir_all(parent)
-                        .map_err(|e| format!("Failed to create parent directory: {}", e))?;
-                }
-                
-                let mut outfile = std::fs::File::create(&outpath)
-                    .map_err(|e| format!("Failed to create file {}: {}", outpath.display(), e))?;
-                
-                std::io::copy(&mut file, &mut outfile)
-                    .map_err(|e| format!("Failed to extract file {}: {}", outpath.display(), e))?;
-            }
-        }
-        
-        debug!("Successfully extracted zip: {}", name);
-        Ok(())
-    }
-    
-    // Update the play method to increment launch count
-    pub fn record_launch(&mut self) -> Result<(), String> {
-        self.last_launch = Some(chrono::Utc::now());
-        self.total_launches += 1;
-        self.last_used = chrono::Utc::now();
-        
-        // Save the updated installation data
-        self.save()
     }
 }
 
