@@ -2744,7 +2744,7 @@ let changelog_data = use_resource(move || async {
         }, false, Some(move |_| error_signal.set(None)));
     }
 
-    // Build CSS content
+// Build CSS content
 let css_content = css
     .replace("<BG_COLOR>", "#320625")
     .replace("<BG_IMAGE>", "https://raw.githubusercontent.com/Wynncraft-Overhaul/installer/master/src/assets/background_installer.png")
@@ -2756,7 +2756,7 @@ let category_styles = include_str!("assets/category-styles.css");
 let feature_styles = include_str!("assets/expanded-feature-styles.css");
 let preset_styles = include_str!("assets/preset-styles.css");
 let search_styles = include_str!("assets/search-results-styles.css");
-let modal_styles = include_str!("assets/modal-styles.css");
+let minimal_tab_styles = include_str!("assets/minimal-tab-styles.css"); // Use the new minimal styles
 let integrated_styles = include_str!("assets/integrated-styles.css");
 
 // Combine all CSS files
@@ -2766,7 +2766,7 @@ let complete_css = format!("{}\n{}\n{}\n{}\n{}\n{}\n{}",
     feature_styles, 
     preset_styles, 
     search_styles,
-    modal_styles,
+    minimal_tab_styles, // Changed from modal_styles
     integrated_styles
 );
 
