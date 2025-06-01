@@ -1,4 +1,6 @@
-/* Modal Styles for Dialogs - Scoped to avoid conflicts */
+/* Minimal styles ONLY for Settings and Performance tabs */
+
+/* Modal-specific styles for dialogs only */
 .modal-overlay {
     position: fixed;
     top: 0;
@@ -73,511 +75,7 @@
     gap: 10px;
 }
 
-/* Modal Dialog Specific Styles */
-.rename-dialog .rename-error {
-    background-color: rgba(217, 82, 72, 0.2);
-    padding: 10px;
-    border-radius: 4px;
-    margin-bottom: 15px;
-    color: #ff9d93;
-    border-left: 3px solid #d95248;
-}
-
-.delete-dialog .delete-warning {
-    color: #ff9d93;
-    font-weight: bold;
-}
-
-/* Form Group for Modal Dialogs */
-.modal-content .form-group {
-    margin-bottom: 15px;
-}
-
-.modal-content .form-group label {
-    display: block;
-    margin-bottom: 5px;
-    font-weight: bold;
-}
-
-.modal-content .form-group input {
-    width: 100%;
-    padding: 10px;
-    background-color: rgba(0, 0, 0, 0.4);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: 4px;
-    color: white;
-    font-family: "REGULAR_FONT";
-}
-
-.modal-content .form-group input:focus {
-    outline: none;
-    border-color: rgba(7, 60, 23, 0.6);
-    box-shadow: 0 0 0 2px rgba(7, 60, 23, 0.3);
-}
-
-/* Settings Tab Styles - Now scoped to avoid conflicts */
-.settings-tab {
-    max-width: 900px;
-    margin: 0 auto;
-}
-
-.settings-tab .settings-section,
-.performance-tab .performance-section {
-    background-color: rgba(0, 0, 0, 0.3);
-    border-radius: 10px;
-    padding: 20px;
-    margin-bottom: 30px;
-    border-left: 3px solid rgba(7, 60, 23, 0.8);
-}
-
-.settings-tab .settings-section h3,
-.performance-tab .performance-section h3 {
-    margin-top: 0;
-    margin-bottom: 20px;
-    font-size: 1.3rem;
-    color: #fce8f6;
-}
-
-.settings-tab .info-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-    gap: 15px;
-}
-
-.settings-tab .info-row {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    margin-bottom: 10px;
-}
-
-.settings-tab .info-label {
-    font-weight: bold;
-    margin-bottom: 5px;
-    color: rgba(255, 255, 255, 0.7);
-}
-
-.settings-tab .truncate-path {
-    max-width: 100%;
-    word-break: break-all;
-    overflow-wrap: anywhere;
-    font-family: monospace;
-    font-size: 0.9em;
-    background: rgba(0, 0, 0, 0.2);
-    padding: 5px;
-    border-radius: 4px;
-    width: 100%;
-}
-
-.settings-tab .stats-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 20px;
-    text-align: center;
-}
-
-.settings-tab .stats-grid .stat-item {
-    background-color: rgba(0, 0, 0, 0.3);
-    padding: 15px;
-    border-radius: 8px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 5px;
-}
-
-.settings-tab .stats-grid .stat-value {
-    font-size: 1.8rem;
-    font-weight: bold;
-    color: #fff;
-}
-
-.settings-tab .stats-grid .stat-label {
-    font-size: 0.9rem;
-    color: rgba(255, 255, 255, 0.6);
-    text-transform: uppercase;
-}
-
-.settings-tab .settings-actions {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 15px;
-}
-
-.settings-tab .settings-action-button {
-    padding: 12px 15px !important;
-    background-color: rgba(0, 0, 0, 0.5) !important;
-    border: 1px solid rgba(255, 255, 255, 0.2) !important;
-    border-radius: 8px !important;
-    color: white !important;
-    font-family: "REGULAR_FONT" !important;
-    font-size: 1rem !important;
-    display: flex !important;
-    align-items: center !important;
-    gap: 10px !important;
-    cursor: pointer !important;
-}
-
-.settings-tab .settings-action-button:hover {
-    background-color: rgba(0, 0, 0, 0.7) !important;
-    transform: translateY(-3px) !important;
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3) !important;
-}
-
-.settings-tab .delete-button {
-    border-color: rgba(217, 82, 72, 0.5) !important;
-}
-
-.settings-tab .delete-button:hover {
-    background-color: rgba(217, 82, 72, 0.2) !important;
-    border-color: rgba(217, 82, 72, 0.8) !important;
-}
-
-.settings-tab .rename-button:hover {
-    background-color: rgba(7, 60, 23, 0.2) !important;
-    border-color: rgba(7, 60, 23, 0.5) !important;
-}
-
-.settings-tab .folder-button:hover {
-    background-color: rgba(74, 85, 162, 0.2) !important;
-    border-color: rgba(74, 85, 162, 0.5) !important;
-}
-
-.settings-tab .action-icon {
-    font-size: 1.2rem;
-}
-
-/* Advanced section styles */
-.settings-tab .advanced-description,
-.performance-tab .advanced-description {
-    margin-bottom: 20px;
-    font-size: 0.95rem;
-    color: rgba(255, 255, 255, 0.8);
-}
-
-.settings-tab .advanced-option {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 15px;
-    background-color: rgba(0, 0, 0, 0.2);
-    border-radius: 8px;
-    margin-bottom: 15px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.settings-tab .advanced-option-info {
-    flex-grow: 1;
-    padding-right: 20px;
-}
-
-.settings-tab .advanced-option-info h4 {
-    margin: 0 0 5px 0;
-    font-size: 1.1rem;
-}
-
-.settings-tab .advanced-option-info p {
-    margin: 0;
-    font-size: 0.9rem;
-    color: rgba(255, 255, 255, 0.7);
-}
-
-.settings-tab .advanced-button {
-    padding: 8px 15px;
-    border-radius: 4px;
-    font-family: "REGULAR_FONT";
-    background-color: rgba(0, 0, 0, 0.5);
-    color: white;
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    cursor: pointer;
-    transition: all 0.2s ease;
-    white-space: nowrap;
-}
-
-.settings-tab .advanced-button:hover {
-    background-color: rgba(0, 0, 0, 0.7);
-    transform: translateY(-2px);
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
-}
-
-.settings-tab .reset-cache-button:hover {
-    background-color: rgba(74, 144, 226, 0.3);
-    border-color: rgba(74, 144, 226, 0.7);
-}
-
-.settings-tab .repair-button:hover {
-    background-color: rgba(240, 180, 41, 0.3);
-    border-color: rgba(240, 180, 41, 0.7);
-}
-
-.settings-tab .settings-error {
-    margin-bottom: 20px;
-}
-
-/* Performance Tab Styles - Scoped */
-.performance-tab {
-    max-width: 900px;
-    margin: 0 auto;
-}
-
-/* Memory section container */
-.performance-tab .memory-section {
-    background-color: rgba(0, 0, 0, 0.3);
-    border-radius: 10px;
-    padding: 25px;
-    border-left: 4px solid rgba(7, 60, 23, 0.8);
-    margin-bottom: 30px;
-}
-
-.performance-tab .memory-section h3 {
-    margin-top: 0;
-    margin-bottom: 15px;
-    font-size: 1.4rem;
-}
-
-/* System memory info display */
-.performance-tab .system-memory-info {
-    font-size: 1rem;
-    margin-bottom: 15px;
-    background-color: rgba(0, 0, 0, 0.2);
-    padding: 10px 15px;
-    border-radius: 6px;
-    display: inline-block;
-}
-
-.performance-tab .system-memory-value {
-    font-weight: bold;
-    color: #fce8f6;
-}
-
-/* Enhanced display for memory allocation */
-.performance-tab .current-memory-display {
-    font-size: 1.3rem;
-    margin-bottom: 25px;
-    text-align: center;
-    background-color: rgba(7, 60, 23, 0.1);
-    padding: 15px;
-    border-radius: 8px;
-    border: 1px solid rgba(7, 60, 23, 0.3);
-}
-
-.performance-tab .memory-value {
-    font-weight: bold;
-    font-size: 1.6rem;
-    background: linear-gradient(180deg, #fce8f6 0%, #d8b8d0 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-}
-
-.performance-tab .memory-percentage {
-    font-size: 0.9rem;
-    color: rgba(255, 255, 255, 0.7);
-}
-
-/* Slider container with more padding */
-.performance-tab .memory-slider-container {
-    width: 100% !important;
-    margin: 35px 0 45px 0 !important;
-    position: relative !important;
-}
-
-/* Enhanced slider appearance */
-.performance-tab .memory-slider {
-    width: 100% !important;
-    height: 20px !important;
-    -webkit-appearance: none !important;
-    appearance: none !important;
-    background: linear-gradient(to right, rgba(7, 60, 23, 0.8), rgba(7, 60, 23, 0.3)) !important;
-    outline: none !important;
-    border-radius: 10px !important;
-    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.5) !important;
-    cursor: pointer !important;
-    margin-bottom: 35px !important;
-    position: relative !important;
-}
-
-/* Improved slider thumb */
-.performance-tab .memory-slider::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    appearance: none;
-    width: 30px;
-    height: 30px;
-    border-radius: 50%;
-    background: linear-gradient(135deg, #0c6d29, #063c17);
-    cursor: pointer;
-    box-shadow: 0 0 15px rgba(7, 60, 23, 0.8), 0 3px 8px rgba(0, 0, 0, 0.6);
-    border: 2px solid rgba(255, 255, 255, 0.9);
-    margin-top: -5px;
-    position: relative;
-    z-index: 2;
-    transition: all 0.2s ease;
-}
-
-.performance-tab .memory-slider::-webkit-slider-thumb:hover {
-    background: linear-gradient(135deg, #0e7d31, #084f1e);
-    box-shadow: 0 0 20px rgba(7, 60, 23, 1), 0 4px 10px rgba(0, 0, 0, 0.7);
-    transform: scale(1.1);
-}
-
-.performance-tab .memory-slider::-moz-range-thumb {
-    width: 30px;
-    height: 30px;
-    border-radius: 50%;
-    background: linear-gradient(135deg, #0c6d29, #063c17);
-    cursor: pointer;
-    box-shadow: 0 0 15px rgba(7, 60, 23, 0.8), 0 3px 8px rgba(0, 0, 0, 0.6);
-    border: 2px solid rgba(255, 255, 255, 0.9);
-    margin-top: -5px;
-    position: relative;
-    z-index: 2;
-    transition: all 0.2s ease;
-}
-
-.performance-tab .memory-slider::-moz-range-thumb:hover {
-    background: linear-gradient(135deg, #0e7d31, #084f1e);
-    box-shadow: 0 0 20px rgba(7, 60, 23, 1), 0 4px 10px rgba(0, 0, 0, 0.7);
-    transform: scale(1.1);
-}
-
-/* Clean up the markers to align with the slider */
-.performance-tab .memory-markers {
-    position: relative !important;
-    height: 40px !important;
-    width: 100% !important;
-    margin: -25px auto 20px auto !important;
-    display: flex !important;
-    justify-content: space-between !important;
-    padding: 0 10px !important;
-}
-
-.performance-tab .memory-marker {
-    text-align: center !important;
-    font-size: 0.85rem !important;
-    color: rgba(255, 255, 255, 0.8) !important;
-    position: relative !important;
-    top: 0 !important;
-}
-
-/* Add glow effect to slider track */
-.performance-tab .memory-slider::-webkit-slider-runnable-track {
-    background: linear-gradient(to right, #0a5d23, #073c17) !important;
-    border-radius: 10px !important;
-    height: 10px !important;
-    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.3) !important;
-}
-
-.performance-tab .memory-slider::-moz-range-track {
-    background: linear-gradient(to right, #0a5d23, #073c17) !important;
-    border-radius: 10px !important;
-    height: 10px !important;
-    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.3) !important;
-}
-
-/* Apply button container */
-.performance-tab .memory-apply-container {
-    text-align: center;
-    margin: 25px 0;
-    position: relative;
-}
-
-.performance-tab .memory-apply-button {
-    background: linear-gradient(to right, rgba(7, 60, 23, 0.6), rgba(7, 60, 23, 0.8));
-    color: white;
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: 6px;
-    padding: 12px 30px;
-    font-family: "REGULAR_FONT";
-    font-size: 1.1rem;
-    font-weight: bold;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    letter-spacing: 0.5px;
-    opacity: 0.7;
-    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.3);
-}
-
-.performance-tab .memory-apply-button:disabled {
-    opacity: 0.4;
-    cursor: not-allowed;
-    transform: none !important;
-    box-shadow: none !important;
-}
-
-.performance-tab .memory-apply-button.changed {
-    opacity: 1;
-    animation: button-pulse 2s infinite;
-}
-
-.performance-tab .memory-apply-button:not(:disabled):hover {
-    background: linear-gradient(to right, rgba(7, 60, 23, 0.8), rgba(7, 60, 23, 1));
-    transform: translateY(-2px);
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.4);
-}
-
-/* Success message styling */
-.performance-tab .apply-success-message {
-    position: absolute;
-    top: -40px;
-    left: 50%;
-    transform: translateX(-50%);
-    background-color: rgba(7, 60, 23, 0.8);
-    color: white;
-    padding: 8px 15px;
-    border-radius: 6px;
-    font-size: 0.95rem;
-    animation: fade-in-out 3s forwards;
-    white-space: nowrap;
-    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.4);
-    z-index: 5;
-}
-
-/* Recommendation text */
-.performance-tab .memory-recommendation {
-    font-size: 0.95rem;
-    color: rgba(255, 255, 255, 0.8);
-    font-style: italic;
-    margin-top: 15px;
-    text-align: center;
-    padding: 10px;
-    background-color: rgba(0, 0, 0, 0.2);
-    border-radius: 6px;
-    border-left: 3px solid rgba(7, 60, 23, 0.6);
-}
-
-/* Keyframe animations */
-@keyframes button-pulse {
-    0% {
-        box-shadow: 0 0 0 0 rgba(7, 60, 23, 0.5);
-    }
-    70% {
-        box-shadow: 0 0 0 10px rgba(7, 60, 23, 0);
-    }
-    100% {
-        box-shadow: 0 0 0 0 rgba(7, 60, 23, 0);
-    }
-}
-
-@keyframes fade-in-out {
-    0% {
-        opacity: 0;
-        transform: translate(-50%, 10px);
-    }
-    10% {
-        opacity: 1;
-        transform: translate(-50%, 0);
-    }
-    80% {
-        opacity: 1;
-        transform: translate(-50%, 0);
-    }
-    100% {
-        opacity: 0;
-        transform: translate(-50%, -10px);
-    }
-}
-
-/* Modal buttons */
+/* Modal buttons only */
 .modal-footer .cancel-button,
 .modal-footer .save-button,
 .modal-footer .delete-button {
@@ -623,42 +121,311 @@
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
 }
 
-/* Disabled button states */
-.button:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-    transform: none !important;
-    box-shadow: none !important;
+/* Settings Tab ONLY - using very specific selectors */
+.settings-tab {
+    max-width: 900px;
+    margin: 0 auto;
 }
 
-/* Responsive adjustments */
-@media (max-width: 768px) {
-    .settings-tab .info-grid,
-    .settings-tab .settings-actions,
-    .settings-tab .java-preset-buttons {
-        grid-template-columns: 1fr;
+.settings-tab > .settings-section {
+    background-color: rgba(0, 0, 0, 0.3);
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 30px;
+    border-left: 3px solid rgba(7, 60, 23, 0.8);
+}
+
+.settings-tab > .settings-section > h3 {
+    margin-top: 0;
+    margin-bottom: 20px;
+    font-size: 1.3rem;
+    color: #fce8f6;
+}
+
+/* Settings tab specific elements */
+.settings-tab .info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 15px;
+}
+
+.settings-tab .info-row {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    margin-bottom: 10px;
+}
+
+.settings-tab .info-label {
+    font-weight: bold;
+    margin-bottom: 5px;
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.settings-tab .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px;
+    text-align: center;
+}
+
+.settings-tab .stats-grid .stat-item {
+    background-color: rgba(0, 0, 0, 0.3);
+    padding: 15px;
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+}
+
+.settings-tab .stats-grid .stat-value {
+    font-size: 1.8rem;
+    font-weight: bold;
+    color: #fff;
+}
+
+.settings-tab .stats-grid .stat-label {
+    font-size: 0.9rem;
+    color: rgba(255, 255, 255, 0.6);
+    text-transform: uppercase;
+}
+
+.settings-tab .settings-actions {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+}
+
+.settings-tab .settings-action-button {
+    padding: 12px 15px;
+    background-color: rgba(0, 0, 0, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 8px;
+    color: white;
+    font-family: "REGULAR_FONT";
+    font-size: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.settings-tab .settings-action-button:hover {
+    background-color: rgba(0, 0, 0, 0.7);
+    transform: translateY(-3px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+}
+
+.settings-tab .delete-button {
+    border-color: rgba(217, 82, 72, 0.5);
+}
+
+.settings-tab .delete-button:hover {
+    background-color: rgba(217, 82, 72, 0.2);
+    border-color: rgba(217, 82, 72, 0.8);
+}
+
+.settings-tab .rename-button:hover {
+    background-color: rgba(7, 60, 23, 0.2);
+    border-color: rgba(7, 60, 23, 0.5);
+}
+
+.settings-tab .folder-button:hover {
+    background-color: rgba(74, 85, 162, 0.2);
+    border-color: rgba(74, 85, 162, 0.5);
+}
+
+/* Performance Tab ONLY */
+.performance-tab {
+    max-width: 900px;
+    margin: 0 auto;
+}
+
+.performance-tab .performance-section,
+.performance-tab .memory-section {
+    background-color: rgba(0, 0, 0, 0.3);
+    border-radius: 10px;
+    padding: 25px;
+    border-left: 4px solid rgba(7, 60, 23, 0.8);
+    margin-bottom: 30px;
+}
+
+.performance-tab h2,
+.performance-tab h3 {
+    margin-top: 0;
+    margin-bottom: 15px;
+    color: #fce8f6;
+}
+
+/* Memory specific styles */
+.performance-tab .system-memory-info {
+    font-size: 1rem;
+    margin-bottom: 15px;
+    background-color: rgba(0, 0, 0, 0.2);
+    padding: 10px 15px;
+    border-radius: 6px;
+    display: inline-block;
+}
+
+.performance-tab .system-memory-value {
+    font-weight: bold;
+    color: #fce8f6;
+}
+
+.performance-tab .current-memory-display {
+    font-size: 1.3rem;
+    margin-bottom: 25px;
+    text-align: center;
+    background-color: rgba(7, 60, 23, 0.1);
+    padding: 15px;
+    border-radius: 8px;
+    border: 1px solid rgba(7, 60, 23, 0.3);
+}
+
+.performance-tab .memory-value {
+    font-weight: bold;
+    font-size: 1.6rem;
+    background: linear-gradient(180deg, #fce8f6 0%, #d8b8d0 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+/* Memory slider styles */
+.performance-tab .memory-slider-container {
+    width: 100%;
+    margin: 35px 0 45px 0;
+    position: relative;
+}
+
+.performance-tab .memory-slider {
+    width: 100%;
+    height: 20px;
+    -webkit-appearance: none;
+    appearance: none;
+    background: linear-gradient(to right, rgba(7, 60, 23, 0.8), rgba(7, 60, 23, 0.3));
+    outline: none;
+    border-radius: 10px;
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.5);
+    cursor: pointer;
+    margin-bottom: 35px;
+}
+
+.performance-tab .memory-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #0c6d29, #063c17);
+    cursor: pointer;
+    box-shadow: 0 0 15px rgba(7, 60, 23, 0.8), 0 3px 8px rgba(0, 0, 0, 0.6);
+    border: 2px solid rgba(255, 255, 255, 0.9);
+    margin-top: -5px;
+}
+
+.performance-tab .memory-slider::-webkit-slider-thumb:hover {
+    background: linear-gradient(135deg, #0e7d31, #084f1e);
+    box-shadow: 0 0 20px rgba(7, 60, 23, 1), 0 4px 10px rgba(0, 0, 0, 0.7);
+    transform: scale(1.1);
+}
+
+.performance-tab .memory-markers {
+    position: relative;
+    height: 40px;
+    width: 100%;
+    margin: -25px auto 20px auto;
+    display: flex;
+    justify-content: space-between;
+    padding: 0 10px;
+}
+
+.performance-tab .memory-marker {
+    text-align: center;
+    font-size: 0.85rem;
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.performance-tab .memory-apply-container {
+    text-align: center;
+    margin: 25px 0;
+    position: relative;
+}
+
+.performance-tab .memory-apply-button {
+    background: linear-gradient(to right, rgba(7, 60, 23, 0.6), rgba(7, 60, 23, 0.8));
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 6px;
+    padding: 12px 30px;
+    font-family: "REGULAR_FONT";
+    font-size: 1.1rem;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    letter-spacing: 0.5px;
+    opacity: 0.7;
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.3);
+}
+
+.performance-tab .memory-apply-button:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.performance-tab .memory-apply-button.changed {
+    opacity: 1;
+    animation: button-pulse 2s infinite;
+}
+
+.performance-tab .memory-apply-button:not(:disabled):hover {
+    background: linear-gradient(to right, rgba(7, 60, 23, 0.8), rgba(7, 60, 23, 1));
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.4);
+}
+
+.performance-tab .memory-recommendation {
+    font-size: 0.95rem;
+    color: rgba(255, 255, 255, 0.8);
+    font-style: italic;
+    margin-top: 15px;
+    text-align: center;
+    padding: 10px;
+    background-color: rgba(0, 0, 0, 0.2);
+    border-radius: 6px;
+    border-left: 3px solid rgba(7, 60, 23, 0.6);
+}
+
+/* Animation keyframes */
+@keyframes button-pulse {
+    0% {
+        box-shadow: 0 0 0 0 rgba(7, 60, 23, 0.5);
     }
-    
-    .settings-tab .stats-grid {
-        grid-template-columns: repeat(2, 1fr);
+    70% {
+        box-shadow: 0 0 0 10px rgba(7, 60, 23, 0);
     }
-    
-    .modal-container {
-        width: 90%;
-        min-width: 0;
+    100% {
+        box-shadow: 0 0 0 0 rgba(7, 60, 23, 0);
     }
-    
-    .settings-tab .advanced-option {
-        flex-direction: column;
-        align-items: flex-start;
+}
+
+@keyframes fade-in-out {
+    0% {
+        opacity: 0;
+        transform: translate(-50%, 10px);
     }
-    
-    .settings-tab .advanced-option-info {
-        padding-right: 0;
-        margin-bottom: 15px;
+    10% {
+        opacity: 1;
+        transform: translate(-50%, 0);
     }
-    
-    .settings-tab .advanced-button {
-        align-self: flex-end;
+    80% {
+        opacity: 1;
+        transform: translate(-50%, 0);
+    }
+    100% {
+        opacity: 0;
+        transform: translate(-50%, -10px);
     }
 }
