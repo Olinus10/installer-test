@@ -26,16 +26,10 @@ pub struct UniversalManifest {
     
     // All available components
     pub mods: Vec<ModComponent>,
-    #[serde(default)]
+    #[serde(default)]  // Add default in case this field is missing
     pub shaderpacks: Vec<ModComponent>,
-    #[serde(default)]
+    #[serde(default)]  // Add default in case this field is missing
     pub resourcepacks: Vec<ModComponent>,
-    
-    // Include support - NEW
-    #[serde(default)]
-    pub includes: Vec<IncludeComponent>,
-    #[serde(default)]
-    pub remote_includes: Vec<RemoteIncludeComponent>,
     
     // Metadata - make all these optional
     #[serde(default)]
@@ -77,49 +71,6 @@ pub struct ModComponent {
     pub dependencies: Option<Vec<String>>,
     #[serde(default)]
     pub incompatibilities: Option<Vec<String>>,
-}
-
-// NEW: Structure for local include files (like config folders, options.txt, etc.)
-#[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
-pub struct IncludeComponent {
-    pub id: String,
-    pub name: String,
-    #[serde(default)]
-    pub description: Option<String>,
-    pub location: String, // Local path relative to modpack root
-    #[serde(default = "default_false")]
-    pub optional: bool,
-    #[serde(default = "default_false")]
-    pub default_enabled: bool,
-    #[serde(default)]
-    pub authors: Vec<Author>,
-    #[serde(default)]
-    pub category: Option<String>,
-    #[serde(default)]
-    pub dependencies: Option<Vec<String>>,
-}
-
-// NEW: Structure for remote include files (downloaded from GitHub releases, etc.)
-#[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
-pub struct RemoteIncludeComponent {
-    pub id: String,
-    pub name: String,
-    #[serde(default)]
-    pub description: Option<String>,
-    pub location: String, // Remote URL
-    pub version: String,  // Version/hash for caching
-    #[serde(default)]
-    pub path: Option<String>, // Target path in modpack (optional)
-    #[serde(default = "default_false")]
-    pub optional: bool,
-    #[serde(default = "default_false")]
-    pub default_enabled: bool,
-    #[serde(default)]
-    pub authors: Vec<Author>,
-    #[serde(default)]
-    pub category: Option<String>,
-    #[serde(default)]
-    pub dependencies: Option<Vec<String>>,
 }
 
 fn default_false() -> bool {
@@ -289,20 +240,20 @@ pub async fn load_universal_manifest(http_client: &CachedHttpClient, url: Option
                         }
                         
                         // Parse the universal manifest
-                        match serde_json::from_str::<UniversalManifest>(&manifest_json) {
-                            Ok(manifest) => {
-                                debug!("Successfully loaded universal manifest for {}", manifest.name);
-                                return Ok(manifest);
-                            },
-                            Err(e) => {
-                                error!("Failed to parse universal manifest JSON: {}", e);
-                                
-                                return Err(ManifestError {
-                                    message: format!("Failed to parse universal manifest: {}", e),
-                                    error_type: ManifestErrorType::DeserializationError,
-                                    file_name: "universal.json".to_string(),
-                                    raw_content,
-                                });
+match serde_json::from_str::<UniversalManifest>(&manifest_json) {
+    Ok(manifest) => {
+        debug!("Successfully loaded universal manifest for {}", manifest.name);
+        return Ok(manifest);
+    },
+    Err(e) => {
+        error!("Failed to parse universal manifest JSON: {}", e);
+        
+        return Err(ManifestError {
+            message: format!("Failed to parse universal manifest: {}", e),
+            error_type: ManifestErrorType::DeserializationError,
+            file_name: "universal.json".to_string(),
+            raw_content,
+        });
                             }
                         }
                     },
@@ -316,12 +267,12 @@ pub async fn load_universal_manifest(http_client: &CachedHttpClient, url: Option
                             continue;
                         }
                         
-                        return Err(ManifestError {
-                            message: format!("Failed to read universal manifest: {}", e),
-                            error_type: ManifestErrorType::NetworkError,
-                            file_name: "universal.json".to_string(),
-                            raw_content: None,
-                        });
+return Err(ManifestError {
+    message: format!("Failed to read universal manifest: {}", e),
+    error_type: ManifestErrorType::NetworkError,
+    file_name: "universal.json".to_string(),
+    raw_content: None,
+});
                     }
                 }
             },
@@ -335,12 +286,12 @@ pub async fn load_universal_manifest(http_client: &CachedHttpClient, url: Option
                     continue;
                 }
                 
-                return Err(ManifestError {
-                    message: format!("Failed to fetch universal manifest: {}", e),
-                    error_type: ManifestErrorType::NetworkError,
-                    file_name: "universal.json".to_string(),
-                    raw_content: None,
-                });
+return Err(ManifestError {
+    message: format!("Failed to fetch universal manifest: {}", e),
+    error_type: ManifestErrorType::NetworkError,
+    file_name: "universal.json".to_string(),
+    raw_content: None,
+});
             }
         }
     }
@@ -397,31 +348,6 @@ pub fn universal_to_manifest(universal: &UniversalManifest, enabled_features: Ve
         }
     }
     
-    // NEW: Add include components as features
-    for component in &universal.includes {
-        if component.optional {
-            features.push(crate::Feature {
-                id: component.id.clone(),
-                name: component.name.clone(),
-                default: component.default_enabled,
-                hidden: false,
-                description: component.description.clone(),
-            });
-        }
-    }
-    
-    for component in &universal.remote_includes {
-        if component.optional {
-            features.push(crate::Feature {
-                id: component.id.clone(),
-                name: component.name.clone(),
-                default: component.default_enabled,
-                hidden: false,
-                description: component.description.clone(),
-            });
-        }
-    }
-    
     // Convert mods from universal format to original format
     let mods = universal.mods.iter().map(|component| {
         crate::Mod {
@@ -460,27 +386,6 @@ pub fn universal_to_manifest(universal: &UniversalManifest, enabled_features: Ve
         }
     }).collect();
     
-    // NEW: Convert includes to original format
-    let include = universal.includes.iter().map(|component| {
-        crate::Include {
-            location: component.location.clone(),
-            id: component.id.clone(),
-            name: Some(component.name.clone()),
-            authors: Some(component.authors.clone()),
-        }
-    }).collect();
-    
-    let remote_include = Some(universal.remote_includes.iter().map(|component| {
-        crate::RemoteInclude {
-            location: component.location.clone(),
-            path: component.path.clone(),
-            id: component.id.clone(),
-            version: component.version.clone(),
-            name: Some(component.name.clone()),
-            authors: Some(component.authors.clone()),
-        }
-    }).collect());
-    
     // Build the manifest
     crate::Manifest {
         manifest_version: universal.manifest_version,
@@ -503,8 +408,8 @@ pub fn universal_to_manifest(universal: &UniversalManifest, enabled_features: Ve
         mods,
         shaderpacks,
         resourcepacks,
-        remote_include,
-        include,
+        remote_include: None,
+        include: Vec::new(),
         features,
         trend: None,
         enabled_features,
