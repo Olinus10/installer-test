@@ -2760,7 +2760,7 @@ let search_styles = include_str!("assets/search-results-styles.css");
 let integrated_styles = include_str!("assets/integrated-styles.css");
 
 // Combine all CSS files
-let complete_css = format!("{}\n{}\n{}\n{}\n{}\n{}\n{}", 
+let complete_css = format!("{}\n{}\n{}\n{}\n{}\n{}", 
     css_content, 
     category_styles, 
     feature_styles, 
