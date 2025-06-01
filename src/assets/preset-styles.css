@@ -82,11 +82,10 @@
     box-shadow: 0 5px 15px rgba(0, 0, 0, 0.4);
 }
 
-/*
 .preset-card:has(.trending-badge):hover .select-preset-button {
     background: linear-gradient(135deg, #e6b017, #cc9500);
     box-shadow: 0 5px 15px rgba(0, 0, 0, 0.4);
-} */
+} 
 
 /* Card title styling */
 .preset-card h4 {
