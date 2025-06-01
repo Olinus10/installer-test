@@ -1,4 +1,4 @@
-/* Modal Styles for Dialogs 
+/* Modal Styles for Dialogs - Scoped to avoid conflicts */
 .modal-overlay {
     position: fixed;
     top: 0;
@@ -115,13 +115,14 @@
     box-shadow: 0 0 0 2px rgba(7, 60, 23, 0.3);
 }
 
-/* Settings Tab Styles */
+/* Settings Tab Styles - Now scoped to avoid conflicts */
 .settings-tab {
     max-width: 900px;
     margin: 0 auto;
 }
 
-.settings-section {
+.settings-tab .settings-section,
+.performance-tab .performance-section {
     background-color: rgba(0, 0, 0, 0.3);
     border-radius: 10px;
     padding: 20px;
@@ -129,47 +130,53 @@
     border-left: 3px solid rgba(7, 60, 23, 0.8);
 }
 
-.settings-section h3 {
+.settings-tab .settings-section h3,
+.performance-tab .performance-section h3 {
     margin-top: 0;
     margin-bottom: 20px;
     font-size: 1.3rem;
     color: #fce8f6;
 }
 
-.info-grid {
+.settings-tab .info-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
     gap: 15px;
 }
 
-.info-row {
+.settings-tab .info-row {
     display: flex;
-    align-items: baseline;
-    gap: 10px;
-    font-size: 0.95rem;
+    flex-direction: column;
+    align-items: flex-start;
+    margin-bottom: 10px;
 }
 
-.info-label {
+.settings-tab .info-label {
     font-weight: bold;
+    margin-bottom: 5px;
     color: rgba(255, 255, 255, 0.7);
-    min-width: 80px;
 }
 
-.truncate-path {
+.settings-tab .truncate-path {
     max-width: 100%;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    word-break: break-all;
+    overflow-wrap: anywhere;
+    font-family: monospace;
+    font-size: 0.9em;
+    background: rgba(0, 0, 0, 0.2);
+    padding: 5px;
+    border-radius: 4px;
+    width: 100%;
 }
 
-.stats-grid {
+.settings-tab .stats-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
     gap: 20px;
     text-align: center;
 }
 
-.stats-grid .stat-item {
+.settings-tab .stats-grid .stat-item {
     background-color: rgba(0, 0, 0, 0.3);
     padding: 15px;
     border-radius: 8px;
@@ -179,76 +186,76 @@
     gap: 5px;
 }
 
-.stats-grid .stat-value {
+.settings-tab .stats-grid .stat-value {
     font-size: 1.8rem;
     font-weight: bold;
     color: #fff;
 }
 
-.stats-grid .stat-label {
+.settings-tab .stats-grid .stat-label {
     font-size: 0.9rem;
     color: rgba(255, 255, 255, 0.6);
     text-transform: uppercase;
 }
 
-.settings-actions {
+.settings-tab .settings-actions {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
     gap: 15px;
 }
 
-.settings-action-button {
-    padding: 12px 15px;
-    background-color: rgba(0, 0, 0, 0.5);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: 8px;
-    color: white;
-    font-family: "REGULAR_FONT";
-    font-size: 1rem;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    cursor: pointer;
-    transition: all 0.2s ease;
+.settings-tab .settings-action-button {
+    padding: 12px 15px !important;
+    background-color: rgba(0, 0, 0, 0.5) !important;
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+    border-radius: 8px !important;
+    color: white !important;
+    font-family: "REGULAR_FONT" !important;
+    font-size: 1rem !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 10px !important;
+    cursor: pointer !important;
 }
 
-.settings-action-button:hover {
-    background-color: rgba(0, 0, 0, 0.7);
-    transform: translateY(-3px);
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+.settings-tab .settings-action-button:hover {
+    background-color: rgba(0, 0, 0, 0.7) !important;
+    transform: translateY(-3px) !important;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3) !important;
 }
 
-.settings-action-button .action-icon {
+.settings-tab .delete-button {
+    border-color: rgba(217, 82, 72, 0.5) !important;
+}
+
+.settings-tab .delete-button:hover {
+    background-color: rgba(217, 82, 72, 0.2) !important;
+    border-color: rgba(217, 82, 72, 0.8) !important;
+}
+
+.settings-tab .rename-button:hover {
+    background-color: rgba(7, 60, 23, 0.2) !important;
+    border-color: rgba(7, 60, 23, 0.5) !important;
+}
+
+.settings-tab .folder-button:hover {
+    background-color: rgba(74, 85, 162, 0.2) !important;
+    border-color: rgba(74, 85, 162, 0.5) !important;
+}
+
+.settings-tab .action-icon {
     font-size: 1.2rem;
 }
 
-.delete-button {
-    border-color: rgba(217, 82, 72, 0.5);
-}
-
-.delete-button:hover {
-    background-color: rgba(217, 82, 72, 0.2);
-    border-color: rgba(217, 82, 72, 0.8);
-}
-
-.rename-button:hover {
-    background-color: rgba(7, 60, 23, 0.2);
-    border-color: rgba(7, 60, 23, 0.5);
-}
-
-.folder-button:hover {
-    background-color: rgba(74, 85, 162, 0.2);
-    border-color: rgba(74, 85, 162, 0.5);
-}
-
 /* Advanced section styles */
-.advanced-description {
+.settings-tab .advanced-description,
+.performance-tab .advanced-description {
     margin-bottom: 20px;
     font-size: 0.95rem;
     color: rgba(255, 255, 255, 0.8);
 }
 
-.advanced-option {
+.settings-tab .advanced-option {
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -259,23 +266,23 @@
     border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-.advanced-option-info {
+.settings-tab .advanced-option-info {
     flex-grow: 1;
     padding-right: 20px;
 }
 
-.advanced-option-info h4 {
+.settings-tab .advanced-option-info h4 {
     margin: 0 0 5px 0;
     font-size: 1.1rem;
 }
 
-.advanced-option-info p {
+.settings-tab .advanced-option-info p {
     margin: 0;
     font-size: 0.9rem;
     color: rgba(255, 255, 255, 0.7);
 }
 
-.advanced-button {
+.settings-tab .advanced-button {
     padding: 8px 15px;
     border-radius: 4px;
     font-family: "REGULAR_FONT";
@@ -287,42 +294,34 @@
     white-space: nowrap;
 }
 
-.advanced-button:hover {
+.settings-tab .advanced-button:hover {
     background-color: rgba(0, 0, 0, 0.7);
     transform: translateY(-2px);
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
 }
 
-.reset-cache-button:hover {
+.settings-tab .reset-cache-button:hover {
     background-color: rgba(74, 144, 226, 0.3);
     border-color: rgba(74, 144, 226, 0.7);
 }
 
-.repair-button:hover {
+.settings-tab .repair-button:hover {
     background-color: rgba(240, 180, 41, 0.3);
     border-color: rgba(240, 180, 41, 0.7);
 }
 
-.settings-error {
+.settings-tab .settings-error {
     margin-bottom: 20px;
 }
 
-/* Performance Tab Styles */
+/* Performance Tab Styles - Scoped */
 .performance-tab {
     max-width: 900px;
     margin: 0 auto;
 }
 
-.performance-section {
-    background-color: rgba(0, 0, 0, 0.3);
-    border-radius: 10px;
-    padding: 20px;
-    margin-bottom: 30px;
-    border-left: 3px solid rgba(7, 60, 23, 0.8);
-}
-
 /* Memory section container */
-.memory-section {
+.performance-tab .memory-section {
     background-color: rgba(0, 0, 0, 0.3);
     border-radius: 10px;
     padding: 25px;
@@ -330,15 +329,14 @@
     margin-bottom: 30px;
 }
 
-
-.memory-section h3 {
+.performance-tab .memory-section h3 {
     margin-top: 0;
     margin-bottom: 15px;
     font-size: 1.4rem;
 }
 
 /* System memory info display */
-.system-memory-info {
+.performance-tab .system-memory-info {
     font-size: 1rem;
     margin-bottom: 15px;
     background-color: rgba(0, 0, 0, 0.2);
@@ -347,13 +345,13 @@
     display: inline-block;
 }
 
-.system-memory-value {
+.performance-tab .system-memory-value {
     font-weight: bold;
     color: #fce8f6;
 }
 
 /* Enhanced display for memory allocation */
-.current-memory-display {
+.performance-tab .current-memory-display {
     font-size: 1.3rem;
     margin-bottom: 25px;
     text-align: center;
@@ -363,7 +361,7 @@
     border: 1px solid rgba(7, 60, 23, 0.3);
 }
 
-.memory-value {
+.performance-tab .memory-value {
     font-weight: bold;
     font-size: 1.6rem;
     background: linear-gradient(180deg, #fce8f6 0%, #d8b8d0 100%);
@@ -372,21 +370,20 @@
     background-clip: text;
 }
 
-
-.memory-percentage {
+.performance-tab .memory-percentage {
     font-size: 0.9rem;
     color: rgba(255, 255, 255, 0.7);
 }
 
 /* Slider container with more padding */
-.memory-slider-container {
+.performance-tab .memory-slider-container {
     width: 100% !important;
     margin: 35px 0 45px 0 !important;
     position: relative !important;
 }
 
 /* Enhanced slider appearance */
-.memory-slider {
+.performance-tab .memory-slider {
     width: 100% !important;
     height: 20px !important;
     -webkit-appearance: none !important;
@@ -401,7 +398,7 @@
 }
 
 /* Improved slider thumb */
-.memory-slider::-webkit-slider-thumb {
+.performance-tab .memory-slider::-webkit-slider-thumb {
     -webkit-appearance: none;
     appearance: none;
     width: 30px;
@@ -411,19 +408,19 @@
     cursor: pointer;
     box-shadow: 0 0 15px rgba(7, 60, 23, 0.8), 0 3px 8px rgba(0, 0, 0, 0.6);
     border: 2px solid rgba(255, 255, 255, 0.9);
-    margin-top: -5px; /* Center the thumb vertically on the track */
+    margin-top: -5px;
     position: relative;
     z-index: 2;
     transition: all 0.2s ease;
 }
 
-.memory-slider::-webkit-slider-thumb:hover {
+.performance-tab .memory-slider::-webkit-slider-thumb:hover {
     background: linear-gradient(135deg, #0e7d31, #084f1e);
     box-shadow: 0 0 20px rgba(7, 60, 23, 1), 0 4px 10px rgba(0, 0, 0, 0.7);
     transform: scale(1.1);
 }
 
-.memory-slider::-moz-range-thumb {
+.performance-tab .memory-slider::-moz-range-thumb {
     width: 30px;
     height: 30px;
     border-radius: 50%;
@@ -431,20 +428,20 @@
     cursor: pointer;
     box-shadow: 0 0 15px rgba(7, 60, 23, 0.8), 0 3px 8px rgba(0, 0, 0, 0.6);
     border: 2px solid rgba(255, 255, 255, 0.9);
-    margin-top: -5px; /* Center the thumb */
+    margin-top: -5px;
     position: relative;
     z-index: 2;
     transition: all 0.2s ease;
 }
 
-.memory-slider::-moz-range-thumb:hover {
+.performance-tab .memory-slider::-moz-range-thumb:hover {
     background: linear-gradient(135deg, #0e7d31, #084f1e);
     box-shadow: 0 0 20px rgba(7, 60, 23, 1), 0 4px 10px rgba(0, 0, 0, 0.7);
     transform: scale(1.1);
 }
 
 /* Clean up the markers to align with the slider */
-.memory-markers {
+.performance-tab .memory-markers {
     position: relative !important;
     height: 40px !important;
     width: 100% !important;
@@ -454,7 +451,7 @@
     padding: 0 10px !important;
 }
 
-.memory-marker {
+.performance-tab .memory-marker {
     text-align: center !important;
     font-size: 0.85rem !important;
     color: rgba(255, 255, 255, 0.8) !important;
@@ -463,27 +460,28 @@
 }
 
 /* Add glow effect to slider track */
-.memory-slider::-webkit-slider-runnable-track {
+.performance-tab .memory-slider::-webkit-slider-runnable-track {
     background: linear-gradient(to right, #0a5d23, #073c17) !important;
     border-radius: 10px !important;
     height: 10px !important;
     box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.3) !important;
 }
 
-.memory-slider::-moz-range-track {
+.performance-tab .memory-slider::-moz-range-track {
     background: linear-gradient(to right, #0a5d23, #073c17) !important;
     border-radius: 10px !important;
     height: 10px !important;
     box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.3) !important;
 }
+
 /* Apply button container */
-.memory-apply-container {
+.performance-tab .memory-apply-container {
     text-align: center;
     margin: 25px 0;
     position: relative;
 }
 
-.memory-apply-button {
+.performance-tab .memory-apply-button {
     background: linear-gradient(to right, rgba(7, 60, 23, 0.6), rgba(7, 60, 23, 0.8));
     color: white;
     border: 1px solid rgba(255, 255, 255, 0.2);
@@ -499,26 +497,26 @@
     box-shadow: 0 3px 8px rgba(0, 0, 0, 0.3);
 }
 
-.memory-apply-button:disabled {
+.performance-tab .memory-apply-button:disabled {
     opacity: 0.4;
     cursor: not-allowed;
     transform: none !important;
     box-shadow: none !important;
 }
 
-.memory-apply-button.changed {
+.performance-tab .memory-apply-button.changed {
     opacity: 1;
     animation: button-pulse 2s infinite;
 }
 
-.memory-apply-button:not(:disabled):hover {
+.performance-tab .memory-apply-button:not(:disabled):hover {
     background: linear-gradient(to right, rgba(7, 60, 23, 0.8), rgba(7, 60, 23, 1));
     transform: translateY(-2px);
     box-shadow: 0 5px 15px rgba(0, 0, 0, 0.4);
 }
 
 /* Success message styling */
-.apply-success-message {
+.performance-tab .apply-success-message {
     position: absolute;
     top: -40px;
     left: 50%;
@@ -535,7 +533,7 @@
 }
 
 /* Recommendation text */
-.memory-recommendation {
+.performance-tab .memory-recommendation {
     font-size: 0.95rem;
     color: rgba(255, 255, 255, 0.8);
     font-style: italic;
@@ -577,11 +575,6 @@
         opacity: 0;
         transform: translate(-50%, -10px);
     }
-}
-
-/* Remove the Java arguments section as requested */
-.java-args-section {
-    display: none;
 }
 
 /* Modal buttons */
@@ -640,13 +633,13 @@
 
 /* Responsive adjustments */
 @media (max-width: 768px) {
-    .info-grid,
-    .settings-actions,
-    .java-preset-buttons {
+    .settings-tab .info-grid,
+    .settings-tab .settings-actions,
+    .settings-tab .java-preset-buttons {
         grid-template-columns: 1fr;
     }
     
-    .stats-grid {
+    .settings-tab .stats-grid {
         grid-template-columns: repeat(2, 1fr);
     }
     
@@ -655,82 +648,17 @@
         min-width: 0;
     }
     
-    .advanced-option {
+    .settings-tab .advanced-option {
         flex-direction: column;
         align-items: flex-start;
     }
     
-    .advanced-option-info {
+    .settings-tab .advanced-option-info {
         padding-right: 0;
         margin-bottom: 15px;
     }
     
-    .advanced-button {
+    .settings-tab .advanced-button {
         align-self: flex-end;
     }
-}
-
-/* Force settings button styles */
-.settings-section .settings-action-button {
-    padding: 12px 15px !important;
-    background-color: rgba(0, 0, 0, 0.5) !important;
-    border: 1px solid rgba(255, 255, 255, 0.2) !important;
-    border-radius: 8px !important;
-    color: white !important;
-    font-family: "REGULAR_FONT" !important;
-    font-size: 1rem !important;
-    display: flex !important;
-    align-items: center !important;
-    gap: 10px !important;
-    cursor: pointer !important;
-}
-
-.settings-section .settings-action-button:hover {
-    background-color: rgba(0, 0, 0, 0.7) !important;
-    transform: translateY(-3px) !important;
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3) !important;
-}
-
-.settings-section .delete-button {
-    border-color: rgba(217, 82, 72, 0.5) !important;
-}
-
-.settings-section .delete-button:hover {
-    background-color: rgba(217, 82, 72, 0.2) !important;
-    border-color: rgba(217, 82, 72, 0.8) !important;
-}
-
-.settings-section .rename-button:hover {
-    background-color: rgba(7, 60, 23, 0.2) !important;
-    border-color: rgba(7, 60, 23, 0.5) !important;
-}
-
-.settings-section .folder-button:hover {
-    background-color: rgba(74, 85, 162, 0.2) !important;
-    border-color: rgba(74, 85, 162, 0.5) !important;
-}
-
-.settings-section .info-row {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    margin-bottom: 10px;
-}
-
-.settings-section .info-label {
-    font-weight: bold;
-    margin-bottom: 5px;
-    color: rgba(255, 255, 255, 0.7);
-}
-
-.settings-section .truncate-path {
-    max-width: 100%;
-    word-break: break-all;
-    overflow-wrap: anywhere;
-    font-family: monospace;
-    font-size: 0.9em;
-    background: rgba(0, 0, 0, 0.2);
-    padding: 5px;
-    border-radius: 4px;
-    width: 100%;
 }
