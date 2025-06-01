@@ -429,21 +429,3 @@
     font-style: italic;
     border: 1px dashed rgba(255, 255, 255, 0.2);
 }
-
-/* Ensure features tab maintains its original layout */
-.features-tab .presets-grid {
-    display: grid !important;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)) !important;
-    gap: 20px !important;
-}
-
-.features-tab .feature-cards-container {
-    display: flex !important;
-    flex-direction: column !important;
-    gap: 15px !important;
-}
-
-.features-tab .preset-card {
-    aspect-ratio: 1 !important; /* Makes cards square */
-    height: auto !important;
-}
