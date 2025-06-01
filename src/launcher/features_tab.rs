@@ -1,5 +1,5 @@
 use dioxus::prelude::*;
-use crate::universal::{ModComponent, UniversalManifest};
+use crate::universal::{ModComponent, UniversalManifest, IncludeComponent, RemoteIncludeComponent};
 use crate::preset::{Preset, find_preset_by_id};
 
 #[component]
@@ -44,7 +44,7 @@ pub fn FeaturesTab(
     let mut regular_button_hover = use_signal(Vec::<String>::new);
     
     // Features section expanded state
-    let mut features_expanded = use_signal(|| false); // Default to expanded
+    let mut features_expanded = use_signal(|| false);
     
     // Find custom preset for the "Custom Configuration" card
     let custom_preset = presets.iter().find(|p| p.id == "custom");
@@ -69,7 +69,6 @@ pub fn FeaturesTab(
                     } else {
                         "preset-card"
                     },
-                    // Apply custom preset background if available
                     style: if let Some(preset) = custom_preset {
                         if let Some(bg) = &preset.background {
                             format!("background-image: url('{}'); background-size: cover; background-position: center;", bg)
@@ -102,13 +101,10 @@ pub fn FeaturesTab(
                                     let is_hovered = *custom_button_hover.read();
                                     
                                     if is_selected {
-                                        // Selected state - white with green text
                                         "background-color: white !important; color: #0a3d16 !important; border: none !important;"
                                     } else if is_hovered {
-                                        // Hover state - brighter green with lift effect
                                         "background-color: rgba(10, 80, 30, 0.9) !important; color: white !important; transform: translateX(-50%) translateY(-3px) !important; box-shadow: 0 5px 15px rgba(0, 0, 0, 0.4) !important;"
                                     } else {
-                                        // Normal state - green
                                         "background-color: rgba(7, 60, 23, 0.7) !important; color: white !important;"
                                     }
                                 },
@@ -133,7 +129,6 @@ pub fn FeaturesTab(
                         let mut apply_preset_clone = apply_preset.clone();
                         let has_trending = preset.trending.unwrap_or(false);
                         
-                        // Track if this specific button is being hovered
                         let button_id = preset_id.clone();
                         let is_button_hovered = if has_trending {
                             trending_button_hover.read().contains(&button_id)
@@ -148,7 +143,6 @@ pub fn FeaturesTab(
                                 } else {
                                     "preset-card"
                                 },
-                                // Apply background if available
                                 style: if let Some(bg) = &preset.background {
                                     format!("background-image: url('{}'); background-size: cover; background-position: center;", bg)
                                 } else {
@@ -158,17 +152,14 @@ pub fn FeaturesTab(
                                     apply_preset_clone(preset_id.clone());
                                 },
                                 
-                                // Feature count badge in top right
                                 span { class: "preset-features-count",
                                     "{preset.enabled_features.len()} features"
                                 }
                                 
-                                // Trending badge in top left
                                 if has_trending {
                                     span { class: "trending-badge", "Popular" }
                                 }
                                 
-                                // Dark overlay for text readability
                                 div { class: "preset-card-overlay" }
                                 
                                 div { class: "preset-card-content",
@@ -176,7 +167,6 @@ pub fn FeaturesTab(
                                     p { "{preset.description}" }
                                 }
                                 
-                                // Select/Selected button with comprehensive inline styling
                                 button {
                                     class: "select-preset-button",
                                     style: {
@@ -200,7 +190,6 @@ pub fn FeaturesTab(
                                             }
                                         }
                                     },
-                                    // Clone the button_id for each closure
                                     onmouseenter: {
                                         let button_id_enter = button_id.clone();
                                         let has_trending_enter = has_trending;
@@ -238,149 +227,191 @@ pub fn FeaturesTab(
 
             // FEATURES section
             div { class: "optional-features-wrapper",
-    // Section header with divider style
-    div { class: "section-divider with-title", 
-        span { class: "divider-title", "FEATURES" }
-    }
-    
-    // Description for features section
-    p { class: "section-description", 
-        "Customize individual features to create your perfect experience."
-    }
-    
-    // Features count badge
-    div { class: "features-count-container",
-        span { class: "features-count-badge",
-            {
-                if let Some(manifest) = &universal_manifest {
-                    // Get all optional components
-                    let optional_mods = manifest.mods.iter()
-                        .filter(|m| m.optional)
-                        .count();
-                        
-                    let optional_shaderpacks = manifest.shaderpacks.iter()
-                        .filter(|m| m.optional)
-                        .count();
-                        
-                    let optional_resourcepacks = manifest.resourcepacks.iter()
-                        .filter(|m| m.optional)
-                        .count();
-                        
-                    // Calculate total features
-                    let total_features = optional_mods + optional_shaderpacks + optional_resourcepacks;
-                    
-                    // Calculate enabled features
-                    let enabled_count = enabled_features.read().len();
-                    
-                    rsx! { "{enabled_count}/{total_features} features enabled" }
-                } else {
-                    rsx! { "Loading features..." }
+                div { class: "section-divider with-title", 
+                    span { class: "divider-title", "FEATURES" }
                 }
-            }
-        }
-    }
-    
-    // Centered expand/collapse button with improved styling
-    button { 
-    class: "expand-collapse-button",
-    onclick: move |_| {
-        let current_expanded = *features_expanded.read();
-        features_expanded.set(!current_expanded);
-    },
-    
-    // Icon and text change based on state
-    if *features_expanded.read() {
-        // Collapse state
-        span { class: "button-icon collapse-icon", "▲" }
-        "Collapse Features"
-    } else {
-        // Expand state
-        span { class: "button-icon expand-icon", "▼" }
-        "Expand Features"
-    }
-}
-    
-    // Collapsible content - search INSIDE this section
-    div { 
-        class: if *features_expanded.read() {
-            "optional-features-content expanded"
-        } else {
-            "optional-features-content"
-        },
-        
-        // Search filter at the top of expanded features section
-        div { class: "feature-filter-container",
-            span { class: "feature-filter-icon", "🔍" }
-            input {
-                class: "feature-filter",
-                placeholder: "Search for features...",
-                value: "{filter_text}",
-                oninput: move |evt| filter_text.set(evt.value().clone()),
-            }
-            
-            if !filter_text.read().is_empty() {
-                button {
-                    class: "feature-filter-clear",
-                    onclick: move |_| filter_text.set(String::new()),
-                    "×"
+                
+                p { class: "section-description", 
+                    "Customize individual features to create your perfect experience."
                 }
-            }
-        }
-        
-        // Features content - only render if we have a universal manifest
-        {
-            if let Some(manifest) = &universal_manifest {
-                // Get all optional mods
-                let optional_mods: Vec<ModComponent> = manifest.mods.iter()
-                    .filter(|m| m.optional)
-                    .cloned()
-                    .collect();
                 
-                // Get all optional shaderpacks and resourcepacks too
-                let optional_shaderpacks: Vec<ModComponent> = manifest.shaderpacks.iter()
-                    .filter(|m| m.optional)
-                    .cloned()
-                    .collect();
+                // Features count badge
+                div { class: "features-count-container",
+                    span { class: "features-count-badge",
+                        {
+                            if let Some(manifest) = &universal_manifest {
+                                // Get all components (both optional and default)
+                                let all_mods = manifest.mods.len();
+                                let all_shaderpacks = manifest.shaderpacks.len();
+                                let all_resourcepacks = manifest.resourcepacks.len();
+                                let all_includes = manifest.includes.len();
+                                let all_remote_includes = manifest.remote_includes.len();
+                                
+                                let total_features = all_mods + all_shaderpacks + all_resourcepacks + all_includes + all_remote_includes;
+                                let enabled_count = enabled_features.read().len();
+                                
+                                rsx! { "{enabled_count}/{total_features} features" }
+                            } else {
+                                rsx! { "Loading features..." }
+                            }
+                        }
+                    }
+                }
                 
-                let optional_resourcepacks: Vec<ModComponent> = manifest.resourcepacks.iter()
-                    .filter(|m| m.optional)
-                    .cloned()
-                    .collect();
+                // Centered expand/collapse button
+                button { 
+                    class: "expand-collapse-button",
+                    onclick: move |_| {
+                        let current_expanded = *features_expanded.read();
+                        features_expanded.set(!current_expanded);
+                    },
+                    
+                    if *features_expanded.read() {
+                        span { class: "button-icon collapse-icon", "▲" }
+                        "Collapse Features"
+                    } else {
+                        span { class: "button-icon expand-icon", "▼" }
+                        "Expand Features"
+                    }
+                }
                 
-                // Combine all optional components
-                let mut all_components = Vec::new();
-                all_components.extend(optional_mods);
-                all_components.extend(optional_shaderpacks);
-                all_components.extend(optional_resourcepacks);
-                
-                // Display features by category
-                render_features_by_category(all_components, enabled_features.clone(), filter_text.clone(), toggle_feature)
-            } else {
-                rsx! {
-                    div { class: "loading-container",
-                        div { class: "loading-spinner" }
-                        div { class: "loading-text", "Loading features..." }
+                // Collapsible content
+                div { 
+                    class: if *features_expanded.read() {
+                        "optional-features-content expanded"
+                    } else {
+                        "optional-features-content"
+                    },
+                    
+                    // Search filter
+                    div { class: "feature-filter-container",
+                        span { class: "feature-filter-icon", "🔍" }
+                        input {
+                            class: "feature-filter",
+                            placeholder: "Search for features...",
+                            value: "{filter_text}",
+                            oninput: move |evt| filter_text.set(evt.value().clone()),
+                        }
+                        
+                        if !filter_text.read().is_empty() {
+                            button {
+                                class: "feature-filter-clear",
+                                onclick: move |_| filter_text.set(String::new()),
+                                "×"
+                            }
+                        }
+                    }
+                    
+                    // Features content
+                    {
+                        if let Some(manifest) = &universal_manifest {
+                            render_all_features_by_category(manifest, enabled_features.clone(), filter_text.clone(), toggle_feature)
+                        } else {
+                            rsx! {
+                                div { class: "loading-container",
+                                    div { class: "loading-spinner" }
+                                    div { class: "loading-text", "Loading features..." }
+                                }
+                            }
+                        }
                     }
                 }
             }
         }
     }
 }
-}}}
 
-// Helper function to render features by category
-fn render_features_by_category(
-    components: Vec<ModComponent>,
+// NEW: Helper function to render ALL features (both optional and default) by category
+fn render_all_features_by_category(
+    manifest: &UniversalManifest,
     enabled_features: Signal<Vec<String>>,
     filter_text: Signal<String>,
     toggle_feature: impl FnMut(String) + Clone + 'static,
 ) -> Element {
-    // Apply current filter
+    // Collect all components into a unified structure
+    let mut all_components = Vec::new();
+    
+    // Add mods
+    for component in &manifest.mods {
+        all_components.push(UnifiedComponent {
+            id: component.id.clone(),
+            name: component.name.clone(),
+            description: component.description.clone(),
+            category: component.category.clone().unwrap_or_else(|| "Uncategorized".to_string()),
+            optional: component.optional,
+            default_enabled: component.default_enabled,
+            authors: component.authors.clone(),
+            dependencies: component.dependencies.clone(),
+            component_type: "Mod".to_string(),
+        });
+    }
+    
+    // Add shaderpacks
+    for component in &manifest.shaderpacks {
+        all_components.push(UnifiedComponent {
+            id: component.id.clone(),
+            name: component.name.clone(),
+            description: component.description.clone(),
+            category: component.category.clone().unwrap_or_else(|| "Uncategorized".to_string()),
+            optional: component.optional,
+            default_enabled: component.default_enabled,
+            authors: component.authors.clone(),
+            dependencies: component.dependencies.clone(),
+            component_type: "Shader".to_string(),
+        });
+    }
+    
+    // Add resourcepacks
+    for component in &manifest.resourcepacks {
+        all_components.push(UnifiedComponent {
+            id: component.id.clone(),
+            name: component.name.clone(),
+            description: component.description.clone(),
+            category: component.category.clone().unwrap_or_else(|| "Uncategorized".to_string()),
+            optional: component.optional,
+            default_enabled: component.default_enabled,
+            authors: component.authors.clone(),
+            dependencies: component.dependencies.clone(),
+            component_type: "Resource Pack".to_string(),
+        });
+    }
+    
+    // Add includes
+    for component in &manifest.includes {
+        all_components.push(UnifiedComponent {
+            id: component.id.clone(),
+            name: component.name.clone(),
+            description: component.description.clone(),
+            category: component.category.clone().unwrap_or_else(|| "CORE".to_string()),
+            optional: component.optional,
+            default_enabled: component.default_enabled,
+            authors: component.authors.clone(),
+            dependencies: component.dependencies.clone(),
+            component_type: "Config/Data".to_string(),
+        });
+    }
+    
+    // Add remote includes
+    for component in &manifest.remote_includes {
+        all_components.push(UnifiedComponent {
+            id: component.id.clone(),
+            name: component.name.clone(),
+            description: component.description.clone(),
+            category: component.category.clone().unwrap_or_else(|| "CORE".to_string()),
+            optional: component.optional,
+            default_enabled: component.default_enabled,
+            authors: component.authors.clone(),
+            dependencies: component.dependencies.clone(),
+            component_type: "Remote Config".to_string(),
+        });
+    }
+    
+    // Apply filter
     let filter = filter_text.read().to_lowercase();
     let filtered_components = if filter.is_empty() {
-        components
+        all_components
     } else {
-        components.into_iter()
+        all_components.into_iter()
             .filter(|comp| {
                 let name_match = comp.name.to_lowercase().contains(&filter);
                 let desc_match = comp.description.as_ref()
@@ -390,27 +421,24 @@ fn render_features_by_category(
             .collect()
     };
     
-    // Group by category
-    let mut categories: std::collections::BTreeMap<String, Vec<ModComponent>> = std::collections::BTreeMap::new();
+    // Group by category, separating optional and default features
+    let mut optional_categories: std::collections::BTreeMap<String, Vec<UnifiedComponent>> = std::collections::BTreeMap::new();
+    let mut default_categories: std::collections::BTreeMap<String, Vec<UnifiedComponent>> = std::collections::BTreeMap::new();
+    
     for component in filtered_components {
-        let category = component.category.clone().unwrap_or_else(|| "Uncategorized".to_string());
-        categories.entry(category).or_insert_with(Vec::new).push(component);
+        let category = component.category.clone();
+        if component.optional {
+            optional_categories.entry(category).or_insert_with(Vec::new).push(component);
+        } else {
+            default_categories.entry(category).or_insert_with(Vec::new).push(component);
+        }
     }
     
-    // Create a signal to track expanded categories
     let mut expanded_categories = use_signal(|| Vec::<String>::new());
     
     // Check if no results match the filter
-    let no_results = categories.is_empty() && !filter.is_empty();
+    let no_results = optional_categories.is_empty() && default_categories.is_empty() && !filter.is_empty();
     
-    // Count total features and enabled features
-    let total_features = categories.values().flat_map(|comps| comps).count();
-    let enabled_count = categories.values()
-        .flat_map(|comps| comps)
-        .filter(|comp| enabled_features.read().contains(&comp.id))
-        .count();
-    
-    // If no results found
     if no_results {
         return rsx! {
             div { class: "no-search-results",
@@ -419,189 +447,276 @@ fn render_features_by_category(
         };
     }
     
-    // Render categories
     rsx! {
         div { class: "feature-categories",
-            for (category_name, components) in categories {
-                {
-                    let category_key = category_name.clone();
-                    let is_expanded = expanded_categories.read().contains(&category_key) 
-                                 || filter.is_empty() == false; // Auto-expand when filtering
+            // Show default/core features first
+            if !default_categories.is_empty() {
+                div { class: "feature-category-section",
+                    h2 { class: "category-section-title", "CORE FEATURES" }
+                    p { class: "category-section-description", 
+                        "These features are included by default and essential for the modpack to function properly."
+                    }
                     
-                    // Calculate how many components are enabled
-                    let enabled_count = enabled_features.read().iter()
-                        .filter(|id| components.iter().any(|comp| &comp.id == *id))
-                        .count();
-                    
-                    let are_all_enabled = enabled_count == components.len();
-                    
-                    rsx! {
-                        div { class: "feature-category",
-                            // Category header - ENTIRE HEADER IS CLICKABLE
-                            div { 
-                                class: "category-header",
-                                onclick: {
-                                    let category_key = category_key.clone();
-                                    move |_| {
-                                        expanded_categories.with_mut(|cats| {
-                                            if cats.contains(&category_key) {
-                                                cats.retain(|c| c != &category_key);
-                                            } else {
-                                                cats.push(category_key.clone());
-                                            }
-                                        });
-                                    }
-                                },
-                                
-                                div { class: "category-title-section",
-                                    h3 { class: "category-name", "{category_name}" }
-                                    span { class: "category-count", "{enabled_count}/{components.len()}" }
-                                }
-                                
-                                // Toggle all button - has separate click handler
-                                {
-                                    let components_clone = components.clone();
-                                    let mut enabled_features = enabled_features.clone();
-                                    
-                                    rsx! {
-                                        button {
-                                            class: if are_all_enabled {
-                                                "category-toggle-all toggle-disable"
-                                            } else {
-                                                "category-toggle-all toggle-enable"
-                                            },
-                                            onclick: move |evt| {
-                                                // Stop propagation to prevent header's click handler
-                                                evt.stop_propagation();
-                                                
-                                                // Toggle all in category
-                                                enabled_features.with_mut(|features| {
-                                                    if are_all_enabled {
-                                                        // Disable all
-                                                        for comp in &components_clone {
-                                                            features.retain(|id| id != &comp.id);
-                                                        }
+                    for (category_name, components) in default_categories {
+                        {
+                            let category_key = format!("default-{}", category_name);
+                            let is_expanded = expanded_categories.read().contains(&category_key) || !filter.is_empty();
+                            
+                            rsx! {
+                                div { class: "feature-category default-category",
+                                    div { 
+                                        class: "category-header",
+                                        onclick: {
+                                            let category_key = category_key.clone();
+                                            move |_| {
+                                                expanded_categories.with_mut(|cats| {
+                                                    if cats.contains(&category_key) {
+                                                        cats.retain(|c| c != &category_key);
                                                     } else {
-                                                        // Enable all
-                                                        for comp in &components_clone {
-                                                            if !features.contains(&comp.id) {
-                                                                features.push(comp.id.clone());
-                                                            }
-                                                        }
+                                                        cats.push(category_key.clone());
                                                     }
                                                 });
-                                            },
-                                            
-                                            if are_all_enabled {
-                                                "Disable All" // User will disable all when clicked
-                                            } else if enabled_count > 0 {
-                                                "Enable All" // User will enable all when clicked
+                                            }
+                                        },
+                                        
+                                        div { class: "category-title-section",
+                                            h3 { class: "category-name", "{category_name}" }
+                                            span { class: "category-count default-count", "{components.len()} core" }
+                                        }
+                                        
+                                        div { 
+                                            class: if is_expanded {
+                                                "category-toggle-indicator expanded"
                                             } else {
-                                                "Enable All" // User will enable all when clicked
+                                                "category-toggle-indicator"
+                                            },
+                                            "▼"
+                                        }
+                                    }
+                                    
+                                    div { 
+                                        class: if is_expanded {
+                                            "category-content expanded"
+                                        } else {
+                                            "category-content"
+                                        },
+                                        
+                                        div { class: "feature-cards-grid",
+                                            for component in components {
+                                                render_feature_card(component, enabled_features.clone(), toggle_feature.clone(), true)
                                             }
                                         }
                                     }
                                 }
-                                
-                                // Expand/collapse indicator - larger, more visible
-                                div { 
-                                    class: if is_expanded {
-                                        "category-toggle-indicator expanded"
-                                    } else {
-                                        "category-toggle-indicator"
-                                    },
-                                    "▼"
-                                }
                             }
+                        }
+                    }
+                }
+            }
+            
+            // Show optional features
+            if !optional_categories.is_empty() {
+                div { class: "feature-category-section",
+                    h2 { class: "category-section-title", "OPTIONAL FEATURES" }
+                    p { class: "category-section-description", 
+                        "These features can be enabled or disabled to customize your experience."
+                    }
+                    
+                    for (category_name, components) in optional_categories {
+                        {
+                            let category_key = format!("optional-{}", category_name);
+                            let is_expanded = expanded_categories.read().contains(&category_key) || !filter.is_empty();
                             
-                            // Category content (expandable)
-                            div { 
-                                class: if is_expanded {
-                                    "category-content expanded"
-                                } else {
-                                    "category-content"
-                                },
-                                
-                                // Feature cards grid
-                                div { class: "feature-cards-grid",
-                                    for component in components {
+                            let enabled_count = enabled_features.read().iter()
+                                .filter(|id| components.iter().any(|comp| &comp.id == *id))
+                                .count();
+                            
+                            let are_all_enabled = enabled_count == components.len();
+                            
+                            rsx! {
+                                div { class: "feature-category optional-category",
+                                    div { 
+                                        class: "category-header",
+                                        onclick: {
+                                            let category_key = category_key.clone();
+                                            move |_| {
+                                                expanded_categories.with_mut(|cats| {
+                                                    if cats.contains(&category_key) {
+                                                        cats.retain(|c| c != &category_key);
+                                                    } else {
+                                                        cats.push(category_key.clone());
+                                                    }
+                                                });
+                                            }
+                                        },
+                                        
+                                        div { class: "category-title-section",
+                                            h3 { class: "category-name", "{category_name}" }
+                                            span { class: "category-count", "{enabled_count}/{components.len()}" }
+                                        }
+                                        
                                         {
-                                            let component_id = component.id.clone();
-                                            let is_enabled = enabled_features.read().contains(&component_id);
-                                            let mut toggle_func = toggle_feature.clone();
+                                            let components_clone = components.clone();
+                                            let mut enabled_features = enabled_features.clone();
                                             
                                             rsx! {
-                                                div { 
-                                                    class: if is_enabled {
-                                                        "feature-card feature-enabled"
+                                                button {
+                                                    class: if are_all_enabled {
+                                                        "category-toggle-all toggle-disable"
                                                     } else {
-                                                        "feature-card feature-disabled"
+                                                        "category-toggle-all toggle-enable"
                                                     },
-                                                    
-                                                    div { class: "feature-card-header",
-                                                        h3 { class: "feature-card-title", "{component.name}" }
+                                                    onclick: move |evt| {
+                                                        evt.stop_propagation();
                                                         
-                                                        label {
-                                                            class: if is_enabled {
-                                                                "feature-toggle-button enabled"
-                                                            } else {
-                                                                "feature-toggle-button disabled"
-                                                            },
-                                                            onclick: move |_| {
-                                                                toggle_func(component_id.clone());
-                                                            },
-                                                            
-                                                            if is_enabled {
-                                                                "Enabled"
-                                                            } else {
-                                                                "Disabled"
-                                                            }
-                                                        }
-                                                    }
-                                                    
-                                                    // Description display
-                                                    if let Some(description) = &component.description {
-                                                        div { class: "feature-card-description", "{description}" }
-                                                    }
-                                                    
-                                                    // Dependencies display
-                                                    if let Some(deps) = &component.dependencies {
-                                                        if !deps.is_empty() {
-                                                            div { class: "feature-dependencies",
-                                                                "Requires: ", 
-                                                                span { class: "dependency-list", 
-                                                                    {deps.join(", ")}
+                                                        enabled_features.with_mut(|features| {
+                                                            if are_all_enabled {
+                                                                for comp in &components_clone {
+                                                                    features.retain(|id| id != &comp.id);
                                                                 }
-                                                            }
-                                                        }
-                                                    }
-                                                    
-                                                    // Authors display
-                                                    if !component.authors.is_empty() {
-                                                        div { class: "feature-authors",
-                                                            "By: ",
-                                                            for (i, author) in component.authors.iter().enumerate() {
-                                                                {
-                                                                    let is_last = i == component.authors.len() - 1;
-                                                                    rsx! {
-                                                                        a {
-                                                                            class: "author-link",
-                                                                            href: "{author.link}",
-                                                                            target: "_blank",
-                                                                            "{author.name}"
-                                                                        }
-                                                                        if !is_last {
-                                                                            ", "
-                                                                        }
+                                                            } else {
+                                                                for comp in &components_clone {
+                                                                    if !features.contains(&comp.id) {
+                                                                        features.push(comp.id.clone());
                                                                     }
                                                                 }
                                                             }
-                                                        }
+                                                        });
+                                                    },
+                                                    
+                                                    if are_all_enabled {
+                                                        "Disable All"
+                                                    } else {
+                                                        "Enable All"
                                                     }
                                                 }
                                             }
                                         }
+                                        
+                                        div { 
+                                            class: if is_expanded {
+                                                "category-toggle-indicator expanded"
+                                            } else {
+                                                "category-toggle-indicator"
+                                            },
+                                            "▼"
+                                        }
                                     }
+                                    
+                                    div { 
+                                        class: if is_expanded {
+                                            "category-content expanded"
+                                        } else {
+                                            "category-content"
+                                        },
+                                        
+                                        div { class: "feature-cards-grid",
+                                            for component in components {
+                                                render_feature_card(component, enabled_features.clone(), toggle_feature.clone(), false)
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+// Helper struct to unify all component types
+#[derive(Clone, Debug)]
+struct UnifiedComponent {
+    id: String,
+    name: String,
+    description: Option<String>,
+    category: String,
+    optional: bool,
+    default_enabled: bool,
+    authors: Vec<crate::Author>,
+    dependencies: Option<Vec<String>>,
+    component_type: String,
+}
+
+fn render_feature_card(
+    component: UnifiedComponent,
+    enabled_features: Signal<Vec<String>>,
+    mut toggle_feature: impl FnMut(String) + Clone + 'static,
+    is_core: bool,
+) -> Element {
+    let component_id = component.id.clone();
+    let is_enabled = enabled_features.read().contains(&component_id);
+    
+    rsx! {
+        div { 
+            class: if is_core {
+                "feature-card core-feature"
+            } else if is_enabled {
+                "feature-card feature-enabled"
+            } else {
+                "feature-card feature-disabled"
+            },
+            
+            div { class: "feature-card-header",
+                h3 { class: "feature-card-title", 
+                    "{component.name}"
+                    span { class: "component-type-badge", "{component.component_type}" }
+                }
+                
+                if !is_core {
+                    label {
+                        class: if is_enabled {
+                            "feature-toggle-button enabled"
+                        } else {
+                            "feature-toggle-button disabled"
+                        },
+                        onclick: move |_| {
+                            toggle_feature(component_id.clone());
+                        },
+                        
+                        if is_enabled {
+                            "Enabled"
+                        } else {
+                            "Disabled"
+                        }
+                    }
+                } else {
+                    span { class: "core-feature-label", "Core" }
+                }
+            }
+            
+            if let Some(description) = &component.description {
+                div { class: "feature-card-description", "{description}" }
+            }
+            
+            if let Some(deps) = &component.dependencies {
+                if !deps.is_empty() {
+                    div { class: "feature-dependencies",
+                        "Requires: ", 
+                        span { class: "dependency-list", 
+                            {deps.join(", ")}
+                        }
+                    }
+                }
+            }
+            
+            if !component.authors.is_empty() {
+                div { class: "feature-authors",
+                    "By: ",
+                    for (i, author) in component.authors.iter().enumerate() {
+                        {
+                            let is_last = i == component.authors.len() - 1;
+                            rsx! {
+                                a {
+                                    class: "author-link",
+                                    href: "{author.link}",
+                                    target: "_blank",
+                                    "{author.name}"
+                                }
+                                if !is_last {
+                                    ", "
                                 }
                             }
                         }
