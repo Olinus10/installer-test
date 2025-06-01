@@ -1177,7 +1177,7 @@ a:hover {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    width: 100%;
+    margin-bottom: 8px;
 }
 
 .feature-card-header .feature-card-title {
@@ -1225,77 +1225,84 @@ a:hover {
     transform: scale(1.05) !important;
 }
 
-/* Enhanced Install Button Styling */
 .main-install-button {
-    background: linear-gradient(to bottom, #0c7d35, #063c17);
-    border: 2px solid rgba(255, 255, 255, 0.3);
-    border-radius: 8px;
-    padding: 18px 70px;
-    font-family: "HEADER_FONT";
-    font-size: 2rem;
-    color: #fce8f6;
-    cursor: pointer;
-    min-width: 320px;
-    text-transform: uppercase;
-    letter-spacing: 2px;
-    position: relative;
-    overflow: hidden;
-    z-index: 1;
-    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.5), 0 0 25px rgba(7, 60, 23, 0.6);
-    text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
-    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  background-color: #073c17;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  padding: 18px 70px;
+  font-family: "HEADER_FONT";
+  font-size: 2rem;
+  color: #fce8f6;
+  cursor: pointer;
+  min-width: 320px;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  position: relative;
+  overflow: hidden;
+  z-index: 1;
+  background-image: linear-gradient(135deg, #0a4d1e, #073c17);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4), 0 0 20px rgba(7, 60, 23, 0.3);
+  text-shadow: 0 0 5px rgba(255, 255, 255, 0.3);
+  animation: button-glow 3s infinite alternate;
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
 .main-install-button::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: -100%;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(
-        90deg, 
-        transparent, 
-        rgba(255, 255, 255, 0.2), 
-        rgba(255, 255, 255, 0.3), 
-        rgba(255, 255, 255, 0.2),
-        transparent
-    );
-    transform: skewX(-25deg);
-    z-index: 0;
-    animation: button-shine 4s infinite;
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg, 
+    transparent, 
+    rgba(255, 255, 255, 0.1), 
+    rgba(255, 255, 255, 0.2), 
+    rgba(255, 255, 255, 0.1),
+    transparent
+  );
+  transform: skewX(-25deg);
+  z-index: 0;
+  animation: button-shine 6s infinite;
 }
 
 .main-install-button:hover:not([disabled]) {
-    transform: translateY(-5px);
-    background: linear-gradient(to bottom, #0e8f3d, #084f1e);
-    text-shadow: 0 0 15px rgba(255, 255, 255, 0.7);
-    border-color: rgba(255, 255, 255, 0.5);
-    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.6), 0 0 40px rgba(7, 60, 23, 0.9);
+  transform: translateY(-5px);
+  background-image: linear-gradient(135deg, #0f6229, #0a4d1e);
+  text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+  border-color: rgba(255, 255, 255, 0.4);
+  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.5), 0 0 35px rgba(7, 60, 23, 0.9);
+  animation: button-glow 1.5s infinite alternate;
 }
 
 .button-scale-wrapper:hover .main-install-button:not([disabled]) {
     animation: button-glow 1.5s infinite alternate;
 }
 
-@keyframes button-glow {
-    0% {
-        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.5), 0 0 25px rgba(7, 60, 23, 0.5);
-        text-shadow: 0 0 10px rgba(255, 255, 255, 0.4);
-    }
-    100% {
-        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.6), 0 0 40px rgba(7, 60, 23, 0.9);
-        text-shadow: 0 0 20px rgba(255, 255, 255, 0.7);
-    }
+.main-install-button:active:not([disabled]) {
+  transform: translateY(-2px);
+  transition: all 0.1s ease;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.5), 0 0 25px rgba(7, 60, 23, 0.8);
 }
 
-@keyframes button-shine {
-    0% {
-        left: -100%;
-    }
-    20%, 100% {
-        left: 200%;
-    }
+.main-install-button:disabled {
+  background-image: linear-gradient(135deg, #0a4d1e80, #073c1780);
+  cursor: not-allowed;
+  opacity: 0.7;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3), 0 0 15px rgba(7, 60, 23, 0.2);
+}
+
+/* Progress indicator in button */
+.button-progress {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: 3px;
+  width: 0%; /* Set dynamically with JS */
+  background-color: rgba(255, 255, 255, 0.8);
+  border-radius: 0 0 0 8px;
+  transition: width 0.3s ease;
 }
 
 /* Different button states */
@@ -2648,7 +2655,7 @@ a:hover {
   letter-spacing: 0.08em;
 }
 
-/* Changelog Section Styles */
+/* Changelog */
 .changelog-container {
   max-width: 1000px;
   margin: 20px auto 30px auto;
@@ -3001,26 +3008,4 @@ a:hover {
     color: #fce8f6;
     text-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
     font-family: "HEADER_FONT";
-}
-
-.path-row {
-    margin-top: 15px;
-    margin-bottom: 15px;
-}
-
-.path-container {
-    background: rgba(0, 0, 0, 0.2);
-    padding: 8px;
-    border-radius: 4px;
-    width: 100%;
-    margin-top: 5px;
-    overflow-x: auto;
-}
-
-.installation-path-code {
-    font-family: monospace;
-    font-size: 0.9em;
-    color: #ddd;
-    white-space: pre-wrap;
-    word-break: break-all;
 }
