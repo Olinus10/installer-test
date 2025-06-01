@@ -16,7 +16,6 @@ use modal::Modal;
 use std::sync::mpsc;
 use log::{debug, error, info};
 use isahc::ReadResponseExt;
-use isahc::AsyncReadResponseExt;
 
 use crate::{GithubBranch, build_http_client, GH_API, REPO, Config};
 use crate::{get_app_data, get_installed_packs, get_launcher, uninstall, InstallerProfile, Launcher, PackName};
@@ -409,10 +408,9 @@ fn main() {
 
 #[component]
 fn ChangelogSection(changelog: Option<ChangelogData>) -> Element {
-    if let Some(data) = changelog {
-        // Make sure we still render something even for empty entries
-        if data.entries.is_empty() {
-            return rsx! { div { class: "changelog-container", "No changelog entries available." } };
+    if let Some(changelog_data) = changelog {
+        if changelog_data.entries.is_empty() {
+            return None;
         }
         
         rsx! {
@@ -422,7 +420,7 @@ fn ChangelogSection(changelog: Option<ChangelogData>) -> Element {
                 }
                 
                 div { class: "changelog-entries",
-                    for (index, entry) in data.entries.iter().enumerate().take(5) {
+                    for (index, entry) in changelog_data.entries.iter().enumerate().take(5) {
                         div { 
                             class: "changelog-entry",
                             "data-importance": "{entry.importance.clone().unwrap_or_else(|| String::from(\"normal\"))}",
@@ -445,14 +443,14 @@ fn ChangelogSection(changelog: Option<ChangelogData>) -> Element {
                             }
                             
                             // Show divider between entries except for the last one
-                            if index < data.entries.len() - 1 && index < 4 {
+                            if index < changelog_data.entries.len() - 1 && index < 4 {
                                 div { class: "entry-divider" }
                             }
                         }
                     }
                     
                     // Show "View all changes" button if more than 5 entries
-                    if data.entries.len() > 5 {
+                    if changelog_data.entries.len() > 5 {
                         div { class: "view-all-changes",
                             button { class: "view-all-button",
                                 "View All Changes"
@@ -464,7 +462,7 @@ fn ChangelogSection(changelog: Option<ChangelogData>) -> Element {
         }
     } else {
         // Return empty div while loading
-        rsx! { div { class: "changelog-loading", "Loading changelog..." } }
+        rsx! { div { class: "changelog-loading" } }
     }
 }
 
@@ -527,8 +525,8 @@ fn Footer() -> Element {
 fn HomePage(
     installations: Signal<Vec<Installation>>,
     error_signal: Signal<Option<String>>,
-    changelog_data: Option<ChangelogData>, // Change from Signal to Option
-    current_installation_id: Signal<Option<String>>,
+    changelog: Signal<Option<ChangelogData>>,
+    current_installation_id: Signal<Option<String>>, // Add this parameter
 ) -> Element {
     // State for the installation creation dialog
     let mut show_creation_dialog = use_signal(|| false);
@@ -648,28 +646,28 @@ fn HomePage(
             }
             
             // Recent changes section
-            ChangelogSection { changelog: changelog_data }
+            ChangelogSection { changelog: changelog() }
             
             // Footer with Discord button and other info
             Footer {}
             
             // Installation creation dialog
             if *show_creation_dialog.read() {
-                SimplifiedInstallationWizard {
-                    onclose: move |_| {
-                        show_creation_dialog.set(false);
-                    },
-                    oncreate: move |new_installation: Installation| {  // Added type annotation here
-                        // Add the new installation to the list
-                        installations.with_mut(|list| {
-                            list.insert(0, new_installation.clone());
-                        });
-                        
-                        // Close the dialog
-                        show_creation_dialog.set(false);
-                        
-                        // Set the current installation to navigate to the installation page
-                        current_installation_id.set(Some(new_installation.id));
+    SimplifiedInstallationWizard {
+        onclose: move |_| {
+            show_creation_dialog.set(false);
+        },
+        oncreate: move |new_installation: Installation| {  // Added type annotation here
+            // Add the new installation to the list
+            installations.with_mut(|list| {
+                list.insert(0, new_installation.clone());
+            });
+            
+            // Close the dialog
+            show_creation_dialog.set(false);
+            
+            // Set the current installation to navigate to the installation page
+            current_installation_id.set(Some(new_installation.id));
                     }
                 }
             }
@@ -779,7 +777,7 @@ fn StatisticsDisplay() -> Element {
                 span { class: "stat-label", "FPS" }
             }
             div { class: "stat-item",
-                span { class: "stat-value", "50+" }
+                span { class: "stat-value", "100+" }
                 span { class: "stat-label", "MODS" }
             }
             div { class: "stat-item",
@@ -1736,6 +1734,7 @@ fn InstallButton(
         div { class: "install-button-container",
             div { 
                 class: "button-scale-wrapper",
+                style: "animation: button-scale-pulse 3s infinite alternate, button-breathe 4s infinite ease-in-out;",
                 button {
                     class: "main-install-button",
                     disabled: disabled,
@@ -2286,23 +2285,23 @@ fn Version(mut props: VersionProps) -> Element {
     };
 
     // Button label based on state
-let button_label = if !*installed.read() {
-    debug!("Button state: Install");
-    "Install"
-} else if *update_available.read() {
-    debug!("Button state: Update");
-    "Update"
-} else if *modify.read() {
-    debug!("Button state: Modify");
-    "Modify"
-} else {
-    debug!("Button state: Modify (default)");
-    "Modify"
-};
+    let button_label = if !*installed.read() {
+        debug!("Button state: Install");
+        "Install"
+    } else if *update_available.read() {
+        debug!("Button state: Update");
+        "Update"
+    } else if *modify.read() {
+        debug!("Button state: Modify");
+        "Modify"
+    } else {
+        debug!("Button state: Modify (default)");
+        "Modify"
+    };
     
     // Button disable logic
-let install_disable = *installed.read() && !*update_available.read() && !*modify.read();
-debug!("Button disabled: {}", install_disable);
+    let install_disable = *installed.read() && !*update_available.read() && !*modify.read();
+    debug!("Button disabled: {}", install_disable);
     
     // Pre-build feature cards to avoid nested RSX macros
     let feature_cards_content = {
@@ -2555,15 +2554,15 @@ fn AppHeader(
     // Main render
     rsx! {
         header { class: "app-header",
-            // Logo and title - UPDATED with direct GitHub URL
+            // Logo and title
             div { 
                 class: "app-header-left", 
                 onclick: move |_| on_go_home.call(()),
                 
                 img { 
                     class: "app-logo", 
-                    src: "https://raw.githubusercontent.com/Olinus10/installer-test/master/src/assets/icon.png", 
-                    alt: "Overhaul Logo"
+                    src: "/assets/logo.png", 
+                    alt: "Wynncraft Overhaul Logo"
                 }
                 h1 { class: "app-title", "MAJESTIC OVERHAUL" }
             }
@@ -2630,7 +2629,7 @@ pub fn app() -> Element {
     // Installation handling
     let mut current_installation_id = use_signal(|| Option::<String>::None);
     let mut installations = use_signal(|| props.installations.clone());
-    
+
     // Get launcher configuration
     let launcher = match get_launcher(&config.read().launcher) {
         Ok(l) => Some(l),
@@ -2682,54 +2681,20 @@ pub fn app() -> Element {
             }
         }
     });
-
-let changelog_data = use_resource(move || async {
-    debug!("Starting changelog fetch with exact path...");
     
-    // Exact raw content URL to your changelog file
-    let exact_path = "https://raw.githubusercontent.com/Olinus10/installer-test/master/changelog.json";
-    
-    // Create a new HTTP client
-    let http_client = CachedHttpClient::new();
-    
-    // Fetch directly from the exact path
-    match http_client.get_async(exact_path).await {
-        Ok(mut response) => {
-            let status = response.status();
-            debug!("Changelog response status: {}", status);
-            
-            if status.is_success() {
-                match response.text().await {
-                    Ok(text) => {
-                        debug!("Received changelog text, length: {}", text.len());
-                        match serde_json::from_str::<crate::changelog::Changelog>(&text) {
-                            Ok(data) => {
-                                debug!("Successfully parsed changelog: {} entries", data.entries.len());
-                                Some(data)
-                            },
-                            Err(e) => {
-                                debug!("Failed to parse changelog: {}", e);
-                                debug!("First 100 chars of response: {}", if text.len() > 100 { &text[..100] } else { &text });
-                                None
-                            }
-                        }
-                    },
-                    Err(e) => {
-                        debug!("Error reading response: {}", e);
-                        None
-                    }
-                }
-            } else {
-                debug!("Error status code: {}", status);
+    // Load changelog
+    let changelog = use_resource(move || async {
+        match fetch_changelog("Olinus10/installer-test", &CachedHttpClient::new()).await {
+            Ok(changelog) => {
+                debug!("Successfully loaded changelog with {} entries", changelog.entries.len());
+                Some(changelog)
+            },
+            Err(e) => {
+                error!("Failed to load changelog: {}", e);
                 None
             }
-        },
-        Err(e) => {
-            debug!("Error fetching changelog: {}", e);
-            None
         }
-    }
-});
+    });
 
     // Modal context for popups
     let mut modal_context = use_context_provider(ModalContext::default);
@@ -2744,30 +2709,25 @@ let changelog_data = use_resource(move || async {
         }, false, Some(move |_| error_signal.set(None)));
     }
 
-// Build CSS content
-let css_content = css
-    .replace("<BG_COLOR>", "#320625")
-    .replace("<BG_IMAGE>", "https://raw.githubusercontent.com/Wynncraft-Overhaul/installer/master/src/assets/background_installer.png")
-    .replace("<SECONDARY_FONT>", "\"HEADER_FONT\"")
-    .replace("<PRIMARY_FONT>", "\"REGULAR_FONT\"");
-
-// Add custom category styles
+    // Build CSS content
+    let css_content = css
+        .replace("<BG_COLOR>", "#320625")
+        .replace("<BG_IMAGE>", "https://raw.githubusercontent.com/Wynncraft-Overhaul/installer/master/src/assets/background_installer.png")
+        .replace("<SECONDARY_FONT>", "\"HEADER_FONT\"")
+        .replace("<PRIMARY_FONT>", "\"REGULAR_FONT\"");
+    
+    // Add custom category styles
 let category_styles = include_str!("assets/category-styles.css");
 let feature_styles = include_str!("assets/expanded-feature-styles.css");
 let preset_styles = include_str!("assets/preset-styles.css");
 let search_styles = include_str!("assets/search-results-styles.css");
-let modal_styles = include_str!("assets/modal-styles.css");//
-let integrated_styles = include_str!("assets/integrated-styles.css");
 
-// Combine all CSS files
-let complete_css = format!("{}\n{}\n{}\n{}\n{}\n{}\n{}", 
+let complete_css = format!("{}\n{}\n{}\n{}\n{}", 
     css_content, 
     category_styles, 
     feature_styles, 
     preset_styles, 
-    search_styles,
-    modal_styles,
-    integrated_styles
+    search_styles
 );
 
     // Create header component if needed
@@ -2830,14 +2790,14 @@ let complete_css = format!("{}\n{}\n{}\n{}\n{}\n{}\n{}",
         }
     } else {
         // Main content based on current state
-    if current_installation_id.read().is_none() {
-        // Home page - show installations or welcome screen
-        rsx! {
-            HomePage {
-                installations,
-                error_signal: error_signal.clone(),
-                changelog_data: changelog_data.read().as_ref().and_then(|data| data.clone()),
-                current_installation_id: current_installation_id.clone(),
+        if current_installation_id.read().is_none() {
+            // Home page - show installations or welcome screen
+            rsx! {
+                HomePage {
+                    installations,
+                    error_signal: error_signal.clone(),
+                    changelog: use_signal(|| changelog.read().as_ref().cloned().flatten()),
+                    current_installation_id: current_installation_id.clone(),
                 }
             }
         } else if current_installation_id.read().as_ref().map_or(false, |id| id == "new") {
@@ -2863,35 +2823,18 @@ let complete_css = format!("{}\n{}\n{}\n{}\n{}\n{}\n{}",
 }
         } else {
             // Specific installation management page
-            let back_handler = EventHandler::new(move |_: ()| {
-    current_installation_id.set(None);
-});
+            let back_handler = EventHandler::new(move |_| {
+                current_installation_id.set(None);
+            });
             
             let id = current_installation_id.read().as_ref().unwrap().clone();
             
             rsx! {
-InstallationManagementPage {
-    installation_id: id,
-    onback: EventHandler::new(move |_: ()| {
-        current_installation_id.set(None);
-        
-        // Clone what we need for the spawned task
-        let mut installations_clone = installations.clone();
-        
-        // Now spawn with its own clone
-        spawn(async move {
-            match installation::load_all_installations() {
-                Ok(refreshed) => {
-                    installations_clone.set(refreshed);
-                },
-                Err(e) => {
-                    debug!("Failed to reload installations: {}", e);
+                InstallationManagementPage {
+                    installation_id: id,
+                    onback: back_handler,
+                    installations: installations.clone()
                 }
-            }
-        });
-    }),
-    installations: installations.clone()
-}
             }
         }
     };
