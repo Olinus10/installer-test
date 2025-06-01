@@ -1,6 +1,4 @@
-/* Minimal styles ONLY for Settings and Performance tabs */
-
-/* Modal-specific styles for dialogs only */
+/* Modal Styles for Dialogs */
 .modal-overlay {
     position: fixed;
     top: 0;
@@ -75,7 +73,386 @@
     gap: 10px;
 }
 
-/* Modal buttons only */
+/* Modal Dialog Specific Styles */
+.rename-dialog .rename-error {
+    background-color: rgba(217, 82, 72, 0.2);
+    padding: 10px;
+    border-radius: 4px;
+    margin-bottom: 15px;
+    color: #ff9d93;
+    border-left: 3px solid #d95248;
+}
+
+.delete-dialog .delete-warning {
+    color: #ff9d93;
+    font-weight: bold;
+}
+
+/* Form Group for Modal Dialogs */
+.modal-content .form-group {
+    margin-bottom: 15px;
+}
+
+.modal-content .form-group label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+}
+
+.modal-content .form-group input {
+    width: 100%;
+    padding: 10px;
+    background-color: rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+    color: white;
+    font-family: "REGULAR_FONT";
+}
+
+.modal-content .form-group input:focus {
+    outline: none;
+    border-color: rgba(7, 60, 23, 0.6);
+    box-shadow: 0 0 0 2px rgba(7, 60, 23, 0.3);
+}
+
+/* Settings Tab Styles */
+.settings-tab {
+    max-width: 900px;
+    margin: 0 auto;
+}
+
+.settings-section {
+    background-color: rgba(0, 0, 0, 0.3);
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 30px;
+    border-left: 3px solid rgba(7, 60, 23, 0.8);
+}
+
+.settings-section h3 {
+    margin-top: 0;
+    margin-bottom: 20px;
+    font-size: 1.3rem;
+    color: #fce8f6;
+}
+
+.info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 15px;
+}
+
+.info-row {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    font-size: 0.95rem;
+}
+
+.info-label {
+    font-weight: bold;
+    color: rgba(255, 255, 255, 0.7);
+    min-width: 80px;
+}
+
+.truncate-path {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px;
+    text-align: center;
+}
+
+.stats-grid .stat-item {
+    background-color: rgba(0, 0, 0, 0.3);
+    padding: 15px;
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+}
+
+.stats-grid .stat-value {
+    font-size: 1.8rem;
+    font-weight: bold;
+    color: #fff;
+}
+
+.stats-grid .stat-label {
+    font-size: 0.9rem;
+    color: rgba(255, 255, 255, 0.6);
+    text-transform: uppercase;
+}
+
+.settings-actions {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+}
+
+.settings-action-button {
+    padding: 12px 15px;
+    background-color: rgba(0, 0, 0, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 8px;
+    color: white;
+    font-family: "REGULAR_FONT";
+    font-size: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.settings-action-button:hover {
+    background-color: rgba(0, 0, 0, 0.7);
+    transform: translateY(-3px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+}
+
+.settings-action-button .action-icon {
+    font-size: 1.2rem;
+}
+
+.delete-button {
+    border-color: rgba(217, 82, 72, 0.5);
+}
+
+.delete-button:hover {
+    background-color: rgba(217, 82, 72, 0.2);
+    border-color: rgba(217, 82, 72, 0.8);
+}
+
+.rename-button:hover {
+    background-color: rgba(7, 60, 23, 0.2);
+    border-color: rgba(7, 60, 23, 0.5);
+}
+
+.folder-button:hover {
+    background-color: rgba(74, 85, 162, 0.2);
+    border-color: rgba(74, 85, 162, 0.5);
+}
+
+/* Advanced section styles */
+.advanced-description {
+    margin-bottom: 20px;
+    font-size: 0.95rem;
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.advanced-option {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px;
+    background-color: rgba(0, 0, 0, 0.2);
+    border-radius: 8px;
+    margin-bottom: 15px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.advanced-option-info {
+    flex-grow: 1;
+    padding-right: 20px;
+}
+
+.advanced-option-info h4 {
+    margin: 0 0 5px 0;
+    font-size: 1.1rem;
+}
+
+.advanced-option-info p {
+    margin: 0;
+    font-size: 0.9rem;
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.advanced-button {
+    padding: 8px 15px;
+    border-radius: 4px;
+    font-family: "REGULAR_FONT";
+    background-color: rgba(0, 0, 0, 0.5);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+
+.advanced-button:hover {
+    background-color: rgba(0, 0, 0, 0.7);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+}
+
+.reset-cache-button:hover {
+    background-color: rgba(74, 144, 226, 0.3);
+    border-color: rgba(74, 144, 226, 0.7);
+}
+
+.repair-button:hover {
+    background-color: rgba(240, 180, 41, 0.3);
+    border-color: rgba(240, 180, 41, 0.7);
+}
+
+.settings-error {
+    margin-bottom: 20px;
+}
+
+/* Performance Tab Styles */
+.performance-tab {
+    max-width: 900px;
+    margin: 0 auto;
+}
+
+.performance-section {
+    background-color: rgba(0, 0, 0, 0.3);
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 30px;
+    border-left: 3px solid rgba(7, 60, 23, 0.8);
+}
+
+.memory-section h3,
+.java-args-section h3 {
+    margin-top: 0;
+    margin-bottom: 15px;
+    font-size: 1.3rem;
+}
+
+.current-memory-display {
+    font-size: 1.1rem;
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+.memory-value {
+    font-weight: bold;
+    color: #4abb6e;
+}
+
+.memory-gb {
+    font-size: 0.9rem;
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.memory-slider {
+    width: 100%;
+    height: 10px;
+    -webkit-appearance: none;
+    appearance: none;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 5px;
+    outline: none;
+    margin: 20px 0;
+}
+
+.memory-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #0a5d23;
+    cursor: pointer;
+    box-shadow: 0 0 8px rgba(7, 60, 23, 0.6);
+    border: 2px solid rgba(255, 255, 255, 0.7);
+}
+
+.memory-slider::-moz-range-thumb {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #0a5d23;
+    cursor: pointer;
+    box-shadow: 0 0 8px rgba(7, 60, 23, 0.6);
+    border: 2px solid rgba(255, 255, 255, 0.7);
+}
+
+.memory-markers {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.8rem;
+    color: rgba(255, 255, 255, 0.6);
+    margin-bottom: 10px;
+}
+
+.memory-marker {
+    text-align: center;
+    position: absolute;
+    transform: translateX(-50%);
+}
+
+.memory-recommendation {
+    font-size: 0.9rem;
+    color: rgba(255, 255, 255, 0.7);
+    font-style: italic;
+    margin-top: 15px;
+    text-align: center;
+}
+
+.java-args-description {
+    font-size: 0.95rem;
+    margin-bottom: 15px;
+}
+
+.java-args-input {
+    width: 100%;
+    height: 100px;
+    padding: 10px;
+    background-color: rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+    color: white;
+    font-family: monospace;
+    font-size: 0.9rem;
+    resize: vertical;
+}
+
+.java-args-input:focus {
+    outline: none;
+    border-color: rgba(7, 60, 23, 0.6);
+    box-shadow: 0 0 0 2px rgba(7, 60, 23, 0.3);
+}
+
+.java-args-presets h4 {
+    margin-top: 20px;
+    font-size: 1.1rem;
+}
+
+.java-preset-buttons {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.java-preset-button {
+    padding: 10px;
+    background-color: rgba(7, 60, 23, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+    color: white;
+    font-family: "REGULAR_FONT";
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.java-preset-button:hover {
+    background-color: rgba(7, 60, 23, 0.7);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+}
+
+/* Modal buttons */
 .modal-footer .cancel-button,
 .modal-footer .save-button,
 .modal-footer .delete-button {
@@ -121,311 +498,42 @@
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
 }
 
-/* Settings Tab ONLY - using very specific selectors */
-.settings-tab {
-    max-width: 900px;
-    margin: 0 auto;
-}
-
-.settings-tab > .settings-section {
-    background-color: rgba(0, 0, 0, 0.3);
-    border-radius: 10px;
-    padding: 20px;
-    margin-bottom: 30px;
-    border-left: 3px solid rgba(7, 60, 23, 0.8);
-}
-
-.settings-tab > .settings-section > h3 {
-    margin-top: 0;
-    margin-bottom: 20px;
-    font-size: 1.3rem;
-    color: #fce8f6;
-}
-
-/* Settings tab specific elements */
-.settings-tab .info-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-    gap: 15px;
-}
-
-.settings-tab .info-row {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    margin-bottom: 10px;
-}
-
-.settings-tab .info-label {
-    font-weight: bold;
-    margin-bottom: 5px;
-    color: rgba(255, 255, 255, 0.7);
-}
-
-.settings-tab .stats-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 20px;
-    text-align: center;
-}
-
-.settings-tab .stats-grid .stat-item {
-    background-color: rgba(0, 0, 0, 0.3);
-    padding: 15px;
-    border-radius: 8px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 5px;
-}
-
-.settings-tab .stats-grid .stat-value {
-    font-size: 1.8rem;
-    font-weight: bold;
-    color: #fff;
-}
-
-.settings-tab .stats-grid .stat-label {
-    font-size: 0.9rem;
-    color: rgba(255, 255, 255, 0.6);
-    text-transform: uppercase;
-}
-
-.settings-tab .settings-actions {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 15px;
-}
-
-.settings-tab .settings-action-button {
-    padding: 12px 15px;
-    background-color: rgba(0, 0, 0, 0.5);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: 8px;
-    color: white;
-    font-family: "REGULAR_FONT";
-    font-size: 1rem;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-}
-
-.settings-tab .settings-action-button:hover {
-    background-color: rgba(0, 0, 0, 0.7);
-    transform: translateY(-3px);
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
-}
-
-.settings-tab .delete-button {
-    border-color: rgba(217, 82, 72, 0.5);
-}
-
-.settings-tab .delete-button:hover {
-    background-color: rgba(217, 82, 72, 0.2);
-    border-color: rgba(217, 82, 72, 0.8);
-}
-
-.settings-tab .rename-button:hover {
-    background-color: rgba(7, 60, 23, 0.2);
-    border-color: rgba(7, 60, 23, 0.5);
-}
-
-.settings-tab .folder-button:hover {
-    background-color: rgba(74, 85, 162, 0.2);
-    border-color: rgba(74, 85, 162, 0.5);
-}
-
-/* Performance Tab ONLY */
-.performance-tab {
-    max-width: 900px;
-    margin: 0 auto;
-}
-
-.performance-tab .performance-section,
-.performance-tab .memory-section {
-    background-color: rgba(0, 0, 0, 0.3);
-    border-radius: 10px;
-    padding: 25px;
-    border-left: 4px solid rgba(7, 60, 23, 0.8);
-    margin-bottom: 30px;
-}
-
-.performance-tab h2,
-.performance-tab h3 {
-    margin-top: 0;
-    margin-bottom: 15px;
-    color: #fce8f6;
-}
-
-/* Memory specific styles */
-.performance-tab .system-memory-info {
-    font-size: 1rem;
-    margin-bottom: 15px;
-    background-color: rgba(0, 0, 0, 0.2);
-    padding: 10px 15px;
-    border-radius: 6px;
-    display: inline-block;
-}
-
-.performance-tab .system-memory-value {
-    font-weight: bold;
-    color: #fce8f6;
-}
-
-.performance-tab .current-memory-display {
-    font-size: 1.3rem;
-    margin-bottom: 25px;
-    text-align: center;
-    background-color: rgba(7, 60, 23, 0.1);
-    padding: 15px;
-    border-radius: 8px;
-    border: 1px solid rgba(7, 60, 23, 0.3);
-}
-
-.performance-tab .memory-value {
-    font-weight: bold;
-    font-size: 1.6rem;
-    background: linear-gradient(180deg, #fce8f6 0%, #d8b8d0 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-}
-
-/* Memory slider styles */
-.performance-tab .memory-slider-container {
-    width: 100%;
-    margin: 35px 0 45px 0;
-    position: relative;
-}
-
-.performance-tab .memory-slider {
-    width: 100%;
-    height: 20px;
-    -webkit-appearance: none;
-    appearance: none;
-    background: linear-gradient(to right, rgba(7, 60, 23, 0.8), rgba(7, 60, 23, 0.3));
-    outline: none;
-    border-radius: 10px;
-    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.5);
-    cursor: pointer;
-    margin-bottom: 35px;
-}
-
-.performance-tab .memory-slider::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    appearance: none;
-    width: 30px;
-    height: 30px;
-    border-radius: 50%;
-    background: linear-gradient(135deg, #0c6d29, #063c17);
-    cursor: pointer;
-    box-shadow: 0 0 15px rgba(7, 60, 23, 0.8), 0 3px 8px rgba(0, 0, 0, 0.6);
-    border: 2px solid rgba(255, 255, 255, 0.9);
-    margin-top: -5px;
-}
-
-.performance-tab .memory-slider::-webkit-slider-thumb:hover {
-    background: linear-gradient(135deg, #0e7d31, #084f1e);
-    box-shadow: 0 0 20px rgba(7, 60, 23, 1), 0 4px 10px rgba(0, 0, 0, 0.7);
-    transform: scale(1.1);
-}
-
-.performance-tab .memory-markers {
-    position: relative;
-    height: 40px;
-    width: 100%;
-    margin: -25px auto 20px auto;
-    display: flex;
-    justify-content: space-between;
-    padding: 0 10px;
-}
-
-.performance-tab .memory-marker {
-    text-align: center;
-    font-size: 0.85rem;
-    color: rgba(255, 255, 255, 0.8);
-}
-
-.performance-tab .memory-apply-container {
-    text-align: center;
-    margin: 25px 0;
-    position: relative;
-}
-
-.performance-tab .memory-apply-button {
-    background: linear-gradient(to right, rgba(7, 60, 23, 0.6), rgba(7, 60, 23, 0.8));
-    color: white;
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: 6px;
-    padding: 12px 30px;
-    font-family: "REGULAR_FONT";
-    font-size: 1.1rem;
-    font-weight: bold;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    letter-spacing: 0.5px;
-    opacity: 0.7;
-    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.3);
-}
-
-.performance-tab .memory-apply-button:disabled {
-    opacity: 0.4;
+/* Disabled button states */
+button:disabled {
+    opacity: 0.6;
     cursor: not-allowed;
+    transform: none !important;
+    box-shadow: none !important;
 }
 
-.performance-tab .memory-apply-button.changed {
-    opacity: 1;
-    animation: button-pulse 2s infinite;
-}
-
-.performance-tab .memory-apply-button:not(:disabled):hover {
-    background: linear-gradient(to right, rgba(7, 60, 23, 0.8), rgba(7, 60, 23, 1));
-    transform: translateY(-2px);
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.4);
-}
-
-.performance-tab .memory-recommendation {
-    font-size: 0.95rem;
-    color: rgba(255, 255, 255, 0.8);
-    font-style: italic;
-    margin-top: 15px;
-    text-align: center;
-    padding: 10px;
-    background-color: rgba(0, 0, 0, 0.2);
-    border-radius: 6px;
-    border-left: 3px solid rgba(7, 60, 23, 0.6);
-}
-
-/* Animation keyframes */
-@keyframes button-pulse {
-    0% {
-        box-shadow: 0 0 0 0 rgba(7, 60, 23, 0.5);
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .info-grid,
+    .settings-actions,
+    .java-preset-buttons {
+        grid-template-columns: 1fr;
     }
-    70% {
-        box-shadow: 0 0 0 10px rgba(7, 60, 23, 0);
+    
+    .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
     }
-    100% {
-        box-shadow: 0 0 0 0 rgba(7, 60, 23, 0);
+    
+    .modal-container {
+        width: 90%;
+        min-width: 0;
     }
-}
-
-@keyframes fade-in-out {
-    0% {
-        opacity: 0;
-        transform: translate(-50%, 10px);
+    
+    .advanced-option {
+        flex-direction: column;
+        align-items: flex-start;
     }
-    10% {
-        opacity: 1;
-        transform: translate(-50%, 0);
+    
+    .advanced-option-info {
+        padding-right: 0;
+        margin-bottom: 15px;
     }
-    80% {
-        opacity: 1;
-        transform: translate(-50%, 0);
-    }
-    100% {
-        opacity: 0;
-        transform: translate(-50%, -10px);
+    
+    .advanced-button {
+        align-self: flex-end;
     }
 }
