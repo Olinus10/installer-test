@@ -2722,7 +2722,7 @@ let feature_styles = include_str!("assets/expanded-feature-styles.css");
 let preset_styles = include_str!("assets/preset-styles.css");
 let search_styles = include_str!("assets/search-results-styles.css");
 let modal_styles = include_str!("assets/modal-styles.css");
-let integrated_styles = include_str!("assets/integrated-styles.css");
+//let integrated_styles = include_str!("assets/integrated-styles.css");
 
 // Combine all CSS files
 let complete_css = format!("{}\n{}\n{}\n{}\n{}\n{}\n{}", 
@@ -2731,8 +2731,8 @@ let complete_css = format!("{}\n{}\n{}\n{}\n{}\n{}\n{}",
     feature_styles, 
     preset_styles, 
     search_styles,
-    modal_styles,
-    integrated_styles
+    modal_styles
+    //integrated_styles
 );
 
     // Create header component if needed
