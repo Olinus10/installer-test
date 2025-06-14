@@ -50,7 +50,7 @@ pub fn FeaturesTab(
     let custom_preset = presets.iter().find(|p| p.id == "custom");
     
     rsx! {
-        div { class: "features-tab features-content-wrapper",
+        div { class: "features-tab",
             // PRESETS section header
             div { class: "section-divider with-title", 
                 span { class: "divider-title", "PRESETS" }
