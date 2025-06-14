@@ -1,4 +1,4 @@
-/* Modal Styles for Dialogs - Excluding Features Tab */
+/* Modal Styles for Dialogs */
 .modal-overlay {
     position: fixed;
     top: 0;
@@ -88,18 +88,18 @@
     font-weight: bold;
 }
 
-/* Form Group for Modal Dialogs - exclude features tab */
-.modal-content .form-group:not(.features-content-wrapper .form-group) {
+/* Form Group for Modal Dialogs */
+.modal-content .form-group {
     margin-bottom: 15px;
 }
 
-.modal-content .form-group:not(.features-content-wrapper .form-group) label {
+.modal-content .form-group label {
     display: block;
     margin-bottom: 5px;
     font-weight: bold;
 }
 
-.modal-content .form-group:not(.features-content-wrapper .form-group) input {
+.modal-content .form-group input {
     width: 100%;
     padding: 10px;
     background-color: rgba(0, 0, 0, 0.4);
@@ -109,19 +109,19 @@
     font-family: "REGULAR_FONT";
 }
 
-.modal-content .form-group:not(.features-content-wrapper .form-group) input:focus {
+.modal-content .form-group input:focus {
     outline: none;
     border-color: rgba(7, 60, 23, 0.6);
     box-shadow: 0 0 0 2px rgba(7, 60, 23, 0.3);
 }
 
-/* Settings Tab Styles - exclude features tab */
-.settings-tab:not(.features-content-wrapper .settings-tab) {
+/* Settings Tab Styles */
+.settings-tab {
     max-width: 900px;
     margin: 0 auto;
 }
 
-.settings-section:not(.features-content-wrapper .settings-section) {
+.settings-section {
     background-color: rgba(0, 0, 0, 0.3);
     border-radius: 10px;
     padding: 20px;
@@ -129,47 +129,47 @@
     border-left: 3px solid rgba(7, 60, 23, 0.8);
 }
 
-.settings-section:not(.features-content-wrapper .settings-section) h3 {
+.settings-section h3 {
     margin-top: 0;
     margin-bottom: 20px;
     font-size: 1.3rem;
     color: #fce8f6;
 }
 
-.info-grid:not(.features-content-wrapper .info-grid) {
+.info-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
     gap: 15px;
 }
 
-.info-row:not(.features-content-wrapper .info-row) {
+.info-row {
     display: flex;
     align-items: baseline;
     gap: 10px;
     font-size: 0.95rem;
 }
 
-.info-label:not(.features-content-wrapper .info-label) {
+.info-label {
     font-weight: bold;
     color: rgba(255, 255, 255, 0.7);
     min-width: 80px;
 }
 
-.truncate-path:not(.features-content-wrapper .truncate-path) {
+.truncate-path {
     max-width: 100%;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
 }
 
-.stats-grid:not(.features-content-wrapper .stats-grid) {
+.stats-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
     gap: 20px;
     text-align: center;
 }
 
-.stats-grid:not(.features-content-wrapper .stats-grid) .stat-item {
+.stats-grid .stat-item {
     background-color: rgba(0, 0, 0, 0.3);
     padding: 15px;
     border-radius: 8px;
@@ -179,25 +179,25 @@
     gap: 5px;
 }
 
-.stats-grid:not(.features-content-wrapper .stats-grid) .stat-value {
+.stats-grid .stat-value {
     font-size: 1.8rem;
     font-weight: bold;
     color: #fff;
 }
 
-.stats-grid:not(.features-content-wrapper .stats-grid) .stat-label {
+.stats-grid .stat-label {
     font-size: 0.9rem;
     color: rgba(255, 255, 255, 0.6);
     text-transform: uppercase;
 }
 
-.settings-actions:not(.features-content-wrapper .settings-actions) {
+.settings-actions {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
     gap: 15px;
 }
 
-.settings-action-button:not(.features-content-wrapper .settings-action-button) {
+.settings-action-button {
     padding: 12px 15px;
     background-color: rgba(0, 0, 0, 0.5);
     border: 1px solid rgba(255, 255, 255, 0.2);
@@ -212,43 +212,43 @@
     transition: all 0.2s ease;
 }
 
-.settings-action-button:not(.features-content-wrapper .settings-action-button):hover {
+.settings-action-button:hover {
     background-color: rgba(0, 0, 0, 0.7);
     transform: translateY(-3px);
     box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
 }
 
-.settings-action-button:not(.features-content-wrapper .settings-action-button) .action-icon {
+.settings-action-button .action-icon {
     font-size: 1.2rem;
 }
 
-.delete-button:not(.features-content-wrapper .delete-button) {
+.delete-button {
     border-color: rgba(217, 82, 72, 0.5);
 }
 
-.delete-button:not(.features-content-wrapper .delete-button):hover {
+.delete-button:hover {
     background-color: rgba(217, 82, 72, 0.2);
     border-color: rgba(217, 82, 72, 0.8);
 }
 
-.rename-button:not(.features-content-wrapper .rename-button):hover {
+.rename-button:hover {
     background-color: rgba(7, 60, 23, 0.2);
     border-color: rgba(7, 60, 23, 0.5);
 }
 
-.folder-button:not(.features-content-wrapper .folder-button):hover {
+.folder-button:hover {
     background-color: rgba(74, 85, 162, 0.2);
     border-color: rgba(74, 85, 162, 0.5);
 }
 
-/* Advanced section styles - exclude features tab */
-.advanced-description:not(.features-content-wrapper .advanced-description) {
+/* Advanced section styles */
+.advanced-description {
     margin-bottom: 20px;
     font-size: 0.95rem;
     color: rgba(255, 255, 255, 0.8);
 }
 
-.advanced-option:not(.features-content-wrapper .advanced-option) {
+.advanced-option {
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -259,23 +259,23 @@
     border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-.advanced-option-info:not(.features-content-wrapper .advanced-option-info) {
+.advanced-option-info {
     flex-grow: 1;
     padding-right: 20px;
 }
 
-.advanced-option-info:not(.features-content-wrapper .advanced-option-info) h4 {
+.advanced-option-info h4 {
     margin: 0 0 5px 0;
     font-size: 1.1rem;
 }
 
-.advanced-option-info:not(.features-content-wrapper .advanced-option-info) p {
+.advanced-option-info p {
     margin: 0;
     font-size: 0.9rem;
     color: rgba(255, 255, 255, 0.7);
 }
 
-.advanced-button:not(.features-content-wrapper .advanced-button) {
+.advanced-button {
     padding: 8px 15px;
     border-radius: 4px;
     font-family: "REGULAR_FONT";
@@ -287,33 +287,33 @@
     white-space: nowrap;
 }
 
-.advanced-button:not(.features-content-wrapper .advanced-button):hover {
+.advanced-button:hover {
     background-color: rgba(0, 0, 0, 0.7);
     transform: translateY(-2px);
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
 }
 
-.reset-cache-button:not(.features-content-wrapper .reset-cache-button):hover {
+.reset-cache-button:hover {
     background-color: rgba(74, 144, 226, 0.3);
     border-color: rgba(74, 144, 226, 0.7);
 }
 
-.repair-button:not(.features-content-wrapper .repair-button):hover {
+.repair-button:hover {
     background-color: rgba(240, 180, 41, 0.3);
     border-color: rgba(240, 180, 41, 0.7);
 }
 
-.settings-error:not(.features-content-wrapper .settings-error) {
+.settings-error {
     margin-bottom: 20px;
 }
 
-/* Performance Tab Styles - exclude features tab */
-.performance-tab:not(.features-content-wrapper .performance-tab) {
+/* Performance Tab Styles */
+.performance-tab {
     max-width: 900px;
     margin: 0 auto;
 }
 
-.performance-section:not(.features-content-wrapper .performance-section) {
+.performance-section {
     background-color: rgba(0, 0, 0, 0.3);
     border-radius: 10px;
     padding: 20px;
@@ -321,30 +321,30 @@
     border-left: 3px solid rgba(7, 60, 23, 0.8);
 }
 
-.memory-section:not(.features-content-wrapper .memory-section) h3,
-.java-args-section:not(.features-content-wrapper .java-args-section) h3 {
+.memory-section h3,
+.java-args-section h3 {
     margin-top: 0;
     margin-bottom: 15px;
     font-size: 1.3rem;
 }
 
-.current-memory-display:not(.features-content-wrapper .current-memory-display) {
+.current-memory-display {
     font-size: 1.1rem;
     margin-bottom: 20px;
     text-align: center;
 }
 
-.memory-value:not(.features-content-wrapper .memory-value) {
+.memory-value {
     font-weight: bold;
     color: #4abb6e;
 }
 
-.memory-gb:not(.features-content-wrapper .memory-gb) {
+.memory-gb {
     font-size: 0.9rem;
     color: rgba(255, 255, 255, 0.7);
 }
 
-.memory-slider:not(.features-content-wrapper .memory-slider) {
+.memory-slider {
     width: 100%;
     height: 10px;
     -webkit-appearance: none;
@@ -355,7 +355,7 @@
     margin: 20px 0;
 }
 
-.memory-slider:not(.features-content-wrapper .memory-slider)::-webkit-slider-thumb {
+.memory-slider::-webkit-slider-thumb {
     -webkit-appearance: none;
     appearance: none;
     width: 20px;
@@ -367,7 +367,7 @@
     border: 2px solid rgba(255, 255, 255, 0.7);
 }
 
-.memory-slider:not(.features-content-wrapper .memory-slider)::-moz-range-thumb {
+.memory-slider::-moz-range-thumb {
     width: 20px;
     height: 20px;
     border-radius: 50%;
@@ -377,7 +377,7 @@
     border: 2px solid rgba(255, 255, 255, 0.7);
 }
 
-.memory-markers:not(.features-content-wrapper .memory-markers) {
+.memory-markers {
     display: flex;
     justify-content: space-between;
     font-size: 0.8rem;
@@ -385,13 +385,13 @@
     margin-bottom: 10px;
 }
 
-.memory-marker:not(.features-content-wrapper .memory-marker) {
+.memory-marker {
     text-align: center;
     position: absolute;
     transform: translateX(-50%);
 }
 
-.memory-recommendation:not(.features-content-wrapper .memory-recommendation) {
+.memory-recommendation {
     font-size: 0.9rem;
     color: rgba(255, 255, 255, 0.7);
     font-style: italic;
@@ -399,12 +399,12 @@
     text-align: center;
 }
 
-.java-args-description:not(.features-content-wrapper .java-args-description) {
+.java-args-description {
     font-size: 0.95rem;
     margin-bottom: 15px;
 }
 
-.java-args-input:not(.features-content-wrapper .java-args-input) {
+.java-args-input {
     width: 100%;
     height: 100px;
     padding: 10px;
@@ -417,25 +417,25 @@
     resize: vertical;
 }
 
-.java-args-input:not(.features-content-wrapper .java-args-input):focus {
+.java-args-input:focus {
     outline: none;
     border-color: rgba(7, 60, 23, 0.6);
     box-shadow: 0 0 0 2px rgba(7, 60, 23, 0.3);
 }
 
-.java-args-presets:not(.features-content-wrapper .java-args-presets) h4 {
+.java-args-presets h4 {
     margin-top: 20px;
     font-size: 1.1rem;
 }
 
-.java-preset-buttons:not(.features-content-wrapper .java-preset-buttons) {
+.java-preset-buttons {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
     gap: 10px;
     margin-top: 10px;
 }
 
-.java-preset-button:not(.features-content-wrapper .java-preset-button) {
+.java-preset-button {
     padding: 10px;
     background-color: rgba(7, 60, 23, 0.5);
     border: 1px solid rgba(255, 255, 255, 0.2);
@@ -446,13 +446,13 @@
     transition: all 0.2s ease;
 }
 
-.java-preset-button:not(.features-content-wrapper .java-preset-button):hover {
+.java-preset-button:hover {
     background-color: rgba(7, 60, 23, 0.7);
     transform: translateY(-2px);
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
 }
 
-/* Modal buttons - keep these global as they're only in actual modals */
+/* Modal buttons */
 .modal-footer .cancel-button,
 .modal-footer .save-button,
 .modal-footer .delete-button {
@@ -508,13 +508,13 @@ button:disabled {
 
 /* Responsive adjustments */
 @media (max-width: 768px) {
-    .info-grid:not(.features-content-wrapper .info-grid),
-    .settings-actions:not(.features-content-wrapper .settings-actions),
-    .java-preset-buttons:not(.features-content-wrapper .java-preset-buttons) {
+    .info-grid,
+    .settings-actions,
+    .java-preset-buttons {
         grid-template-columns: 1fr;
     }
     
-    .stats-grid:not(.features-content-wrapper .stats-grid) {
+    .stats-grid {
         grid-template-columns: repeat(2, 1fr);
     }
     
@@ -523,17 +523,17 @@ button:disabled {
         min-width: 0;
     }
     
-    .advanced-option:not(.features-content-wrapper .advanced-option) {
+    .advanced-option {
         flex-direction: column;
         align-items: flex-start;
     }
     
-    .advanced-option-info:not(.features-content-wrapper .advanced-option-info) {
+    .advanced-option-info {
         padding-right: 0;
         margin-bottom: 15px;
     }
     
-    .advanced-button:not(.features-content-wrapper .advanced-button) {
+    .advanced-button {
         align-self: flex-end;
     }
 }
