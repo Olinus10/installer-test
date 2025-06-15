@@ -2659,7 +2659,7 @@ pub fn app() -> Element {
         }
     });
 
-    let changelog_signal = use_signal(|| None::<ChangelogData>);
+    let mut changelog_signal = use_signal(|| None::<ChangelogData>);
     use_effect(move || {
     if let Some(Some(changelog_data)) = changelog.read().as_ref() {
         changelog_signal.set(Some(changelog_data.clone()));
