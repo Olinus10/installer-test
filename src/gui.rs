@@ -525,8 +525,8 @@ fn Footer() -> Element {
 fn HomePage(
     installations: Signal<Vec<Installation>>,
     error_signal: Signal<Option<String>>,
-    changelog: Signal<Option<ChangelogData>>,
-    current_installation_id: Signal<Option<String>>, // Add this parameter
+    changelog: Resource<Option<ChangelogData>>, // Change from Signal to Resource
+    current_installation_id: Signal<Option<String>>,
 ) -> Element {
     // State for the installation creation dialog
     let mut show_creation_dialog = use_signal(|| false);
@@ -609,7 +609,7 @@ fn HomePage(
             }
             
             // Recent changes section
-            ChangelogSection { changelog: changelog() }
+             ChangelogSection { changelog: changelog.read().clone().flatten() }
             
             // Footer with Discord button and other info
             Footer {}
@@ -2762,11 +2762,11 @@ let complete_css = format!("{}\n{}\n{}\n{}\n{}\n{}",
             // Home page - show installations or welcome screen
             rsx! {
                 HomePage {
-                    installations,
-                    error_signal: error_signal.clone(),
-                    changelog: use_signal(move || changelog.read().clone().flatten()),
-                    current_installation_id: current_installation_id.clone(),
-                }
+    installations,
+    error_signal: error_signal.clone(),
+    changelog: changelog, // Pass the resource directly
+    current_installation_id: current_installation_id.clone(),
+}
             }
         } else if current_installation_id.read().as_ref().map_or(false, |id| id == "new") {
             // New installation flow
