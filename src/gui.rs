@@ -2524,7 +2524,7 @@ fn AppHeader(
                 
                 img { 
                     class: "app-logo", 
-                    src: "/assets/logo.png", 
+                    src: "/assets/icon.png", 
                     alt: "Wynncraft Overhaul Logo"
                 }
                 h1 { class: "app-title", "MAJESTIC OVERHAUL" }
