@@ -782,6 +782,77 @@ a:hover {
     transition: all 0.2s ease;
 }
 
+/* Installation Card Button Hover Effects */
+.installation-card-actions button {
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+/* Swoosh effect for card buttons */
+.installation-card-actions button::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+        90deg,
+        transparent,
+        rgba(255, 255, 255, 0.2),
+        rgba(255, 255, 255, 0.3),
+        rgba(255, 255, 255, 0.2),
+        transparent
+    );
+    transition: left 0.5s ease;
+}
+
+.installation-card-actions button:hover::before {
+    left: 100%;
+}
+
+/* Play button specific effects */
+.installation-card-actions .play-button {
+    background: linear-gradient(135deg, #073c17, #0a4d1e);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+}
+
+.installation-card-actions .play-button:hover {
+    background: linear-gradient(135deg, #0a4d1e, #0f6229);
+    transform: translateY(-3px) scale(1.05);
+    box-shadow: 
+        0 5px 15px rgba(0, 0, 0, 0.4),
+        0 0 20px rgba(7, 60, 23, 0.5);
+    border-color: rgba(255, 255, 255, 0.3);
+}
+
+/* Manage button specific effects */
+.installation-card-actions .manage-button {
+    background: linear-gradient(135deg, rgba(7, 60, 23, 0.6), rgba(7, 60, 23, 0.8));
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+}
+
+.installation-card-actions .manage-button:hover {
+    background: linear-gradient(135deg, rgba(7, 60, 23, 0.8), rgba(10, 80, 30, 0.9));
+    transform: translateY(-3px) scale(1.05);
+    box-shadow: 
+        0 5px 15px rgba(0, 0, 0, 0.4),
+        0 0 20px rgba(7, 60, 23, 0.3);
+    border-color: rgba(255, 255, 255, 0.4);
+}
+
+/* Glow animation on hover */
+@keyframes button-hover-glow {
+    0% { box-shadow: 0 5px 15px rgba(0, 0, 0, 0.4), 0 0 20px rgba(7, 60, 23, 0.3); }
+    50% { box-shadow: 0 5px 20px rgba(0, 0, 0, 0.5), 0 0 30px rgba(7, 60, 23, 0.6); }
+    100% { box-shadow: 0 5px 15px rgba(0, 0, 0, 0.4), 0 0 20px rgba(7, 60, 23, 0.3); }
+}
+
+.installation-card-actions button:hover {
+    animation: button-hover-glow 1.5s ease-in-out infinite;
+}
+
 .play-button {
     background-color: #073c17;
     color: #fff;
@@ -2386,28 +2457,166 @@ a:hover {
     margin-top: 20px;
 }
 
+/* Enhanced Installation Actions Button Styles */
 .installation-actions {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 15px;
-}
-
-.action-button {
-    background-color: #073c17;
-    color: #fff;
-    border: none;
-    border-radius: 6px;
-    padding: 12px 30px;
-    font-size: 1.2rem;
-    font-family: "REGULAR_FONT";
-    cursor: pointer;
-    transition: all 0.3s ease;
-    width: 250px;
-    text-align: center;
+    gap: 20px;
+    margin-top: 30px;
     position: relative;
 }
 
+.installation-actions .action-button {
+    background: linear-gradient(135deg, #0a4d1e, #073c17);
+    color: #fff;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-radius: 12px;
+    padding: 18px 50px;
+    font-size: 1.4rem;
+    font-family: "HEADER_FONT";
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    width: 300px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    box-shadow: 
+        0 8px 20px rgba(0, 0, 0, 0.4), 
+        0 0 40px rgba(7, 60, 23, 0.5),
+        inset 0 0 20px rgba(255, 255, 255, 0.1);
+    animation: 
+        button-pulse 2s ease-in-out infinite,
+        button-glow 3s ease-in-out infinite alternate;
+}
+
+/* Pulse animation */
+@keyframes button-pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+}
+
+/* Enhanced glow animation */
+@keyframes button-glow {
+    0% { 
+        box-shadow: 
+            0 8px 20px rgba(0, 0, 0, 0.4), 
+            0 0 30px rgba(7, 60, 23, 0.4),
+            inset 0 0 20px rgba(255, 255, 255, 0.1);
+    }
+    100% { 
+        box-shadow: 
+            0 12px 30px rgba(0, 0, 0, 0.5), 
+            0 0 60px rgba(7, 60, 23, 0.8),
+            inset 0 0 30px rgba(255, 255, 255, 0.2);
+    }
+}
+
+/* Swoosh effect */
+.installation-actions .action-button::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -100%;
+    width: 200%;
+    height: 200%;
+    background: linear-gradient(
+        45deg,
+        transparent,
+        rgba(255, 255, 255, 0.1),
+        rgba(255, 255, 255, 0.3),
+        rgba(255, 255, 255, 0.1),
+        transparent
+    );
+    transform: rotate(45deg);
+    transition: all 0.6s;
+    animation: swoosh 3s linear infinite;
+}
+
+@keyframes swoosh {
+    0% { left: -100%; }
+    100% { left: 100%; }
+}
+
+/* Hover state */
+.installation-actions .action-button:hover:not(:disabled) {
+    transform: translateY(-5px) scale(1.08);
+    background: linear-gradient(135deg, #0f6229, #0a4d1e);
+    border-color: rgba(255, 255, 255, 0.5);
+    box-shadow: 
+        0 15px 40px rgba(0, 0, 0, 0.6), 
+        0 0 80px rgba(7, 60, 23, 1),
+        inset 0 0 40px rgba(255, 255, 255, 0.3);
+    animation-play-state: paused;
+}
+
+/* Particle container for installation button */
+.installation-actions::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 300px;
+    height: 300px;
+    transform: translate(-50%, -50%);
+    background: radial-gradient(circle, rgba(7, 60, 23, 0.2) 0%, transparent 70%);
+    animation: particle-pulse 4s ease-in-out infinite;
+    pointer-events: none;
+    z-index: -1;
+}
+
+@keyframes particle-pulse {
+    0%, 100% { transform: translate(-50%, -50%) scale(0.8); opacity: 0.5; }
+    50% { transform: translate(-50%, -50%) scale(1.2); opacity: 0.8; }
+}
+
+/* Update button specific states */
+.installation-actions .update-button {
+    background: linear-gradient(135deg, #d4a017, #b78500);
+    animation-name: button-pulse, update-glow;
+}
+
+@keyframes update-glow {
+    0% { 
+        box-shadow: 
+            0 8px 20px rgba(0, 0, 0, 0.4), 
+            0 0 30px rgba(212, 160, 23, 0.4),
+            inset 0 0 20px rgba(255, 255, 255, 0.1);
+    }
+    100% { 
+        box-shadow: 
+            0 12px 30px rgba(0, 0, 0, 0.5), 
+            0 0 60px rgba(212, 160, 23, 0.8),
+            inset 0 0 30px rgba(255, 255, 255, 0.2);
+    }
+}
+
+.installation-actions .modify-button {
+    background: linear-gradient(135deg, #4a55a2, #3a4592);
+    animation-name: button-pulse, modify-glow;
+}
+
+@keyframes modify-glow {
+    0% { 
+        box-shadow: 
+            0 8px 20px rgba(0, 0, 0, 0.4), 
+            0 0 30px rgba(74, 85, 162, 0.4),
+            inset 0 0 20px rgba(255, 255, 255, 0.1);
+    }
+    100% { 
+        box-shadow: 
+            0 12px 30px rgba(0, 0, 0, 0.5), 
+            0 0 60px rgba(74, 85, 162, 0.8),
+            inset 0 0 30px rgba(255, 255, 255, 0.2);
+    }
+}
+
+
+
+
+/*    --------- */
 .action-button:hover:not(:disabled) {
     background-color: #0a5d23;
     transform: translateY(-3px);
