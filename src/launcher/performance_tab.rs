@@ -274,8 +274,9 @@ pub fn PerformanceTab(
             
             // Memory markers below slider 
             div { class: "memory-markers",
-                {memory_marker_elements}
-            }
+    span { class: "memory-marker", "1 GB" }
+    span { class: "memory-marker", "{format_memory_display(*max_memory.read())}" }
+}
         }
                 
                 // Apply button for memory changes
