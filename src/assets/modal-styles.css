@@ -344,51 +344,110 @@
     color: rgba(255, 255, 255, 0.7);
 }
 
-.memory-slider {
-    width: 100%;
-    height: 10px;
-    -webkit-appearance: none;
-    appearance: none;
-    background: rgba(0, 0, 0, 0.3);
-    border-radius: 5px;
-    outline: none;
-    margin: 20px 0;
+/* Modern Memory Slider Design */
+.memory-slider-container {
+    position: relative;
+    margin: 40px 0 60px 0; /* More space for markers */
+    padding: 0 10px;
 }
 
+.memory-slider {
+    width: 100%;
+    height: 4px;
+    -webkit-appearance: none;
+    appearance: none;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 2px;
+    outline: none;
+    margin: 20px 0;
+    position: relative;
+}
+
+/* Track styling */
+.memory-slider::-webkit-slider-track {
+    height: 4px;
+    background: linear-gradient(to right, 
+        rgba(255, 255, 255, 0.1) 0%, 
+        rgba(255, 255, 255, 0.2) 100%);
+    border-radius: 2px;
+}
+
+.memory-slider::-moz-range-track {
+    height: 4px;
+    background: linear-gradient(to right, 
+        rgba(255, 255, 255, 0.1) 0%, 
+        rgba(255, 255, 255, 0.2) 100%);
+    border-radius: 2px;
+}
+
+/* Thumb styling - white and modern */
 .memory-slider::-webkit-slider-thumb {
     -webkit-appearance: none;
     appearance: none;
     width: 20px;
     height: 20px;
     border-radius: 50%;
-    background: #0a5d23;
+    background: #ffffff;
     cursor: pointer;
-    box-shadow: 0 0 8px rgba(7, 60, 23, 0.6);
-    border: 2px solid rgba(255, 255, 255, 0.7);
+    box-shadow: 
+        0 2px 4px rgba(0, 0, 0, 0.3),
+        0 0 0 1px rgba(255, 255, 255, 0.1);
+    transition: all 0.2s ease;
+    margin-top: -8px; /* Center on track */
 }
 
 .memory-slider::-moz-range-thumb {
     width: 20px;
     height: 20px;
     border-radius: 50%;
-    background: #0a5d23;
+    background: #ffffff;
     cursor: pointer;
-    box-shadow: 0 0 8px rgba(7, 60, 23, 0.6);
-    border: 2px solid rgba(255, 255, 255, 0.7);
+    box-shadow: 
+        0 2px 4px rgba(0, 0, 0, 0.3),
+        0 0 0 1px rgba(255, 255, 255, 0.1);
+    transition: all 0.2s ease;
+    border: none;
 }
 
+/* Hover state */
+.memory-slider::-webkit-slider-thumb:hover {
+    transform: scale(1.2);
+    box-shadow: 
+        0 2px 8px rgba(0, 0, 0, 0.4),
+        0 0 15px rgba(255, 255, 255, 0.3);
+}
+
+.memory-slider::-moz-range-thumb:hover {
+    transform: scale(1.2);
+    box-shadow: 
+        0 2px 8px rgba(0, 0, 0, 0.4),
+        0 0 15px rgba(255, 255, 255, 0.3);
+}
+
+/* Simple markers - just start and end */
 .memory-markers {
     display: flex;
     justify-content: space-between;
-    font-size: 0.8rem;
-    color: rgba(255, 255, 255, 0.6);
-    margin-bottom: 10px;
+    font-size: 0.9rem;
+    color: rgba(255, 255, 255, 0.8);
+    margin-top: 10px;
+    padding: 0 5px;
+    font-family: "REGULAR_FONT";
 }
 
 .memory-marker {
-    text-align: center;
-    position: absolute;
-    transform: translateX(-50%);
+    position: static;
+    transform: none;
+    margin: 0;
+}
+
+/* Progress fill effect */
+.memory-slider::-webkit-slider-runnable-track {
+    background: linear-gradient(to right,
+        #0a5d23 0%,
+        #0a5d23 var(--progress, 0%),
+        rgba(255, 255, 255, 0.1) var(--progress, 0%),
+        rgba(255, 255, 255, 0.1) 100%);
 }
 
 .memory-recommendation {
