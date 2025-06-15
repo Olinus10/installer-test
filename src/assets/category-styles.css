@@ -151,80 +151,97 @@
 }
 
 /* Enhanced Expand/Collapse Features Button */
+/* Enhanced Expand/Collapse Features Button - Redesigned */
 .expand-collapse-button {
     display: flex;
     align-items: center;
     justify-content: center;
-    background: linear-gradient(135deg, rgba(7, 60, 23, 0.4), rgba(7, 60, 23, 0.6));
+    background: linear-gradient(135deg, #2a2a35, #1a1a25);
     color: white;
-    border: 2px solid rgba(255, 255, 255, 0.3);
-    border-radius: 25px;
-    padding: 12px 30px;
-    font-family: "REGULAR_FONT";
-    font-size: 1.05rem;
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    border-radius: 30px;
+    padding: 14px 35px;
+    font-family: "HEADER_FONT"; /* Use header font */
+    font-size: 1.1rem;
     font-weight: 600;
-    letter-spacing: 1px;
+    letter-spacing: 1.5px;
     cursor: pointer;
     transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     margin: 20px auto 25px auto;
     width: fit-content;
-    min-width: 220px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    min-width: 250px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
     position: relative;
     overflow: hidden;
     text-transform: uppercase;
 }
 
-.expand-collapse-button::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: -100%;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(
-        90deg,
-        transparent,
-        rgba(255, 255, 255, 0.2),
-        transparent
-    );
-    transition: left 0.5s ease;
-}
-
-.expand-collapse-button:hover::before {
-    left: 100%;
-}
-
 .expand-collapse-button:hover {
-    background: linear-gradient(135deg, rgba(7, 60, 23, 0.6), rgba(7, 60, 23, 0.8));
-    transform: translateY(-3px) scale(1.05);
-    box-shadow: 
-        0 6px 20px rgba(0, 0, 0, 0.4),
-        0 0 25px rgba(7, 60, 23, 0.5);
-    border-color: rgba(255, 255, 255, 0.5);
-}
-
-.expand-collapse-button:active {
-    transform: translateY(-1px) scale(1.02);
+    background: linear-gradient(135deg, #3a3a45, #2a2a35);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
+    border-color: rgba(255, 255, 255, 0.3);
 }
 
 .button-icon {
-    margin-right: 10px;
-    font-size: 18px;
+    margin-right: 12px;
+    font-size: 20px;
     transition: transform 0.3s ease;
     display: inline-block;
 }
 
-.expand-icon {
-    transform: translateY(2px) rotate(0deg);
+/* Icon rotates on click, not hover */
+.expand-collapse-button.expanded .button-icon {
+    transform: rotate(180deg);
 }
 
-.collapse-icon {
-    transform: translateY(-2px) rotate(180deg);
+/* Feature expansion animation */
+.optional-features-content {
+    overflow: hidden;
+    max-height: 0;
+    opacity: 0;
+    transition: max-height 0.6s cubic-bezier(0.4, 0, 0.2, 1), 
+                opacity 0.4s ease;
 }
 
-.expand-collapse-button:hover .button-icon {
-    transform: translateY(0) scale(1.2);
+.optional-features-content.expanded {
+    max-height: 10000px;
+    opacity: 1;
+    animation: fadeInUp 0.5s ease forwards;
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Add stagger effect to feature cards when expanding */
+.optional-features-content.expanded .feature-card {
+    opacity: 0;
+    animation: fadeInScale 0.4s ease forwards;
+}
+
+.optional-features-content.expanded .feature-card:nth-child(1) { animation-delay: 0.05s; }
+.optional-features-content.expanded .feature-card:nth-child(2) { animation-delay: 0.1s; }
+.optional-features-content.expanded .feature-card:nth-child(3) { animation-delay: 0.15s; }
+.optional-features-content.expanded .feature-card:nth-child(4) { animation-delay: 0.2s; }
+.optional-features-content.expanded .feature-card:nth-child(5) { animation-delay: 0.25s; }
+
+@keyframes fadeInScale {
+    from {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
 }
 
 .optional-features-controls {
