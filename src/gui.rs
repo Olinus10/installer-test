@@ -559,43 +559,6 @@ fn HomePage(
                     span { class: "divider-title", "YOUR INSTALLATIONS" }
                 }
                 
-                // Big play button for the most recent installation
-                if let Some(installation) = latest_installation.clone() {
-                    div { class: "main-play-container",
-                        // Play button
-                        {
-                            let play_id = installation.id.clone();
-                            rsx! {
-                                PlayButton {
-                                    uuid: play_id.clone(),
-                                    disabled: false,
-                                    onclick: move |_| {
-                                        let play_id_inner = play_id.clone();
-                                        handle_play_click(play_id_inner, &error_signal);
-                                    }
-                                }
-                            }
-                        }
-                        
-                        // Quick update button if available
-                        if installation.update_available {
-                            {
-                                let update_id = installation.id.clone();
-                                rsx! {
-                                    button {
-                                        class: "quick-update-button",
-                                        onclick: move |_| {
-                                            // Quick update functionality
-                                            debug!("Quick update clicked for: {}", update_id);
-                                        },
-                                        "Update Available"
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-                
                 // Grid of installation cards
                 div { class: "installations-grid",
                     // Existing installation cards
@@ -2801,7 +2764,7 @@ let complete_css = format!("{}\n{}\n{}\n{}\n{}\n{}",
                 HomePage {
                     installations,
                     error_signal: error_signal.clone(),
-                    changelog: use_signal(|| changelog.read().as_ref().cloned().flatten()),
+                    changelog: use_signal(move || changelog.read().clone().flatten()),
                     current_installation_id: current_installation_id.clone(),
                 }
             }
