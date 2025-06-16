@@ -1378,6 +1378,8 @@ async fn install<F: FnMut() + Clone>(installer_profile: &InstallerProfile, mut p
         )),
         Launcher::MultiMC(_) => None,
     };
+    
+    // Download mods, shaderpacks, and resourcepacks
     let mods_w_path = match download_helper(
         manifest.mods.clone(),
         &installer_profile.enabled_features,
@@ -1391,6 +1393,7 @@ async fn install<F: FnMut() + Clone>(installer_profile: &InstallerProfile, mut p
         Ok(v) => v,
         Err(e) => return Err(e.to_string()),
     };
+    
     let shaderpacks_w_path = match download_helper(
         manifest.shaderpacks.clone(),
         &installer_profile.enabled_features,
@@ -1404,6 +1407,7 @@ async fn install<F: FnMut() + Clone>(installer_profile: &InstallerProfile, mut p
         Ok(v) => v,
         Err(e) => return Err(e.to_string()),
     };
+    
     let resourcepacks_w_path = match download_helper(
         manifest.resourcepacks.clone(),
         &installer_profile.enabled_features,
@@ -1417,128 +1421,91 @@ async fn install<F: FnMut() + Clone>(installer_profile: &InstallerProfile, mut p
         Ok(v) => v,
         Err(e) => return Err(e.to_string()),
     };
+    
     let mut included_files: HashMap<String, Included> = HashMap::new();
-    let inc_files = match installer_profile.local_manifest.clone() {
-        Some(local_manifest) => local_manifest.included_files.unwrap_or_default(),
-        None => HashMap::new(),
-    };
-    for inc in &inc_files {
-        if !installer_profile
-            .enabled_features
-            .contains(&inc.0.replace(".zip", ""))
-        {
-            for file in &inc.1.files {
-                debug!("Removing: '{file}'");
-                let _ = fs::remove_file(file);
-            }
-        }
-    }
+    
+    // Handle includes - download them from GitHub
     if !manifest.include.is_empty() {
-        // Include files exist
-        let release: GithubRelease = serde_json::from_str(
-            http_client
-                .get_async(
-                    GH_API.to_owned()
-                        + installer_profile.modpack_source.as_str()
-                        + "releases/tags/"
-                        + installer_profile.modpack_branch.as_str(),
-                )
-                .await
-                .expect("Failed to retrieve releases!")
-                .text()
-                .await
-                .unwrap()
-                .as_str(),
-        )
-        .expect("Failed to parse release response!");
-        let hash_pairs: HashMap<String, String> = serde_json::from_str(
-            release
-                .body
-                .as_ref()
-                .expect("Missing body on modpack release!"),
-        )
-        .expect("Failed to parse hash pairs!");
-        let mut downloaded_assets = vec![];
+        debug!("Processing {} includes", manifest.include.len());
+        
         for inc in &manifest.include {
-            if !installer_profile.enabled_features.contains(&inc.id) {
+            // Skip if this include has an ID and it's not enabled
+            if !inc.id.is_empty() && inc.id != "default" && !installer_profile.enabled_features.contains(&inc.id) {
+                debug!("Skipping disabled include: {}", inc.id);
                 continue;
             }
-            'a: for asset in &release.assets {
-                let inc_zip_name = inc.id.clone() + ".zip";
-                if asset.name == inc_zip_name && !downloaded_assets.contains(&asset.id) {
-                    let md5 = hash_pairs
-                        .get(&inc_zip_name)
-                        .expect("Asset does not have hash in release body")
-                        .to_owned();
-                    if let Some(local_inc) = inc_files.get(&inc_zip_name) {
-                        if local_inc.md5 == md5 {
-                            included_files.insert(inc_zip_name, local_inc.to_owned());
-                            debug!("Skipping '{}' as it is already downloaded", asset.name);
-                            break 'a;
-                        } else {
-                            for file in &local_inc.files {
-                                let path = Path::new(file);
-                                assert!(
-                                    path.starts_with(modpack_root),
-                                    "Local include path was not located in modpack root!"
-                                );
-                                let _ = fs::remove_file(path);
-                            }
-                        }
-                    }
-                    let files = match download_zip(&asset.name, http_client, &format!(
-                        "{}{}releases/assets/{}",
-                        GH_API, installer_profile.modpack_source, asset.id
-                    ), modpack_root).await {
-                        Ok(v) => v,
-                        Err(e) => return Err(format!("Failed to download include: {:#?}", e)),
-                    };
-                    included_files.insert(inc_zip_name.clone(), Included { md5, files });
-                    debug!("'{}' is now installed", asset.name);
-                    progress_callback();
-                    downloaded_assets.push(asset.id);
-                    break;
+            
+            debug!("Processing include: {} (id: {})", inc.location, inc.id);
+            
+            // Construct the URL to download from GitHub
+            let include_url = format!(
+                "{}{}{}src/data/{}",
+                GH_RAW,
+                installer_profile.modpack_source,
+                installer_profile.modpack_branch,
+                inc.location
+            );
+            
+            debug!("Include URL: {}", include_url);
+            
+            // Determine the target path
+            let target_path = modpack_root.join(&inc.location);
+            
+            // Create parent directory if needed
+            if let Some(parent) = target_path.parent() {
+                if let Err(e) = fs::create_dir_all(parent) {
+                    error!("Failed to create directory for include {}: {}", inc.location, e);
+                    return Err(format!("Failed to create directory for include: {}", e));
                 }
             }
-        }
-
-        if let Some(includes) = manifest.remote_include.clone() {
-            for include in includes {
-                if !installer_profile.enabled_features.contains(&include.id) {
-                    continue;
-                }
-                let name = include.name.unwrap_or(include.location.clone());
-                let outpath = if let Some(path) = include.path {
-                    modpack_root.join(path)
-                } else {
-                    modpack_root.to_owned()
-                };
-                if let Some(local_inc) = inc_files.get(&include.location) {
-                    if local_inc.md5 == include.version {
-                        included_files.insert(include.location, local_inc.to_owned());
-                        debug!("Skipping '{}' as it is already downloaded", name);
-                        continue;
-                    } else {
-                        for file in &local_inc.files {
-                            let path = Path::new(file);
-                            assert!(
-                                path.starts_with(&outpath),
-                                "Local include path was not located in modpack root!"
-                            );
-                            let _ = fs::remove_file(path);
-                        }
+            
+            // Check if it's a directory or file based on whether location ends with .zip or has an extension
+            if inc.location.ends_with(".zip") || inc.location.contains('.') {
+                // It's a file - download it
+                match download_include_file(http_client, &include_url, &target_path).await {
+                    Ok(_) => {
+                        debug!("Successfully downloaded include file: {}", inc.location);
+                        included_files.insert(
+                            inc.id.clone().unwrap_or_else(|| inc.location.clone()),
+                            Included {
+                                md5: String::new(), // We're not calculating MD5 for now
+                                files: vec![target_path.to_string_lossy().to_string()],
+                            }
+                        );
+                        progress_callback();
+                    },
+                    Err(e) => {
+                        error!("Failed to download include {}: {}", inc.location, e);
+                        return Err(format!("Failed to download include {}: {}", inc.location, e));
                     }
-                };
-                let files = match download_zip(&name, http_client, &include.location, &outpath).await {
-                    Ok(v) => v,
-                    Err(e) => return Err(format!("Failed to download include: {:#?}", e)),
-                };
-                included_files.insert(name.clone(), Included { md5: include.version, files });
-                debug!("'{}' is now installed", name);
-                progress_callback();
+                }
+            } else {
+                // It's a directory - download as a zip and extract
+                let zip_url = format!("{}.zip", include_url);
+                match download_and_extract_include(http_client, &zip_url, &target_path).await {
+                    Ok(files) => {
+                        debug!("Successfully extracted include directory: {}", inc.location);
+                        included_files.insert(
+                            inc.id.clone().unwrap_or_else(|| inc.location.clone()),
+                            Included {
+                                md5: String::new(),
+                                files,
+                            }
+                        );
+                        progress_callback();
+                    },
+                    Err(e) => {
+                        error!("Failed to download/extract include {}: {}", inc.location, e);
+                        // For directories, we might want to continue even if it fails
+                        // as they might not exist as zips
+                        debug!("Continuing despite error for directory include");
+                    }
+                }
             }
         }
     }
+    
+    // Save local manifest
     let local_manifest = Manifest {
         mods: mods_w_path,
         shaderpacks: shaderpacks_w_path,
@@ -1561,44 +1528,158 @@ async fn install<F: FnMut() + Clone>(installer_profile: &InstallerProfile, mut p
         ),
         ..manifest.clone()
     };
+    
     fs::write(
         modpack_root.join(Path::new("manifest.json")),
         serde_json::to_string(&local_manifest).expect("Failed to parse 'manifest.json'!"),
     )
     .expect("Failed to save a local copy of 'manifest.json'!");
+    
+    // Download icon if needed
     let icon_img = if manifest.icon {
-        Some(
-            ImageReader::new(Cursor::new(
-                http_client
-                    .get_async(
-                        GH_RAW.to_owned()
-                            + installer_profile.modpack_source.as_str()
-                            + installer_profile.modpack_branch.as_str()
-                            + "/icon.png",
-                    )
-                    .await
-                    .expect("Failed to download icon")
-                    .bytes()
-                    .await
-                    .unwrap(),
-            ))
-            .with_guessed_format()
-            .expect("Could not guess icon.png format????????")
-            .decode()
-            .expect("Failed to decode icon!"),
-        )
+        let icon_url = format!(
+            "{}{}{}src/assets/icon.png",
+            GH_RAW,
+            installer_profile.modpack_source,
+            installer_profile.modpack_branch
+        );
+        
+        match http_client.get_async(&icon_url).await {
+            Ok(mut resp) => {
+                match resp.bytes().await {
+                    Ok(bytes) => {
+                        match ImageReader::new(Cursor::new(bytes))
+                            .with_guessed_format() {
+                            Ok(reader) => {
+                                match reader.decode() {
+                                    Ok(img) => Some(img),
+                                    Err(e) => {
+                                        error!("Failed to decode icon: {}", e);
+                                        None
+                                    }
+                                }
+                            },
+                            Err(e) => {
+                                error!("Failed to guess icon format: {}", e);
+                                None
+                            }
+                        }
+                    },
+                    Err(e) => {
+                        error!("Failed to read icon bytes: {}", e);
+                        None
+                    }
+                }
+            },
+            Err(e) => {
+                error!("Failed to download icon: {}", e);
+                None
+            }
+        }
     } else {
         None
     };
+    
     match create_launcher_profile(installer_profile, icon_img) {
-        Ok(_) => {}
+        Ok(_) => {},
         Err(e) => return Err(e.to_string()),
     };
+    
     if loader_future.is_some() {
         loader_future.unwrap().await;
     }
+    
     info!("Installed modpack!");
     Ok(())
+}
+
+// Add these helper functions for downloading includes
+async fn download_include_file(
+    http_client: &CachedHttpClient,
+    url: &str,
+    target_path: &Path,
+) -> Result<(), String> {
+    debug!("Downloading include file from {} to {:?}", url, target_path);
+    
+    let mut response = http_client.get_nocache(url).await
+        .map_err(|e| format!("Failed to download include: {}", e))?;
+    
+    if response.status() != StatusCode::OK {
+        return Err(format!("Failed to download include: HTTP {}", response.status()));
+    }
+    
+    let bytes = response.bytes().await
+        .map_err(|e| format!("Failed to read include bytes: {}", e))?;
+    
+    fs::write(target_path, bytes)
+        .map_err(|e| format!("Failed to write include file: {}", e))?;
+    
+    Ok(())
+}
+
+async fn download_and_extract_include(
+    http_client: &CachedHttpClient,
+    zip_url: &str,
+    target_path: &Path,
+) -> Result<Vec<String>, String> {
+    debug!("Downloading and extracting include from {} to {:?}", zip_url, target_path);
+    
+    let mut response = http_client.get_nocache(zip_url).await
+        .map_err(|e| format!("Failed to download include zip: {}", e))?;
+    
+    if response.status() != StatusCode::OK {
+        return Err(format!("Failed to download include zip: HTTP {}", response.status()));
+    }
+    
+    let bytes = response.bytes().await
+        .map_err(|e| format!("Failed to read include zip bytes: {}", e))?;
+    
+    // Create temp file for zip
+    let temp_zip = target_path.with_extension("tmp.zip");
+    fs::write(&temp_zip, bytes)
+        .map_err(|e| format!("Failed to write temp zip: {}", e))?;
+    
+    // Extract zip
+    let file = fs::File::open(&temp_zip)
+        .map_err(|e| format!("Failed to open temp zip: {}", e))?;
+    
+    let mut archive = zip::ZipArchive::new(file)
+        .map_err(|e| format!("Failed to read zip archive: {}", e))?;
+    
+    let mut extracted_files = Vec::new();
+    
+    for i in 0..archive.len() {
+        let mut file = archive.by_index(i)
+            .map_err(|e| format!("Failed to read zip entry: {}", e))?;
+        
+        let outpath = match file.enclosed_name() {
+            Some(path) => target_path.join(path),
+            None => continue,
+        };
+        
+        if file.name().ends_with('/') {
+            fs::create_dir_all(&outpath)
+                .map_err(|e| format!("Failed to create directory: {}", e))?;
+        } else {
+            if let Some(p) = outpath.parent() {
+                if !p.exists() {
+                    fs::create_dir_all(p)
+                        .map_err(|e| format!("Failed to create parent directory: {}", e))?;
+                }
+            }
+            let mut outfile = fs::File::create(&outpath)
+                .map_err(|e| format!("Failed to create file: {}", e))?;
+            std::io::copy(&mut file, &mut outfile)
+                .map_err(|e| format!("Failed to extract file: {}", e))?;
+            
+            extracted_files.push(outpath.to_string_lossy().to_string());
+        }
+    }
+    
+    // Remove temp zip
+    let _ = fs::remove_file(&temp_zip);
+    
+    Ok(extracted_files)
 }
 
 fn remove_old_items<T: Downloadable + PartialEq + Clone + Debug>(
