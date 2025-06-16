@@ -26,19 +26,23 @@ pub struct UniversalManifest {
     
     // All available components
     pub mods: Vec<ModComponent>,
-    #[serde(default)]  // Add default in case this field is missing
+    #[serde(default)]
     pub shaderpacks: Vec<ModComponent>,
-    #[serde(default)]  // Add default in case this field is missing
+    #[serde(default)]
     pub resourcepacks: Vec<ModComponent>,
     
-    // Metadata - make all these optional
+    // Add includes support
+    #[serde(default)]
+    pub include: Vec<IncludeComponent>,
+    
+    // Metadata
     #[serde(default)]
     pub category: Option<String>,
     #[serde(default)]
     pub short_description: Option<String>,
     pub version: String,
     
-    // Default settings - all optional
+    // Default settings
     #[serde(default)]
     pub max_mem: Option<i32>,
     #[serde(default)]
@@ -47,34 +51,24 @@ pub struct UniversalManifest {
     pub java_args: Option<String>,
 }
 
-// Structure for a mod/component with more flexible options
+// Add the IncludeComponent struct
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
-pub struct ModComponent {
-    pub id: String,
-    pub name: String,
-    #[serde(default)]
-    pub description: Option<String>,
-    pub source: String,
+pub struct IncludeComponent {
     pub location: String,
-    pub version: String,
+    #[serde(default = "default_id")]
+    pub id: String,
     #[serde(default)]
-    pub path: Option<PathBuf>,
+    pub name: Option<String>,
+    #[serde(default)]
+    pub authors: Option<Vec<Author>>,
     #[serde(default = "default_false")]
     pub optional: bool,
     #[serde(default = "default_false")]
     pub default_enabled: bool,
-    #[serde(default)]
-    pub authors: Vec<Author>,
-    #[serde(default)]
-    pub category: Option<String>,
-    #[serde(default)]
-    pub dependencies: Option<Vec<String>>,
-    #[serde(default)]
-    pub incompatibilities: Option<Vec<String>>,
 }
 
-fn default_false() -> bool {
-    false
+fn default_id() -> String {
+    "default".to_string()
 }
 
 #[derive(Debug, Clone)]
@@ -383,6 +377,15 @@ pub fn universal_to_manifest(universal: &UniversalManifest, enabled_features: Ve
             path: component.path.clone(),
             id: component.id.clone(),
             authors: component.authors.clone(),
+        }
+    }).collect();
+
+        let includes = universal.include.iter().map(|inc| {
+        crate::Include {
+            location: inc.location.clone(),
+            id: inc.id.clone(),
+            name: inc.name.clone(),
+            authors: inc.authors.clone(),
         }
     }).collect();
     
