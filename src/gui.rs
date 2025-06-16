@@ -38,6 +38,7 @@ mod modal;
 // Font constants
 const HEADER_FONT: &str = "\"HEADER_FONT\"";
 const REGULAR_FONT: &str = "\"REGULAR_FONT\"";
+const ICON_BYTES: &[u8] = include_bytes!("assets/icon.png");
 
 #[derive(Debug, Clone)]
 struct TabInfo {
@@ -408,61 +409,63 @@ fn main() {
 
 #[component]
 fn ChangelogSection(changelog: Option<ChangelogData>) -> Element {
-    if let Some(changelog_data) = changelog {
-        if changelog_data.entries.is_empty() {
-            return None;
-        }
-        
-        rsx! {
-            div { class: "changelog-container",
-                div { class: "section-divider with-title", 
-                    span { class: "divider-title", "LATEST CHANGES" }
-                }
-                
-                div { class: "changelog-entries",
-                    for (index, entry) in changelog_data.entries.iter().enumerate().take(5) {
-                        div { 
-                            class: "changelog-entry",
-                            "data-importance": "{entry.importance.clone().unwrap_or_else(|| String::from(\"normal\"))}",
-                            
-                            div { class: "changelog-header",
-                                h3 { class: "changelog-title", "{entry.title}" }
-                                
-                                if let Some(version) = &entry.version {
-                                    span { class: "changelog-version", "v{version}" }
-                                }
-                                
-                                if let Some(date) = &entry.date {
-                                    span { class: "changelog-date", "{date}" }
-                                }
-                            }
-                            
-                            div { 
-                                class: "changelog-content",
-                                dangerous_inner_html: "{entry.contents}"
-                            }
-                            
-                            // Show divider between entries except for the last one
-                            if index < changelog_data.entries.len() - 1 && index < 4 {
-                                div { class: "entry-divider" }
-                            }
-                        }
+    match changelog {
+        Some(changelog_data) if !changelog_data.entries.is_empty() => {
+            rsx! {
+                div { class: "changelog-container",
+                    div { class: "section-divider with-title", 
+                        span { class: "divider-title", "LATEST CHANGES" }
                     }
                     
-                    // Show "View all changes" button if more than 5 entries
-                    if changelog_data.entries.len() > 5 {
-                        div { class: "view-all-changes",
-                            button { class: "view-all-button",
-                                "View All Changes"
+                    div { class: "changelog-entries",
+                        for (index, entry) in changelog_data.entries.iter().enumerate().take(5) {
+                            div { 
+                                class: "changelog-entry",
+                                "data-importance": "{entry.importance.clone().unwrap_or_else(|| String::from(\"normal\"))}",
+                                
+                                div { class: "changelog-header",
+                                    h3 { class: "changelog-title", "{entry.title}" }
+                                    
+                                    if let Some(version) = &entry.version {
+                                        span { class: "changelog-version", "v{version}" }
+                                    }
+                                    
+                                    if let Some(date) = &entry.date {
+                                        span { class: "changelog-date", "{date}" }
+                                    }
+                                }
+                                
+                                div { 
+                                    class: "changelog-content",
+                                    dangerous_inner_html: "{entry.contents}"
+                                }
+                                
+                                if index < changelog_data.entries.len() - 1 && index < 4 {
+                                    div { class: "entry-divider" }
+                                }
+                            }
+                        }
+                        
+                        if changelog_data.entries.len() > 5 {
+                            div { class: "view-all-changes",
+                                button { 
+                                    class: "view-all-button",
+                                    onclick: move |_| {
+                                        // Add handler to show all changes
+                                        debug!("View all changes clicked");
+                                    },
+                                    "View All Changes"
+                                }
                             }
                         }
                     }
                 }
             }
+        },
+        _ => {
+            // Return empty element while loading or if no entries
+            rsx! { Fragment {} }
         }
-    } else {
-        // Return empty div while loading
-        rsx! { div { class: "changelog-loading" } }
     }
 }
 
@@ -2450,6 +2453,11 @@ fn AppHeader(
     
     // Current ID for active state
     let current_id = current_installation_id();
+
+    let icon_base64 = {
+    use base64::{Engine, engine::general_purpose::STANDARD};
+    STANDARD.encode(ICON_BYTES)
+    };
     
     // Pre-build direct tabs
     let direct_tabs_content = {
@@ -2515,20 +2523,20 @@ fn AppHeader(
     };
     
     // Main render
-    rsx! {
-        header { class: "app-header",
-            // Logo and title
-            div { 
-                class: "app-header-left", 
-                onclick: move |_| on_go_home.call(()),
-                
-                img { 
-                    class: "app-logo", 
-                    src: "/assets/icon.png", 
-                    alt: "Wynncraft Overhaul Logo"
-                }
-                h1 { class: "app-title", "MAJESTIC OVERHAUL" }
+rsx! {
+    header { class: "app-header",
+        // Logo and title
+        div { 
+            class: "app-header-left", 
+            onclick: move |_| on_go_home.call(()),
+            
+            img { 
+                class: "app-logo", 
+                src: "data:image/png;base64,{}", // We'll embed the image
+                alt: "Wynncraft Overhaul Logo"
             }
+            h1 { class: "app-title", "MAJESTIC OVERHAUL" }
+        }
             
             // Tabs
             div { class: "header-tabs",
@@ -2646,18 +2654,18 @@ pub fn app() -> Element {
     });
     
     // Load changelog
-    let changelog = use_resource(move || async {
-        match fetch_changelog("Olinus10/installer-test", &CachedHttpClient::new()).await {
-            Ok(changelog) => {
-                debug!("Successfully loaded changelog with {} entries", changelog.entries.len());
-                Some(changelog)
-            },
-            Err(e) => {
-                error!("Failed to load changelog: {}", e);
-                None
-            }
+let changelog = use_resource(move || async {
+    match crate::changelog::fetch_changelog("Olinus10/installer-test/master", &CachedHttpClient::new()).await {
+        Ok(changelog) => {
+            debug!("Successfully loaded changelog with {} entries", changelog.entries.len());
+            Some(changelog)
+        },
+        Err(e) => {
+            error!("Failed to load changelog: {}", e);
+            None
         }
-    });
+    }
+});
 
     let mut changelog_signal = use_signal(|| None::<ChangelogData>);
     use_effect(move || {
