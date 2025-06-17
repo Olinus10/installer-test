@@ -1466,12 +1466,13 @@ async fn install<F: FnMut() + Clone>(installer_profile: &InstallerProfile, mut p
                     Ok(_) => {
                         debug!("Successfully downloaded include file: {}", inc.location);
                         included_files.insert(
-                            inc.id.clone().unwrap_or_else(|| inc.location.clone()),
-                            Included {
-                                md5: String::new(), // We're not calculating MD5 for now
-                                files: vec![target_path.to_string_lossy().to_string()],
-                            }
-                        );
+                            included_files.insert(
+    if inc.id.is_empty() { inc.location.clone() } else { inc.id.clone() },
+    Included {
+        md5: String::new(),
+        files: vec![target_path.to_string_lossy().to_string()],
+    }
+);
                         progress_callback();
                     },
                     Err(e) => {
@@ -1486,12 +1487,12 @@ async fn install<F: FnMut() + Clone>(installer_profile: &InstallerProfile, mut p
                     Ok(files) => {
                         debug!("Successfully extracted include directory: {}", inc.location);
                         included_files.insert(
-                            inc.id.clone().unwrap_or_else(|| inc.location.clone()),
-                            Included {
-                                md5: String::new(),
-                                files,
-                            }
-                        );
+    if inc.id.is_empty() { inc.location.clone() } else { inc.id.clone() },
+    Included {
+        md5: String::new(),
+        files: vec![target_path.to_string_lossy().to_string()],
+    }
+);
                         progress_callback();
                     },
                     Err(e) => {
