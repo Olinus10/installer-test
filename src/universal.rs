@@ -12,6 +12,31 @@ use crate::preset::{Preset, PresetsContainer};
 
 // Structure for a mod/component in the universal manifest
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
+pub struct ModComponent {
+    pub id: String,
+    pub name: String,
+    #[serde(default)]
+    pub description: Option<String>,
+    pub source: String,
+    pub location: String,
+    pub version: String,
+    #[serde(default)]
+    pub path: Option<PathBuf>,
+    #[serde(default = "default_false")]
+    pub optional: bool,
+    #[serde(default = "default_false")]
+    pub default_enabled: bool,
+    #[serde(default)]
+    pub authors: Vec<Author>,
+    #[serde(default)]
+    pub category: Option<String>,
+    #[serde(default)]
+    pub dependencies: Option<Vec<String>>,
+    #[serde(default)]
+    pub incompatibilities: Option<Vec<String>>,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
 pub struct UniversalManifest {
     pub manifest_version: i32,
     pub modpack_version: String,
@@ -52,7 +77,6 @@ pub struct UniversalManifest {
     pub java_args: Option<String>,
 }
 
-// Add the IncludeComponent struct
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
 pub struct IncludeComponent {
     pub location: String,
