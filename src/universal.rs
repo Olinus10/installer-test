@@ -8,10 +8,7 @@ use isahc::AsyncReadResponseExt;
 use crate::CachedHttpClient;
 use crate::Author;
 
-use crate::CachedHttpClient;
 use crate::preset::{Preset, PresetsContainer};
-pub use self::ModComponent;
-pub use self::{UniversalManifest, ModComponent, IncludeComponent};
 
 // Structure for a mod/component in the universal manifest
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
