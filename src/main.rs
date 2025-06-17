@@ -1465,8 +1465,7 @@ async fn install<F: FnMut() + Clone>(installer_profile: &InstallerProfile, mut p
                 match download_include_file(http_client, &include_url, &target_path).await {
                     Ok(_) => {
                         debug!("Successfully downloaded include file: {}", inc.location);
-                        included_files.insert(
-                            included_files.insert(
+            included_files.insert(
     if inc.id.is_empty() { inc.location.clone() } else { inc.id.clone() },
     Included {
         md5: String::new(),
