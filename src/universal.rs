@@ -7,7 +7,11 @@ use isahc::AsyncReadResponseExt;
 
 use crate::CachedHttpClient;
 use crate::Author;
+
+use crate::CachedHttpClient;
 use crate::preset::{Preset, PresetsContainer};
+pub use self::ModComponent;
+pub use self::{UniversalManifest, ModComponent, IncludeComponent};
 
 // Structure for a mod/component in the universal manifest
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
@@ -55,7 +59,7 @@ pub struct UniversalManifest {
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
 pub struct IncludeComponent {
     pub location: String,
-    #[serde(default = "default_id")]
+    #[serde(default = "default_empty_string")]
     pub id: String,
     #[serde(default)]
     pub name: Option<String>,
@@ -67,8 +71,12 @@ pub struct IncludeComponent {
     pub default_enabled: bool,
 }
 
-fn default_id() -> String {
-    "default".to_string()
+fn default_empty_string() -> String {
+    String::new()
+}
+
+fn default_false() -> bool {
+    false
 }
 
 #[derive(Debug, Clone)]
