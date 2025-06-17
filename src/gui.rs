@@ -2455,8 +2455,8 @@ fn AppHeader(
     let current_id = current_installation_id();
 
     let icon_base64 = {
-    use base64::{Engine, engine::general_purpose::STANDARD};
-    STANDARD.encode(ICON_BYTES)
+        use base64::{Engine, engine::general_purpose::STANDARD};
+        STANDARD.encode(include_bytes!("assets/icon.png"))
     };
     
     // Pre-build direct tabs
@@ -2523,20 +2523,20 @@ fn AppHeader(
     };
     
     // Main render
-rsx! {
-    header { class: "app-header",
-        // Logo and title
-        div { 
-            class: "app-header-left", 
-            onclick: move |_| on_go_home.call(()),
-            
-            img { 
-                class: "app-logo", 
-                src: "data:image/png;base64,{}", // We'll embed the image
-                alt: "Wynncraft Overhaul Logo"
+    rsx! {
+        header { class: "app-header",
+            // Logo and title
+            div { 
+                class: "app-header-left", 
+                onclick: move |_| on_go_home.call(()),
+                
+                img { 
+                    class: "app-logo", 
+                    src: "data:image/png;base64,{icon_base64}",
+                    alt: "Wynncraft Overhaul Logo"
+                }
+                h1 { class: "app-title", "MAJESTIC OVERHAUL" }
             }
-            h1 { class: "app-title", "MAJESTIC OVERHAUL" }
-        }
             
             // Tabs
             div { class: "header-tabs",
