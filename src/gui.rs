@@ -955,6 +955,11 @@ pub fn InstallationManagementPage(
     let mut is_installing = use_signal(|| false);
     let mut installation_error = use_signal(|| Option::<String>::None);
     
+    // Progress tracking signals
+    let mut installation_progress = use_signal(|| 0i64);
+    let mut installation_total = use_signal(|| 0i64);
+    let mut installation_status = use_signal(|| String::new());
+    
     // Handle installation not found
     if let Err(e) = &*installation_result.read() {
         return rsx! {
@@ -990,11 +995,6 @@ pub fn InstallationManagementPage(
     // State for tracking modifications in different areas 
     let mut features_modified = use_signal(|| false);
     let mut performance_modified = use_signal(|| false);
-
-    // Add a progress state
-    let mut installation_progress = use_signal(|| 0);
-    let mut installation_total = use_signal(|| 0);
-    let mut installation_status = use_signal(|| String::new());
     
     // Filter text for feature search
     let filter_text = use_signal(|| String::new());
@@ -1084,66 +1084,71 @@ pub fn InstallationManagementPage(
         }
     });
     
-    // Handle install/update
-let handle_update = move |_| {
-    is_installing.set(true);
-    let mut installation_clone = installation_for_update.clone();
-    
-    // Update settings
-    installation_clone.enabled_features = enabled_features.read().clone();
-    installation_clone.memory_allocation = *memory_allocation.read();
-    installation_clone.java_args = java_args.read().clone();
-    installation_clone.modified = true;
-    
-    let http_client = crate::CachedHttpClient::new();
-    let mut installation_error_clone = installation_error.clone();
-    let mut progress = installation_progress.clone();
-    let mut total = installation_total.clone();
-    let mut status = installation_status.clone();
-    
-    spawn(async move {
-        // Calculate total items
-        let manifest = match crate::universal::load_universal_manifest(&http_client, None).await {
-            Ok(m) => m,
-            Err(e) => {
-                installation_error_clone.set(Some(format!("Failed to load manifest: {}", e)));
-                is_installing.set(false);
-                return;
-            }
-        };
+    // Handle install/update with progress tracking
+    let handle_update = move |_| {
+        is_installing.set(true);
+        let mut installation_clone = installation_for_update.clone();
         
-        let total_items = manifest.mods.len() + manifest.shaderpacks.len() + 
-                         manifest.resourcepacks.len() + manifest.include.len();
-        total.set(total_items as i64);
-        progress.set(0);
-        status.set("Preparing installation...".to_string());
+        // Update settings
+        installation_clone.enabled_features = enabled_features.read().clone();
+        installation_clone.memory_allocation = *memory_allocation.read();
+        installation_clone.java_args = java_args.read().clone();
+        installation_clone.modified = true;
         
-        // Create a progress callback
-        let progress_callback = move || {
-            progress.with_mut(|p| *p += 1);
-        };
+        let http_client = crate::CachedHttpClient::new();
+        let mut installation_error_clone = installation_error.clone();
+        let mut progress = installation_progress.clone();
+        let mut total = installation_total.clone();
+        let mut status = installation_status.clone();
+        let mut is_installing_clone = is_installing.clone();
+        let mut has_changes_clone = has_changes.clone();
+        let mut features_modified_clone = features_modified.clone();
+        let mut performance_modified_clone = performance_modified.clone();
         
-        match installation_clone.install_or_update_with_progress(&http_client, progress_callback).await {
-            Ok(_) => {
-                debug!("Successfully updated installation: {}", installation_clone.id);
-                // Save the updated installation
-                if let Err(e) = installation_clone.save() {
-                    error!("Failed to save changes: {}", e);
-                    installation_error_clone.set(Some(format!("Failed to save changes: {}", e)));
-                } else {
-                    has_changes.set(false);
-                    features_modified.set(false);
-                    performance_modified.set(false);
+        spawn(async move {
+            // Calculate total items
+            match crate::universal::load_universal_manifest(&http_client, None).await {
+                Ok(manifest) => {
+                    let total_items = manifest.mods.len() + manifest.shaderpacks.len() + 
+                                     manifest.resourcepacks.len() + manifest.include.len();
+                    total.set(total_items as i64);
+                    progress.set(0);
+                    status.set("Preparing installation...".to_string());
+                    
+                    // Create a progress callback
+                    let progress_callback = move || {
+                        progress.with_mut(|p| *p += 1);
+                        let current = *progress.read();
+                        let total_val = *total.read();
+                        status.set(format!("Installing... {}/{}", current, total_val));
+                    };
+                    
+                    match installation_clone.install_or_update_with_progress(&http_client, progress_callback).await {
+                        Ok(_) => {
+                            debug!("Successfully updated installation: {}", installation_clone.id);
+                            // Save the updated installation
+                            if let Err(e) = installation_clone.save() {
+                                error!("Failed to save changes: {}", e);
+                                installation_error_clone.set(Some(format!("Failed to save changes: {}", e)));
+                            } else {
+                                has_changes_clone.set(false);
+                                features_modified_clone.set(false);
+                                performance_modified_clone.set(false);
+                            }
+                        },
+                        Err(e) => {
+                            error!("Failed to update installation: {}", e);
+                            installation_error_clone.set(Some(e));
+                        }
+                    }
+                },
+                Err(e) => {
+                    installation_error_clone.set(Some(format!("Failed to load manifest: {}", e)));
                 }
-            },
-            Err(e) => {
-                error!("Failed to update installation: {}", e);
-                installation_error_clone.set(Some(e));
             }
-        }
-        is_installing.set(false);
-    });
-};
+            is_installing_clone.set(false);
+        });
+    };
     
     // Button label based on state
     let action_button_label = if !installation.installed {
@@ -1193,145 +1198,155 @@ let handle_update = move |_| {
     
     rsx! {
         div { class: "installation-management-container",
-            // Back navigation
-            div { class: "navigation-row",
-                button { 
-                    class: "back-button",
-                    onclick: move |_| onback.call(()),
-                    "← Back to Installations"
+            // Show progress view if installing
+            if *is_installing.read() {
+                ProgressView {
+                    value: *installation_progress.read(),
+                    max: *installation_total.read(),
+                    status: installation_status.read().clone(),
+                    title: format!("Installing {}", installation.name)
                 }
-            }
-            
-            // Header with installation name
-            div { class: "installation-header",
-                h1 { "{installation.name}" }
-                div { class: "installation-meta",
-                    span { class: "minecraft-version", "Minecraft {installation.minecraft_version}" }
-                    span { class: "loader-version", "{installation.loader_type} {installation.loader_version}" }
-                    
-                    if installation.update_available {
-                        span { class: "update-badge", "Update Available" }
-                    }
-                }
-            }
-            
-            // Error display
-            if let Some(error) = &*installation_error.read() {
-                div { class: "error-notification",
-                    div { class: "error-message", "{error}" }
+            } else {
+                // Back navigation
+                div { class: "navigation-row",
                     button { 
-                        class: "error-close",
-                        onclick: move |_| installation_error.set(None),
-                        "×"
-                    }
-                }
-            }
-            
-            // Main tabs and content area
-            div { class: "installation-content-container",
-                // Tab navigation
-                div { class: "installation-tabs",
-                    button { 
-                        class: if *active_tab.read() == "features" { "tab-button active" } else { "tab-button" },
-                        onclick: move |_| active_tab.set("features"),
-                        "Features & Presets"
-                        
-                        // Show indicator if features modified
-                        if *features_modified.read() {
-                            span { class: "modified-indicator" }
-                        }
-                    }
-                    button { 
-                        class: if *active_tab.read() == "performance" { "tab-button active" } else { "tab-button" },
-                        onclick: move |_| active_tab.set("performance"),
-                        "Performance"
-                        
-                        // Show indicator if performance settings modified
-                        if *performance_modified.read() {
-                            span { class: "modified-indicator" }
-                        }
-                    }
-                    button { 
-                        class: if *active_tab.read() == "settings" { "tab-button active" } else { "tab-button" },
-                        onclick: move |_| active_tab.set("settings"),
-                        "Settings"
+                        class: "back-button",
+                        onclick: move |_| onback.call(()),
+                        "← Back to Installations"
                     }
                 }
                 
-                // Content area
-                div { class: "installation-content",
-                    match *active_tab.read() {
-                        "features" => {
-                            rsx! {
-                                FeaturesTab {
-                                    universal_manifest: universal_manifest.read().clone().flatten(),
-                                    presets: presets.read().clone().unwrap_or_default(),
-                                    enabled_features: enabled_features,
-                                    selected_preset: selected_preset,
-                                    filter_text: filter_text,
-                                }
+                // Header with installation name
+                div { class: "installation-header",
+                    h1 { "{installation.name}" }
+                    div { class: "installation-meta",
+                        span { class: "minecraft-version", "Minecraft {installation.minecraft_version}" }
+                        span { class: "loader-version", "{installation.loader_type} {installation.loader_version}" }
+                        
+                        if installation.update_available {
+                            span { class: "update-badge", "Update Available" }
+                        }
+                    }
+                }
+                
+                // Error display
+                if let Some(error) = &*installation_error.read() {
+                    div { class: "error-notification",
+                        div { class: "error-message", "{error}" }
+                        button { 
+                            class: "error-close",
+                            onclick: move |_| installation_error.set(None),
+                            "×"
+                        }
+                    }
+                }
+                
+                // Main tabs and content area
+                div { class: "installation-content-container",
+                    // Tab navigation
+                    div { class: "installation-tabs",
+                        button { 
+                            class: if *active_tab.read() == "features" { "tab-button active" } else { "tab-button" },
+                            onclick: move |_| active_tab.set("features"),
+                            "Features & Presets"
+                            
+                            // Show indicator if features modified
+                            if *features_modified.read() {
+                                span { class: "modified-indicator" }
                             }
-                        },
-                        "performance" => {
-                            rsx! {
-                                PerformanceTab {
-                                    memory_allocation: memory_allocation,
-                                    java_args: java_args,
-                                }
+                        }
+                        button { 
+                            class: if *active_tab.read() == "performance" { "tab-button active" } else { "tab-button" },
+                            onclick: move |_| active_tab.set("performance"),
+                            "Performance"
+                            
+                            // Show indicator if performance settings modified
+                            if *performance_modified.read() {
+                                span { class: "modified-indicator" }
                             }
-                        },
-                        "settings" => {
-                            rsx! {
-                                SettingsTab {
-                                    installation: installation.clone(),
-                                    installation_id: installation_id_for_delete.clone(),
-                                    ondelete: move |_| {
-                                        // Handle delete functionality
-                                        debug!("Delete clicked for: {}", installation_id_for_delete);
-                                        onback.call(());
-                                    },
-                                    onupdate: move |updated_installation: Installation| {
-                                        // Update the installation data in the list
-                                        installations.with_mut(|list| {
-                                            if let Some(index) = list.iter().position(|i| i.id == updated_installation.id) {
-                                                list[index] = updated_installation.clone();
-                                            }
-                                        });
+                        }
+                        button { 
+                            class: if *active_tab.read() == "settings" { "tab-button active" } else { "tab-button" },
+                            onclick: move |_| active_tab.set("settings"),
+                            "Settings"
+                        }
+                    }
+                    
+                    // Content area
+                    div { class: "installation-content",
+                        match *active_tab.read() {
+                            "features" => {
+                                rsx! {
+                                    FeaturesTab {
+                                        universal_manifest: universal_manifest.read().clone().flatten(),
+                                        presets: presets.read().clone().unwrap_or_default(),
+                                        enabled_features: enabled_features,
+                                        selected_preset: selected_preset,
+                                        filter_text: filter_text,
                                     }
                                 }
-                            }
-                        },
-                        _ => rsx! { div { "Unknown tab selected" } }
+                            },
+                            "performance" => {
+                                rsx! {
+                                    PerformanceTab {
+                                        memory_allocation: memory_allocation,
+                                        java_args: java_args,
+                                    }
+                                }
+                            },
+                            "settings" => {
+                                rsx! {
+                                    SettingsTab {
+                                        installation: installation.clone(),
+                                        installation_id: installation_id_for_delete.clone(),
+                                        ondelete: move |_| {
+                                            // Handle delete functionality
+                                            debug!("Delete clicked for: {}", installation_id_for_delete);
+                                            onback.call(());
+                                        },
+                                        onupdate: move |updated_installation: Installation| {
+                                            // Update the installation data in the list
+                                            installations.with_mut(|list| {
+                                                if let Some(index) = list.iter().position(|i| i.id == updated_installation.id) {
+                                                    list[index] = updated_installation.clone();
+                                                }
+                                            });
+                                        }
+                                    }
+                                }
+                            },
+                            _ => rsx! { div { "Unknown tab selected" } }
+                        }
                     }
                 }
-            }
-            
-            // Bottom action bar with install/update/modify button
-            div { class: "installation-actions",
-                // Launch button
-                button {
-                    class: "launch-button",
-                    disabled: !installation.installed || *is_installing.read(),
-                    onclick: handle_launch,
-                    "Launch Game"
-                }
                 
-                // Install/Update/Modify button
-                button {
-                    class: if installation.update_available {
-                        "action-button update-button"
-                    } else if *has_changes.read() {
-                        "action-button modify-button"
-                    } else {
-                        "action-button"
-                    },
-                    disabled: action_button_disabled,
-                    onclick: handle_update,
+                // Bottom action bar with install/update/modify button
+                div { class: "installation-actions",
+                    // Launch button
+                    button {
+                        class: "launch-button",
+                        disabled: !installation.installed || *is_installing.read(),
+                        onclick: handle_launch,
+                        "Launch Game"
+                    }
                     
-                    if *is_installing.read() {
-                        "Installing..."
-                    } else {
-                        {action_button_label}
+                    // Install/Update/Modify button
+                    button {
+                        class: if installation.update_available {
+                            "action-button update-button"
+                        } else if *has_changes.read() {
+                            "action-button modify-button"
+                        } else {
+                            "action-button"
+                        },
+                        disabled: action_button_disabled,
+                        onclick: handle_update,
+                        
+                        if *is_installing.read() {
+                            "Installing..."
+                        } else {
+                            {action_button_label}
+                        }
                     }
                 }
             }
@@ -2855,23 +2870,7 @@ HomePage {
     rsx! {
         div {
 
-
-            
-            div { class: "installation-management-container",
-        // Show progress view if installing
-        if *is_installing.read() {
-            ProgressView {
-                value: *installation_progress.read(),
-                max: *installation_total.read(),
-                status: installation_status.read().clone(),
-                title: format!("Installing {}", installation.name)
-            }
-        } else {
-
-
-
-            
-            style { {complete_css} }
+       style { {complete_css} }
             Modal {}
 
             BackgroundParticles {}
@@ -2905,4 +2904,4 @@ HomePage {
             }
         }
     }
-}}}
+}
