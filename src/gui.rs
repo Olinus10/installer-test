@@ -990,6 +990,11 @@ pub fn InstallationManagementPage(
     // State for tracking modifications in different areas 
     let mut features_modified = use_signal(|| false);
     let mut performance_modified = use_signal(|| false);
+
+    // Add a progress state
+    let mut installation_progress = use_signal(|| 0);
+    let mut installation_total = use_signal(|| 0);
+    let mut installation_status = use_signal(|| String::new());
     
     // Filter text for feature search
     let filter_text = use_signal(|| String::new());
@@ -1080,41 +1085,65 @@ pub fn InstallationManagementPage(
     });
     
     // Handle install/update
-    let handle_update = move |_| {
-        is_installing.set(true);
-        let mut installation_clone = installation_for_update.clone();
-        
-        // Update settings
-        installation_clone.enabled_features = enabled_features.read().clone();
-        installation_clone.memory_allocation = *memory_allocation.read();
-        installation_clone.java_args = java_args.read().clone();
-        installation_clone.modified = true;
-        
-        let http_client = crate::CachedHttpClient::new();
-        let mut installation_error_clone = installation_error.clone();
-        
-        spawn(async move {
-            match installation_clone.install_or_update(&http_client).await {
-                Ok(_) => {
-                    debug!("Successfully updated installation: {}", installation_clone.id);
-                    // Save the updated installation
-                    if let Err(e) = installation_clone.save() {
-                        error!("Failed to save changes: {}", e);
-                        installation_error_clone.set(Some(format!("Failed to save changes: {}", e)));
-                    } else {
-                        has_changes.set(false);
-                        features_modified.set(false);
-                        performance_modified.set(false);
-                    }
-                },
-                Err(e) => {
-                    error!("Failed to update installation: {}", e);
-                    installation_error_clone.set(Some(e));
-                }
+let handle_update = move |_| {
+    is_installing.set(true);
+    let mut installation_clone = installation_for_update.clone();
+    
+    // Update settings
+    installation_clone.enabled_features = enabled_features.read().clone();
+    installation_clone.memory_allocation = *memory_allocation.read();
+    installation_clone.java_args = java_args.read().clone();
+    installation_clone.modified = true;
+    
+    let http_client = crate::CachedHttpClient::new();
+    let mut installation_error_clone = installation_error.clone();
+    let mut progress = installation_progress.clone();
+    let mut total = installation_total.clone();
+    let mut status = installation_status.clone();
+    
+    spawn(async move {
+        // Calculate total items
+        let manifest = match crate::universal::load_universal_manifest(&http_client, None).await {
+            Ok(m) => m,
+            Err(e) => {
+                installation_error_clone.set(Some(format!("Failed to load manifest: {}", e)));
+                is_installing.set(false);
+                return;
             }
-            is_installing.set(false);
-        });
-    };
+        };
+        
+        let total_items = manifest.mods.len() + manifest.shaderpacks.len() + 
+                         manifest.resourcepacks.len() + manifest.include.len();
+        total.set(total_items as i64);
+        progress.set(0);
+        status.set("Preparing installation...".to_string());
+        
+        // Create a progress callback
+        let progress_callback = move || {
+            progress.with_mut(|p| *p += 1);
+        };
+        
+        match installation_clone.install_or_update_with_progress(&http_client, progress_callback).await {
+            Ok(_) => {
+                debug!("Successfully updated installation: {}", installation_clone.id);
+                // Save the updated installation
+                if let Err(e) = installation_clone.save() {
+                    error!("Failed to save changes: {}", e);
+                    installation_error_clone.set(Some(format!("Failed to save changes: {}", e)));
+                } else {
+                    has_changes.set(false);
+                    features_modified.set(false);
+                    performance_modified.set(false);
+                }
+            },
+            Err(e) => {
+                error!("Failed to update installation: {}", e);
+                installation_error_clone.set(Some(e));
+            }
+        }
+        is_installing.set(false);
+    });
+};
     
     // Button label based on state
     let action_button_label = if !installation.installed {
@@ -2825,6 +2854,23 @@ HomePage {
     // Combine components for final render
     rsx! {
         div {
+
+
+            
+            div { class: "installation-management-container",
+        // Show progress view if installing
+        if *is_installing.read() {
+            ProgressView {
+                value: *installation_progress.read(),
+                max: *installation_total.read(),
+                status: installation_status.read().clone(),
+                title: format!("Installing {}", installation.name)
+            }
+        } else {
+
+
+
+            
             style { {complete_css} }
             Modal {}
 
