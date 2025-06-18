@@ -1,5 +1,3 @@
-// Updated Installation structure in installation.rs
-
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::io;
@@ -122,7 +120,6 @@ pub struct Installation {
     pub total_launches: u32,
 }
 
-// Update the new_from_preset and new_custom methods
 impl Installation {
     // Create a new installation from a preset
     pub fn new_from_preset(
@@ -301,47 +298,6 @@ impl Installation {
         self.save()
     }
 }
-    
-    // Custom installation without using a preset
-    pub fn new_custom(
-        name: String,
-        minecraft_version: String,
-        loader_type: String,
-        loader_version: String,
-        launcher_type: String,
-        universal_version: String,
-    ) -> Self {
-        let id = uuid::Uuid::new_v4().to_string();
-        let now = chrono::Utc::now();
-        
-        info!("Creating new custom installation '{}' with ID: {}", name, id);
-        
-        // Generate installation path based on ID
-        let installations_dir = get_installations_dir();
-        let installation_path = installations_dir.join(&id);
-        
-        Self {
-            id,
-            name,
-            created_at: now,
-            last_used: now,
-            minecraft_version,
-            loader_type,
-            loader_version,
-            installation_path,
-            enabled_features: vec!["default".to_string()],
-            memory_allocation: 3072, // 3GB default
-            java_args: "-XX:+UseG1GC -XX:+UnlockExperimentalVMOptions -XX:G1NewSizePercent=20 -XX:G1ReservePercent=20 -XX:MaxGCPauseMillis=50 -XX:G1HeapRegionSize=32M".to_string(),
-            installed: false,
-            modified: false,
-            update_available: false,
-            launcher_type,
-            universal_version,
-            last_launch: None,
-            total_launches: 0,
-        }
-    }
-
 
 // Register installation function for installation.rs
 pub fn register_installation(installation: &Installation) -> Result<(), String> {
