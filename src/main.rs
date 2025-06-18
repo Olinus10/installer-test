@@ -950,7 +950,8 @@ fn get_minecraft_folder() -> PathBuf {
 fn get_modpack_root(launcher: &Launcher, uuid: &str) -> PathBuf {
     match launcher {
         Launcher::Vanilla(root) => {
-            let root = root.join(Path::new(&format!(".WC_OVHL/{}", uuid)));
+            // Use the installations directory structure
+            let root = root.join(Path::new(&format!(".WC_OVHL/installations/{}", uuid)));
             fs::create_dir_all(&root).expect("Failed to create modpack folder");
             root
         }
@@ -1029,7 +1030,7 @@ fn create_launcher_profile(
                     _ => panic!("Invalid loader"),
                 },
                 created: now,
-                name: manifest.name.clone(),
+                name: installer_profile.manifest.name.clone(), // Use the actual installation name
                 icon: Some(icon),
                 r#type: String::from("custom"),
                 gameDir: Some(modpack_root.to_str().unwrap().to_string()),
