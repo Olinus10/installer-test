@@ -61,27 +61,42 @@ pub fn FeaturesTab(
             }
             
             // Presets grid
-            div { class: "presets-grid",
-                // Custom preset (no preset selected)
-                div { 
-                    class: if selected_preset.read().is_none() {
-                        "preset-card selected"
-                    } else {
-                        "preset-card"
-                    },
-                    // Apply custom preset background if available
-                    style: if let Some(preset) = custom_preset {
-                        if let Some(bg) = &preset.background {
-                            format!("background-image: url('{}'); background-size: cover; background-position: center;", bg)
-                        } else {
-                            String::new()
-                        }
-                    } else {
-                        String::new()
-                    },
-                    onclick: move |_| {
-                        selected_preset.set(None);
-                    },
+            div { 
+    class: if selected_preset.read().is_none() {
+        "preset-card selected"
+    } else {
+        "preset-card"
+    },
+    onclick: move |_| {
+        // When selecting custom preset, ensure default features are included
+        enabled_features.with_mut(|features| {
+            // Always ensure "default" is present
+            if !features.contains(&"default".to_string()) {
+                features.insert(0, "default".to_string());
+            }
+            
+            // Add any default-enabled features from the universal manifest if available
+            if let Some(manifest) = &universal_manifest {
+                for component in &manifest.mods {
+                    if component.default_enabled && !features.contains(&component.id) {
+                        features.push(component.id.clone());
+                    }
+                }
+                for component in &manifest.shaderpacks {
+                    if component.default_enabled && !features.contains(&component.id) {
+                        features.push(component.id.clone());
+                    }
+                }
+                for component in &manifest.resourcepacks {
+                    if component.default_enabled && !features.contains(&component.id) {
+                        features.push(component.id.clone());
+                    }
+                }
+            }
+        });
+        
+        selected_preset.set(None);
+    },
                     
                     div { class: "preset-card-overlay" }
                     
