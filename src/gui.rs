@@ -1149,17 +1149,17 @@ pub fn InstallationManagementPage(
     });
     
     // Handle install/update with progress tracking
-    let handle_update = move |_| {
-        is_installing.set(true);
-        let mut installation_clone = installation_for_update.clone();
-        
-        // Update settings
-        installation_clone.enabled_features = enabled_features.read().clone();
-        installation_clone.memory_allocation = *memory_allocation.read();
-        installation_clone.java_args = java_args.read().clone();
-        installation_clone.modified = true;
-        
-        let http_client = crate::CachedHttpClient::new();
+let handle_update = move |_| {
+    is_installing.set(true);
+    let mut installation_clone = installation_for_update.clone();
+    
+    // Update settings
+    installation_clone.enabled_features = enabled_features.read().clone();
+    installation_clone.memory_allocation = *memory_allocation.read();
+    installation_clone.java_args = java_args.read().clone();
+    installation_clone.modified = true;
+    
+    let http_client = crate::CachedHttpClient::new();
         let mut installation_error_clone = installation_error.clone();
         let mut progress = installation_progress.clone();
         let mut total = installation_total.clone();
@@ -1187,43 +1187,46 @@ pub fn InstallationManagementPage(
                         status.set(format!("Installing... {}/{}", current, total_val));
                     };
                     
-                    match installation_clone.install_or_update_with_progress(&http_client, progress_callback).await {
-                        Ok(_) => {
-                            debug!("Successfully updated installation: {}", installation_clone.id);
-                            // Save the updated installation
-                            if let Err(e) = installation_clone.save() {
-                                error!("Failed to save changes: {}", e);
-                                installation_error_clone.set(Some(format!("Failed to save changes: {}", e)));
-                            } else {
-                                has_changes_clone.set(false);
-                                features_modified_clone.set(false);
-                                performance_modified_clone.set(false);
-                            }
-                        },
-                        Err(e) => {
-                            error!("Failed to update installation: {}", e);
-                            installation_error_clone.set(Some(e));
-                        }
-                    }
-                },
-                Err(e) => {
-                    installation_error_clone.set(Some(format!("Failed to load manifest: {}", e)));
+                            match installation_clone.install_or_update_with_progress(&http_client, progress_callback).await {
+            Ok(_) => {
+                debug!("Successfully updated installation: {}", installation_clone.id);
+                
+                // Ensure progress reaches 100%
+                progress.set(*total.read());
+                status.set("Installation completed successfully!".to_string());
+                
+                // Wait a moment to show completion
+                tokio::time::sleep(tokio::time::Duration::from_millis(2000)).await;
+                
+                // Save and finish
+                if let Err(e) = installation_clone.save() {
+                    error!("Failed to save changes: {}", e);
+                    installation_error_clone.set(Some(format!("Failed to save changes: {}", e)));
+                } else {
+                    has_changes_clone.set(false);
+                    features_modified_clone.set(false);
+                    performance_modified_clone.set(false);
                 }
+            },
+            Err(e) => {
+                error!("Failed to update installation: {}", e);
+                installation_error_clone.set(Some(e));
             }
-            is_installing_clone.set(false);
-        });
-    };
+        }
+        is_installing_clone.set(false);
+    });
+};
     
     // Button label based on state
-    let action_button_label = if !installation.installed {
-        "Install"
-    } else if installation.update_available {
-        "Update"
-    } else if *has_changes.read() {
-        "Apply Changes"  // Changed from "Modify" to be more clear
-    } else {
-        "Up to Date"
-    };
+    let (action_button_label, button_class) = if !installation.installed {
+    ("Install", "action-button install-button")
+} else if installation.update_available {
+    ("Update", "action-button update-button") 
+} else if *has_changes.read() {
+    ("Apply Changes", "action-button modify-button")
+} else {
+    ("Up to Date", "action-button")
+};
     
     // Button disable logic
     let action_button_disabled = *is_installing.read() || 
@@ -1364,9 +1367,33 @@ pub fn InstallationManagementPage(
                                         installation: installation.clone(),
                                         installation_id: installation_id_for_delete.clone(),
                                         ondelete: move |_| {
-                                            // Handle delete functionality
-                                            debug!("Delete clicked for: {}", installation_id_for_delete);
-                                            onback.call(());
+let handle_delete = move |_| {
+    let id_to_delete = installation_id_for_delete.clone();
+    let delete_handler = ondelete.clone();
+    let mut installations_clone = installations.clone();
+    is_operating.set(true);
+    
+    spawn(async move {
+        match delete_installation(&id_to_delete) {
+            Ok(_) => {
+                debug!("Successfully deleted installation: {}", id_to_delete);
+                
+                // Remove from installations list immediately
+                installations_clone.with_mut(|list| {
+                    list.retain(|inst| inst.id != id_to_delete);
+                });
+                
+                // Call the ondelete handler to navigate back to home
+                delete_handler.call(());
+            },
+            Err(e) => {
+                error!("Failed to delete installation: {}", e);
+                operation_error.set(Some(format!("Failed to delete installation: {}", e)));
+                is_operating.set(false);
+            }
+        }
+    });
+};
                                         },
                                         onupdate: move |updated_installation: Installation| {
                                             // Update the installation data in the list
@@ -1395,23 +1422,17 @@ pub fn InstallationManagementPage(
                     }
                     
                     // Install/Update/Modify button
-                    button {
-                        class: if installation.update_available {
-                            "action-button update-button"
-                        } else if *has_changes.read() {
-                            "action-button modify-button"
-                        } else {
-                            "action-button"
-                        },
-                        disabled: action_button_disabled,
-                        onclick: handle_update,
-                        
-                        if *is_installing.read() {
-                            "Installing..."
-                        } else {
-                            {action_button_label}
-                        }
-                    }
+button {
+    class: button_class,
+    disabled: action_button_disabled,
+    onclick: handle_update,
+    
+    if *is_installing.read() {
+        "Installing..."
+    } else {
+        {action_button_label}
+    }
+}
                 }
             }
         }
@@ -1427,29 +1448,39 @@ fn ProgressView(
 ) -> Element {
     let percentage = if max > 0 { (value * 100) / max } else { 0 };
     
+    // Ensure we show completion state
+    let (current_step, step_label) = if percentage >= 100 {
+        ("complete", "Complete")
+    } else if percentage >= 90 {
+        ("finish", "Finishing")
+    } else if percentage >= 60 {
+        ("configure", "Configuring")
+    } else if percentage >= 30 {
+        ("extract", "Extracting")
+    } else if percentage > 0 {
+        ("download", "Downloading")
+    } else {
+        ("prepare", "Preparing")
+    };
+    
     let steps = vec![
         ("prepare", "Prepare"),
         ("download", "Download"),
         ("extract", "Extract"),
         ("configure", "Configure"),
-        ("finish", "Finish")
+        ("finish", "Finish"),
+        ("complete", "Complete"), // Add completion step
     ];
     
-    // Get current step based on progress
-    let current_step = if percentage == 0 {
-        "prepare"
-    } else if percentage < 30 {
-        "download"
-    } else if percentage < 60 {
-        "extract"
-    } else if percentage < 90 {
-        "configure"
-    } else {
-        "finish"
-    };
-    
-    // Mark steps as active or completed based on the current progress
+    // Find current step index
     let active_step_index = steps.iter().position(|(id, _)| id == &current_step).unwrap_or(0);
+    
+    // Show final status when complete
+    let display_status = if percentage >= 100 {
+        "Installation completed successfully!".to_string()
+    } else {
+        status
+    };
     
     rsx! {
         div { 
@@ -1460,7 +1491,13 @@ fn ProgressView(
             
             div { class: "progress-header",
                 h1 { "{title}" }
-                div { class: "progress-subtitle", "Installation in progress..." }
+                div { class: "progress-subtitle", 
+                    if percentage >= 100 {
+                        "Installation Complete!"
+                    } else {
+                        "Installation in progress..."
+                    }
+                }
             }
             
             div { class: "progress-content",
@@ -1502,7 +1539,21 @@ fn ProgressView(
                     div { class: "progress-percentage", "{percentage}%" }
                 }
                 
-                p { class: "progress-status", "{status}" }
+                p { class: "progress-status", "{display_status}" }
+                
+                // Add completion button
+                if percentage >= 100 {
+                    div { class: "completion-actions",
+                        button {
+                            class: "completion-button",
+                            onclick: move |_| {
+                                // Close progress view
+                                // This should be handled by the parent component
+                            },
+                            "Continue"
+                        }
+                    }
+                }
             }
         }
     }
