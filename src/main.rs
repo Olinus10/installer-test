@@ -1249,7 +1249,10 @@ async fn download_helper<T: Downloadable + Debug, F: FnMut() + Clone>(
     progress_callback: F
 ) -> Result<Vec<T>, DownloadError> {
     let results = futures::stream::iter(items.into_iter().map(|item| async {
-        if item.get_path().is_none() && enabled_features.contains(item.get_id()) {
+        // Always include items with "default" ID or items that are in enabled_features
+        let should_include = item.get_id() == "default" || enabled_features.contains(item.get_id());
+        
+        if item.get_path().is_none() && should_include {
             let path = item
                 .download(modpack_root, loader_type, http_client)
                 .await?;
@@ -1266,7 +1269,7 @@ async fn download_helper<T: Downloadable + Debug, F: FnMut() + Clone>(
         } else {
             let item = validate_item_path!(item, modpack_root);
             let path;
-            if !enabled_features.contains(item.get_id()) && item.get_path().is_some() {
+            if !should_include && item.get_path().is_some() {
                 debug!("Removing: '{:#?}'", item.get_path());
                 let _ = fs::remove_file(item.get_path().as_ref().unwrap());
                 path = None;
