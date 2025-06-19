@@ -109,34 +109,43 @@ pub fn SettingsTab(
     
     // Handle rename
     let installation_for_rename = installation.clone();
-    let handle_rename = move |_| {
-        let mut installation_copy = installation_for_rename.clone();
-        installation_copy.name = new_name.read().clone();
-        
-        // Validate name
-        if installation_copy.name.trim().is_empty() {
-            rename_error.set(Some("Installation name cannot be empty".to_string()));
-            return;
+let handle_rename = move |_| {
+    let mut installation_copy = installation_for_rename.clone();
+    let new_name_trimmed = new_name.read().trim().to_string();
+    installation_copy.name = new_name_trimmed.clone();
+    
+    // Validate name length (add character limit check)
+    const MAX_NAME_LENGTH: usize = 25;
+    if new_name_trimmed.is_empty() {
+        rename_error.set(Some("Installation name cannot be empty".to_string()));
+        return;
+    }
+    
+    if new_name_trimmed.len() > MAX_NAME_LENGTH {
+        rename_error.set(Some(format!("Installation name cannot exceed {} characters.", MAX_NAME_LENGTH)));
+        return;
+    }
+    
+    is_operating.set(true);
+    
+    // Save changes
+    match installation_copy.save() {
+        Ok(_) => {
+            debug!("Renamed installation to: {}", installation_copy.name);
+            show_rename_dialog.set(false);
+            is_operating.set(false);
+            rename_error.set(None); // Clear any previous errors
+            // Call the update handler with the updated installation
+            onupdate.call(installation_copy);
+        },
+        Err(e) => {
+            debug!("Failed to rename installation: {}", e);
+            rename_error.set(Some(format!("Failed to rename installation: {}", e)));
+            is_operating.set(false);
         }
-        
-        is_operating.set(true);
-        
-        // Save changes
-        match installation_copy.save() {
-            Ok(_) => {
-                debug!("Renamed installation to: {}", installation_copy.name);
-                show_rename_dialog.set(false);
-                is_operating.set(false);
-                // Call the update handler with the updated installation
-                onupdate.call(installation_copy);
-            },
-            Err(e) => {
-                debug!("Failed to rename installation: {}", e);
-                rename_error.set(Some(format!("Failed to rename installation: {}", e)));
-                is_operating.set(false);
-            }
-        }
-    };
+    }
+};
+
     
     // Handle delete
    let handle_delete = move |_| {
@@ -385,13 +394,29 @@ pub fn SettingsTab(
                             div { class: "form-group",
                                 label { r#for: "installation-name", "New name:" }
                                 input {
-                                    id: "installation-name",
-                                    r#type: "text",
-                                    value: "{new_name}",
-                                    disabled: *is_operating.read(),
-                                    oninput: move |evt| new_name.set(evt.value().clone()),
-                                    placeholder: "Enter new installation name"
-                                }
+    id: "installation-name",
+    r#type: "text",
+    value: "{new_name}",
+    maxlength: "25", // Add maxlength attribute
+    disabled: *is_operating.read(),
+    oninput: move |evt| {
+        let value = evt.value().clone();
+        if value.len() <= 25 {
+            new_name.set(value);
+        }
+    },
+    placeholder: "Enter new installation name"
+}
+
+// Add character counter below input
+div { class: "character-counter",
+    style: if new_name.read().len() > 20 { 
+        "color: #ff9d93;" 
+    } else { 
+        "color: rgba(255, 255, 255, 0.6);" 
+    },
+    "{new_name.read().len()}/25"
+}
                             }
                         }
                         
