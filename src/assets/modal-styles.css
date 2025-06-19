@@ -596,3 +596,47 @@ button:disabled {
         align-self: flex-end;
     }
 }
+
+/* Character counter for installation names */
+.character-counter {
+    font-size: 0.8rem;
+    text-align: right;
+    margin-top: 5px;
+    font-family: "REGULAR_FONT";
+    transition: color 0.2s ease;
+}
+
+/* Suggested names section */
+.suggested-names {
+    margin-top: 15px;
+}
+
+.suggestion-label {
+    font-size: 0.9rem;
+    color: rgba(255, 255, 255, 0.7);
+    margin-bottom: 8px;
+}
+
+.suggestion-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.suggestion-chip {
+    background-color: rgba(7, 60, 23, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 20px;
+    padding: 6px 14px;
+    color: white;
+    font-family: "REGULAR_FONT";
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.suggestion-chip:hover {
+    background-color: rgba(7, 60, 23, 0.5);
+    border-color: rgba(255, 255, 255, 0.3);
+    transform: translateY(-2px);
+}
