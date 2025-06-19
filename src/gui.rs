@@ -784,7 +784,7 @@ pub fn SimplifiedInstallationWizard(props: InstallationCreationProps) -> Element
     
     // Set default name based on count
     use_effect(move || {
-        if name.read() == "My Wynncraft Installation" {
+        if *name.read() == "My Wynncraft Installation" {
             name.set(format!("Overhaul {}", installation_count));
         }
     });
