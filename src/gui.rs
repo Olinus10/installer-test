@@ -768,6 +768,27 @@ pub fn SimplifiedInstallationWizard(props: InstallationCreationProps) -> Element
     let mut installation_error = use_signal(|| Option::<String>::None);
     let mut manifest_error = use_signal(|| Option::<ManifestError>::None);
     
+    // Character limit for installation names
+    const MAX_NAME_LENGTH: usize = 25;
+    
+    // Suggested names based on existing installations count
+    let installations = use_context::<AppProps>().installations;
+    let installation_count = installations.len() + 1;
+    let suggested_names = vec![
+        format!("Overhaul {}", installation_count),
+        format!("Wynncraft {}", installation_count),
+        format!("Adventure {}", installation_count),
+        "My Overhaul".to_string(),
+        "Custom Build".to_string(),
+    ];
+    
+    // Set default name based on count
+    use_effect(move || {
+        if name.read() == "My Wynncraft Installation" {
+            name.set(format!("Overhaul {}", installation_count));
+        }
+    });
+    
     // Resource for universal manifest with better error handling
     let manifest_error_clone = manifest_error.clone();
     let universal_manifest = use_resource(move || {
@@ -798,6 +819,18 @@ pub fn SimplifiedInstallationWizard(props: InstallationCreationProps) -> Element
     let create_installation = move |_| {
         debug!("Creating installation with name: {}", name.read());
         
+        // Validate name length
+        let installation_name = name.read().trim().to_string();
+        if installation_name.is_empty() {
+            installation_error.set(Some("Installation name cannot be empty.".to_string()));
+            return;
+        }
+        
+        if installation_name.len() > MAX_NAME_LENGTH {
+            installation_error.set(Some(format!("Installation name cannot exceed {} characters.", MAX_NAME_LENGTH)));
+            return;
+        }
+        
         // Get the universal manifest for Minecraft version and loader information
         if let Some(unwrapped_manifest) = universal_manifest.read().as_ref().and_then(|opt| opt.as_ref()) {
             let minecraft_version = unwrapped_manifest.minecraft_version.clone();
@@ -806,7 +839,7 @@ pub fn SimplifiedInstallationWizard(props: InstallationCreationProps) -> Element
             
             // Create a basic installation
             let installation = Installation::new_custom(
-                name.read().clone(),
+                installation_name.clone(),  // Use the validated name
                 minecraft_version,
                 loader_type,
                 loader_version,
@@ -874,8 +907,39 @@ pub fn SimplifiedInstallationWizard(props: InstallationCreationProps) -> Element
                                 id: "installation-name",
                                 r#type: "text",
                                 value: "{name}",
-                                oninput: move |evt| name.set(evt.value().clone()),
+                                maxlength: "{MAX_NAME_LENGTH}",
+                                oninput: move |evt| {
+                                    let new_value = evt.value().clone();
+                                    if new_value.len() <= MAX_NAME_LENGTH {
+                                        name.set(new_value);
+                                    }
+                                },
                                 placeholder: "e.g. My Wynncraft Adventure"
+                            }
+                            
+                            // Character counter
+                            div { class: "character-counter",
+                                style: if name.read().len() > MAX_NAME_LENGTH - 5 { 
+                                    "color: #ff9d93;" 
+                                } else { 
+                                    "color: rgba(255, 255, 255, 0.6);" 
+                                },
+                                "{name.read().len()}/{MAX_NAME_LENGTH}"
+                            }
+                        }
+                        
+                        // Suggested names
+                        div { class: "suggested-names",
+                            p { class: "suggestion-label", "Suggestions:" }
+                            div { class: "suggestion-chips",
+                                for suggestion in suggested_names {
+                                    button {
+                                        class: "suggestion-chip",
+                                        r#type: "button",
+                                        onclick: move |_| name.set(suggestion.clone()),
+                                        "{suggestion}"
+                                    }
+                                }
                             }
                         }
                     }
@@ -1156,9 +1220,9 @@ pub fn InstallationManagementPage(
     } else if installation.update_available {
         "Update"
     } else if *has_changes.read() {
-        "Apply Changes"
+        "Apply Changes"  // Changed from "Modify" to be more clear
     } else {
-        "Already Up To Date"
+        "Up to Date"
     };
     
     // Button disable logic
