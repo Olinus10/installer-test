@@ -390,9 +390,28 @@ fn render_features_by_category(
             .collect()
     };
     
-    // Group by category
-    let mut categories: std::collections::BTreeMap<String, Vec<ModComponent>> = std::collections::BTreeMap::new();
+    // Separate default and optional components
+    let mut default_components = Vec::new();
+    let mut optional_components = Vec::new();
+    
     for component in filtered_components {
+        if component.id == "default" || !component.optional {
+            default_components.push(component);
+        } else {
+            optional_components.push(component);
+        }
+    }
+    
+    // Group optional components by category
+    let mut categories: std::collections::BTreeMap<String, Vec<ModComponent>> = std::collections::BTreeMap::new();
+    
+    // Add default components as first category if they exist
+    if !default_components.is_empty() {
+        categories.insert("✓ Included Components".to_string(), default_components);
+    }
+    
+    // Group remaining components by their categories
+    for component in optional_components {
         let category = component.category.clone().unwrap_or_else(|| "Uncategorized".to_string());
         categories.entry(category).or_insert_with(Vec::new).push(component);
     }
@@ -407,7 +426,7 @@ fn render_features_by_category(
     let total_features = categories.values().flat_map(|comps| comps).count();
     let enabled_count = categories.values()
         .flat_map(|comps| comps)
-        .filter(|comp| enabled_features.read().contains(&comp.id))
+        .filter(|comp| enabled_features.read().contains(&comp.id) || comp.id == "default")
         .count();
     
     // If no results found
@@ -428,12 +447,15 @@ fn render_features_by_category(
                     let is_expanded = expanded_categories.read().contains(&category_key) 
                                  || filter.is_empty() == false; // Auto-expand when filtering
                     
-                    // Calculate how many components are enabled
+                    // Calculate how many components are enabled (excluding default/included)
+                    let optional_components: Vec<_> = components.iter()
+                        .filter(|comp| comp.id != "default" && comp.optional)
+                        .collect();
                     let enabled_count = enabled_features.read().iter()
-                        .filter(|id| components.iter().any(|comp| &comp.id == *id))
+                        .filter(|id| optional_components.iter().any(|comp| &comp.id == *id))
                         .count();
                     
-                    let are_all_enabled = enabled_count == components.len();
+                    let are_all_enabled = !optional_components.is_empty() && enabled_count == optional_components.len();
                     
                     rsx! {
                         div { class: "feature-category",
@@ -474,17 +496,19 @@ fn render_features_by_category(
                                                 // Stop propagation to prevent header's click handler
                                                 evt.stop_propagation();
                                                 
-                                                // Toggle all in category
+                                                // Toggle all in category (excluding default/included)
                                                 enabled_features.with_mut(|features| {
                                                     if are_all_enabled {
-                                                        // Disable all
+                                                        // Disable all optional components
                                                         for comp in &components_clone {
-                                                            features.retain(|id| id != &comp.id);
+                                                            if comp.id != "default" && comp.optional {
+                                                                features.retain(|id| id != &comp.id);
+                                                            }
                                                         }
                                                     } else {
-                                                        // Enable all
+                                                        // Enable all optional components
                                                         for comp in &components_clone {
-                                                            if !features.contains(&comp.id) {
+                                                            if comp.id != "default" && comp.optional && !features.contains(&comp.id) {
                                                                 features.push(comp.id.clone());
                                                             }
                                                         }
@@ -541,20 +565,29 @@ fn render_features_by_category(
                                                     div { class: "feature-card-header",
                                                         h3 { class: "feature-card-title", "{component.name}" }
                                                         
-                                                        label {
-                                                            class: if is_enabled {
-                                                                "feature-toggle-button enabled"
-                                                            } else {
-                                                                "feature-toggle-button disabled"
-                                                            },
-                                                            onclick: move |_| {
-                                                                toggle_func(component_id.clone());
-                                                            },
-                                                            
-                                                            if is_enabled {
-                                                                "Enabled"
-                                                            } else {
-                                                                "Disabled"
+                                                        // Special handling for default/included components
+                                                        if component.id == "default" || !component.optional {
+                                                            span {
+                                                                class: "feature-toggle-button enabled default-component",
+                                                                style: "cursor: default; opacity: 0.8;",
+                                                                "Included"
+                                                            }
+                                                        } else {
+                                                            label {
+                                                                class: if is_enabled {
+                                                                    "feature-toggle-button enabled"
+                                                                } else {
+                                                                    "feature-toggle-button disabled"
+                                                                },
+                                                                onclick: move |_| {
+                                                                    toggle_func(component_id.clone());
+                                                                },
+                                                                
+                                                                if is_enabled {
+                                                                    "Enabled"
+                                                                } else {
+                                                                    "Disabled"
+                                                                }
                                                             }
                                                         }
                                                     }
