@@ -74,7 +74,7 @@ fn format_memory_display(memory_mb: i32) -> String {
 pub fn PerformanceTab(
     memory_allocation: Signal<i32>,
     java_args: Signal<String>,
-    installation_id: String, // Add this parameter
+    installation_id: String,
 ) -> Element {
     // State for system memory
     let mut detected_memory = use_signal(|| None::<i32>);
@@ -113,7 +113,7 @@ pub fn PerformanceTab(
     // This needs to be passed from the parent component
     
     // Store original value for comparison to detect changes
-    let original_memory = installation.memory_allocation;
+    let original_memory = use_memo(move || *memory_allocation.read());
     
     // State for displaying success message after apply
     let mut show_apply_success = use_signal(|| false);
