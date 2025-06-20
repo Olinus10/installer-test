@@ -44,7 +44,7 @@ pub fn FeaturesTab(
     let mut regular_button_hover = use_signal(Vec::<String>::new);
     
     // Features section expanded state
-    let mut features_expanded = use_signal(|| false); // Default to expanded
+    let mut features_expanded = use_signal(|| false);
     
     // Find custom preset for the "Custom Configuration" card
     let custom_preset = presets.iter().find(|p| p.id == "custom");
@@ -60,204 +60,88 @@ pub fn FeaturesTab(
                 "Choose a preset configuration or customize individual features below."
             }
             
-            // Presets grid
-div { class: "presets-grid",
-    // Custom preset (no preset selected)
-    div { 
-        class: if selected_preset.read().is_none() {
-            "preset-card selected"
-        } else {
-            "preset-card"
-        },
-        // Apply custom preset background if available
-        style: if let Some(preset) = custom_preset {
-            if let Some(bg) = &preset.background {
-                format!("background-image: url('{}'); background-size: cover; background-position: center;", bg)
-            } else {
-                String::new()
-            }
-        } else {
-            String::new()
-        },
-        onclick: move |_| {
-            // When selecting custom preset, ensure default features are included
-            enabled_features.with_mut(|features| {
-                // Always ensure "default" is present
-                if !features.contains(&"default".to_string()) {
-                    features.insert(0, "default".to_string());
-                }
-                
-                // Add any default-enabled features from the universal manifest if available
-                if let Some(manifest) = &universal_manifest {
-                    for component in &manifest.mods {
-                        if component.default_enabled && !features.contains(&component.id) {
-                            features.push(component.id.clone());
-                        }
-                    }
-                    for component in &manifest.shaderpacks {
-                        if component.default_enabled && !features.contains(&component.id) {
-                            features.push(component.id.clone());
-                        }
-                    }
-                    for component in &manifest.resourcepacks {
-                        if component.default_enabled && !features.contains(&component.id) {
-                            features.push(component.id.clone());
-                        }
-                    }
-                }
-            });
-            
-            selected_preset.set(None);
-        },
-        
-        div { class: "preset-card-overlay" }
-        
-        div { class: "preset-card-content",
-            h4 { "CUSTOM OVERHAUL" }
-            p { "Start with your current selection and customize everything yourself." }
-        }
-        
-        // Select/Selected button
-        {
-            let is_selected = selected_preset.read().is_none();
-            
-            rsx! {
-                button {
-                    class: "select-preset-button",
-                    style: {
-                        let is_selected = selected_preset.read().is_none();
-                        let is_hovered = *custom_button_hover.read();
-                        
-                        if is_selected {
-                            "background-color: white !important; color: #0a3d16 !important; border: none !important;"
-                        } else if is_hovered {
-                            "background-color: rgba(10, 80, 30, 0.9) !important; color: white !important; transform: translateX(-50%) translateY(-3px) !important; box-shadow: 0 5px 15px rgba(0, 0, 0, 0.4) !important;"
-                        } else {
-                            "background-color: rgba(7, 60, 23, 0.7) !important; color: white !important;"
-                        }
-                    },
-                    onmouseenter: move |_| custom_button_hover.set(true),
-                    onmouseleave: move |_| custom_button_hover.set(false),
-                    
-                    if is_selected {
-                        "SELECTED"
-                    } else {
-                        "SELECT"
-                    }
-                }
-            }
-        }
-    }
-    
-    // Available presets - skip the "custom" preset since we handle it separately
-    for preset in presets.iter().filter(|p| p.id != "custom") {
-        {
-            let preset_id = preset.id.clone();
-            let is_selected = selected_preset.read().as_ref().map_or(false, |id| id == &preset_id);
-            let mut apply_preset_clone = apply_preset.clone();
-            let has_trending = preset.trending.unwrap_or(false);
-            
-            // Track if this specific button is being hovered
-            let button_id = preset_id.clone();
-            let is_button_hovered = if has_trending {
-                trending_button_hover.read().contains(&button_id)
-            } else {
-                regular_button_hover.read().contains(&button_id)
-            };
-            
-            rsx! {
-                div {
-                    class: if is_selected {
+            // Presets grid - ONLY ONE RENDERING BLOCK
+            div { class: "presets-grid",
+                // Custom preset (no preset selected)
+                div { 
+                    class: if selected_preset.read().is_none() {
                         "preset-card selected"
                     } else {
                         "preset-card"
                     },
-                    // Apply background if available
-                    style: if let Some(bg) = &preset.background {
-                        format!("background-image: url('{}'); background-size: cover; background-position: center;", bg)
+                    // Apply custom preset background if available
+                    style: if let Some(preset) = custom_preset {
+                        if let Some(bg) = &preset.background {
+                            format!("background-image: url('{}'); background-size: cover; background-position: center;", bg)
+                        } else {
+                            String::new()
+                        }
                     } else {
                         String::new()
                     },
                     onclick: move |_| {
-                        apply_preset_clone(preset_id.clone());
+                        // When selecting custom preset, ensure default features are included
+                        enabled_features.with_mut(|features| {
+                            // Always ensure "default" is present
+                            if !features.contains(&"default".to_string()) {
+                                features.insert(0, "default".to_string());
+                            }
+                            
+                            // Add any default-enabled features from the universal manifest if available
+                            if let Some(manifest) = &universal_manifest {
+                                for component in &manifest.mods {
+                                    if component.default_enabled && !features.contains(&component.id) {
+                                        features.push(component.id.clone());
+                                    }
+                                }
+                                for component in &manifest.shaderpacks {
+                                    if component.default_enabled && !features.contains(&component.id) {
+                                        features.push(component.id.clone());
+                                    }
+                                }
+                                for component in &manifest.resourcepacks {
+                                    if component.default_enabled && !features.contains(&component.id) {
+                                        features.push(component.id.clone());
+                                    }
+                                }
+                            }
+                        });
+                        
+                        selected_preset.set(None);
                     },
                     
-                    // Feature count badge in top right
-                    span { class: "preset-features-count",
-                        "{preset.enabled_features.len()} features"
-                    }
-                    
-                    // Trending badge in top left
-                    if has_trending {
-                        span { class: "trending-badge", "Popular" }
-                    }
-                    
-                    // Dark overlay for text readability
                     div { class: "preset-card-overlay" }
                     
                     div { class: "preset-card-content",
-                        h4 { "{preset.name}" }
-                        p { "{preset.description}" }
+                        h4 { "CUSTOM OVERHAUL" }
+                        p { "Start with your current selection and customize everything yourself." }
                     }
                     
-                    // Select/Selected button with comprehensive inline styling
+                    // Select/Selected button
                     button {
                         class: "select-preset-button",
                         style: {
+                            let is_selected = selected_preset.read().is_none();
+                            let is_hovered = *custom_button_hover.read();
+                            
                             if is_selected {
-                                if has_trending {
-                                    "background-color: white !important; color: #b58c14 !important; border: none !important; box-shadow: 0 0 15px rgba(255, 179, 0, 0.3) !important;"
-                                } else {
-                                    "background-color: white !important; color: #0a3d16 !important; border: none !important;"
-                                }
-                            } else if is_button_hovered {
-                                if has_trending {
-                                    "background: linear-gradient(135deg, #e6b017, #cc9500) !important; color: black !important; transform: translateX(-50%) translateY(-3px) !important; box-shadow: 0 5px 15px rgba(0, 0, 0, 0.4) !important;"
-                                } else {
-                                    "background-color: rgba(10, 80, 30, 0.9) !important; color: white !important; transform: translateX(-50%) translateY(-3px) !important; box-shadow: 0 5px 15px rgba(0, 0, 0, 0.4) !important;"
-                                }
+                                "background-color: white !important; color: #0a3d16 !important; border: none !important;"
+                            } else if is_hovered {
+                                "background-color: rgba(10, 80, 30, 0.9) !important; color: white !important; transform: translateX(-50%) translateY(-3px) !important; box-shadow: 0 5px 15px rgba(0, 0, 0, 0.4) !important;"
                             } else {
-                                if has_trending {
-                                    "background: linear-gradient(135deg, #d4a017, #b78500) !important; color: black !important;"
-                                } else {
-                                    "background-color: rgba(7, 60, 23, 0.7) !important; color: white !important;"
-                                }
+                                "background-color: rgba(7, 60, 23, 0.7) !important; color: white !important;"
                             }
                         },
-                        onmouseenter: {
-                            let button_id_enter = button_id.clone();
-                            let has_trending_enter = has_trending;
-                            move |_| {
-                                if has_trending_enter {
-                                    trending_button_hover.with_mut(|ids| ids.push(button_id_enter.clone()));
-                                } else {
-                                    regular_button_hover.with_mut(|ids| ids.push(button_id_enter.clone()));
-                                }
-                            }
-                        },
-                        onmouseleave: {
-                            let button_id_leave = button_id.clone();
-                            let has_trending_leave = has_trending;
-                            move |_| {
-                                if has_trending_leave {
-                                    trending_button_hover.with_mut(|ids| ids.retain(|id| id != &button_id_leave));
-                                } else {
-                                    regular_button_hover.with_mut(|ids| ids.retain(|id| id != &button_id_leave));
-                                }
-                            }
-                        },
+                        onmouseenter: move |_| custom_button_hover.set(true),
+                        onmouseleave: move |_| custom_button_hover.set(false),
                         
-                        if is_selected {
+                        if selected_preset.read().is_none() {
                             "SELECTED"
                         } else {
                             "SELECT"
                         }
                     }
                 }
-            }
-        }
-    }
-}
                 
                 // Available presets - skip the "custom" preset since we handle it separately
                 for preset in presets.iter().filter(|p| p.id != "custom") {
@@ -334,7 +218,6 @@ div { class: "presets-grid",
                                             }
                                         }
                                     },
-                                    // Clone the button_id for each closure
                                     onmouseenter: {
                                         let button_id_enter = button_id.clone();
                                         let has_trending_enter = has_trending;
@@ -372,137 +255,139 @@ div { class: "presets-grid",
 
             // FEATURES section
             div { class: "optional-features-wrapper",
-    // Section header with divider style
-    div { class: "section-divider with-title", 
-        span { class: "divider-title", "FEATURES" }
-    }
-    
-    // Description for features section
-    p { class: "section-description", 
-        "Customize individual features to create your perfect experience."
-    }
-    
-    // Features count badge
-    div { class: "features-count-container",
-        span { class: "features-count-badge",
-            {
-                if let Some(manifest) = &universal_manifest {
-                    // Get all optional components
-                    let optional_mods = manifest.mods.iter()
-                        .filter(|m| m.optional)
-                        .count();
-                        
-                    let optional_shaderpacks = manifest.shaderpacks.iter()
-                        .filter(|m| m.optional)
-                        .count();
-                        
-                    let optional_resourcepacks = manifest.resourcepacks.iter()
-                        .filter(|m| m.optional)
-                        .count();
-                        
-                    // Calculate total features
-                    let total_features = optional_mods + optional_shaderpacks + optional_resourcepacks;
-                    
-                    // Calculate enabled features
-                    let enabled_count = enabled_features.read().len();
-                    
-                    rsx! { "{enabled_count}/{total_features} features enabled" }
-                } else {
-                    rsx! { "Loading features..." }
+                // Section header with divider style
+                div { class: "section-divider with-title", 
+                    span { class: "divider-title", "FEATURES" }
                 }
-            }
-        }
-    }
-    
-    // Centered expand/collapse button with improved styling
-    button { 
-    class: "expand-collapse-button",
-    onclick: move |_| {
-        let current_expanded = *features_expanded.read();
-        features_expanded.set(!current_expanded);
-    },
-    
-    // Icon and text change based on state
-    if *features_expanded.read() {
-        // Collapse state
-        span { class: "button-icon collapse-icon", "▲" }
-        "Collapse Features"
-    } else {
-        // Expand state
-        span { class: "button-icon expand-icon", "▼" }
-        "Expand Features"
-    }
-}
-    
-    // Collapsible content - search INSIDE this section
-    div { 
-        class: if *features_expanded.read() {
-            "optional-features-content expanded"
-        } else {
-            "optional-features-content"
-        },
-        
-        // Search filter at the top of expanded features section
-        div { class: "feature-filter-container",
-            span { class: "feature-filter-icon", "🔍" }
-            input {
-                class: "feature-filter",
-                placeholder: "Search for features...",
-                value: "{filter_text}",
-                oninput: move |evt| filter_text.set(evt.value().clone()),
-            }
-            
-            if !filter_text.read().is_empty() {
-                button {
-                    class: "feature-filter-clear",
-                    onclick: move |_| filter_text.set(String::new()),
-                    "×"
+                
+                // Description for features section
+                p { class: "section-description", 
+                    "Customize individual features to create your perfect experience."
                 }
-            }
-        }
-        
-        // Features content - only render if we have a universal manifest
-        {
-            if let Some(manifest) = &universal_manifest {
-                // Get all optional mods
-                let optional_mods: Vec<ModComponent> = manifest.mods.iter()
-                    .filter(|m| m.optional)
-                    .cloned()
-                    .collect();
                 
-                // Get all optional shaderpacks and resourcepacks too
-                let optional_shaderpacks: Vec<ModComponent> = manifest.shaderpacks.iter()
-                    .filter(|m| m.optional)
-                    .cloned()
-                    .collect();
+                // Features count badge
+                div { class: "features-count-container",
+                    span { class: "features-count-badge",
+                        {
+                            if let Some(manifest) = &universal_manifest {
+                                // Get all optional components
+                                let optional_mods = manifest.mods.iter()
+                                    .filter(|m| m.optional)
+                                    .count();
+                                    
+                                let optional_shaderpacks = manifest.shaderpacks.iter()
+                                    .filter(|m| m.optional)
+                                    .count();
+                                    
+                                let optional_resourcepacks = manifest.resourcepacks.iter()
+                                    .filter(|m| m.optional)
+                                    .count();
+                                    
+                                // Calculate total features
+                                let total_features = optional_mods + optional_shaderpacks + optional_resourcepacks;
+                                
+                                // Calculate enabled features
+                                let enabled_count = enabled_features.read().len();
+                                
+                                rsx! { "{enabled_count}/{total_features} features enabled" }
+                            } else {
+                                rsx! { "Loading features..." }
+                            }
+                        }
+                    }
+                }
                 
-                let optional_resourcepacks: Vec<ModComponent> = manifest.resourcepacks.iter()
-                    .filter(|m| m.optional)
-                    .cloned()
-                    .collect();
+                // Centered expand/collapse button with improved styling
+                button { 
+                    class: "expand-collapse-button",
+                    onclick: move |_| {
+                        let current_expanded = *features_expanded.read();
+                        features_expanded.set(!current_expanded);
+                    },
+                    
+                    // Icon and text change based on state
+                    if *features_expanded.read() {
+                        // Collapse state
+                        span { class: "button-icon collapse-icon", "▲" }
+                        "Collapse Features"
+                    } else {
+                        // Expand state
+                        span { class: "button-icon expand-icon", "▼" }
+                        "Expand Features"
+                    }
+                }
                 
-                // Combine all optional components
-                let mut all_components = Vec::new();
-                all_components.extend(optional_mods);
-                all_components.extend(optional_shaderpacks);
-                all_components.extend(optional_resourcepacks);
-                
-                // Display features by category
-                render_features_by_category(all_components, enabled_features.clone(), filter_text.clone(), toggle_feature)
-            } else {
-                rsx! {
-                    div { class: "loading-container",
-                        div { class: "loading-spinner" }
-                        div { class: "loading-text", "Loading features..." }
+                // Collapsible content - search INSIDE this section
+                div { 
+                    class: if *features_expanded.read() {
+                        "optional-features-content expanded"
+                    } else {
+                        "optional-features-content"
+                    },
+                    
+                    // Search filter at the top of expanded features section
+                    div { class: "feature-filter-container",
+                        span { class: "feature-filter-icon", "🔍" }
+                        input {
+                            class: "feature-filter",
+                            placeholder: "Search for features...",
+                            value: "{filter_text}",
+                            oninput: move |evt| filter_text.set(evt.value().clone()),
+                        }
+                        
+                        if !filter_text.read().is_empty() {
+                            button {
+                                class: "feature-filter-clear",
+                                onclick: move |_| filter_text.set(String::new()),
+                                "×"
+                            }
+                        }
+                    }
+                    
+                    // Features content - only render if we have a universal manifest
+                    {
+                        if let Some(manifest) = &universal_manifest {
+                            // Get all optional mods
+                            let optional_mods: Vec<ModComponent> = manifest.mods.iter()
+                                .filter(|m| m.optional)
+                                .cloned()
+                                .collect();
+                            
+                            // Get all optional shaderpacks and resourcepacks too
+                            let optional_shaderpacks: Vec<ModComponent> = manifest.shaderpacks.iter()
+                                .filter(|m| m.optional)
+                                .cloned()
+                                .collect();
+                            
+                            let optional_resourcepacks: Vec<ModComponent> = manifest.resourcepacks.iter()
+                                .filter(|m| m.optional)
+                                .cloned()
+                                .collect();
+                            
+                            // Combine all optional components
+                            let mut all_components = Vec::new();
+                            all_components.extend(optional_mods);
+                            all_components.extend(optional_shaderpacks);
+                            all_components.extend(optional_resourcepacks);
+                            
+                            // Display features by category
+                            render_features_by_category(all_components, enabled_features.clone(), filter_text.clone(), toggle_feature)
+                        } else {
+                            rsx! {
+                                div { class: "loading-container",
+                                    div { class: "loading-spinner" }
+                                    div { class: "loading-text", "Loading features..." }
+                                }
+                            }
+                        }
                     }
                 }
             }
         }
     }
 }
-}}
 
-// Helper function to render features by category
+// Helper function to render features by category - unchanged
 fn render_features_by_category(
     components: Vec<ModComponent>,
     enabled_features: Signal<Vec<String>>,
@@ -555,13 +440,6 @@ fn render_features_by_category(
     
     // Check if no results match the filter
     let no_results = categories.is_empty() && !filter.is_empty();
-    
-    // Count total features and enabled features
-    let total_features = categories.values().flat_map(|comps| comps).count();
-    let enabled_count = categories.values()
-        .flat_map(|comps| comps)
-        .filter(|comp| enabled_features.read().contains(&comp.id) || comp.id == "default")
-        .count();
     
     // If no results found
     if no_results {
@@ -651,11 +529,11 @@ fn render_features_by_category(
                                             },
                                             
                                             if are_all_enabled {
-                                                "Disable All" // User will disable all when clicked
+                                                "Disable All"
                                             } else if enabled_count > 0 {
-                                                "Enable All" // User will enable all when clicked
+                                                "Enable All"
                                             } else {
-                                                "Enable All" // User will enable all when clicked
+                                                "Enable All"
                                             }
                                         }
                                     }
