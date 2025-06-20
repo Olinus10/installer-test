@@ -153,51 +153,73 @@ pub fn PerformanceTab(
     };
     
     // Handler for applying memory changes
-    let apply_memory = {
-        let installation_id = installation_id.clone(); // Clone for the closure
-        move |_| {
-            let current_memory = *memory_allocation.read();
-            let installation_id_for_update = installation_id.clone();
-            
-            // Use the config module to update memory
-            match crate::launcher::config::update_memory_allocation(&installation_id_for_update, current_memory) {
-                Ok(_) => {
-                    // Update the java args signal to reflect the change
-                    let updated_args = {
-                        let args = java_args.read().clone();
-                        let mut parts: Vec<&str> = args.split_whitespace().collect();
-                        parts.retain(|part| !part.starts_with("-Xmx"));
-                        
-                        let memory_param = if current_memory >= 1024 {
-                            format!("-Xmx{}G", current_memory / 1024)
-                        } else {
-                            format!("-Xmx{}M", current_memory)
-                        };
-                        
-                        parts.push(&memory_param);
-                        parts.join(" ")
+let apply_memory = {
+    let installation_id = installation_id.clone();
+    let memory_allocation = memory_allocation.clone();
+    let java_args = java_args.clone();
+    let mut show_apply_success = show_apply_success.clone();
+    
+    move |_| {
+        let current_memory = *memory_allocation.read();
+        let installation_id_for_update = installation_id.clone();
+        
+        // Create a proper async operation
+        spawn(async move {
+            // Load the installation
+            match crate::installation::load_installation(&installation_id_for_update) {
+                Ok(mut installation) => {
+                    // Update the memory allocation
+                    installation.memory_allocation = current_memory;
+                    
+                    // Update Java args to include the new memory setting
+                    let current_args = installation.java_args.clone();
+                    let mut parts: Vec<&str> = current_args.split_whitespace().collect();
+                    
+                    // Remove any existing memory arguments
+                    parts.retain(|part| !part.starts_with("-Xmx") && !part.starts_with("-Xms"));
+                    
+                    // Add the new memory parameter
+                    let memory_param = if current_memory >= 1024 {
+                        format!("-Xmx{}G", current_memory / 1024)
+                    } else {
+                        format!("-Xmx{}M", current_memory)
                     };
                     
-                    java_args.set(updated_args);
+                    parts.push(&memory_param);
+                    installation.java_args = parts.join(" ");
                     
-                    // Show success message
-                    show_apply_success.set(true);
-                    let mut success_signal = show_apply_success.clone();
-                    
-                    spawn(async move {
-                        sleep(Duration::from_secs(3)).await;
-                        success_signal.set(false);
-                    });
+                    // Save the installation
+                    match installation.save() {
+                        Ok(_) => {
+                            // Update the signal to reflect the change
+                            java_args.set(installation.java_args.clone());
+                            
+                            // Show success message
+                            show_apply_success.set(true);
+                            
+                            // Hide success message after 3 seconds
+                            tokio::time::sleep(tokio::time::Duration::from_secs(3)).await;
+                            show_apply_success.set(false);
+                        },
+                        Err(e) => {
+                            error!("Failed to save installation: {}", e);
+                        }
+                    }
                 },
                 Err(e) => {
-                    error!("Failed to update memory allocation: {}", e);
+                    error!("Failed to load installation: {}", e);
                 }
             }
-        }
-    };
+        });
+    }
+};
     
     // Calculate if memory has been changed from original
-    let memory_changed = *memory_allocation.read() != *original_memory.read();
+let memory_changed = {
+    let current_memory = *memory_allocation.read();
+    let original_memory = *original_memory.read();
+    current_memory != original_memory
+};
     
     // Calculate percentages safely
     let memory_percentage = match *detected_memory.read() {
