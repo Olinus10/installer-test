@@ -667,4 +667,4 @@ fn render_features_by_category(
             }
         }
     }
-}
+} }
