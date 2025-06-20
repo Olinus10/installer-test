@@ -1374,10 +1374,14 @@ let action_button_disabled = *is_installing.read() ||
                                     }
                                 }
                             },
-PerformanceTab {
-    memory_allocation: memory_allocation,
-    java_args: java_args,
-    installation_id: installation.id.clone(), // Pass the installation ID
+"performance" => {
+    rsx! {
+        PerformanceTab {
+            memory_allocation: memory_allocation,
+            java_args: java_args,
+            installation_id: installation.id.clone() // Remove the comma here
+        }
+    }
 },
                             "settings" => {
                                 rsx! {
