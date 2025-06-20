@@ -65,6 +65,10 @@ const ATTEMPTS: usize = 3;
 const WAIT_BETWEEN_ATTEMPTS: Duration = Duration::from_secs(20);
 const REPO: &str = "Wynncraft-Overhaul/majestic-overhaul/";
 
+const DEFAULT_UNIVERSAL_URL: &str = "https://raw.githubusercontent.com/Wynncraft-Overhaul/majestic-overhaul/master/universal.json";
+const DEFAULT_PRESETS_URL: &str = "https://raw.githubusercontent.com/Wynncraft-Overhaul/majestic-overhaul/master/presets.json";
+const DEFAULT_CHANGELOG_URL: &str = "https://raw.githubusercontent.com/Wynncraft-Overhaul/majestic-overhaul/master/changelog.json";
+
 #[derive(Debug, Clone, PartialEq)]
 struct PackName {
     name: String,
