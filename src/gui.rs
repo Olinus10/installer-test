@@ -32,6 +32,7 @@ use crate::universal::ManifestErrorType;
 use crate::launcher::FeaturesTab;
 use crate::launcher::PerformanceTab;
 use crate::launcher::SettingsTab;
+use crate::installation::delete_installation;
 
 mod modal;
 
@@ -1368,47 +1369,27 @@ let handle_update = move |_| {
                             },
                             "settings" => {
                                 rsx! {
-                                    SettingsTab {
-                                        installation: installation.clone(),
-                                        installation_id: installation_id_for_delete.clone(),
-                                        ondelete: move |_| {
-let handle_delete = move |_| {
-    let id_to_delete = installation_id_for_delete.clone();
-    let delete_handler = ondelete.clone();
-    let mut installations_clone = installations.clone();
-    is_operating.set(true);
-    
-    spawn(async move {
-        match delete_installation(&id_to_delete) {
-            Ok(_) => {
-                debug!("Successfully deleted installation: {}", id_to_delete);
-                
-                // Remove from installations list immediately
-                installations_clone.with_mut(|list| {
-                    list.retain(|inst| inst.id != id_to_delete);
-                });
-                
-                // Call the ondelete handler to navigate back to home
-                delete_handler.call(());
-            },
-            Err(e) => {
-                error!("Failed to delete installation: {}", e);
-                operation_error.set(Some(format!("Failed to delete installation: {}", e)));
-                is_operating.set(false);
+SettingsTab {
+    installation: installation.clone(),
+    installation_id: installation_id_for_delete.clone(),
+    ondelete: move |_| {
+        // Handle delete functionality - remove from installations list
+        let id_to_delete = installation_id_for_delete.clone();
+        installations.with_mut(|list| {
+            list.retain(|inst| inst.id != id_to_delete);
+        });
+        // Navigate back to home
+        onback.call(());
+    },
+    onupdate: move |updated_installation: Installation| {
+        // Update the installation data in the list
+        installations.with_mut(|list| {
+            if let Some(index) = list.iter().position(|i| i.id == updated_installation.id) {
+                list[index] = updated_installation.clone();
             }
-        }
-    });
-};
-                                        },
-                                        onupdate: move |updated_installation: Installation| {
-                                            // Update the installation data in the list
-                                            installations.with_mut(|list| {
-                                                if let Some(index) = list.iter().position(|i| i.id == updated_installation.id) {
-                                                    list[index] = updated_installation.clone();
-                                                }
-                                            });
-                                        }
-                                    }
+        });
+    }
+}
                                 }
                             },
                             _ => rsx! { div { "Unknown tab selected" } }
