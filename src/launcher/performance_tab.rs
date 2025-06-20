@@ -156,7 +156,7 @@ pub fn PerformanceTab(
 let apply_memory = {
     let installation_id = installation_id.clone();
     let memory_allocation = memory_allocation.clone();
-    let java_args = java_args.clone();
+    let mut java_args = java_args.clone();
     let mut show_apply_success = show_apply_success.clone();
     
     move |_| {
