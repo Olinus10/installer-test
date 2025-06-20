@@ -2794,23 +2794,21 @@ pub fn app() -> Element {
             }
             
             debug!("Loading universal manifest...");
-            match crate::universal::load_universal_manifest(&CachedHttpClient::new(), 
-                Some("https://raw.githubusercontent.com/Olinus10/installer-test/master/universal.json")).await {
-                Ok(manifest) => {
-                    debug!("Successfully loaded universal manifest: {}", manifest.name);
-                    Some(manifest)
-                },
-                Err(e) => {
-                    error!("Failed to load universal manifest: {}", e);
-                    // Use spawn to update the signal
-                    spawn(async move {
-                        manifest_error.set(Some(e.clone()));
-                    });
-                    None
-                }
+        match crate::universal::load_universal_manifest(&CachedHttpClient::new(), None).await {
+            Ok(manifest) => {
+                debug!("Successfully loaded universal manifest: {}", manifest.name);
+                Some(manifest)
+            },
+            Err(e) => {
+                error!("Failed to load universal manifest: {}", e);
+                spawn(async move {
+                    manifest_error.set(Some(e.clone()));
+                });
+                None
             }
         }
-    });
+    } // <- Make sure this closing brace exists
+}); // <- And this closing parenthesis and semicolon
     
     // Load changelog
 let changelog = use_resource(move || async {
