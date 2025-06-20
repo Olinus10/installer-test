@@ -146,7 +146,7 @@ pub fn FeaturesTab(
                 
                 // Available presets - skip the "custom" preset since we handle it separately
                 for preset in presets.iter().filter(|p| p.id != "custom") {
-                    {  // This opening brace IS needed - it wraps the Rust code
+                    {
                         let preset_id = preset.id.clone();
                         let is_selected = selected_preset.read().as_ref().map_or(false, |id| id == &preset_id);
                         let mut apply_preset_clone = apply_preset.clone();
@@ -262,8 +262,9 @@ pub fn FeaturesTab(
                                 }
                             }
                         }
-                    }  // This closing brace closes the code block
+                    }
                 }
+            } // Closes presets-grid div
 
             // FEATURES section
             div { class: "optional-features-wrapper",
@@ -394,10 +395,10 @@ pub fn FeaturesTab(
                         }
                     }
                 }
-            }
-        }
-    }
-
+            } // Closes optional-features-wrapper div
+        } // Closes features-tab div
+    } // Closes the main rsx! macro - NO SEMICOLON HERE
+} // Closes the FeaturesTab function
 
 // Helper function to render features by category - unchanged
 fn render_features_by_category(
