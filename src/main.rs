@@ -1399,13 +1399,10 @@ async fn install<F: FnMut() + Clone>(installer_profile: &InstallerProfile, mut p
             debug!("Processing include: {} (id: {})", inc.location, inc.id);
             
             // Construct the URL to download from GitHub
-            let include_url = format!(
-                "{}{}{}src/data/{}",
-                GH_RAW,
-                installer_profile.modpack_source,
-                installer_profile.modpack_branch,
-                inc.location
-            );
+ let include_url = format!(
+    "https://raw.githubusercontent.com/Wynncraft-Overhaul/majestic-overhaul/master/{}",
+    inc.location
+);
             
             debug!("Include URL: {}", include_url);
             
