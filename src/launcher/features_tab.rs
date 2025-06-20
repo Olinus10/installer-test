@@ -61,84 +61,203 @@ pub fn FeaturesTab(
             }
             
             // Presets grid
-            div { 
-    class: if selected_preset.read().is_none() {
-        "preset-card selected"
-    } else {
-        "preset-card"
-    },
-    onclick: move |_| {
-        // When selecting custom preset, ensure default features are included
-        enabled_features.with_mut(|features| {
-            // Always ensure "default" is present
-            if !features.contains(&"default".to_string()) {
-                features.insert(0, "default".to_string());
+div { class: "presets-grid",
+    // Custom preset (no preset selected)
+    div { 
+        class: if selected_preset.read().is_none() {
+            "preset-card selected"
+        } else {
+            "preset-card"
+        },
+        // Apply custom preset background if available
+        style: if let Some(preset) = custom_preset {
+            if let Some(bg) = &preset.background {
+                format!("background-image: url('{}'); background-size: cover; background-position: center;", bg)
+            } else {
+                String::new()
             }
-            
-            // Add any default-enabled features from the universal manifest if available
-            if let Some(manifest) = &universal_manifest {
-                for component in &manifest.mods {
-                    if component.default_enabled && !features.contains(&component.id) {
-                        features.push(component.id.clone());
-                    }
+        } else {
+            String::new()
+        },
+        onclick: move |_| {
+            // When selecting custom preset, ensure default features are included
+            enabled_features.with_mut(|features| {
+                // Always ensure "default" is present
+                if !features.contains(&"default".to_string()) {
+                    features.insert(0, "default".to_string());
                 }
-                for component in &manifest.shaderpacks {
-                    if component.default_enabled && !features.contains(&component.id) {
-                        features.push(component.id.clone());
+                
+                // Add any default-enabled features from the universal manifest if available
+                if let Some(manifest) = &universal_manifest {
+                    for component in &manifest.mods {
+                        if component.default_enabled && !features.contains(&component.id) {
+                            features.push(component.id.clone());
+                        }
                     }
-                }
-                for component in &manifest.resourcepacks {
-                    if component.default_enabled && !features.contains(&component.id) {
-                        features.push(component.id.clone());
+                    for component in &manifest.shaderpacks {
+                        if component.default_enabled && !features.contains(&component.id) {
+                            features.push(component.id.clone());
+                        }
                     }
-                }
-            }
-        });
-        
-        selected_preset.set(None);
-    },
-                    
-                    div { class: "preset-card-overlay" }
-                    
-                    div { class: "preset-card-content",
-                        h4 { "CUSTOM OVERHAUL" }
-                        p { "Start with your current selection and customize everything yourself." }
-                    }
-                    
-                    // Select/Selected button
-                    {
-                        let is_selected = selected_preset.read().is_none();
-                        
-                        rsx! {
-                            button {
-                                class: "select-preset-button",
-                                style: {
-                                    let is_selected = selected_preset.read().is_none();
-                                    let is_hovered = *custom_button_hover.read();
-                                    
-                                    if is_selected {
-                                        // Selected state - white with green text
-                                        "background-color: white !important; color: #0a3d16 !important; border: none !important;"
-                                    } else if is_hovered {
-                                        // Hover state - brighter green with lift effect
-                                        "background-color: rgba(10, 80, 30, 0.9) !important; color: white !important; transform: translateX(-50%) translateY(-3px) !important; box-shadow: 0 5px 15px rgba(0, 0, 0, 0.4) !important;"
-                                    } else {
-                                        // Normal state - green
-                                        "background-color: rgba(7, 60, 23, 0.7) !important; color: white !important;"
-                                    }
-                                },
-                                onmouseenter: move |_| custom_button_hover.set(true),
-                                onmouseleave: move |_| custom_button_hover.set(false),
-                                
-                                if is_selected {
-                                    "SELECTED"
-                                } else {
-                                    "SELECT"
-                                }
-                            }
+                    for component in &manifest.resourcepacks {
+                        if component.default_enabled && !features.contains(&component.id) {
+                            features.push(component.id.clone());
                         }
                     }
                 }
+            });
+            
+            selected_preset.set(None);
+        },
+        
+        div { class: "preset-card-overlay" }
+        
+        div { class: "preset-card-content",
+            h4 { "CUSTOM OVERHAUL" }
+            p { "Start with your current selection and customize everything yourself." }
+        }
+        
+        // Select/Selected button
+        {
+            let is_selected = selected_preset.read().is_none();
+            
+            rsx! {
+                button {
+                    class: "select-preset-button",
+                    style: {
+                        let is_selected = selected_preset.read().is_none();
+                        let is_hovered = *custom_button_hover.read();
+                        
+                        if is_selected {
+                            "background-color: white !important; color: #0a3d16 !important; border: none !important;"
+                        } else if is_hovered {
+                            "background-color: rgba(10, 80, 30, 0.9) !important; color: white !important; transform: translateX(-50%) translateY(-3px) !important; box-shadow: 0 5px 15px rgba(0, 0, 0, 0.4) !important;"
+                        } else {
+                            "background-color: rgba(7, 60, 23, 0.7) !important; color: white !important;"
+                        }
+                    },
+                    onmouseenter: move |_| custom_button_hover.set(true),
+                    onmouseleave: move |_| custom_button_hover.set(false),
+                    
+                    if is_selected {
+                        "SELECTED"
+                    } else {
+                        "SELECT"
+                    }
+                }
+            }
+        }
+    }
+    
+    // Available presets - skip the "custom" preset since we handle it separately
+    for preset in presets.iter().filter(|p| p.id != "custom") {
+        {
+            let preset_id = preset.id.clone();
+            let is_selected = selected_preset.read().as_ref().map_or(false, |id| id == &preset_id);
+            let mut apply_preset_clone = apply_preset.clone();
+            let has_trending = preset.trending.unwrap_or(false);
+            
+            // Track if this specific button is being hovered
+            let button_id = preset_id.clone();
+            let is_button_hovered = if has_trending {
+                trending_button_hover.read().contains(&button_id)
+            } else {
+                regular_button_hover.read().contains(&button_id)
+            };
+            
+            rsx! {
+                div {
+                    class: if is_selected {
+                        "preset-card selected"
+                    } else {
+                        "preset-card"
+                    },
+                    // Apply background if available
+                    style: if let Some(bg) = &preset.background {
+                        format!("background-image: url('{}'); background-size: cover; background-position: center;", bg)
+                    } else {
+                        String::new()
+                    },
+                    onclick: move |_| {
+                        apply_preset_clone(preset_id.clone());
+                    },
+                    
+                    // Feature count badge in top right
+                    span { class: "preset-features-count",
+                        "{preset.enabled_features.len()} features"
+                    }
+                    
+                    // Trending badge in top left
+                    if has_trending {
+                        span { class: "trending-badge", "Popular" }
+                    }
+                    
+                    // Dark overlay for text readability
+                    div { class: "preset-card-overlay" }
+                    
+                    div { class: "preset-card-content",
+                        h4 { "{preset.name}" }
+                        p { "{preset.description}" }
+                    }
+                    
+                    // Select/Selected button with comprehensive inline styling
+                    button {
+                        class: "select-preset-button",
+                        style: {
+                            if is_selected {
+                                if has_trending {
+                                    "background-color: white !important; color: #b58c14 !important; border: none !important; box-shadow: 0 0 15px rgba(255, 179, 0, 0.3) !important;"
+                                } else {
+                                    "background-color: white !important; color: #0a3d16 !important; border: none !important;"
+                                }
+                            } else if is_button_hovered {
+                                if has_trending {
+                                    "background: linear-gradient(135deg, #e6b017, #cc9500) !important; color: black !important; transform: translateX(-50%) translateY(-3px) !important; box-shadow: 0 5px 15px rgba(0, 0, 0, 0.4) !important;"
+                                } else {
+                                    "background-color: rgba(10, 80, 30, 0.9) !important; color: white !important; transform: translateX(-50%) translateY(-3px) !important; box-shadow: 0 5px 15px rgba(0, 0, 0, 0.4) !important;"
+                                }
+                            } else {
+                                if has_trending {
+                                    "background: linear-gradient(135deg, #d4a017, #b78500) !important; color: black !important;"
+                                } else {
+                                    "background-color: rgba(7, 60, 23, 0.7) !important; color: white !important;"
+                                }
+                            }
+                        },
+                        onmouseenter: {
+                            let button_id_enter = button_id.clone();
+                            let has_trending_enter = has_trending;
+                            move |_| {
+                                if has_trending_enter {
+                                    trending_button_hover.with_mut(|ids| ids.push(button_id_enter.clone()));
+                                } else {
+                                    regular_button_hover.with_mut(|ids| ids.push(button_id_enter.clone()));
+                                }
+                            }
+                        },
+                        onmouseleave: {
+                            let button_id_leave = button_id.clone();
+                            let has_trending_leave = has_trending;
+                            move |_| {
+                                if has_trending_leave {
+                                    trending_button_hover.with_mut(|ids| ids.retain(|id| id != &button_id_leave));
+                                } else {
+                                    regular_button_hover.with_mut(|ids| ids.retain(|id| id != &button_id_leave));
+                                }
+                            }
+                        },
+                        
+                        if is_selected {
+                            "SELECTED"
+                        } else {
+                            "SELECT"
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
                 
                 // Available presets - skip the "custom" preset since we handle it separately
                 for preset in presets.iter().filter(|p| p.id != "custom") {
