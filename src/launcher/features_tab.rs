@@ -146,8 +146,7 @@ pub fn FeaturesTab(
                 
                 // Available presets - skip the "custom" preset since we handle it separately
 for preset in presets.iter().filter(|p| p.id != "custom") {
-    {
-        let preset_id = preset.id.clone();
+    let preset_id = preset.id.clone();
         let is_selected = selected_preset.read().as_ref().map_or(false, |id| id == &preset_id);
         let mut apply_preset_clone = apply_preset.clone();
         let has_trending = preset.trending.unwrap_or(false);
