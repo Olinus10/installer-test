@@ -144,12 +144,15 @@ pub fn FeaturesTab(
                 }
                 
                 // Available presets - skip the "custom" preset since we handle it separately
-                for preset in presets.iter().filter(|p| p.id != "custom") {
-                    {
-                        let preset_id = preset.id.clone();
-                        let is_selected = selected_preset.read().as_ref().map_or(false, |id| id == &preset_id);
-                        let mut apply_preset_clone = apply_preset.clone();
-                        let has_trending = preset.trending.unwrap_or(false);
+for preset in presets.iter().filter(|p| p.id != "custom") {
+    let preset_id = preset.id.clone();
+    let is_selected = selected_preset.read().as_ref().map_or(false, |id| id == &preset_id);
+    let has_trending = preset.trending.unwrap_or(false);
+    
+    // Check if preset is updated
+    let is_updated = preset.preset_version.as_ref()
+        .map(|v| v != "1.0") // Compare with previous version
+        .unwrap_or(false);
                         
                         // Track if this specific button is being hovered
                         let button_id = preset_id.clone();
@@ -159,13 +162,13 @@ pub fn FeaturesTab(
                             regular_button_hover.read().contains(&button_id)
                         };
                         
-                        rsx! {
-                            div {
-                                class: if is_selected {
-                                    "preset-card selected"
-                                } else {
-                                    "preset-card"
-                                },
+    rsx! {
+        div {
+            class: if is_selected {
+                "preset-card selected"
+            } else {
+                "preset-card"
+            },
                                 // Apply background if available
                                 style: if let Some(bg) = &preset.background {
                                     format!("background-image: url('{}'); background-size: cover; background-position: center;", bg)
@@ -185,7 +188,11 @@ pub fn FeaturesTab(
                                 if has_trending {
                                     span { class: "trending-badge", "Popular" }
                                 }
-                                
+
+                        // Add update badge
+            if is_updated {
+                span { class: "update-badge", "Updated" }
+            }
                                 // Dark overlay for text readability
                                 div { class: "preset-card-overlay" }
                                 
