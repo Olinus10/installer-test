@@ -108,8 +108,12 @@ pub fn PerformanceTab(
     
     let step = 512; // 512MB steps
     
+    // Get the installation from the prop that should be passed
+    // This needs to be passed from the parent component
+    let installation = use_context::<crate::Installation>().expect("Installation not provided in context");
+    
     // Store original value for comparison to detect changes
-    let original_memory = use_memo(move || *memory_allocation.read());
+    let original_memory = installation.memory_allocation;
     
     // State for displaying success message after apply
     let mut show_apply_success = use_signal(|| false);
@@ -141,6 +145,7 @@ pub fn PerformanceTab(
             }
         }
     });
+    
     // Format system memory for display
     let system_memory_display = match *detected_memory.read() {
         Some(mem) => format_memory_display(mem),
@@ -148,52 +153,52 @@ pub fn PerformanceTab(
     };
     
     // Handler for applying memory changes
-let apply_memory = move |_| {
-    let current_memory = *memory_allocation.read();
-    
-    // Get the installation ID from context or props
-    let installation_id = use_context::<String>(); // You'll need to provide this context
-    
-    // Use the config module to update memory
-    match crate::launcher::config::update_memory_allocation(&installation_id, current_memory) {
-        Ok(_) => {
-            // Update the java args signal to reflect the change
-            let updated_args = {
-                let args = java_args.read().clone();
-                let mut parts: Vec<&str> = args.split_whitespace().collect();
-                parts.retain(|part| !part.starts_with("-Xmx"));
-                
-                let memory_param = if current_memory >= 1024 {
-                    format!("-Xmx{}G", current_memory / 1024)
-                } else {
-                    format!("-Xmx{}M", current_memory)
+    let apply_memory = move |_| {
+        let current_memory = *memory_allocation.read();
+        
+        // Get the installation ID from the installation context
+        let installation_id = installation.id.clone();
+        
+        // Use the config module to update memory
+        match crate::launcher::config::update_memory_allocation(&installation_id, current_memory) {
+            Ok(_) => {
+                // Update the java args signal to reflect the change
+                let updated_args = {
+                    let args = java_args.read().clone();
+                    let mut parts: Vec<&str> = args.split_whitespace().collect();
+                    parts.retain(|part| !part.starts_with("-Xmx"));
+                    
+                    let memory_param = if current_memory >= 1024 {
+                        format!("-Xmx{}G", current_memory / 1024)
+                    } else {
+                        format!("-Xmx{}M", current_memory)
+                    };
+                    
+                    parts.push(&memory_param);
+                    parts.join(" ")
                 };
                 
-                parts.push(&memory_param);
-                parts.join(" ")
-            };
-            
-            java_args.set(updated_args);
-            
-            // Show success message
-            show_apply_success.set(true);
-            let mut success_signal = show_apply_success.clone();
-            
-            spawn(async move {
-                sleep(Duration::from_secs(3)).await;
-                success_signal.set(false);
-            });
-        },
-        Err(e) => {
-            error!("Failed to update memory allocation: {}", e);
-            // Show error message
-            // You might want to add an error signal here
+                java_args.set(updated_args);
+                
+                // Show success message
+                show_apply_success.set(true);
+                let mut success_signal = show_apply_success.clone();
+                
+                spawn(async move {
+                    sleep(Duration::from_secs(3)).await;
+                    success_signal.set(false);
+                });
+            },
+            Err(e) => {
+                error!("Failed to update memory allocation: {}", e);
+                // Show error message
+                // You might want to add an error signal here
+            }
         }
-    }
-};
+    };
     
     // Calculate if memory has been changed from original
-    let memory_changed = *memory_allocation.read() != *original_memory.read();
+    let memory_changed = *memory_allocation.read() != original_memory;
     
     // Calculate percentages safely
     let memory_percentage = match *detected_memory.read() {
@@ -267,28 +272,28 @@ let apply_memory = move |_| {
                 
                 // Memory slider with improved design
                 div { class: "memory-slider-container",
-            input {
-                r#type: "range",
-                min: "{min_memory}",
-                max: "{*max_memory.read()}",
-                step: "{step}",
-                value: "{*memory_allocation.read()}",
-                oninput: move |evt| {
-                    if let Ok(value) = evt.value().parse::<i32>() {
-                        memory_allocation.set(value);
+                    input {
+                        r#type: "range",
+                        min: "{min_memory}",
+                        max: "{*max_memory.read()}",
+                        step: "{step}",
+                        value: "{*memory_allocation.read()}",
+                        oninput: move |evt| {
+                            if let Ok(value) = evt.value().parse::<i32>() {
+                                memory_allocation.set(value);
+                            }
+                        },
+                        class: "memory-slider"
                     }
-                },
-                class: "memory-slider"
-            }
-            
-            // Memory markers below slider 
-            div { class: "memory-markers",
-    span { class: "memory-marker", "1 GB" }
-    span { class: "memory-marker", "{format_memory_display(*max_memory.read())}" }
-}
-        }
+                    
+                    // Memory markers below slider 
+                    div { class: "memory-markers",
+                        span { class: "memory-marker", "1 GB" }
+                        span { class: "memory-marker", "{format_memory_display(*max_memory.read())}" }
+                    }
+                }
                 
-                // Apply button for memory changes
+                // Apply button for memory changes - FIXED: Enable when memory has changed
                 div { class: "memory-apply-container",
                     button {
                         class: if memory_changed { 
@@ -296,7 +301,7 @@ let apply_memory = move |_| {
                         } else { 
                             "memory-apply-button" 
                         },
-                        disabled: !memory_changed,
+                        disabled: !memory_changed, // Only disable if no changes made
                         onclick: apply_memory,
                         "Apply Memory Changes"
                     }
