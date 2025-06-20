@@ -1901,193 +1901,119 @@ a:hover {
     background-color: rgba(255, 255, 255, 0.2);
 }
 
-/* Make the wizard overlay scrollable if content is too tall */
 .wizard-overlay {
     position: fixed;
     top: 0;
     left: 0;
     right: 0;
     bottom: 0;
-    background-color: rgba(0, 0, 0, 0.8);
+    background: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(10px);
     display: flex;
     align-items: center;
     justify-content: center;
     z-index: 1000;
-    backdrop-filter: blur(5px);
-    overflow-y: auto; /* Enable scrolling for the entire overlay */
-    padding: 20px; /* Add padding to avoid content being right at the edge */
-}
-
-/* Control the size and scrolling of the wizard modal */
-.installation-wizard {
-    background-color: rgba(0, 0, 0, 0.8);
-    border-radius: 12px;
-    width: 90%;
-    max-width: 900px;
-    max-height: 80vh; /* Limit height to 80% of viewport */
-    display: flex;
-    flex-direction: column;
-    margin: 20px 0; /* Add margin to ensure it's not flush against the edges */
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
-}
-
-.wizard-container {
-    background-color: rgba(0, 0, 0, 0.8);
-    border-radius: 12px;
-    width: 90%;
-    max-width: 900px;
-    max-height: 90vh;
-    overflow-y: auto;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    display: flex;
-    flex-direction: column;
-}
-
-/* Make the header sticky at the top */
-.wizard-header {
     padding: 20px;
+    animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.installation-wizard {
+    background: linear-gradient(145deg, rgba(15, 15, 25, 0.95), rgba(25, 25, 35, 0.95));
+    border-radius: 20px;
+    width: 90%;
+    max-width: 600px;
+    max-height: 85vh;
+    display: flex;
+    flex-direction: column;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 
+        0 20px 60px rgba(0, 0, 0, 0.8),
+        0 0 100px rgba(7, 60, 23, 0.2);
+    overflow: hidden;
+    animation: slideUp 0.4s ease;
+    position: relative;
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px) scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+/* Modern header with close button in corner */
+.wizard-header {
+    padding: 25px 30px 20px 30px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    position: sticky;
-    top: 0;
-    background-color: rgba(0, 0, 0, 0.9);
-    z-index: 2;
-    border-radius: 12px 12px 0 0;
+    background: linear-gradient(135deg, rgba(7, 60, 23, 0.1), rgba(0, 0, 0, 0.2));
+    position: relative;
 }
 
 .wizard-header h2 {
     font-family: "HEADER_FONT";
-    margin: 0 0 20px 0;
+    margin: 0;
     text-align: center;
+    font-size: 1.8rem;
+    color: #fce8f6;
+    letter-spacing: 0.05em;
 }
 
-.wizard-progress {
-    display: flex;
-    justify-content: space-between;
-    margin-top: 20px;
-    position: relative;
-}
-
-.wizard-progress::before {
-    content: '';
+/* Modern close button in top-right corner */
+.wizard-header .close-button {
     position: absolute;
     top: 15px;
-    left: 0;
-    right: 0;
-    height: 2px;
-    background-color: rgba(255, 255, 255, 0.2);
-    z-index: 1;
-}
-
-.wizard-step {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    position: relative;
-    z-index: 2;
-}
-
-/* Add responsive adjustments for smaller screens */
-@media (max-height: 700px) {
-    .installation-wizard {
-        max-height: 90vh;
-    }
-    
-    .wizard-content {
-        max-height: 50vh;
-        padding: 15px;
-    }
-    
-    .wizard-section {
-        margin-bottom: 15px;
-    }
-    
-    .presets-grid {
-        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-        gap: 10px;
-    }
-}
-
-@media (max-width: 640px) {
-    .installation-wizard {
-        width: 95%;
-    }
-    
-    .wizard-header, 
-    .wizard-content, 
-    .wizard-footer {
-        padding: 15px;
-    }
-    
-    .presets-grid {
-        grid-template-columns: 1fr;
-    }
-    
-    .wizard-footer {
-        flex-direction: column;
-        gap: 10px;
-    }
-    
-    .wizard-footer button {
-        width: 100%;
-    }
-}
-
-.step-number {
-    width: 30px;
-    height: 30px;
+    right: 15px;
+    width: 35px;
+    height: 35px;
     border-radius: 50%;
-    background-color: rgba(0, 0, 0, 0.6);
-    border: 2px solid rgba(255, 255, 255, 0.3);
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 18px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-weight: bold;
-    margin-bottom: 8px;
-    position: relative;
-    z-index: 2;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(10px);
 }
 
-.step-title {
-    font-size: 0.8rem;
-    color: rgba(255, 255, 255, 0.7);
-    text-align: center;
+.wizard-header .close-button:hover {
+    background: rgba(217, 82, 72, 0.3);
+    border-color: rgba(217, 82, 72, 0.6);
+    color: white;
+    transform: scale(1.1);
 }
 
-.wizard-step.active .step-number {
-    background-color: #073c17;
-    border-color: #fff;
-}
-
-.wizard-step.active .step-title {
-    color: #fff;
-    font-weight: bold;
-}
-
-.wizard-step.completed .step-number {
-    background-color: #0a5d23;
-    border-color: rgba(255, 255, 255, 0.7);
-}
-
+/* Content area */
 .wizard-content {
-    padding: 20px 25px;
-    overflow-y: auto; /* Enable scrolling for content */
-    max-height: 60vh; /* Limit height for scrollable content */
+    padding: 30px;
+    overflow-y: auto;
     flex-grow: 1;
+    max-height: 50vh;
 }
 
-.wizard-step-content {
-    max-width: 700px;
-    margin: 0 auto;
+.wizard-section {
+    margin-bottom: 25px;
 }
 
-.wizard-step-content h3 {
+.wizard-section h3 {
     font-family: "HEADER_FONT";
-    margin-top: 0;
-    margin-bottom: 20px;
+    margin: 0 0 15px 0;
+    color: #fce8f6;
+    font-size: 1.3rem;
 }
 
+/* Modern form styling */
 .form-group {
     margin-bottom: 20px;
 }
@@ -2095,108 +2021,273 @@ a:hover {
 .form-group label {
     display: block;
     margin-bottom: 8px;
-    font-weight: bold;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 0.95rem;
 }
 
-.form-group input[type="text"],
-.form-group select {
+.form-group input[type="text"] {
     width: 100%;
-    padding: 12px;
-    background-color: rgba(0, 0, 0, 0.3);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: 6px;
-    color: #fff;
+    padding: 15px 18px;
+    background: rgba(0, 0, 0, 0.4);
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    color: white;
     font-family: "REGULAR_FONT";
     font-size: 1rem;
+    transition: all 0.3s ease;
+    box-sizing: border-box;
 }
 
-.form-group input[type="range"] {
-    width: 100%;
-    margin: 10px 0;
-}
-
-.memory-markers {
-    display: flex;
-    justify-content: space-between;
-    font-size: 0.8rem;
-    color: rgba(255, 255, 255, 0.6);
-}
-
-/* Make the footer sticky at the bottom */
-.wizard-footer {
-    padding: 15px 20px;
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
-    display: flex;
-    justify-content: space-between;
-    position: sticky;
-    bottom: 0;
-    background-color: rgba(0, 0, 0, 0.9);
-    z-index: 2;
-    border-radius: 0 0 12px 12px;
-}
-
-/* Compact the form elements if space is limited */
-.wizard-section {
-    margin-bottom: 20px;
-}
-
-
-.cancel-button {
-    background-color: transparent;
-    border: 1px solid rgba(255, 255, 255, 0.3);
-    color: #fff;
-    border-radius: 6px;
-    padding: 10px 20px;
-    font-family: "REGULAR_FONT";
-    cursor: pointer;
-    transition: all 0.2s ease;
-}
-
-.cancel-button:hover {
-    background-color: rgba(255, 255, 255, 0.1);
-}
-
-.navigation-buttons {
-    display: flex;
-    gap: 10px;
-}
-
-.back-button,
-.next-button {
-    background-color: rgba(0, 0, 0, 0.4);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    color: #fff;
-    border-radius: 6px;
-    padding: 10px 20px;
-    font-family: "REGULAR_FONT";
-    cursor: pointer;
-    transition: all 0.2s ease;
-}
-
-.back-button:hover,
-.next-button:hover {
-    background-color: rgba(0, 0, 0, 0.6);
+.form-group input[type="text"]:focus {
+    outline: none;
+    border-color: rgba(7, 60, 23, 0.6);
+    background: rgba(0, 0, 0, 0.6);
+    box-shadow: 
+        0 0 0 3px rgba(7, 60, 23, 0.2),
+        0 0 20px rgba(7, 60, 23, 0.3);
     transform: translateY(-2px);
 }
 
-.next-button {
-    background-color: #073c17;
-    border-color: rgba(255, 255, 255, 0.1);
+/* Character counter */
+.character-counter {
+    font-size: 0.85rem;
+    text-align: right;
+    margin-top: 8px;
+    color: rgba(255, 255, 255, 0.6);
+    transition: color 0.3s ease;
 }
 
-.next-button:hover {
-    background-color: #0a5d23;
+/* Suggestion chips */
+.suggested-names {
+    margin-top: 20px;
 }
 
-.next-button.create-button {
-    background-color: #0a5d23;
-    font-weight: bold;
-    padding: 10px 25px;
+.suggestion-label {
+    font-size: 0.9rem;
+    color: rgba(255, 255, 255, 0.8);
+    margin-bottom: 12px;
+    display: block;
 }
 
-.next-button.create-button:hover {
-    background-color: #0c6e29;
-    box-shadow: 0 0 15px rgba(7, 60, 23, 0.5);
+.suggestion-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.suggestion-chip {
+    background: linear-gradient(135deg, rgba(7, 60, 23, 0.3), rgba(7, 60, 23, 0.2));
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 20px;
+    padding: 8px 16px;
+    color: white;
+    font-family: "REGULAR_FONT";
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(5px);
+}
+
+.suggestion-chip:hover {
+    background: linear-gradient(135deg, rgba(7, 60, 23, 0.5), rgba(7, 60, 23, 0.4));
+    border-color: rgba(7, 60, 23, 0.6);
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+}
+
+/* Info display */
+.minecraft-info {
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 12px;
+    padding: 20px;
+    border-left: 4px solid rgba(7, 60, 23, 0.7);
+}
+
+.info-row {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 10px;
+}
+
+.info-item {
+    flex: 1;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+}
+
+.info-label {
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.info-value {
+    color: #4abb6e;
+    font-weight: 500;
+}
+
+/* Loading section */
+.loading-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 30px;
+    gap: 15px;
+}
+
+.loading-spinner {
+    width: 40px;
+    height: 40px;
+    border: 3px solid rgba(255, 255, 255, 0.2);
+    border-radius: 50%;
+    border-top-color: #4abb6e;
+    animation: spin 1s linear infinite;
+}
+
+.loading-text {
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 1rem;
+}
+
+/* Modern footer with centered big button */
+.wizard-footer {
+    padding: 25px 30px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    background: linear-gradient(135deg, rgba(0, 0, 0, 0.2), rgba(7, 60, 23, 0.05));
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 15px;
+}
+
+/* Modern cancel button */
+.cancel-button {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: rgba(255, 255, 255, 0.8);
+    border-radius: 10px;
+    padding: 12px 25px;
+    font-family: "REGULAR_FONT";
+    cursor: pointer;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(10px);
+}
+
+.cancel-button:hover {
+    background: rgba(255, 255, 255, 0.2);
+    border-color: rgba(255, 255, 255, 0.4);
+    transform: translateY(-2px);
+}
+
+/* Big animated create button */
+.create-button {
+    background: linear-gradient(135deg, #0a5d23, #073c17);
+    border: none;
+    color: white;
+    border-radius: 15px;
+    padding: 18px 50px;
+    font-family: "HEADER_FONT";
+    font-size: 1.2rem;
+    font-weight: 600;
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    text-transform: uppercase;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 
+        0 8px 25px rgba(7, 60, 23, 0.4),
+        0 0 30px rgba(7, 60, 23, 0.2);
+    animation: buttonPulse 3s infinite ease-in-out;
+}
+
+@keyframes buttonPulse {
+    0%, 100% {
+        transform: scale(1);
+        box-shadow: 
+            0 8px 25px rgba(7, 60, 23, 0.4),
+            0 0 30px rgba(7, 60, 23, 0.2);
+    }
+    50% {
+        transform: scale(1.02);
+        box-shadow: 
+            0 12px 35px rgba(7, 60, 23, 0.6),
+            0 0 50px rgba(7, 60, 23, 0.4);
+    }
+}
+
+.create-button:hover {
+    background: linear-gradient(135deg, #0c6e29, #0a5d23);
+    transform: translateY(-4px) scale(1.05);
+    box-shadow: 
+        0 15px 40px rgba(7, 60, 23, 0.7),
+        0 0 60px rgba(7, 60, 23, 0.5);
+    animation-play-state: paused;
+}
+
+.create-button:disabled {
+    background: linear-gradient(135deg, rgba(7, 60, 23, 0.4), rgba(7, 60, 23, 0.3));
+    cursor: not-allowed;
+    transform: none;
+    animation: none;
+    box-shadow: none;
+    opacity: 0.6;
+}
+
+/* Shine effect for create button */
+.create-button::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: linear-gradient(
+        45deg,
+        transparent,
+        rgba(255, 255, 255, 0.1),
+        rgba(255, 255, 255, 0.3),
+        rgba(255, 255, 255, 0.1),
+        transparent
+    );
+    transform: rotate(45deg);
+    animation: shine 3s infinite;
+}
+
+@keyframes shine {
+    0% { transform: rotate(45deg) translateX(-200%); }
+    50% { transform: rotate(45deg) translateX(-200%); }
+    100% { transform: rotate(45deg) translateX(200%); }
+}
+
+/* Responsive adjustments */
+@media (max-width: 640px) {
+    .installation-wizard {
+        width: 95%;
+        margin: 10px;
+    }
+    
+    .wizard-header,
+    .wizard-content,
+    .wizard-footer {
+        padding: 20px;
+    }
+    
+    .wizard-footer {
+        flex-direction: column;
+        gap: 15px;
+    }
+    
+    .create-button {
+        width: 100%;
+        padding: 20px;
+    }
+    
+    .cancel-button {
+        width: 100%;
+    }
 }
 
 /* Presets Grid */
