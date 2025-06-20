@@ -2383,11 +2383,17 @@ a:hover {
 .installation-header h1 {
     font-size: 2.5rem;
     margin: 0 0 10px 0;
-    text-shadow: 0 4px 12px rgba(0, 0, 0, 0.8);
-    background: linear-gradient(180deg, #fce8f6 0%, #d8b8d0 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+    /* Remove the problematic text-shadow and background-clip that's causing the internal shadow */
+    color: #fce8f6; /* Use solid color instead of gradient */
+    font-family: "HEADER_FONT";
+    letter-spacing: 0.08em;
+    /* Add a subtle external glow instead of internal shadow */
+    text-shadow: 0 0 20px rgba(252, 232, 246, 0.3);
+    /* Remove any background gradient effects */
+    background: none;
+    -webkit-background-clip: initial;
+    -webkit-text-fill-color: initial;
+    background-clip: initial;
 }
 
 .installation-meta {
