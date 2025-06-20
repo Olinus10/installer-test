@@ -155,12 +155,10 @@ pub fn PerformanceTab(
     // Handler for applying memory changes
     let apply_memory = move |_| {
         let current_memory = *memory_allocation.read();
-        
-        // Get the installation ID from the installation context
-        let installation_id = installation.id.clone();
+        let installation_id_clone = installation_id.clone();
         
         // Use the config module to update memory
-        match crate::launcher::config::update_memory_allocation(&installation_id, current_memory) {
+        match crate::launcher::config::update_memory_allocation(&installation_id_clone, current_memory) {
             Ok(_) => {
                 // Update the java args signal to reflect the change
                 let updated_args = {
@@ -191,8 +189,6 @@ pub fn PerformanceTab(
             },
             Err(e) => {
                 error!("Failed to update memory allocation: {}", e);
-                // Show error message
-                // You might want to add an error signal here
             }
         }
     };
