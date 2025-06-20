@@ -1239,14 +1239,24 @@ let handle_update = move |_| {
 };
     
     // Button label based on state
-    let (action_button_label, button_class) = if !installation.installed {
-    ("Install", "action-button install-button")
-} else if installation.update_available {
-    ("Update", "action-button update-button") 
-} else if *has_changes.read() {
-    ("Apply Changes", "action-button modify-button")
-} else {
-    ("Up to Date", "action-button")
+let (action_button_label, button_class, button_disabled) = {
+    let installed = installation.installed;
+    let update_available = installation.update_available;
+    let has_changes = *has_changes.read();
+    let is_installing = *is_installing.read();
+    
+    if is_installing {
+        ("Installing...", "action-button installing", true)
+    } else if !installed {
+        ("Install", "action-button install-button", false)
+    } else if update_available {
+        ("Update", "action-button update-button", false)
+    } else if has_changes {
+        ("Apply Changes", "action-button modify-button", false)
+    } else {
+        // FIXED: When nothing needs to be done, disable the button
+        ("Up to Date", "action-button disabled", true)
+    }
 };
     
     // Button disable logic
@@ -1426,14 +1436,9 @@ SettingsTab {
                     // Install/Update/Modify button
 button {
     class: button_class,
-    disabled: action_button_disabled,
+    disabled: button_disabled,
     onclick: handle_update,
-    
-    if *is_installing.read() {
-        "Installing..."
-    } else {
-        {action_button_label}
-    }
+    {action_button_label}
 }
                 }
             }
