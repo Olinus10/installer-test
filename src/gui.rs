@@ -1540,15 +1540,16 @@ fn ProgressView(
                 p { class: "progress-status", "{display_status}" }
                 
                 // Add completion button
-                if percentage >= 100 {
-                    div { class: "completion-actions",
-                        button {
-                            class: "completion-button",
-                            onclick: move |_| {
-                                // Close progress view
-                                // This should be handled by the parent component
-                            },
-                            "Continue"
+if percentage >= 100 {
+    div { class: "completion-actions",
+        button {
+            class: "completion-button",
+            onclick: move |_| {
+                // This should trigger a state change in the parent
+                // You might need to add a completion handler prop
+                debug!("Progress completion acknowledged");
+            },
+            "Continue"
                         }
                     }
                 }
