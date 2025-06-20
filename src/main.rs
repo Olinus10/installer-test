@@ -39,6 +39,9 @@ use std::{
     path::{Path, PathBuf},
     time::SystemTime,
 };
+use std::boxed::Box;
+use std::pin::Pin;
+use futures::Future;
 
 mod gui;
 mod launcher;
@@ -1876,72 +1879,74 @@ struct GithubContent {
     content_type: String,
 }
 
-async fn download_github_directory(
+fn download_github_directory(
     http_client: &CachedHttpClient,
     api_url: &str,
     relative_path: &str,
     modpack_root: &Path,
-) -> Result<Vec<String>, String> {
-    debug!("Downloading GitHub directory from API: {}", api_url);
-    
-    let mut response = http_client.get_async(api_url).await
-        .map_err(|e| format!("Failed to fetch directory listing: {}", e))?;
+) -> Pin<Box<dyn Future<Output = Result<Vec<String>, String>> + '_>> {
+    Box::pin(async move {
+        debug!("Downloading GitHub directory from API: {}", api_url);
         
-    if response.status() != StatusCode::OK {
-        return Err(format!("GitHub API returned status: {}", response.status()));
-    }
-    
-    let json_text = response.text().await
-        .map_err(|e| format!("Failed to read directory listing: {}", e))?;
-        
-    let contents: Vec<GithubContent> = serde_json::from_str(&json_text)
-        .map_err(|e| format!("Failed to parse directory listing: {}", e))?;
-    
-    let mut downloaded_files = Vec::new();
-    
-    for item in contents {
-        let target_path = modpack_root.join(&item.path);
-        
-        if item.content_type == "file" {
-            if let Some(download_url) = item.download_url {
-                // Create parent directory
-                if let Some(parent) = target_path.parent() {
-                    fs::create_dir_all(parent)
-                        .map_err(|e| format!("Failed to create directory: {}", e))?;
-                }
-                
-                // Download the file
-                let mut file_response = http_client.get_async(&download_url).await
-                    .map_err(|e| format!("Failed to download file {}: {}", item.name, e))?;
-                    
-                let file_bytes = file_response.bytes().await
-                    .map_err(|e| format!("Failed to read file bytes: {}", e))?;
-                    
-                fs::write(&target_path, file_bytes)
-                    .map_err(|e| format!("Failed to write file: {}", e))?;
-                    
-                downloaded_files.push(target_path.to_string_lossy().to_string());
-                debug!("Downloaded file: {}", item.path);
-            }
-        } else if item.content_type == "dir" {
-            // Recursively download subdirectories
-            let subdir_url = format!(
-                "https://api.github.com/repos/Wynncraft-Overhaul/majestic-overhaul/contents/{}",
-                item.path
-            );
+        let mut response = http_client.get_async(api_url).await
+            .map_err(|e| format!("Failed to fetch directory listing: {}", e))?;
             
-            match download_github_directory(http_client, &subdir_url, &item.path, modpack_root).await {
-                Ok(mut subfiles) => {
-                    downloaded_files.append(&mut subfiles);
-                },
-                Err(e) => {
-                    debug!("Failed to download subdirectory {}: {}", item.path, e);
+        if response.status() != StatusCode::OK {
+            return Err(format!("GitHub API returned status: {}", response.status()));
+        }
+        
+        let json_text = response.text().await
+            .map_err(|e| format!("Failed to read directory listing: {}", e))?;
+            
+        let contents: Vec<GithubContent> = serde_json::from_str(&json_text)
+            .map_err(|e| format!("Failed to parse directory listing: {}", e))?;
+        
+        let mut downloaded_files = Vec::new();
+        
+        for item in contents {
+            let target_path = modpack_root.join(&item.path);
+            
+            if item.content_type == "file" {
+                if let Some(download_url) = item.download_url {
+                    // Create parent directory
+                    if let Some(parent) = target_path.parent() {
+                        fs::create_dir_all(parent)
+                            .map_err(|e| format!("Failed to create directory: {}", e))?;
+                    }
+                    
+                    // Download the file
+                    let mut file_response = http_client.get_async(&download_url).await
+                        .map_err(|e| format!("Failed to download file {}: {}", item.name, e))?;
+                        
+                    let file_bytes = file_response.bytes().await
+                        .map_err(|e| format!("Failed to read file bytes: {}", e))?;
+                        
+                    fs::write(&target_path, file_bytes)
+                        .map_err(|e| format!("Failed to write file: {}", e))?;
+                        
+                    downloaded_files.push(target_path.to_string_lossy().to_string());
+                    debug!("Downloaded file: {}", item.path);
+                }
+            } else if item.content_type == "dir" {
+                // Recursively download subdirectories - now properly boxed
+                let subdir_url = format!(
+                    "https://api.github.com/repos/Wynncraft-Overhaul/majestic-overhaul/contents/{}",
+                    item.path
+                );
+                
+                match download_github_directory(http_client, &subdir_url, &item.path, modpack_root).await {
+                    Ok(mut subfiles) => {
+                        downloaded_files.append(&mut subfiles);
+                    },
+                    Err(e) => {
+                        debug!("Failed to download subdirectory {}: {}", item.path, e);
+                    }
                 }
             }
         }
-    }
-    
-    Ok(downloaded_files)
+        
+        Ok(downloaded_files)
+    })
 }
 
 impl Display for Launcher {
