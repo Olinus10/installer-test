@@ -345,3 +345,24 @@
     border: none !important;
     box-shadow: 0 0 15px rgba(255, 179, 0, 0.3) !important;
 }
+
+.update-badge {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    background: linear-gradient(135deg, #4a90e2, #357abd);
+    color: white;
+    font-weight: bold;
+    font-size: 0.75rem;
+    padding: 4px 10px;
+    border-radius: 15px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    z-index: 5;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Adjust preset-features-count position when update badge is present */
+.preset-card:has(.update-badge) .preset-features-count {
+    right: 100px; /* Move it to the left of the update badge */
+}
