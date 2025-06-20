@@ -1160,61 +1160,66 @@ let handle_update = move |_| {
     installation_clone.modified = true;
     
     let http_client = crate::CachedHttpClient::new();
-        let mut installation_error_clone = installation_error.clone();
-        let mut progress = installation_progress.clone();
-        let mut total = installation_total.clone();
-        let mut status = installation_status.clone();
-        let mut is_installing_clone = is_installing.clone();
-        let mut has_changes_clone = has_changes.clone();
-        let mut features_modified_clone = features_modified.clone();
-        let mut performance_modified_clone = performance_modified.clone();
-        
-        spawn(async move {
-            // Calculate total items
-            match crate::universal::load_universal_manifest(&http_client, None).await {
-                Ok(manifest) => {
-                    let total_items = manifest.mods.len() + manifest.shaderpacks.len() + 
-                                     manifest.resourcepacks.len() + manifest.include.len();
-                    total.set(total_items as i64);
-                    progress.set(0);
-                    status.set("Preparing installation...".to_string());
-                    
-                    // Create a progress callback
-                    let progress_callback = move || {
-                        progress.with_mut(|p| *p += 1);
-                        let current = *progress.read();
-                        let total_val = *total.read();
-                        status.set(format!("Installing... {}/{}", current, total_val));
-                    };
-                    
-                            match installation_clone.install_or_update_with_progress(&http_client, progress_callback).await {
-            Ok(_) => {
-                debug!("Successfully updated installation: {}", installation_clone.id);
+    let mut installation_error_clone = installation_error.clone();
+    let mut progress = installation_progress.clone();
+    let mut total = installation_total.clone();
+    let mut status = installation_status.clone();
+    let mut is_installing_clone = is_installing.clone();
+    let mut has_changes_clone = has_changes.clone();
+    let mut features_modified_clone = features_modified.clone();
+    let mut performance_modified_clone = performance_modified.clone();
+    
+    spawn(async move {
+        // Calculate total items
+        match crate::universal::load_universal_manifest(&http_client, None).await {
+            Ok(manifest) => {
+                let total_items = manifest.mods.len() + manifest.shaderpacks.len() + 
+                                 manifest.resourcepacks.len() + manifest.include.len();
+                total.set(total_items as i64);
+                progress.set(0);
+                status.set("Preparing installation...".to_string());
                 
-                // Ensure progress reaches 100%
-                progress.set(*total.read());
-                status.set("Installation completed successfully!".to_string());
+                // Create a progress callback
+                let progress_callback = move || {
+                    progress.with_mut(|p| *p += 1);
+                    let current = *progress.read();
+                    let total_val = *total.read();
+                    status.set(format!("Installing... {}/{}", current, total_val));
+                };
                 
-                // Wait a moment to show completion
-                tokio::time::sleep(tokio::time::Duration::from_millis(2000)).await;
-                
-                // Save and finish
-                if let Err(e) = installation_clone.save() {
-                    error!("Failed to save changes: {}", e);
-                    installation_error_clone.set(Some(format!("Failed to save changes: {}", e)));
-                } else {
-                    has_changes_clone.set(false);
-                    features_modified_clone.set(false);
-                    performance_modified_clone.set(false);
+                match installation_clone.install_or_update_with_progress(&http_client, progress_callback).await {
+                    Ok(_) => {
+                        debug!("Successfully updated installation: {}", installation_clone.id);
+                        
+                        // Ensure progress reaches 100%
+                        progress.set(*total.read());
+                        status.set("Installation completed successfully!".to_string());
+                        
+                        // Wait a moment to show completion
+                        tokio::time::sleep(tokio::time::Duration::from_millis(2000)).await;
+                        
+                        // Save and finish
+                        if let Err(e) = installation_clone.save() {
+                            error!("Failed to save changes: {}", e);
+                            installation_error_clone.set(Some(format!("Failed to save changes: {}", e)));
+                        } else {
+                            has_changes_clone.set(false);
+                            features_modified_clone.set(false);
+                            performance_modified_clone.set(false);
+                        }
+                    },
+                    Err(e) => {
+                        error!("Failed to update installation: {}", e);
+                        installation_error_clone.set(Some(e));
+                    }
                 }
             },
             Err(e) => {
-                error!("Failed to update installation: {}", e);
-                installation_error_clone.set(Some(e));
+                installation_error_clone.set(Some(format!("Failed to load manifest: {}", e)));
             }
         }
         is_installing_clone.set(false);
-    }});
+    });
 };
     
     // Button label based on state
