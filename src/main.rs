@@ -1386,27 +1386,29 @@ async fn install<F: FnMut() + Clone>(installer_profile: &InstallerProfile, mut p
     let mut included_files: HashMap<String, Included> = HashMap::new();
     
     // Handle includes - download them from GitHub
-    if !manifest.include.is_empty() {
-        debug!("Processing {} includes", manifest.include.len());
+if !manifest.include.is_empty() {
+    debug!("Processing {} includes", manifest.include.len());
+    
+    for inc in &manifest.include {
+        // Skip if this include has an ID and it's not enabled
+        if !inc.id.is_empty() && inc.id != "default" && !installer_profile.enabled_features.contains(&inc.id) {
+            debug!("Skipping disabled include: {}", inc.id);
+            continue;
+        }
         
-        for inc in &manifest.include {
-            // Skip if this include has an ID and it's not enabled
-            if !inc.id.is_empty() && inc.id != "default" && !installer_profile.enabled_features.contains(&inc.id) {
-                debug!("Skipping disabled include: {}", inc.id);
-                continue;
-            }
-            
-            debug!("Processing include: {} (id: {})", inc.location, inc.id);
-            
-            // Construct the URL to download from GitHub
- let include_url = format!(
-    "https://raw.githubusercontent.com/Wynncraft-Overhaul/majestic-overhaul/master/{}",
-    inc.location
-);
-            
-            debug!("Include URL: {}", include_url);
-            
-            // Determine the target path
+        debug!("Processing include: {} (id: {})", inc.location, inc.id);
+        
+        // Construct the URL to download from GitHub
+        let include_url = format!(
+            "https://raw.githubusercontent.com/Wynncraft-Overhaul/majestic-overhaul/master/{}",
+            inc.location
+        );
+        
+        debug!("Include URL: {}", include_url);
+        
+        // Check if it's a file or directory based on the location
+        if inc.location.contains('.') {
+            // It's a file - download directly
             let target_path = modpack_root.join(&inc.location);
             
             // Create parent directory if needed
@@ -1417,51 +1419,52 @@ async fn install<F: FnMut() + Clone>(installer_profile: &InstallerProfile, mut p
                 }
             }
             
-            // Check if it's a directory or file based on whether location ends with .zip or has an extension
-            if inc.location.ends_with(".zip") || inc.location.contains('.') {
-                // It's a file - download it
-                match download_include_file(http_client, &include_url, &target_path).await {
-                    Ok(_) => {
-                        debug!("Successfully downloaded include file: {}", inc.location);
-            included_files.insert(
-    if inc.id.is_empty() { inc.location.clone() } else { inc.id.clone() },
-    Included {
-        md5: String::new(),
-        files: vec![target_path.to_string_lossy().to_string()],
-    }
-);
-                        progress_callback();
-                    },
-                    Err(e) => {
-                        error!("Failed to download include {}: {}", inc.location, e);
-                        return Err(format!("Failed to download include {}: {}", inc.location, e));
-                    }
+            match download_include_file(http_client, &include_url, &target_path).await {
+                Ok(_) => {
+                    debug!("Successfully downloaded include file: {}", inc.location);
+                    included_files.insert(
+                        if inc.id.is_empty() { inc.location.clone() } else { inc.id.clone() },
+                        Included {
+                            md5: String::new(),
+                            files: vec![target_path.to_string_lossy().to_string()],
+                        }
+                    );
+                    progress_callback();
+                },
+                Err(e) => {
+                    error!("Failed to download include {}: {}", inc.location, e);
+                    return Err(format!("Failed to download include {}: {}", inc.location, e));
                 }
-            } else {
-                // It's a directory - download as a zip and extract
-                let zip_url = format!("{}.zip", include_url);
-                match download_and_extract_include(http_client, &zip_url, &target_path).await {
-                    Ok(files) => {
-                        debug!("Successfully extracted include directory: {}", inc.location);
-                        included_files.insert(
-    if inc.id.is_empty() { inc.location.clone() } else { inc.id.clone() },
-    Included {
-        md5: String::new(),
-        files: vec![target_path.to_string_lossy().to_string()],
-    }
-);
-                        progress_callback();
-                    },
-                    Err(e) => {
-                        error!("Failed to download/extract include {}: {}", inc.location, e);
-                        // For directories, we might want to continue even if it fails
-                        // as they might not exist as zips
-                        debug!("Continuing despite error for directory include");
-                    }
+            }
+        } else {
+            // It's a directory - download as archive and extract
+            let archive_url = format!(
+                "https://api.github.com/repos/Wynncraft-Overhaul/majestic-overhaul/contents/{}",
+                inc.location
+            );
+            
+            // Use the existing download_zip function but adapted for GitHub API
+            match download_github_directory(http_client, &archive_url, &inc.location, modpack_root).await {
+                Ok(files) => {
+                    debug!("Successfully extracted include directory: {}", inc.location);
+                    included_files.insert(
+                        if inc.id.is_empty() { inc.location.clone() } else { inc.id.clone() },
+                        Included {
+                            md5: String::new(),
+                            files,
+                        }
+                    );
+                    progress_callback();
+                },
+                Err(e) => {
+                    error!("Failed to download/extract include directory {}: {}", inc.location, e);
+                    // Continue with other includes even if one fails
+                    debug!("Continuing despite error for directory include");
                 }
             }
         }
     }
+}
     
     // Save local manifest
     let local_manifest = Manifest {
@@ -1862,6 +1865,83 @@ fn main() {
 enum Launcher {
     Vanilla(PathBuf),
     MultiMC(PathBuf),
+}
+
+#[derive(Deserialize)]
+struct GithubContent {
+    name: String,
+    path: String,
+    download_url: Option<String>,
+    #[serde(rename = "type")]
+    content_type: String,
+}
+
+async fn download_github_directory(
+    http_client: &CachedHttpClient,
+    api_url: &str,
+    relative_path: &str,
+    modpack_root: &Path,
+) -> Result<Vec<String>, String> {
+    debug!("Downloading GitHub directory from API: {}", api_url);
+    
+    let mut response = http_client.get_async(api_url).await
+        .map_err(|e| format!("Failed to fetch directory listing: {}", e))?;
+        
+    if response.status() != StatusCode::OK {
+        return Err(format!("GitHub API returned status: {}", response.status()));
+    }
+    
+    let json_text = response.text().await
+        .map_err(|e| format!("Failed to read directory listing: {}", e))?;
+        
+    let contents: Vec<GithubContent> = serde_json::from_str(&json_text)
+        .map_err(|e| format!("Failed to parse directory listing: {}", e))?;
+    
+    let mut downloaded_files = Vec::new();
+    
+    for item in contents {
+        let target_path = modpack_root.join(&item.path);
+        
+        if item.content_type == "file" {
+            if let Some(download_url) = item.download_url {
+                // Create parent directory
+                if let Some(parent) = target_path.parent() {
+                    fs::create_dir_all(parent)
+                        .map_err(|e| format!("Failed to create directory: {}", e))?;
+                }
+                
+                // Download the file
+                let mut file_response = http_client.get_async(&download_url).await
+                    .map_err(|e| format!("Failed to download file {}: {}", item.name, e))?;
+                    
+                let file_bytes = file_response.bytes().await
+                    .map_err(|e| format!("Failed to read file bytes: {}", e))?;
+                    
+                fs::write(&target_path, file_bytes)
+                    .map_err(|e| format!("Failed to write file: {}", e))?;
+                    
+                downloaded_files.push(target_path.to_string_lossy().to_string());
+                debug!("Downloaded file: {}", item.path);
+            }
+        } else if item.content_type == "dir" {
+            // Recursively download subdirectories
+            let subdir_url = format!(
+                "https://api.github.com/repos/Wynncraft-Overhaul/majestic-overhaul/contents/{}",
+                item.path
+            );
+            
+            match download_github_directory(http_client, &subdir_url, &item.path, modpack_root).await {
+                Ok(mut subfiles) => {
+                    downloaded_files.append(&mut subfiles);
+                },
+                Err(e) => {
+                    debug!("Failed to download subdirectory {}: {}", item.path, e);
+                }
+            }
+        }
+    }
+    
+    Ok(downloaded_files)
 }
 
 impl Display for Launcher {
