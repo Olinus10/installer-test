@@ -37,8 +37,8 @@ pub fn SettingsTab(
     let mut show_delete_confirm = use_signal(|| false);
     
     // State for operation status
-    let mut is_operating = use_signal(|| false);
     let mut operation_error = use_signal(|| Option::<String>::None);
+    let mut is_operating = use_signal(|| false);
     
     // Open folder function - enhanced with debugging and path checks
     let installation_path_for_folder = installation.installation_path.clone();
@@ -148,26 +148,29 @@ let handle_rename = move |_| {
 
     
     // Handle delete
-   let handle_delete = move |_| {
-    let id_to_delete = installation_id_for_delete.clone();
-    let delete_handler = ondelete.clone();
-    is_operating.set(true);
-    
-    spawn(async move {
-        match delete_installation(&id_to_delete) {
-            Ok(_) => {
-                debug!("Successfully deleted installation: {}", id_to_delete);
-                // Call the ondelete handler to navigate back to home
-                delete_handler.call(());
-            },
-            Err(e) => {
-                error!("Failed to delete installation: {}", e);
-                operation_error.set(Some(format!("Failed to delete installation: {}", e)));
-                is_operating.set(false);
+    let handle_delete = move |_| {
+        let id_to_delete = installation_id_for_delete.clone();
+        let delete_handler = ondelete.clone();
+        let mut operation_error_clone = operation_error.clone();
+        let mut is_operating_clone = is_operating.clone();
+        
+        is_operating_clone.set(true);
+        
+        spawn(async move {
+            match crate::installation::delete_installation(&id_to_delete) {
+                Ok(_) => {
+                    debug!("Successfully deleted installation: {}", id_to_delete);
+                    // Call the ondelete handler to navigate back to home
+                    delete_handler.call(());
+                },
+                Err(e) => {
+                    error!("Failed to delete installation: {}", e);
+                    operation_error_clone.set(Some(format!("Failed to delete installation: {}", e)));
+                    is_operating_clone.set(false);
+                }
             }
-        }
-    });
-};
+        });
+    };
     
     rsx! {
         div { class: "settings-tab",
