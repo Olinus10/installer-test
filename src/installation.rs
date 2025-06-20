@@ -297,6 +297,22 @@ impl Installation {
         // Save the updated installation data
         self.save()
     }
+        pub async fn check_for_updates(&mut self, http_client: &CachedHttpClient) -> Result<bool, String> {
+        // Load the latest universal manifest
+        let universal_manifest = crate::universal::load_universal_manifest(http_client, None).await
+            .map_err(|e| format!("Failed to load universal manifest: {}", e))?;
+        
+        // Compare versions
+        if universal_manifest.modpack_version != self.universal_version {
+            self.update_available = true;
+            self.save()?;
+            Ok(true)
+        } else {
+            self.update_available = false;
+            self.save()?;
+            Ok(false)
+        }
+    }
 }
 
 // Register installation function for installation.rs
