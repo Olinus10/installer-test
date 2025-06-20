@@ -213,7 +213,7 @@ pub async fn validate_universal_json(http_client: &CachedHttpClient, url: &str) 
 
 // Default URL for the universal manifest
 const DEFAULT_UNIVERSAL_URL: &str = "https://raw.githubusercontent.com/Wynncraft-Overhaul/majestic-overhaul/master/universal.json";
-const DEFAULT_PRESETS_URL: &str = "https://raw.githubusercontent.comWynncraft-Overhaul/majestic-overhaul/master/presets.json";
+const DEFAULT_PRESETS_URL: &str = "https://raw.githubusercontent.com/Wynncraft-Overhaul/majestic-overhaul/master/presets.json";
 
 // Load the universal manifest from a URL - UPDATED to use new repository
 pub async fn load_universal_manifest(http_client: &CachedHttpClient, url: Option<&str>) -> Result<UniversalManifest, ManifestError> {
