@@ -74,6 +74,7 @@ fn format_memory_display(memory_mb: i32) -> String {
 pub fn PerformanceTab(
     memory_allocation: Signal<i32>,
     java_args: Signal<String>,
+    installation_id: String, // Add this parameter
 ) -> Element {
     // State for system memory
     let mut detected_memory = use_signal(|| None::<i32>);
@@ -110,7 +111,6 @@ pub fn PerformanceTab(
     
     // Get the installation from the prop that should be passed
     // This needs to be passed from the parent component
-    let installation = use_context::<crate::Installation>().expect("Installation not provided in context");
     
     // Store original value for comparison to detect changes
     let original_memory = installation.memory_allocation;
@@ -153,42 +153,45 @@ pub fn PerformanceTab(
     };
     
     // Handler for applying memory changes
-    let apply_memory = move |_| {
-        let current_memory = *memory_allocation.read();
-        let installation_id_clone = installation_id.clone();
-        
-        // Use the config module to update memory
-        match crate::launcher::config::update_memory_allocation(&installation_id_clone, current_memory) {
-            Ok(_) => {
-                // Update the java args signal to reflect the change
-                let updated_args = {
-                    let args = java_args.read().clone();
-                    let mut parts: Vec<&str> = args.split_whitespace().collect();
-                    parts.retain(|part| !part.starts_with("-Xmx"));
-                    
-                    let memory_param = if current_memory >= 1024 {
-                        format!("-Xmx{}G", current_memory / 1024)
-                    } else {
-                        format!("-Xmx{}M", current_memory)
+    let apply_memory = {
+        let installation_id = installation_id.clone(); // Clone for the closure
+        move |_| {
+            let current_memory = *memory_allocation.read();
+            let installation_id_for_update = installation_id.clone();
+            
+            // Use the config module to update memory
+            match crate::launcher::config::update_memory_allocation(&installation_id_for_update, current_memory) {
+                Ok(_) => {
+                    // Update the java args signal to reflect the change
+                    let updated_args = {
+                        let args = java_args.read().clone();
+                        let mut parts: Vec<&str> = args.split_whitespace().collect();
+                        parts.retain(|part| !part.starts_with("-Xmx"));
+                        
+                        let memory_param = if current_memory >= 1024 {
+                            format!("-Xmx{}G", current_memory / 1024)
+                        } else {
+                            format!("-Xmx{}M", current_memory)
+                        };
+                        
+                        parts.push(&memory_param);
+                        parts.join(" ")
                     };
                     
-                    parts.push(&memory_param);
-                    parts.join(" ")
-                };
-                
-                java_args.set(updated_args);
-                
-                // Show success message
-                show_apply_success.set(true);
-                let mut success_signal = show_apply_success.clone();
-                
-                spawn(async move {
-                    sleep(Duration::from_secs(3)).await;
-                    success_signal.set(false);
-                });
-            },
-            Err(e) => {
-                error!("Failed to update memory allocation: {}", e);
+                    java_args.set(updated_args);
+                    
+                    // Show success message
+                    show_apply_success.set(true);
+                    let mut success_signal = show_apply_success.clone();
+                    
+                    spawn(async move {
+                        sleep(Duration::from_secs(3)).await;
+                        success_signal.set(false);
+                    });
+                },
+                Err(e) => {
+                    error!("Failed to update memory allocation: {}", e);
+                }
             }
         }
     };
