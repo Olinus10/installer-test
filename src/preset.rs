@@ -18,6 +18,9 @@ pub struct Preset {
     pub author: Option<String>,
     pub icon: Option<String>,
     
+    // NEW: Add preset version support
+    pub preset_version: Option<String>,
+    
     // Enabled component IDs
     pub enabled_features: Vec<String>,
     
@@ -44,8 +47,28 @@ pub struct PresetsContainer {
     pub presets: Vec<Preset>,
 }
 
-// Default URL for presets
-const DEFAULT_PRESETS_URL: &str = "https://raw.githubusercontent.com/Olinus10/installer-test/master/src/data/presets.json";
+// NEW: Helper function to check if a preset has been updated
+pub fn check_preset_version_update(preset: &Preset, local_version: Option<&str>) -> bool {
+    match (&preset.preset_version, local_version) {
+        (Some(remote_version), Some(local_version)) => {
+            // Simple string comparison - you could implement semantic versioning here
+            remote_version != local_version
+        },
+        (Some(_), None) => true, // New preset version available
+        _ => false, // No version info available
+    }
+}
+
+// NEW: Check if modpack has updates by comparing versions
+pub fn check_modpack_update(universal_version: &str, local_version: Option<&str>) -> bool {
+    match local_version {
+        Some(local) => universal_version != local,
+        None => true, // First install
+    }
+}
+
+// Default URL for presets - UPDATED to new repository
+const DEFAULT_PRESETS_URL: &str = "https://raw.githubusercontent.com/Wynncraft-Overhaul/majestic-overhaul/master/presets.json";
 
 impl Preset {
     // Apply this preset to an installation, returning the list of enabled features
@@ -71,9 +94,9 @@ impl Preset {
     }
 }
 
-// Function to load presets from a URL
+// Function to load presets from a URL - UPDATED to use new repository
 pub async fn load_presets(http_client: &CachedHttpClient, url: Option<&str>) -> Result<Vec<Preset>, ManifestError> {
-    let presets_url = url.unwrap_or("https://raw.githubusercontent.com/Olinus10/installer-test/master/presets.json");
+    let presets_url = url.unwrap_or("https://raw.githubusercontent.com/Wynncraft-Overhaul/majestic-overhaul/master/presets.json");
     debug!("Loading presets from: {}", presets_url);
     
     // Add retry logic for more reliability
@@ -123,27 +146,28 @@ pub async fn load_presets(http_client: &CachedHttpClient, url: Option<&str>) -> 
                         }
                         
                         // Parse the presets container
-match serde_json::from_str::<PresetsContainer>(&presets_json) {
-    Ok(container) => {
-        debug!("Successfully loaded {} presets (version: {})", 
-              container.presets.len(), container.version);
-        
-        // Log preset information for debugging
-        for preset in &container.presets {
-            debug!("Loaded preset: {} (ID: {})", preset.name, preset.id);
-        }
-        
-        return Ok(container.presets);
-    },
-    Err(e) => {
-        error!("Failed to parse presets JSON: {}", e);
-        
-        return Err(ManifestError {
-            message: format!("Failed to parse presets: {}", e),
-            error_type: ManifestErrorType::DeserializationError,
-            file_name: "presets.json".to_string(),
-            raw_content,
-        });
+                        match serde_json::from_str::<PresetsContainer>(&presets_json) {
+                            Ok(container) => {
+                                debug!("Successfully loaded {} presets (version: {})", 
+                                      container.presets.len(), container.version);
+                                
+                                // Log preset information for debugging
+                                for preset in &container.presets {
+                                    debug!("Loaded preset: {} (ID: {}, Version: {:?})", 
+                                           preset.name, preset.id, preset.preset_version);
+                                }
+                                
+                                return Ok(container.presets);
+                            },
+                            Err(e) => {
+                                error!("Failed to parse presets JSON: {}", e);
+                                
+                                return Err(ManifestError {
+                                    message: format!("Failed to parse presets: {}", e),
+                                    error_type: ManifestErrorType::DeserializationError,
+                                    file_name: "presets.json".to_string(),
+                                    raw_content,
+                                });
                             }
                         }
                     },
@@ -158,11 +182,11 @@ match serde_json::from_str::<PresetsContainer>(&presets_json) {
                         }
                         
                         return Err(ManifestError {
-    message: format!("Failed to read presets response: {}", e),
-    error_type: ManifestErrorType::NetworkError,
-    file_name: "presets.json".to_string(),
-    raw_content: None,
-});
+                            message: format!("Failed to read presets response: {}", e),
+                            error_type: ManifestErrorType::NetworkError,
+                            file_name: "presets.json".to_string(),
+                            raw_content: None,
+                        });
                     }
                 }
             },
@@ -177,16 +201,15 @@ match serde_json::from_str::<PresetsContainer>(&presets_json) {
                 }
                 
                 return Err(ManifestError {
-    message: format!("Failed to fetch presets: {}", e),
-    error_type: ManifestErrorType::NetworkError,
-    file_name: "presets.json".to_string(),
-    raw_content: None,
-});
+                    message: format!("Failed to fetch presets: {}", e),
+                    error_type: ManifestErrorType::NetworkError,
+                    file_name: "presets.json".to_string(),
+                    raw_content: None,
+                });
             }
         }
     }
 }
-
 
 // Find a preset by ID
 pub fn find_preset_by_id(presets: &[Preset], id: &str) -> Option<Preset> {
