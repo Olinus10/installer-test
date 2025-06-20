@@ -640,3 +640,29 @@ button:disabled {
     border-color: rgba(255, 255, 255, 0.3);
     transform: translateY(-2px);
 }
+
+/* Completion button styling */
+.completion-button {
+    background-color: #073c17;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    padding: 12px 24px;
+    font-family: "REGULAR_FONT";
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    margin-top: 20px;
+}
+
+.completion-button:hover {
+    background-color: #0a5d23;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.completion-actions {
+    display: flex;
+    justify-content: center;
+    margin-top: 20px;
+}
