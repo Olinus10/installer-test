@@ -24,10 +24,9 @@ pub async fn fetch_changelog(
     modpack_source: &str, 
     http_client: &crate::CachedHttpClient
 ) -> Result<Changelog, String> {
-    // Point to the root directory instead of src/data
-    debug!("Fetching changelog from {}{}/changelog.json", crate::GH_RAW, modpack_source);
     
-    let changelog_url = format!("{}{}/changelog.json", crate::GH_RAW, modpack_source);
+    let base_url = "https://raw.githubusercontent.com/Wynncraft-Overhaul/majestic-overhaul/master/";
+    let changelog_url = format!("{}changelog.json", base_url);
     
     let mut changelog_resp = match http_client.get_async(changelog_url.clone()).await {
         Ok(val) => val,
