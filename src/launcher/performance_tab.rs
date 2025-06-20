@@ -197,7 +197,7 @@ pub fn PerformanceTab(
     };
     
     // Calculate if memory has been changed from original
-    let memory_changed = *memory_allocation.read() != original_memory;
+    let memory_changed = *memory_allocation.read() != *original_memory.read();
     
     // Calculate percentages safely
     let memory_percentage = match *detected_memory.read() {
