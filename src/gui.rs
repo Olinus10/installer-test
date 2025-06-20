@@ -1235,10 +1235,10 @@ let handle_update = move |_| {
 };
     
     // Button disable logic
-    let action_button_disabled = *is_installing.read() || 
-                                (!installation.update_available && 
-                                 installation.installed && 
-                                 !*has_changes.read());
+let action_button_disabled = *is_installing.read() || 
+                            (installation.installed && 
+                             !installation.update_available && 
+                             !*has_changes.read());
     
     // Handle launch
     let handle_launch = move |_| {
@@ -1359,14 +1359,11 @@ let handle_update = move |_| {
                                     }
                                 }
                             },
-                            "performance" => {
-                                rsx! {
-                                    PerformanceTab {
-                                        memory_allocation: memory_allocation,
-                                        java_args: java_args,
-                                    }
-                                }
-                            },
+PerformanceTab {
+    memory_allocation: memory_allocation,
+    java_args: java_args,
+    installation_id: installation.id.clone(), // Pass the installation ID
+},
                             "settings" => {
                                 rsx! {
 SettingsTab {
