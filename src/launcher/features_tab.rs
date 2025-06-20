@@ -49,6 +49,7 @@ pub fn FeaturesTab(
     // Find custom preset for the "Custom Configuration" card
     let custom_preset = presets.iter().find(|p| p.id == "custom");
     
+    // Return the rsx! directly without semicolon
     rsx! {
         div { class: "features-tab",
             // PRESETS section header
