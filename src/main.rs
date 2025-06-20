@@ -1879,12 +1879,12 @@ struct GithubContent {
     content_type: String,
 }
 
-fn download_github_directory(
-    http_client: &CachedHttpClient,
-    api_url: &str,
-    relative_path: &str,
-    modpack_root: &Path,
-) -> Pin<Box<dyn Future<Output = Result<Vec<String>, String>> + '_>> {
+fn download_github_directory<'a>(
+    http_client: &'a CachedHttpClient,
+    api_url: &'a str,
+    relative_path: &'a str,
+    modpack_root: &'a Path,
+) -> Pin<Box<dyn Future<Output = Result<Vec<String>, String>> + 'a>> {
     Box::pin(async move {
         debug!("Downloading GitHub directory from API: {}", api_url);
         
