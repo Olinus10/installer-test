@@ -821,7 +821,6 @@ pub fn SimplifiedInstallationWizard(props: InstallationCreationProps) -> Element
                 },
                 Err(e) => {
                     error!("Failed to load universal manifest: {}", e);
-                    // Use spawn to update the signal from outside the closure
                     spawn(async move {
                         manifest_error.set(Some(e.clone()));
                     });
@@ -890,7 +889,7 @@ pub fn SimplifiedInstallationWizard(props: InstallationCreationProps) -> Element
     rsx! {
         div { class: "wizard-overlay",
             div { class: "installation-wizard",
-                // Header
+                // Header with close button in corner
                 div { class: "wizard-header",
                     h2 { "Create New Installation" }
                     button { 
@@ -900,20 +899,20 @@ pub fn SimplifiedInstallationWizard(props: InstallationCreationProps) -> Element
                     }
                 }
                 
-                // Error notification if any
-                if let Some(error) = &*installation_error.read() {
-                    div { class: "error-message",
-                        "{error}"
-                        button {
-                            class: "error-close",
-                            onclick: move |_| installation_error.set(None),
-                            "×"
+                // Main content
+                div { class: "wizard-content",
+                    // Error notification if any
+                    if let Some(error) = &*installation_error.read() {
+                        div { class: "error-notification",
+                            div { class: "error-message", "{error}" }
+                            button {
+                                class: "error-close",
+                                onclick: move |_| installation_error.set(None),
+                                "×"
+                            }
                         }
                     }
-                }
-                
-                // Main content - simplified to just name
-                div { class: "wizard-content",
+                    
                     // Name section
                     div { class: "wizard-section",
                         h3 { "Installation Name" }
@@ -946,7 +945,7 @@ pub fn SimplifiedInstallationWizard(props: InstallationCreationProps) -> Element
                         
                         // Suggested names
                         div { class: "suggested-names",
-                            p { class: "suggestion-label", "Suggestions:" }
+                            span { class: "suggestion-label", "Quick suggestions:" }
                             div { class: "suggestion-chips",
                                 for suggestion in suggested_names {
                                     button {
@@ -983,7 +982,7 @@ pub fn SimplifiedInstallationWizard(props: InstallationCreationProps) -> Element
                     }
                 }
                 
-                // Footer with create button
+                // Footer with buttons
                 div { class: "wizard-footer",
                     button {
                         class: "cancel-button",
