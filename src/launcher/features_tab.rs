@@ -392,7 +392,7 @@ for preset in presets.iter().filter(|p| p.id != "custom") {
             }
         }
     }
-}
+
 
 // Helper function to render features by category - unchanged
 fn render_features_by_category(
