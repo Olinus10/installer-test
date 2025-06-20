@@ -1214,7 +1214,7 @@ let handle_update = move |_| {
             }
         }
         is_installing_clone.set(false);
-    });
+    }});
 };
     
     // Button label based on state
