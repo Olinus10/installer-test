@@ -1105,17 +1105,101 @@ fn create_launcher_profile(
             let profiles = obj.get_mut("profiles").unwrap().as_object_mut()
                 .ok_or(LauncherProfileError::ProfilesNotObject)?;
             
-            // Insert or update the profile
+            // Insert or update the profile using the UUID as the key
             profiles.insert(manifest.uuid.clone(), serde_json::to_value(profile)?);
             
             fs::write(lp_file_path, serde_json::to_string_pretty(&lp_obj)?)?;
-            debug!("Successfully created/updated launcher profile for: {}", manifest.name);
+            debug!("Successfully created/updated launcher profile for: {} (UUID: {})", manifest.name, manifest.uuid);
         }
         Launcher::MultiMC(root) => {
-            // MultiMC profile creation logic (existing code)
-            // ... existing MultiMC code ...
+            // MultiMC/Prism Launcher profile creation
+            let instance_path = root.join("instances").join(&manifest.uuid);
+            fs::create_dir_all(&instance_path)?;
+            
+            // Create instance.cfg for MultiMC/Prism
+            let instance_cfg = format!(
+                "InstanceType=OneSix\nname={}\nOverrideMemory=true\nMaxMemory={}\nMinMemory={}\nOverrideJavaArgs=true\nJvmArgs={}\nMinecraftWinWidth=854\nMinecraftWinHeight=480\n",
+                manifest.name,
+                manifest.max_mem.unwrap_or(4096),
+                manifest.min_mem.unwrap_or(1024),
+                manifest.java_args.as_ref().unwrap_or(&String::from("-XX:+UseG1GC"))
+            );
+            
+            fs::write(instance_path.join("instance.cfg"), instance_cfg)?;
+            
+            // Create mmc-pack.json for MultiMC/Prism
+            let mmc_pack = MMCPack {
+                components: vec![
+                    MMCComponent {
+                        cachedVolatile: Some(true),
+                        dependencyOnly: Some(false),
+                        important: Some(false),
+                        uid: String::from("net.minecraft"),
+                        version: manifest.loader.minecraft_version.clone(),
+                    },
+                    MMCComponent {
+                        cachedVolatile: Some(true),
+                        dependencyOnly: Some(false),
+                        important: Some(false),
+                        uid: match &manifest.loader.r#type[..] {
+                            "fabric" => String::from("net.fabricmc.fabric-loader"),
+                            "quilt" => String::from("org.quiltmc.quilt-loader"),
+                            _ => panic!("Invalid loader"),
+                        },
+                        version: manifest.loader.version.clone(),
+                    },
+                ],
+                formatVersion: 1,
+            };
+            
+            fs::write(
+                instance_path.join("mmc-pack.json"),
+                serde_json::to_string_pretty(&mmc_pack)?,
+            )?;
+            
+            debug!("Successfully created MultiMC/Prism instance: {} (UUID: {})", manifest.name, manifest.uuid);
         }
     }
+    Ok(())
+}
+
+// Add function to delete launcher profile
+pub fn delete_launcher_profile(installation_uuid: &str, launcher_type: &str) -> Result<(), String> {
+    debug!("Deleting launcher profile for installation: {}", installation_uuid);
+    
+    match launcher_type {
+        "vanilla" => {
+            let lp_file_path = get_minecraft_folder().join("launcher_profiles.json");
+            
+            if lp_file_path.exists() {
+                let content = fs::read_to_string(&lp_file_path)
+                    .map_err(|e| format!("Failed to read launcher profiles: {}", e))?;
+                    
+                let mut lp_obj: JsonValue = serde_json::from_str(&content)
+                    .map_err(|e| format!("Failed to parse launcher profiles: {}", e))?;
+                
+                if let Some(profiles) = lp_obj.get_mut("profiles").and_then(|p| p.as_object_mut()) {
+                    if profiles.remove(installation_uuid).is_some() {
+                        fs::write(&lp_file_path, serde_json::to_string_pretty(&lp_obj)
+                            .map_err(|e| format!("Failed to serialize profiles: {}", e))?)
+                            .map_err(|e| format!("Failed to write launcher profiles: {}", e))?;
+                        
+                        debug!("Successfully removed profile from vanilla launcher");
+                    } else {
+                        debug!("Profile {} not found in vanilla launcher", installation_uuid);
+                    }
+                }
+            }
+        },
+        launcher_type if launcher_type.starts_with("multimc") || launcher_type.starts_with("custom") => {
+            // For MultiMC/Prism, the instance directory is already deleted by the installation deletion
+            debug!("MultiMC/Prism instance will be deleted with installation directory");
+        },
+        _ => {
+            debug!("Unknown launcher type for profile deletion: {}", launcher_type);
+        }
+    }
+    
     Ok(())
 }
 
