@@ -1,7 +1,7 @@
 use dioxus::prelude::*;
 use tokio::time::sleep;
 use std::time::Duration;
-use log::error;
+use log::{error, debug};
 
 // Helper function to get system memory
 fn get_system_memory() -> Option<i32> {
@@ -79,11 +79,22 @@ pub fn PerformanceTab(
     // State for system memory
     let mut detected_memory = use_signal(|| None::<i32>);
     
+    // State for showing success message
+    let mut show_apply_success = use_signal(|| false);
+    
+    // State for recommended memory
+    let mut recommended_memory = use_signal(|| 4096); // Default 4GB recommendation
+    
     // Try to detect system memory on component load
     use_effect(move || {
         if detected_memory.read().is_none() {
             if let Some(mem) = get_system_memory() {
                 detected_memory.set(Some(mem));
+                
+                // Calculate recommended memory (30% of system, max 4GB)
+                let thirty_percent = (mem * 30) / 100;
+                let recommended = std::cmp::min(4096, thirty_percent);
+                recommended_memory.set(recommended);
             }
         }
     });
@@ -109,9 +120,6 @@ pub fn PerformanceTab(
     
     let step = 512; // 512MB steps
     
-    // Get the installation from the prop that should be passed
-    // This needs to be passed from the parent component
-    
     // Store original value for comparison to detect changes
     let mut original_memory = use_signal(|| *memory_allocation.read());
     
@@ -128,7 +136,7 @@ pub fn PerformanceTab(
         }
     });
     
-    // FIXED: Calculate if memory has been changed correctly
+    // Calculate if memory has been changed
     let memory_changed = {
         let current = *memory_allocation.read();
         let original = *original_memory.read();
@@ -136,7 +144,7 @@ pub fn PerformanceTab(
         current != original && original != 0  // Don't show as changed if original is uninitialized
     };
     
-    // FIXED: Apply memory function
+    // Apply memory function
     let apply_memory = {
         let installation_id = installation_id.clone();
         let memory_allocation = memory_allocation.clone();
@@ -209,12 +217,11 @@ pub fn PerformanceTab(
         }
     };
     
-    // Calculate if memory has been changed from original
-let memory_changed = {
-    let current_memory = *memory_allocation.read();
-    let original_memory = *original_memory.read();
-    current_memory != original_memory
-};
+    // Get system memory display
+    let system_memory_display = match *detected_memory.read() {
+        Some(mem) => format_memory_display(mem),
+        None => "Unknown".to_string(),
+    };
     
     // Calculate percentages safely
     let memory_percentage = match *detected_memory.read() {
@@ -231,31 +238,13 @@ let memory_changed = {
         _ => None
     };
     
-    // Create memory markers elements
-    let memory_marker_elements = markers.iter().enumerate().map(|(index, (label, value))| {
-        if *value <= *max_memory.read() {
-            // Calculate percentage position
-            let percentage = ((*value - min_memory) as f32 / (*max_memory.read() - min_memory) as f32) * 100.0;
-            
-            // Apply specific adjustments based on marker position
-            let margin_adjustment = match index {
-                0 => "margin-left: 0%",         // First marker
-                3 => "margin-left: -40px",      // Last marker (8GB)
-                _ => "",                        // Middle markers
-            };
-            
-            rsx! {
-                div { 
-                    key: "{label}",
-                    class: "memory-marker",
-                    style: "left: {percentage}%; {margin_adjustment}",
-                    "{label}"
-                }
-            }
-        } else {
-            rsx! { Fragment {} }
-        }
-    });
+    // Create memory markers
+    let markers = vec![
+        ("1 GB", 1024),
+        ("2 GB", 2048),
+        ("4 GB", 4096),
+        ("8 GB", 8192),
+    ];
     
     rsx! {
         div { class: "performance-tab",
@@ -278,11 +267,7 @@ let memory_changed = {
                     
                     // Show percentage of system memory if available
                     if let Some(percentage) = memory_percentage {
-                        {
-                            rsx! {
-                                span { class: "memory-percentage", " ({percentage:.1}% of system memory)" }
-                            }
-                        }
+                        span { class: "memory-percentage", " ({percentage:.1}% of system memory)" }
                     }
                 }
                 
@@ -304,12 +289,22 @@ let memory_changed = {
                     
                     // Memory markers below slider 
                     div { class: "memory-markers",
-                        span { class: "memory-marker", "1 GB" }
-                        span { class: "memory-marker", "{format_memory_display(*max_memory.read())}" }
+                        for (label, value) in markers {
+                            if value <= *max_memory.read() {
+                                div { 
+                                    class: "memory-marker",
+                                    style: {
+                                        let percentage = ((value - min_memory) as f32 / (*max_memory.read() - min_memory) as f32) * 100.0;
+                                        format!("left: {percentage}%;")
+                                    },
+                                    "{label}"
+                                }
+                            }
+                        }
                     }
                 }
                 
-                // Apply button for memory changes - FIXED: Enable when memory has changed
+                // Apply button for memory changes
                 div { class: "memory-apply-container",
                     button {
                         class: if memory_changed { 
@@ -317,7 +312,7 @@ let memory_changed = {
                         } else { 
                             "memory-apply-button" 
                         },
-                        disabled: !memory_changed, // Only disable if no changes made
+                        disabled: !memory_changed,
                         onclick: apply_memory,
                         "Apply Memory Changes"
                     }
