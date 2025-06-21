@@ -1024,6 +1024,7 @@ pub fn InstallationManagementPage(
 ) -> Element {
     // State for the current tab
     let mut active_tab = use_signal(|| "features");
+    let installation = installation_result.read().as_ref().unwrap().clone();
     let mut installation_state = use_signal(|| installation.clone());
     
     // Load the installation data
