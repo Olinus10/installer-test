@@ -1270,17 +1270,13 @@ use_effect({
         let mut installations = installations.clone();
         
         spawn(async move {
-            // Check for updates every time the page loads
-            if let Ok(mut inst) = crate::installation::load_installation(&installation_id) {
-                let http_client = crate::CachedHttpClient::new();
-                if let Ok(_) = inst.check_for_updates(&http_client).await {
-                    // Update the installations list with the new state
-                    installations.with_mut(|list| {
-                        if let Some(index) = list.iter().position(|i| i.id == inst.id) {
-                            list[index] = inst;
-                        }
-                    });
-                }
+            // Reload installation state after any changes
+            if let Ok(updated_inst) = crate::installation::load_installation(&installation_id) {
+                installations.with_mut(|list| {
+                    if let Some(index) = list.iter().position(|i| i.id == updated_inst.id) {
+                        list[index] = updated_inst;
+                    }
+                });
             }
         });
     }
