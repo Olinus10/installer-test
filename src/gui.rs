@@ -1205,35 +1205,41 @@ let handle_update = move |_| {
                     status.set(format!("Installing... {}/{}", current, total_val));
                 };
                 
-match installation_clone.install_or_update_with_progress(&http_client, progress_callback).await {
-            Ok(_) => {
-                // Mark as installed
-                installation_clone.installed = true;
-                installation_clone.update_available = false;
-                installation_clone.modified = false;
-                
-                // Save the installation
-                if let Err(e) = installation_clone.save() {
-                    error!("Failed to save installation: {}", e);
-                } else {
-                    // Update the state signal
-                    installation_state.set(installation_clone.clone());
-                    
-                    // Update the installations list
-                    installations.with_mut(|list| {
-                        if let Some(index) = list.iter().position(|i| i.id == installation_id) {
-                            list[index] = installation_clone;
+                match installation_clone.install_or_update_with_progress(&http_client, progress_callback).await {
+                    Ok(_) => {
+                        // Mark as installed
+                        installation_clone.installed = true;
+                        installation_clone.update_available = false;
+                        installation_clone.modified = false;
+                        
+                        // Save the installation
+                        if let Err(e) = installation_clone.save() {
+                            error!("Failed to save installation: {}", e);
+                        } else {
+                            // Update the state signal
+                            installation_state.set(installation_clone.clone());
+                            
+                            // Update the installations list
+                            installations.with_mut(|list| {
+                                if let Some(index) = list.iter().position(|i| i.id == installation_id) {
+                                    list[index] = installation_clone;
+                                }
+                            });
+                            
+                            has_changes_clone.set(false);
+                            features_modified_clone.set(false);
+                            performance_modified_clone.set(false);
                         }
-                    });
-                    
-                    has_changes_clone.set(false);
-                    features_modified_clone.set(false);
-                    performance_modified_clone.set(false);
+                    },
+                    Err(e) => {
+                        error!("Failed to update installation: {}", e);
+                        installation_error_clone.set(Some(e));
+                    }
                 }
             },
             Err(e) => {
-                error!("Failed to update installation: {}", e);
-                installation_error_clone.set(Some(e));
+                error!("Failed to load universal manifest: {}", e);
+                installation_error_clone.set(Some(format!("Failed to load manifest: {}", e)));
             }
         }
         is_installing_clone.set(false);
