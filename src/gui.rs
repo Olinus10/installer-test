@@ -1183,6 +1183,8 @@ let handle_update = move |_| {
     let mut has_changes_clone = has_changes.clone();
     let mut features_modified_clone = features_modified.clone();
     let mut performance_modified_clone = performance_modified.clone();
+    let mut installations = installations.clone();
+    let installation_id = installation_clone.id.clone();
     
     spawn(async move {
         // Calculate total items
@@ -1206,6 +1208,11 @@ let handle_update = move |_| {
                     Ok(_) => {
                         debug!("Successfully updated installation: {}", installation_clone.id);
                         
+                        // Mark as installed and save
+                        installation_clone.installed = true;
+                        installation_clone.update_available = false;
+                        installation_clone.modified = false;
+                        
                         // Ensure progress reaches 100%
                         progress.set(*total.read());
                         status.set("Installation completed successfully!".to_string());
@@ -1213,11 +1220,18 @@ let handle_update = move |_| {
                         // Wait a moment to show completion
                         tokio::time::sleep(tokio::time::Duration::from_millis(2000)).await;
                         
-                        // Save and finish
+                        // Save and update the installations list
                         if let Err(e) = installation_clone.save() {
                             error!("Failed to save changes: {}", e);
                             installation_error_clone.set(Some(format!("Failed to save changes: {}", e)));
                         } else {
+                            // Update the installations list with the updated installation
+                            installations.with_mut(|list| {
+                                if let Some(index) = list.iter().position(|i| i.id == installation_id) {
+                                    list[index] = installation_clone.clone();
+                                }
+                            });
+                            
                             has_changes_clone.set(false);
                             features_modified_clone.set(false);
                             performance_modified_clone.set(false);
@@ -1316,6 +1330,34 @@ let action_button_disabled = *is_installing.read() ||
             }
         });
     };
+
+    use_effect({
+    let installation_id = installation.id.clone();
+    let mut installations = installations.clone();
+    
+    move || {
+        // Set up a timer to periodically check installation state
+        let installation_id = installation_id.clone();
+        let mut installations = installations.clone();
+        
+        spawn(async move {
+            loop {
+                tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
+                
+                if let Ok(updated_inst) = crate::installation::load_installation(&installation_id) {
+                    installations.with_mut(|list| {
+                        if let Some(index) = list.iter().position(|i| i.id == installation_id) {
+                            if list[index].installed != updated_inst.installed || 
+                               list[index].update_available != updated_inst.update_available {
+                                list[index] = updated_inst;
+                            }
+                        }
+                    });
+                }
+            }
+        });
+    }
+});
     
     rsx! {
         div { class: "installation-management-container",
