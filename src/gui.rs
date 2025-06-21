@@ -1244,19 +1244,47 @@ let (action_button_label, button_class, button_disabled) = {
     let has_changes = *has_changes.read();
     let is_installing = *is_installing.read();
     
+    debug!("Button state check: installed={}, update_available={}, has_changes={}, is_installing={}", 
+           installed, update_available, has_changes, is_installing);
+    
     if is_installing {
         ("Installing...", "action-button installing", true)
     } else if !installed {
         ("Install", "action-button install-button", false)
     } else if update_available {
-        ("Update", "action-button update-button", false)
+        ("Update Available", "action-button update-button", false)
     } else if has_changes {
         ("Apply Changes", "action-button modify-button", false)
     } else {
-        // FIXED: When nothing needs to be done, disable the button
-        ("Up to Date", "action-button disabled", true)
+        ("Up to Date", "action-button up-to-date", true)
     }
 };
+
+// Also add this effect to refresh installation state periodically:
+use_effect({
+    let installation_id = installation.id.clone();
+    let mut installations = installations.clone();
+    
+    move || {
+        let installation_id = installation_id.clone();
+        let mut installations = installations.clone();
+        
+        spawn(async move {
+            // Check for updates every time the page loads
+            if let Ok(mut inst) = crate::installation::load_installation(&installation_id) {
+                let http_client = crate::CachedHttpClient::new();
+                if let Ok(_) = inst.check_for_updates(&http_client).await {
+                    // Update the installations list with the new state
+                    installations.with_mut(|list| {
+                        if let Some(index) = list.iter().position(|i| i.id == inst.id) {
+                            list[index] = inst;
+                        }
+                    });
+                }
+            }
+        });
+    }
+});
     
     // Button disable logic
 let action_button_disabled = *is_installing.read() || 
