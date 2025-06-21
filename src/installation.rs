@@ -385,6 +385,18 @@ pub fn load_installation(id: &str) -> Result<Installation, String> {
 
 // Delete an installation
 pub fn delete_installation(id: &str) -> Result<(), String> {
+    debug!("Starting deletion of installation: {}", id);
+    
+    // Load the installation to get its launcher type before deleting
+    let installation = load_installation(id)
+        .map_err(|e| format!("Failed to load installation for deletion: {}", e))?;
+    
+    // Delete the launcher profile first
+    if let Err(e) = crate::delete_launcher_profile(&installation.id, &installation.launcher_type) {
+        debug!("Warning: Failed to delete launcher profile: {}", e);
+        // Continue with deletion even if launcher profile deletion fails
+    }
+    
     // Remove from index
     let mut index = load_installations_index()
         .map_err(|e| format!("Failed to load installations index: {}", e))?;
@@ -406,5 +418,6 @@ pub fn delete_installation(id: &str) -> Result<(), String> {
             .map_err(|e| format!("Failed to delete installation directory: {}", e))?;
     }
     
+    debug!("Successfully deleted installation: {}", id);
     Ok(())
 }
