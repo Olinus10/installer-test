@@ -237,64 +237,58 @@ impl Installation {
         self.install_or_update_with_progress(http_client, || {}).await
     }
     
-    pub async fn install_or_update_with_progress<F: FnMut() + Clone>(
-        &self, 
-        http_client: &crate::CachedHttpClient,
-        progress_callback: F
-    ) -> Result<(), String> {
-        // Get the universal manifest
-        let universal_manifest = crate::universal::load_universal_manifest(http_client, None).await
-            .map_err(|e| format!("Failed to load universal manifest: {}", e))?;
-        
-        // Convert universal manifest to regular manifest with our enabled features
-        let mut manifest = crate::universal::universal_to_manifest(
-            &universal_manifest, 
-            self.enabled_features.clone()
-        );
-        
-        // IMPORTANT: Override the UUID with this installation's ID
-        manifest.uuid = self.id.clone();
-        manifest.name = self.name.clone(); // Also use the installation's name
-        
-        // Create launcher with the correct path
-        let launcher = match self.launcher_type.as_str() {
-            "vanilla" => {
-                // For vanilla, use the installation ID as the folder name
-                let app_data = crate::get_app_data();
-                Ok(crate::Launcher::Vanilla(app_data))
-            },
-            "multimc" => crate::get_multimc_folder("MultiMC").map(crate::Launcher::MultiMC),
-            "prismlauncher" => crate::get_multimc_folder("PrismLauncher").map(crate::Launcher::MultiMC),
-            _ => Err(format!("Unsupported launcher type: {}", self.launcher_type)),
-        }?;
-        
-        let installer_profile = crate::InstallerProfile {
-            manifest,
-            http_client: http_client.clone(),
-            installed: self.installed,
-            update_available: self.update_available,
-            modpack_source: "Olinus10/installer-test/".to_string(),
-            modpack_branch: "master".to_string(),
-            enabled_features: self.enabled_features.clone(),
-            launcher: Some(launcher),
-            local_manifest: None,
-            changelog: None,
-        };
-        
-        // Install or update based on current state
-        if !self.installed {
-            crate::install(&installer_profile, progress_callback).await?;
-            
-            // After successful installation, update our state
-            let mut updated = self.clone();
-            updated.installed = true;
-            updated.save()?;
-        } else {
-            crate::update(&installer_profile, progress_callback).await?;
-        }
-        
-        Ok(())
+   pub async fn install_or_update_with_progress<F: FnMut() + Clone>(
+    &self, 
+    http_client: &crate::CachedHttpClient,
+    progress_callback: F
+) -> Result<(), String> {
+    // Get the universal manifest
+    let universal_manifest = crate::universal::load_universal_manifest(http_client, None).await
+        .map_err(|e| format!("Failed to load universal manifest: {}", e))?;
+    
+    // Convert universal manifest to regular manifest with our enabled features
+    let mut manifest = crate::universal::universal_to_manifest(
+        &universal_manifest, 
+        self.enabled_features.clone()
+    );
+    
+    // IMPORTANT: Override the UUID with this installation's ID
+    manifest.uuid = self.id.clone();
+    manifest.name = self.name.clone();
+    
+    // Create launcher
+    let launcher = match self.launcher_type.as_str() {
+        "vanilla" => {
+            let app_data = crate::get_app_data();
+            Ok(crate::Launcher::Vanilla(app_data))
+        },
+        "multimc" => crate::get_multimc_folder("MultiMC").map(crate::Launcher::MultiMC),
+        "prismlauncher" => crate::get_multimc_folder("PrismLauncher").map(crate::Launcher::MultiMC),
+        _ => Err(format!("Unsupported launcher type: {}", self.launcher_type)),
+    }?;
+    
+    let installer_profile = crate::InstallerProfile {
+        manifest,
+        http_client: http_client.clone(),
+        installed: self.installed,
+        update_available: self.update_available,
+        modpack_source: "Wynncraft-Overhaul/majestic-overhaul/".to_string(),
+        modpack_branch: "master".to_string(),
+        enabled_features: self.enabled_features.clone(),
+        launcher: Some(launcher),
+        local_manifest: None,
+        changelog: None,
+    };
+    
+    // Install or update based on current state
+    if !self.installed {
+        crate::install(&installer_profile, progress_callback).await?;
+    } else {
+        crate::update(&installer_profile, progress_callback).await?;
     }
+    
+    Ok(())
+}
     
     // Update the play method to increment launch count
     pub fn record_launch(&mut self) -> Result<(), String> {
