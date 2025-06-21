@@ -168,53 +168,6 @@ impl Installation {
         }
     }
 
-        pub fn mark_installed(&mut self) -> Result<(), String> {
-        self.installed = true;
-        self.update_available = false;
-        self.modified = false;
-        self.last_used = chrono::Utc::now();
-        self.save()
-    }
-    
-    // Check if installation needs updates
-    pub async fn check_for_updates(&mut self, http_client: &CachedHttpClient) -> Result<bool, String> {
-        debug!("Checking for updates for installation: {}", self.name);
-        
-        // Load the latest universal manifest
-        let universal_manifest = crate::universal::load_universal_manifest(http_client, None).await
-            .map_err(|e| format!("Failed to load universal manifest: {}", e))?;
-        
-        // Compare versions
-        let update_needed = universal_manifest.modpack_version != self.universal_version;
-        
-        if update_needed {
-            debug!("Update available: {} -> {}", self.universal_version, universal_manifest.modpack_version);
-            self.update_available = true;
-        } else {
-            debug!("Installation is up to date");
-            self.update_available = false;
-        }
-        
-        self.save()?;
-        Ok(update_needed)
-    }
-    
-    // Update the installation after successful install/update
-    pub async fn complete_installation(&mut self, http_client: &CachedHttpClient) -> Result<(), String> {
-        // Load latest manifest to get current version
-        let universal_manifest = crate::universal::load_universal_manifest(http_client, None).await
-            .map_err(|e| format!("Failed to load universal manifest: {}", e))?;
-        
-        // Update installation state
-        self.installed = true;
-        self.update_available = false;
-        self.modified = false;
-        self.universal_version = universal_manifest.modpack_version;
-        self.last_used = chrono::Utc::now();
-        
-        self.save()
-    }
-}
     // Custom installation without using a preset
     pub fn new_custom(
         name: String,
@@ -253,6 +206,14 @@ impl Installation {
             last_launch: None,
             total_launches: 0,
         }
+    }
+
+    pub fn mark_installed(&mut self) -> Result<(), String> {
+        self.installed = true;
+        self.update_available = false;
+        self.modified = false;
+        self.last_used = chrono::Utc::now();
+        self.save()
     }
 
     pub fn save(&self) -> Result<(), String> {
@@ -344,23 +305,46 @@ impl Installation {
         // Save the updated installation data
         self.save()
     }
-        pub async fn check_for_updates(&mut self, http_client: &CachedHttpClient) -> Result<bool, String> {
+    
+    // Check if installation needs updates
+    pub async fn check_for_updates(&mut self, http_client: &CachedHttpClient) -> Result<bool, String> {
+        debug!("Checking for updates for installation: {}", self.name);
+        
         // Load the latest universal manifest
         let universal_manifest = crate::universal::load_universal_manifest(http_client, None).await
             .map_err(|e| format!("Failed to load universal manifest: {}", e))?;
         
         // Compare versions
-        if universal_manifest.modpack_version != self.universal_version {
+        let update_needed = universal_manifest.modpack_version != self.universal_version;
+        
+        if update_needed {
+            debug!("Update available: {} -> {}", self.universal_version, universal_manifest.modpack_version);
             self.update_available = true;
-            self.save()?;
-            Ok(true)
         } else {
+            debug!("Installation is up to date");
             self.update_available = false;
-            self.save()?;
-            Ok(false)
         }
+        
+        self.save()?;
+        Ok(update_needed)
     }
-
+    
+    // Update the installation after successful install/update
+    pub async fn complete_installation(&mut self, http_client: &CachedHttpClient) -> Result<(), String> {
+        // Load latest manifest to get current version
+        let universal_manifest = crate::universal::load_universal_manifest(http_client, None).await
+            .map_err(|e| format!("Failed to load universal manifest: {}", e))?;
+        
+        // Update installation state
+        self.installed = true;
+        self.update_available = false;
+        self.modified = false;
+        self.universal_version = universal_manifest.modpack_version;
+        self.last_used = chrono::Utc::now();
+        
+        self.save()
+    }
+}
 
 // Register installation function for installation.rs
 pub fn register_installation(installation: &Installation) -> Result<(), String> {
