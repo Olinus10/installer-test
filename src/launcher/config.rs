@@ -153,38 +153,109 @@ pub fn get_jvm_args(profile_id: &str) -> Result<String, String> {
 pub fn update_memory_allocation(installation_id: &str, memory_mb: i32) -> Result<(), String> {
     debug!("Updating memory allocation for {} to {}MB", installation_id, memory_mb);
     
-    // Load current JVM args
-    let current_args = match get_installation_jvm_args(installation_id) {
-        Ok(args) => args,
-        Err(e) => {
-            warn!("Failed to get current JVM args: {}", e);
-            // Use default args if we can't get the current ones
-            "-XX:+UseG1GC -XX:+UnlockExperimentalVMOptions -XX:G1NewSizePercent=20 -XX:G1ReservePercent=20 -XX:MaxGCPauseMillis=50 -XX:G1HeapRegionSize=32M".to_string()
+    // Load the installation
+    let app_data = get_app_data_dir();
+    let installation_dir = app_data.join(format!(".WC_OVHL/installations/{}", installation_id));
+    let config_path = installation_dir.join("installation.json");
+    
+    if !config_path.exists() {
+        return Err("Installation not found".to_string());
+    }
+    
+    // Read and update the installation config
+    let content = fs::read_to_string(&config_path)
+        .map_err(|e| format!("Failed to read installation config: {}", e))?;
+    
+    let mut installation: serde_json::Value = serde_json::from_str(&content)
+        .map_err(|e| format!("Failed to parse installation config: {}", e))?;
+    
+    // Update memory allocation field
+    if let Some(obj) = installation.as_object_mut() {
+        obj.insert("memory_allocation".to_string(), serde_json::Value::Number(serde_json::Number::from(memory_mb)));
+        
+        // Update Java args - remove any existing -Xmx and -Xms
+        if let Some(java_args) = obj.get("java_args").and_then(|v| v.as_str()) {
+            let mut parts: Vec<&str> = java_args.split_whitespace().collect();
+            // Remove any existing memory arguments
+            parts.retain(|part| !part.starts_with("-Xmx") && !part.starts_with("-Xms"));
+            
+            // Add the new memory parameter (only -Xmx, no -Xms)
+            let memory_param = if memory_mb >= 1024 {
+                format!("-Xmx{}G", memory_mb / 1024)
+            } else {
+                format!("-Xmx{}M", memory_mb)
+            };
+            
+            parts.push(&memory_param);
+            
+            // Join and update
+            let updated_args = parts.join(" ");
+            obj.insert("java_args".to_string(), serde_json::Value::String(updated_args));
+            
+            debug!("Updated Java args: {}", obj.get("java_args").unwrap());
         }
-    };
+    }
     
-    // Parse existing args to remove any Xmx parameter
-    let mut parts: Vec<&str> = current_args.split_whitespace().collect();
-    parts.retain(|part| !part.starts_with("-Xmx"));
+    // Write back
+    let updated_json = serde_json::to_string_pretty(&installation)
+        .map_err(|e| format!("Failed to serialize installation: {}", e))?;
     
-    // Format the new memory parameter
-    let memory_param = if memory_mb >= 1024 {
-        // Use GB format for readability if >= 1GB
-        format!("-Xmx{}G", memory_mb / 1024)
-    } else {
-        format!("-Xmx{}M", memory_mb)
-    };
+    fs::write(&config_path, updated_json)
+        .map_err(|e| format!("Failed to write installation config: {}", e))?;
     
-    // Add the new memory parameter
-    parts.push(&memory_param);
+    // Also update the launcher profile
+    update_launcher_profile_memory(installation_id, memory_mb)?;
     
-    // Join all parts back together
-    let updated_args = parts.join(" ");
+    Ok(())
+}
+
+// Add this helper function to update launcher profiles
+fn update_launcher_profile_memory(installation_id: &str, memory_mb: i32) -> Result<(), String> {
+    let minecraft_dir = crate::get_minecraft_folder();
+    let profiles_path = minecraft_dir.join("launcher_profiles.json");
     
-    debug!("Updated JVM args: {}", updated_args);
+    if profiles_path.exists() {
+        let content = fs::read_to_string(&profiles_path)
+            .map_err(|e| format!("Failed to read launcher profiles: {}", e))?;
+        
+        let mut profiles: serde_json::Value = serde_json::from_str(&content)
+            .map_err(|e| format!("Failed to parse launcher profiles: {}", e))?;
+        
+        if let Some(profiles_obj) = profiles.get_mut("profiles").and_then(|p| p.as_object_mut()) {
+            if let Some(profile) = profiles_obj.get_mut(installation_id) {
+                if let Some(profile_obj) = profile.as_object_mut() {
+                    // Get current javaArgs or create new
+                    let current_args = profile_obj.get("javaArgs")
+                        .and_then(|v| v.as_str())
+                        .unwrap_or("-XX:+UseG1GC -XX:+UnlockExperimentalVMOptions -XX:G1NewSizePercent=20 -XX:G1ReservePercent=20 -XX:MaxGCPauseMillis=50 -XX:G1HeapRegionSize=32M");
+                    
+                    // Parse and update args
+                    let mut parts: Vec<&str> = current_args.split_whitespace().collect();
+                    parts.retain(|part| !part.starts_with("-Xmx") && !part.starts_with("-Xms"));
+                    
+                    // Add new memory setting (only -Xmx)
+                    let memory_param = if memory_mb >= 1024 {
+                        format!("-Xmx{}G", memory_mb / 1024)
+                    } else {
+                        format!("-Xmx{}M", memory_mb)
+                    };
+                    
+                    parts.push(&memory_param);
+                    let updated_args = parts.join(" ");
+                    
+                    profile_obj.insert("javaArgs".to_string(), serde_json::Value::String(updated_args));
+                }
+            }
+        }
+        
+        let updated_json = serde_json::to_string_pretty(&profiles)
+            .map_err(|e| format!("Failed to serialize profiles: {}", e))?;
+        
+        fs::write(&profiles_path, updated_json)
+            .map_err(|e| format!("Failed to write launcher profiles: {}", e))?;
+    }
     
-    // Save the updated args
-    save_jvm_args(installation_id, &updated_args)
+    Ok(())
 }
 
 // Get the JVM args for an installation
