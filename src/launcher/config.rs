@@ -378,3 +378,62 @@ pub fn extract_memory_from_args(args: &str) -> Option<i32> {
     // Default to 4GB if not found
     Some(4 * 1024)
 }
+
+pub fn update_launcher_profile_memory(installation_id: &str, memory_mb: i32) -> Result<(), String> {
+    use std::fs;
+    use serde_json::Value;
+    
+    let minecraft_dir = crate::get_minecraft_folder();
+    let profiles_path = minecraft_dir.join("launcher_profiles.json");
+    
+    if !profiles_path.exists() {
+        return Err("launcher_profiles.json not found".to_string());
+    }
+    
+    let content = fs::read_to_string(&profiles_path)
+        .map_err(|e| format!("Failed to read launcher profiles: {}", e))?;
+    
+    let mut profiles: Value = serde_json::from_str(&content)
+        .map_err(|e| format!("Failed to parse launcher profiles: {}", e))?;
+    
+    if let Some(profiles_obj) = profiles.get_mut("profiles").and_then(|p| p.as_object_mut()) {
+        if let Some(profile) = profiles_obj.get_mut(installation_id) {
+            if let Some(profile_obj) = profile.as_object_mut() {
+                // Get current javaArgs or use default
+                let current_args = profile_obj.get("javaArgs")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("-XX:+UseG1GC -XX:+UnlockExperimentalVMOptions -XX:G1NewSizePercent=20 -XX:G1ReservePercent=20 -XX:MaxGCPauseMillis=50 -XX:G1HeapRegionSize=32M");
+                
+                // Parse and rebuild args
+                let mut args_parts: Vec<String> = Vec::new();
+                
+                // Keep non-memory args
+                for arg in current_args.split_whitespace() {
+                    if !arg.starts_with("-Xmx") && !arg.starts_with("-Xms") {
+                        args_parts.push(arg.to_string());
+                    }
+                }
+                
+                // Add new memory setting (ONLY -Xmx, NO -Xms)
+                if memory_mb >= 1024 && memory_mb % 1024 == 0 {
+                    args_parts.push(format!("-Xmx{}G", memory_mb / 1024));
+                } else {
+                    args_parts.push(format!("-Xmx{}M", memory_mb));
+                }
+                
+                let final_args = args_parts.join(" ");
+                profile_obj.insert("javaArgs".to_string(), Value::String(final_args.clone()));
+                
+                debug!("Updated launcher profile {} with JVM args: {}", installation_id, final_args);
+            }
+        }
+    }
+    
+    let updated_json = serde_json::to_string_pretty(&profiles)
+        .map_err(|e| format!("Failed to serialize profiles: {}", e))?;
+    
+    fs::write(&profiles_path, updated_json)
+        .map_err(|e| format!("Failed to write launcher profiles: {}", e))?;
+    
+    Ok(())
+}
