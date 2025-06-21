@@ -1473,83 +1473,111 @@ async fn install<F: FnMut() + Clone>(installer_profile: &InstallerProfile, mut p
     let mut included_files: HashMap<String, Included> = HashMap::new();
     
     // Handle includes - download them from GitHub
-    if !manifest.include.is_empty() {
-        debug!("Processing {} includes from universal manifest", manifest.include.len());
+if !manifest.include.is_empty() {
+    debug!("Processing {} includes from manifest", manifest.include.len());
+    
+    for inc in &manifest.include {
+        // Check if this include should be installed
+        let should_install = if inc.id.is_empty() || inc.id == "default" {
+            true // Always install default/no-id includes
+        } else if !inc.optional {
+            true // Always install non-optional includes
+        } else {
+            installer_profile.enabled_features.contains(&inc.id)
+        };
         
-        for inc in &manifest.include {
-            // Skip if this include has an ID and it's not enabled
-            if !inc.id.is_empty() && inc.id != "default" && !installer_profile.enabled_features.contains(&inc.id) {
-                debug!("Skipping disabled include: {}", inc.id);
-                continue;
+        if !should_install {
+            debug!("Skipping disabled include: {}", inc.id);
+            continue;
+        }
+        
+        debug!("Processing include: {} (location: {})", inc.id, inc.location);
+        
+        // Build the raw GitHub URL
+        let github_url = format!(
+            "https://raw.githubusercontent.com/Wynncraft-Overhaul/majestic-overhaul/master/{}",
+            inc.location
+        );
+        
+        // Determine target path
+        let target_path = modpack_root.join(&inc.location);
+        
+        // Check if it's a file or directory based on the location
+        if inc.location.ends_with(".zip") || inc.location.ends_with(".txt") || inc.location == "options.txt" {
+            // It's a file - download directly
+            debug!("Downloading file include: {} to {:?}", github_url, target_path);
+            
+            // Create parent directory if needed
+            if let Some(parent) = target_path.parent() {
+                if let Err(e) = fs::create_dir_all(parent) {
+                    error!("Failed to create directory for include {}: {}", inc.location, e);
+                    continue;
+                }
             }
             
-            debug!("Processing include: {} (id: {})", inc.location, inc.id);
+            // Download the file
+            match http_client.get_async(&github_url).await {
+                Ok(mut response) => {
+                    if response.status() == StatusCode::OK {
+                        match response.bytes().await {
+                            Ok(bytes) => {
+                                match fs::write(&target_path, bytes) {
+                                    Ok(_) => {
+                                        debug!("Successfully downloaded include file: {}", inc.location);
+                                        included_files.insert(
+                                            inc.id.clone(),
+                                            Included {
+                                                md5: String::new(),
+                                                files: vec![target_path.to_string_lossy().to_string()],
+                                            }
+                                        );
+                                        progress_callback();
+                                    },
+                                    Err(e) => {
+                                        error!("Failed to write include file {}: {}", inc.location, e);
+                                    }
+                                }
+                            },
+                            Err(e) => {
+                                error!("Failed to read include file bytes: {}", e);
+                            }
+                        }
+                    } else {
+                        error!("Failed to download include {}: HTTP {}", inc.location, response.status());
+                    }
+                },
+                Err(e) => {
+                    error!("Failed to download include {}: {}", inc.location, e);
+                }
+            }
+        } else {
+            // It's a directory - use GitHub API to download all files
+            debug!("Downloading directory include: {}", inc.location);
             
-            // For includes, we need to download them from the GitHub repository
-            let include_url = format!(
-                "https://raw.githubusercontent.com/Wynncraft-Overhaul/majestic-overhaul/master/{}",
+            let api_url = format!(
+                "https://api.github.com/repos/Wynncraft-Overhaul/majestic-overhaul/contents/{}",
                 inc.location
             );
             
-            debug!("Include URL: {}", include_url);
-            
-            // Determine if it's a file or directory
-            if inc.location.ends_with("/") || !inc.location.contains('.') {
-                // It's a directory - use GitHub API to get contents
-                let api_url = format!(
-                    "https://api.github.com/repos/Wynncraft-Overhaul/majestic-overhaul/contents/{}",
-                    inc.location.trim_end_matches('/')
-                );
-                
-                match download_github_directory(http_client, &api_url, &inc.location, modpack_root).await {
-                    Ok(files) => {
-                        debug!("Successfully downloaded include directory: {} ({} files)", inc.location, files.len());
-                        included_files.insert(
-                            if inc.id.is_empty() { inc.location.clone() } else { inc.id.clone() },
-                            Included {
-                                md5: String::new(),
-                                files,
-                            }
-                        );
-                        progress_callback();
-                    },
-                    Err(e) => {
-                        error!("Failed to download include directory {}: {}", inc.location, e);
-                        return Err(format!("Failed to download include {}: {}", inc.location, e));
-                    }
-                }
-            } else {
-                // It's a file - download directly
-                let target_path = modpack_root.join(&inc.location);
-                
-                // Create parent directory if needed
-                if let Some(parent) = target_path.parent() {
-                    if let Err(e) = fs::create_dir_all(parent) {
-                        error!("Failed to create directory for include {}: {}", inc.location, e);
-                        continue;
-                    }
-                }
-                
-                match download_include_file(http_client, &include_url, &target_path).await {
-                    Ok(_) => {
-                        debug!("Successfully downloaded include file: {}", inc.location);
-                        included_files.insert(
-                            if inc.id.is_empty() { inc.location.clone() } else { inc.id.clone() },
-                            Included {
-                                md5: String::new(),
-                                files: vec![target_path.to_string_lossy().to_string()],
-                            }
-                        );
-                        progress_callback();
-                    },
-                    Err(e) => {
-                        error!("Failed to download include file {}: {}", inc.location, e);
-                        return Err(format!("Failed to download include {}: {}", inc.location, e));
-                    }
+            match download_github_directory(http_client, &api_url, &inc.location, modpack_root).await {
+                Ok(files) => {
+                    debug!("Successfully downloaded include directory: {} ({} files)", inc.location, files.len());
+                    included_files.insert(
+                        inc.id.clone(),
+                        Included {
+                            md5: String::new(),
+                            files,
+                        }
+                    );
+                    progress_callback();
+                },
+                Err(e) => {
+                    error!("Failed to download include directory {}: {}", inc.location, e);
                 }
             }
         }
     }
+}
     
     // Save local manifest
     let local_manifest = Manifest {
