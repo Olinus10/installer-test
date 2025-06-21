@@ -1634,6 +1634,14 @@ if !manifest.include.is_empty() {
     if loader_future.is_some() {
         loader_future.unwrap().await;
     }
+
+    if let Ok(mut installation) = crate::installation::load_installation(&installer_profile.manifest.uuid) {
+    if let Err(e) = installation.complete_installation(http_client).await {
+        error!("Failed to update installation state: {}", e);
+    } else {
+        debug!("Successfully marked installation as complete");
+    }
+}
     
     info!("Installed modpack!");
     Ok(())
