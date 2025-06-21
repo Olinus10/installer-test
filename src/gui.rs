@@ -853,14 +853,14 @@ pub fn SimplifiedInstallationWizard(props: InstallationCreationProps) -> Element
             let loader_version = unwrapped_manifest.loader.version.clone();
             
             // Create a basic installation
-            let installation = Installation::new_custom(
-                installation_name.clone(),  // Use the validated name
-                minecraft_version,
-                loader_type,
-                loader_version,
-                "vanilla".to_string(),
-                unwrapped_manifest.version.clone(),
-            );
+let installation = Installation::new_custom(
+    installation_name.clone(),  // Use the validated name
+    minecraft_version,
+    loader_type,
+    loader_version,
+    "vanilla".to_string(),
+    unwrapped_manifest.version.clone(),
+);
             
             // Register the installation
             if let Err(e) = crate::installation::register_installation(&installation) {
@@ -1416,7 +1416,7 @@ let action_button_disabled = *is_installing.read() ||
         PerformanceTab {
             memory_allocation: memory_allocation,
             java_args: java_args,
-            installation_id: installation.id.clone() // Remove the comma here
+            installation_id: installation.id.clone()
         }
     }
 },
