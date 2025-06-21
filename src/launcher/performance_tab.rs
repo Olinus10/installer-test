@@ -1,7 +1,7 @@
 use dioxus::prelude::*;
 use tokio::time::sleep;
 use std::time::Duration;
-use log::{error, debug};
+use log::{debug, error};
 
 // Helper function to get system memory
 fn get_system_memory() -> Option<i32> {
