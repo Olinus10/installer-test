@@ -1473,83 +1473,83 @@ async fn install<F: FnMut() + Clone>(installer_profile: &InstallerProfile, mut p
     let mut included_files: HashMap<String, Included> = HashMap::new();
     
     // Handle includes - download them from GitHub
-if !manifest.include.is_empty() {
-    debug!("Processing {} includes from universal manifest", manifest.include.len());
-    
-    for inc in &manifest.include {
-        // Skip if this include has an ID and it's not enabled
-        if !inc.id.is_empty() && inc.id != "default" && !installer_profile.enabled_features.contains(&inc.id) {
-            debug!("Skipping disabled include: {}", inc.id);
-            continue;
-        }
+    if !manifest.include.is_empty() {
+        debug!("Processing {} includes from universal manifest", manifest.include.len());
         
-        debug!("Processing include: {} (id: {})", inc.location, inc.id);
-        
-        // For includes, we need to download them from the GitHub repository
-        let include_url = format!(
-            "https://raw.githubusercontent.com/Wynncraft-Overhaul/majestic-overhaul/master/{}",
-            inc.location
-        );
-        
-        debug!("Include URL: {}", include_url);
-        
-        // Determine if it's a file or directory
-        if inc.location.ends_with("/") || !inc.location.contains('.') {
-            // It's a directory - use GitHub API to get contents
-            let api_url = format!(
-                "https://api.github.com/repos/Wynncraft-Overhaul/majestic-overhaul/contents/{}",
-                inc.location.trim_end_matches('/')
+        for inc in &manifest.include {
+            // Skip if this include has an ID and it's not enabled
+            if !inc.id.is_empty() && inc.id != "default" && !installer_profile.enabled_features.contains(&inc.id) {
+                debug!("Skipping disabled include: {}", inc.id);
+                continue;
+            }
+            
+            debug!("Processing include: {} (id: {})", inc.location, inc.id);
+            
+            // For includes, we need to download them from the GitHub repository
+            let include_url = format!(
+                "https://raw.githubusercontent.com/Wynncraft-Overhaul/majestic-overhaul/master/{}",
+                inc.location
             );
             
-            match download_github_directory(http_client, &api_url, &inc.location, modpack_root).await {
-                Ok(files) => {
-                    debug!("Successfully downloaded include directory: {} ({} files)", inc.location, files.len());
-                    included_files.insert(
-                        if inc.id.is_empty() { inc.location.clone() } else { inc.id.clone() },
-                        Included {
-                            md5: String::new(),
-                            files,
-                        }
-                    );
-                    progress_callback();
-                },
-                Err(e) => {
-                    error!("Failed to download include directory {}: {}", inc.location, e);
-                    // Continue with other includes
-                }
-            }
-        } else {
-            // It's a file - download directly
-            let target_path = modpack_root.join(&inc.location);
+            debug!("Include URL: {}", include_url);
             
-            // Create parent directory if needed
-            if let Some(parent) = target_path.parent() {
-                if let Err(e) = fs::create_dir_all(parent) {
-                    error!("Failed to create directory for include {}: {}", inc.location, e);
-                    continue;
+            // Determine if it's a file or directory
+            if inc.location.ends_with("/") || !inc.location.contains('.') {
+                // It's a directory - use GitHub API to get contents
+                let api_url = format!(
+                    "https://api.github.com/repos/Wynncraft-Overhaul/majestic-overhaul/contents/{}",
+                    inc.location.trim_end_matches('/')
+                );
+                
+                match download_github_directory(http_client, &api_url, &inc.location, modpack_root).await {
+                    Ok(files) => {
+                        debug!("Successfully downloaded include directory: {} ({} files)", inc.location, files.len());
+                        included_files.insert(
+                            if inc.id.is_empty() { inc.location.clone() } else { inc.id.clone() },
+                            Included {
+                                md5: String::new(),
+                                files,
+                            }
+                        );
+                        progress_callback();
+                    },
+                    Err(e) => {
+                        error!("Failed to download include directory {}: {}", inc.location, e);
+                        return Err(format!("Failed to download include {}: {}", inc.location, e));
+                    }
                 }
-            }
-            
-            match download_include_file(http_client, &include_url, &target_path).await {
-                Ok(_) => {
-                    debug!("Successfully downloaded include file: {}", inc.location);
-                    included_files.insert(
-                        if inc.id.is_empty() { inc.location.clone() } else { inc.id.clone() },
-                        Included {
-                            md5: String::new(),
-                            files: vec![target_path.to_string_lossy().to_string()],
-                        }
-                    );
-                    progress_callback();
-                },
-                Err(e) => {
-                    error!("Failed to download include file {}: {}", inc.location, e);
-                    // Continue with other includes
+            } else {
+                // It's a file - download directly
+                let target_path = modpack_root.join(&inc.location);
+                
+                // Create parent directory if needed
+                if let Some(parent) = target_path.parent() {
+                    if let Err(e) = fs::create_dir_all(parent) {
+                        error!("Failed to create directory for include {}: {}", inc.location, e);
+                        continue;
+                    }
+                }
+                
+                match download_include_file(http_client, &include_url, &target_path).await {
+                    Ok(_) => {
+                        debug!("Successfully downloaded include file: {}", inc.location);
+                        included_files.insert(
+                            if inc.id.is_empty() { inc.location.clone() } else { inc.id.clone() },
+                            Included {
+                                md5: String::new(),
+                                files: vec![target_path.to_string_lossy().to_string()],
+                            }
+                        );
+                        progress_callback();
+                    },
+                    Err(e) => {
+                        error!("Failed to download include file {}: {}", inc.location, e);
+                        return Err(format!("Failed to download include {}: {}", inc.location, e));
+                    }
                 }
             }
         }
     }
-}
     
     // Save local manifest
     let local_manifest = Manifest {
@@ -1645,6 +1645,17 @@ if !manifest.include.is_empty() {
     
     info!("Installed modpack!");
     Ok(())
+}
+
+if let Ok(mut installation) = crate::installation::load_installation(&installer_profile.manifest.uuid) {
+    installation.installed = true;
+    installation.update_available = false;
+    installation.modified = false;
+    if let Err(e) = installation.save() {
+        error!("Failed to update installation state: {}", e);
+    } else {
+        debug!("Successfully marked installation as complete");
+    }
 }
 
 // Add these helper functions for downloading includes
