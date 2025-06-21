@@ -4,7 +4,7 @@ pub mod config;
 mod process;
 
 // Correct imports
-pub use config::{update_jvm_args, get_jvm_args, update_memory_allocation, extract_memory_from_args};
+pub use config::{update_jvm_args, get_jvm_args, update_memory_allocation, extract_memory_from_args, update_launcher_profile_memory};
 pub use process::launch_modpack;
 
 // Component modules
