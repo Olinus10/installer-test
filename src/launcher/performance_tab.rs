@@ -240,10 +240,8 @@ pub fn PerformanceTab(
     
     // Create memory markers
     let markers = vec![
-        ("1 GB", 1024),
-        ("2 GB", 2048),
-        ("4 GB", 4096),
-        ("8 GB", 8192),
+    ("1 GB", 1024),
+    ("8 GB", 8192),
     ];
     
     rsx! {
@@ -288,20 +286,18 @@ pub fn PerformanceTab(
                     }
                     
                     // Memory markers below slider 
-                    div { class: "memory-markers",
-                        for (label, value) in markers {
-                            if value <= *max_memory.read() {
-                                div { 
-                                    class: "memory-marker",
-                                    style: {
-                                        let percentage = ((value - min_memory) as f32 / (*max_memory.read() - min_memory) as f32) * 100.0;
-                                        format!("left: {percentage}%;")
-                                    },
-                                    "{label}"
-                                }
-                            }
-                        }
-                    }
+div { class: "memory-markers",
+    div { 
+        class: "memory-marker",
+        style: "left: 0%;",
+        "1 GB"
+    }
+    div { 
+        class: "memory-marker",
+        style: "left: 100%;",
+        "8 GB"
+    }
+}
                 }
                 
                 // Apply button for memory changes
