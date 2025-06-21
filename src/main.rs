@@ -1642,12 +1642,8 @@ async fn install<F: FnMut() + Clone>(installer_profile: &InstallerProfile, mut p
         debug!("Successfully marked installation as complete");
     }
 }
-    
-    info!("Installed modpack!");
-    Ok(())
-}
 
-if let Ok(mut installation) = crate::installation::load_installation(&installer_profile.manifest.uuid) {
+    if let Ok(mut installation) = crate::installation::load_installation(&installer_profile.manifest.uuid) {
     installation.installed = true;
     installation.update_available = false;
     installation.modified = false;
@@ -1656,6 +1652,10 @@ if let Ok(mut installation) = crate::installation::load_installation(&installer_
     } else {
         debug!("Successfully marked installation as complete");
     }
+}
+    
+    info!("Installed modpack!");
+    Ok(())
 }
 
 // Add these helper functions for downloading includes
