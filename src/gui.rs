@@ -1024,6 +1024,7 @@ pub fn InstallationManagementPage(
 ) -> Element {
     // State for the current tab
     let mut active_tab = use_signal(|| "features");
+    let mut installation_state = use_signal(|| installation.clone());
     
     // Load the installation data
     let installation_result = use_memo(move || {
@@ -1204,47 +1205,35 @@ let handle_update = move |_| {
                     status.set(format!("Installing... {}/{}", current, total_val));
                 };
                 
-                match installation_clone.install_or_update_with_progress(&http_client, progress_callback).await {
-                    Ok(_) => {
-                        debug!("Successfully updated installation: {}", installation_clone.id);
-                        
-                        // Mark as installed and save
-                        installation_clone.installed = true;
-                        installation_clone.update_available = false;
-                        installation_clone.modified = false;
-                        
-                        // Ensure progress reaches 100%
-                        progress.set(*total.read());
-                        status.set("Installation completed successfully!".to_string());
-                        
-                        // Wait a moment to show completion
-                        tokio::time::sleep(tokio::time::Duration::from_millis(2000)).await;
-                        
-                        // Save and update the installations list
-                        if let Err(e) = installation_clone.save() {
-                            error!("Failed to save changes: {}", e);
-                            installation_error_clone.set(Some(format!("Failed to save changes: {}", e)));
-                        } else {
-                            // Update the installations list with the updated installation
-                            installations.with_mut(|list| {
-                                if let Some(index) = list.iter().position(|i| i.id == installation_id) {
-                                    list[index] = installation_clone.clone();
-                                }
-                            });
-                            
-                            has_changes_clone.set(false);
-                            features_modified_clone.set(false);
-                            performance_modified_clone.set(false);
+match installation_clone.install_or_update_with_progress(&http_client, progress_callback).await {
+            Ok(_) => {
+                // Mark as installed
+                installation_clone.installed = true;
+                installation_clone.update_available = false;
+                installation_clone.modified = false;
+                
+                // Save the installation
+                if let Err(e) = installation_clone.save() {
+                    error!("Failed to save installation: {}", e);
+                } else {
+                    // Update the state signal
+                    installation_state.set(installation_clone.clone());
+                    
+                    // Update the installations list
+                    installations.with_mut(|list| {
+                        if let Some(index) = list.iter().position(|i| i.id == installation_id) {
+                            list[index] = installation_clone;
                         }
-                    },
-                    Err(e) => {
-                        error!("Failed to update installation: {}", e);
-                        installation_error_clone.set(Some(e));
-                    }
+                    });
+                    
+                    has_changes_clone.set(false);
+                    features_modified_clone.set(false);
+                    performance_modified_clone.set(false);
                 }
             },
             Err(e) => {
-                installation_error_clone.set(Some(format!("Failed to load manifest: {}", e)));
+                error!("Failed to update installation: {}", e);
+                installation_error_clone.set(Some(e));
             }
         }
         is_installing_clone.set(false);
@@ -1253,8 +1242,9 @@ let handle_update = move |_| {
     
     // Button label based on state
 let (action_button_label, button_class, button_disabled) = {
-    let installed = installation.installed;
-    let update_available = installation.update_available;
+    let current_installation = installation_state.read();
+    let installed = current_installation.installed;
+    let update_available = current_installation.update_available;
     let has_changes = *has_changes.read();
     let is_installing = *is_installing.read();
     
