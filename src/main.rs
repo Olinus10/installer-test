@@ -1474,7 +1474,7 @@ async fn install<F: FnMut() + Clone>(installer_profile: &InstallerProfile, mut p
     
     // Handle includes - download them from GitHub
 if !manifest.include.is_empty() {
-    debug!("Processing {} includes", manifest.include.len());
+    debug!("Processing {} includes from universal manifest", manifest.include.len());
     
     for inc in &manifest.include {
         // Skip if this include has an ID and it's not enabled
@@ -1485,7 +1485,7 @@ if !manifest.include.is_empty() {
         
         debug!("Processing include: {} (id: {})", inc.location, inc.id);
         
-        // Construct the URL to download from GitHub
+        // For includes, we need to download them from the GitHub repository
         let include_url = format!(
             "https://raw.githubusercontent.com/Wynncraft-Overhaul/majestic-overhaul/master/{}",
             inc.location
@@ -1493,8 +1493,32 @@ if !manifest.include.is_empty() {
         
         debug!("Include URL: {}", include_url);
         
-        // Check if it's a file or directory based on the location
-        if inc.location.contains('.') {
+        // Determine if it's a file or directory
+        if inc.location.ends_with("/") || !inc.location.contains('.') {
+            // It's a directory - use GitHub API to get contents
+            let api_url = format!(
+                "https://api.github.com/repos/Wynncraft-Overhaul/majestic-overhaul/contents/{}",
+                inc.location.trim_end_matches('/')
+            );
+            
+            match download_github_directory(http_client, &api_url, &inc.location, modpack_root).await {
+                Ok(files) => {
+                    debug!("Successfully downloaded include directory: {} ({} files)", inc.location, files.len());
+                    included_files.insert(
+                        if inc.id.is_empty() { inc.location.clone() } else { inc.id.clone() },
+                        Included {
+                            md5: String::new(),
+                            files,
+                        }
+                    );
+                    progress_callback();
+                },
+                Err(e) => {
+                    error!("Failed to download include directory {}: {}", inc.location, e);
+                    // Continue with other includes
+                }
+            }
+        } else {
             // It's a file - download directly
             let target_path = modpack_root.join(&inc.location);
             
@@ -1502,7 +1526,7 @@ if !manifest.include.is_empty() {
             if let Some(parent) = target_path.parent() {
                 if let Err(e) = fs::create_dir_all(parent) {
                     error!("Failed to create directory for include {}: {}", inc.location, e);
-                    return Err(format!("Failed to create directory for include: {}", e));
+                    continue;
                 }
             }
             
@@ -1519,34 +1543,8 @@ if !manifest.include.is_empty() {
                     progress_callback();
                 },
                 Err(e) => {
-                    error!("Failed to download include {}: {}", inc.location, e);
-                    return Err(format!("Failed to download include {}: {}", inc.location, e));
-                }
-            }
-        } else {
-            // It's a directory - download as archive and extract
-            let archive_url = format!(
-                "https://api.github.com/repos/Wynncraft-Overhaul/majestic-overhaul/contents/{}",
-                inc.location
-            );
-            
-            // Use the existing download_zip function but adapted for GitHub API
-            match download_github_directory(http_client, &archive_url, &inc.location, modpack_root).await {
-                Ok(files) => {
-                    debug!("Successfully extracted include directory: {}", inc.location);
-                    included_files.insert(
-                        if inc.id.is_empty() { inc.location.clone() } else { inc.id.clone() },
-                        Included {
-                            md5: String::new(),
-                            files,
-                        }
-                    );
-                    progress_callback();
-                },
-                Err(e) => {
-                    error!("Failed to download/extract include directory {}: {}", inc.location, e);
-                    // Continue with other includes even if one fails
-                    debug!("Continuing despite error for directory include");
+                    error!("Failed to download include file {}: {}", inc.location, e);
+                    // Continue with other includes
                 }
             }
         }
@@ -1649,7 +1647,7 @@ async fn download_include_file(
 ) -> Result<(), String> {
     debug!("Downloading include file from {} to {:?}", url, target_path);
     
-    let mut response = http_client.get_nocache(url).await
+    let mut response = http_client.get_async(url).await
         .map_err(|e| format!("Failed to download include: {}", e))?;
     
     if response.status() != StatusCode::OK {
@@ -1662,6 +1660,7 @@ async fn download_include_file(
     fs::write(target_path, bytes)
         .map_err(|e| format!("Failed to write include file: {}", e))?;
     
+    debug!("Successfully wrote include file: {:?}", target_path);
     Ok(())
 }
 
