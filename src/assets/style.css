@@ -3374,3 +3374,78 @@ a:hover {
     text-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
     font-family: "HEADER_FONT";
 }
+
+.memory-apply-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-top: 20px;
+    gap: 10px;
+}
+
+.memory-apply-button {
+    background-color: rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 8px;
+    padding: 12px 30px;
+    font-family: "REGULAR_FONT";
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: not-allowed;
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.memory-apply-button.changed {
+    background-color: #0a5d23 !important;
+    color: white !important;
+    border-color: #0a5d23 !important;
+    cursor: pointer !important;
+    box-shadow: 0 4px 15px rgba(10, 93, 35, 0.3);
+    animation: buttonGlow 2s infinite alternate;
+}
+
+.memory-apply-button.changed:hover {
+    background-color: #0c6e29 !important;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(10, 93, 35, 0.5);
+}
+
+.memory-apply-button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed !important;
+    transform: none !important;
+    box-shadow: none !important;
+}
+
+.apply-success-message {
+    background-color: rgba(10, 93, 35, 0.2);
+    color: #4abb6e;
+    padding: 8px 16px;
+    border-radius: 6px;
+    border-left: 3px solid #4abb6e;
+    font-size: 0.9rem;
+    animation: fadeIn 0.3s ease;
+}
+
+@keyframes buttonGlow {
+    0% {
+        box-shadow: 0 4px 15px rgba(10, 93, 35, 0.3);
+    }
+    100% {
+        box-shadow: 0 4px 20px rgba(10, 93, 35, 0.6);
+    }
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
