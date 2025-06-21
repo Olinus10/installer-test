@@ -145,77 +145,82 @@ pub fn PerformanceTab(
     };
     
     // Apply memory function
-    let apply_memory = {
-        let installation_id = installation_id.clone();
-        let memory_allocation = memory_allocation.clone();
-        let mut java_args = java_args.clone();
-        let mut show_apply_success = show_apply_success.clone();
-        let mut original_memory = original_memory.clone();
+let apply_memory = {
+    let installation_id = installation_id.clone();
+    let memory_allocation = memory_allocation.clone();
+    let mut java_args = java_args.clone();
+    let mut show_apply_success = show_apply_success.clone();
+    let mut original_memory = original_memory.clone();
+    
+    move |_| {
+        let current_memory = *memory_allocation.read();
+        let installation_id_for_update = installation_id.clone();
         
-        move |_| {
-            let current_memory = *memory_allocation.read();
-            let installation_id_for_update = installation_id.clone();
-            
-            debug!("Applying memory change: {}", current_memory);
-            
-            spawn(async move {
-                // Load the installation
-                match crate::installation::load_installation(&installation_id_for_update) {
-                    Ok(mut installation) => {
-                        debug!("Loaded installation for memory update: {}", installation.name);
-                        
-                        // Update the memory allocation
-                        installation.memory_allocation = current_memory;
-                        
-                        // Update Java args to include the new memory setting
-                        let current_args = installation.java_args.clone();
-                        let mut parts: Vec<String> = current_args.split_whitespace()
-                            .map(|s| s.to_string())
-                            .collect();
-                        
-                        // Remove any existing memory arguments
-                        parts.retain(|part| !part.starts_with("-Xmx") && !part.starts_with("-Xms"));
-                        
-                        // Add the new memory parameter
-                        let memory_param = if current_memory >= 1024 {
-                            format!("-Xmx{}G", current_memory / 1024)
-                        } else {
-                            format!("-Xmx{}M", current_memory)
-                        };
-                        
-                        parts.push(memory_param);
-                        installation.java_args = parts.join(" ");
-                        
-                        debug!("Updated Java args: {}", installation.java_args);
-                        
-                        // Save the installation
-                        match installation.save() {
-                            Ok(_) => {
-                                debug!("Successfully saved memory changes");
-                                
-                                // Update the signals to reflect the change
-                                java_args.set(installation.java_args.clone());
-                                original_memory.set(current_memory); // Update original to new value
-                                
-                                // Show success message
-                                show_apply_success.set(true);
-                                
-                                // Hide success message after 3 seconds
-                                tokio::time::sleep(tokio::time::Duration::from_secs(3)).await;
-                                show_apply_success.set(false);
-                            },
-                            Err(e) => {
-                                error!("Failed to save installation: {}", e);
+        debug!("Applying memory change: {}", current_memory);
+        
+        spawn(async move {
+            // Load the installation
+            match crate::installation::load_installation(&installation_id_for_update) {
+                Ok(mut installation) => {
+                    debug!("Loaded installation for memory update: {}", installation.name);
+                    
+                    // Update the memory allocation
+                    installation.memory_allocation = current_memory;
+                    
+                    // Update Java args to include the new memory setting
+                    let current_args = installation.java_args.clone();
+                    let mut parts: Vec<&str> = current_args.split_whitespace().collect();
+                    
+                    // Remove any existing memory arguments
+                    parts.retain(|part| !part.starts_with("-Xmx") && !part.starts_with("-Xms"));
+                    
+                    // Add the new memory parameter (only -Xmx, no -Xms)
+                    let memory_param = if current_memory >= 1024 {
+                        format!("-Xmx{}G", current_memory / 1024)
+                    } else {
+                        format!("-Xmx{}M", current_memory)
+                    };
+                    
+                    parts.push(Box::leak(memory_param.into_boxed_str()));
+                    installation.java_args = parts.join(" ");
+                    
+                    debug!("Updated Java args: {}", installation.java_args);
+                    
+                    // Save the installation
+                    match installation.save() {
+                        Ok(_) => {
+                            debug!("Successfully saved installation changes");
+                            
+                            // Now update the launcher profile
+                            if let Err(e) = crate::launcher::update_launcher_profile_jvm_args(&installation_id_for_update, &installation.java_args) {
+                                error!("Failed to update launcher profile: {}", e);
+                            } else {
+                                debug!("Successfully updated launcher profile JVM args");
                             }
+                            
+                            // Update the signals to reflect the change
+                            java_args.set(installation.java_args.clone());
+                            original_memory.set(current_memory);
+                            
+                            // Show success message
+                            show_apply_success.set(true);
+                            
+                            // Hide success message after 3 seconds
+                            tokio::time::sleep(tokio::time::Duration::from_secs(3)).await;
+                            show_apply_success.set(false);
+                        },
+                        Err(e) => {
+                            error!("Failed to save installation: {}", e);
                         }
-                    },
-                    Err(e) => {
-                        error!("Failed to load installation: {}", e);
                     }
+                },
+                Err(e) => {
+                    error!("Failed to load installation: {}", e);
                 }
-            });
-        }
-    };
+            }
+        });
+    }
+};
     
     // Get system memory display
     let system_memory_display = match *detected_memory.read() {
