@@ -415,6 +415,8 @@ let includes: Vec<crate::Include> = universal.include.iter().map(|inc| {
         id: if inc.id.is_empty() { "default".to_string() } else { inc.id.clone() },
         name: inc.name.clone(),
         authors: inc.authors.clone(),
+        optional: inc.optional,
+        default_enabled: inc.default_enabled,
     }
 }).collect();
     
