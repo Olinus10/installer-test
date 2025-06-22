@@ -90,6 +90,10 @@ fn default_hidden() -> bool {
     false
 }
 
+fn default_false() -> bool {
+    false
+}
+
 macro_rules! add_headers {
     ($items:expr, $($headers:expr),*) => {
         $items.$(header($headers.next().unwrap().0, $headers.next().unwrap().1))*
@@ -425,6 +429,10 @@ struct Include {
     id: String,
     name: Option<String>,
     authors: Option<Vec<Author>>,
+    #[serde(default = "default_false")]
+    optional: bool,
+    #[serde(default = "default_false")]
+    default_enabled: bool,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone, PartialEq)]
