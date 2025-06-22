@@ -2038,18 +2038,24 @@ fn download_github_directory<'a>(
             .map_err(|e| format!("Failed to fetch directory listing: {}", e))?;
             
         if response.status() != StatusCode::OK {
+            error!("GitHub API returned status {} for URL: {}", response.status(), api_url);
             return Err(format!("GitHub API returned status: {}", response.status()));
         }
         
         let json_text = response.text().await
             .map_err(|e| format!("Failed to read directory listing: {}", e))?;
             
+        debug!("Got directory listing response of {} bytes", json_text.len());
+            
         let contents: Vec<GithubContent> = serde_json::from_str(&json_text)
             .map_err(|e| format!("Failed to parse directory listing: {}", e))?;
+        
+        debug!("Found {} items in directory {}", contents.len(), relative_path);
         
         let mut downloaded_files = Vec::new();
         
         for item in contents {
+            debug!("Processing item: {} (type: {})", item.name, item.content_type);
             let target_path = modpack_root.join(&item.path);
             
             if item.content_type == "file" {
@@ -2091,6 +2097,7 @@ fn download_github_directory<'a>(
             }
         }
         
+        debug!("Downloaded {} files total for directory {}", downloaded_files.len(), relative_path);
         Ok(downloaded_files)
     })
 }
