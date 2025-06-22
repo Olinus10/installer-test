@@ -1024,8 +1024,6 @@ pub fn InstallationManagementPage(
 ) -> Element {
     // State for the current tab
     let mut active_tab = use_signal(|| "features");
-    let installation = installation_result.read().as_ref().unwrap().clone();
-    let mut installation_state = use_signal(|| installation.clone());
     
     // Load the installation data
     let installation_result = use_memo(move || {
@@ -1060,6 +1058,9 @@ pub fn InstallationManagementPage(
     
     // Unwrap installation from result
     let installation = installation_result.read().as_ref().unwrap().clone();
+    
+    // Create the installation state signal AFTER we have the installation
+    let mut installation_state = use_signal(|| installation.clone());
     
     // Clone needed values to avoid partial moves
     let installation_id_for_delete = installation.id.clone();
