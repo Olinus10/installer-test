@@ -1491,15 +1491,18 @@ if !manifest.include.is_empty() {
         } else if !inc.optional {
             true // Always install non-optional includes
         } else {
+            // For optional includes, check if they're enabled
             installer_profile.enabled_features.contains(&inc.id)
         };
         
         if !should_install {
-            debug!("Skipping disabled include: {}", inc.id);
+            debug!("Skipping disabled include: {} (optional={}, enabled={})", 
+                   inc.id, inc.optional, installer_profile.enabled_features.contains(&inc.id));
             continue;
         }
         
-        debug!("Processing include: {} (location: {})", inc.id, inc.location);
+        debug!("Processing include: {} (location: {}, optional: {}, default_enabled: {})", 
+               inc.id, inc.location, inc.optional, inc.default_enabled);
         
         // Build the raw GitHub URL
         let github_url = format!(
@@ -1511,7 +1514,10 @@ if !manifest.include.is_empty() {
         let target_path = modpack_root.join(&inc.location);
         
         // Check if it's a file or directory based on the location
-        if inc.location.ends_with(".zip") || inc.location.ends_with(".txt") || inc.location == "options.txt" {
+        if inc.location.ends_with(".zip") || 
+           inc.location.ends_with(".txt") || 
+           inc.location == "options.txt" ||
+           inc.location.contains('.') { // This will catch files like "ComplementaryUnbound_r5.2.2.zip.txt"
             // It's a file - download directly
             debug!("Downloading file include: {} to {:?}", github_url, target_path);
             
@@ -1585,6 +1591,8 @@ if !manifest.include.is_empty() {
             }
         }
     }
+} else {
+    debug!("No includes to process");
 }
     
     // Save local manifest
