@@ -36,6 +36,7 @@ use crate::installation::delete_installation;
 
 mod modal;
 
+
 // Font constants
 const HEADER_FONT: &str = "\"HEADER_FONT\"";
 const REGULAR_FONT: &str = "\"REGULAR_FONT\"";
