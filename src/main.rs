@@ -1513,11 +1513,17 @@ if !manifest.include.is_empty() {
         // Determine target path
         let target_path = modpack_root.join(&inc.location);
         
-        // Check if it's a file or directory based on the location
-        if inc.location.ends_with(".zip") || 
-           inc.location.ends_with(".txt") || 
-           inc.location == "options.txt" ||
-           inc.location.contains('.') { // This will catch files like "ComplementaryUnbound_r5.2.2.zip.txt"
+        // Determine if it's a file or directory
+        let is_file = inc.location.ends_with(".zip") || 
+                     inc.location.ends_with(".txt") || 
+                     inc.location == "options.txt" ||
+                     (inc.location.contains('.') && !inc.location.starts_with("."));  // Files with extensions, but not hidden folders
+        
+        let is_directory = inc.location == "config" || 
+                          inc.location.starts_with(".") ||  // Hidden folders like .bobby
+                          (!inc.location.contains('.') && !is_file);  // Folders without extensions
+        
+        if is_file {
             // It's a file - download directly
             debug!("Downloading file include: {} to {:?}", github_url, target_path);
             
@@ -1564,9 +1570,16 @@ if !manifest.include.is_empty() {
                     error!("Failed to download include {}: {}", inc.location, e);
                 }
             }
-        } else {
+        } else if is_directory {
             // It's a directory - use GitHub API to download all files
-            debug!("Downloading directory include: {}", inc.location);
+            debug!("Downloading directory include: {} (hidden folder: {})", 
+                   inc.location, inc.location.starts_with("."));
+            
+            // Create the target directory first (especially important for hidden folders)
+            if let Err(e) = fs::create_dir_all(&target_path) {
+                error!("Failed to create directory {}: {}", target_path.display(), e);
+                continue;
+            }
             
             let api_url = format!(
                 "https://api.github.com/repos/Wynncraft-Overhaul/majestic-overhaul/contents/{}",
@@ -1589,6 +1602,8 @@ if !manifest.include.is_empty() {
                     error!("Failed to download include directory {}: {}", inc.location, e);
                 }
             }
+        } else {
+            error!("Unable to determine if include {} is a file or directory", inc.location);
         }
     }
 } else {
@@ -2034,11 +2049,18 @@ fn download_github_directory<'a>(
     Box::pin(async move {
         debug!("Downloading GitHub directory from API: {}", api_url);
         
+        // Add GitHub token if available to avoid rate limits
         let mut response = http_client.get_async(api_url).await
             .map_err(|e| format!("Failed to fetch directory listing: {}", e))?;
             
         if response.status() != StatusCode::OK {
             error!("GitHub API returned status {} for URL: {}", response.status(), api_url);
+            
+            // Check if it's a rate limit issue
+            if response.status() == StatusCode::FORBIDDEN {
+                error!("Possible GitHub API rate limit hit. Consider adding authentication.");
+            }
+            
             return Err(format!("GitHub API returned status: {}", response.status()));
         }
         
@@ -2048,7 +2070,11 @@ fn download_github_directory<'a>(
         debug!("Got directory listing response of {} bytes", json_text.len());
             
         let contents: Vec<GithubContent> = serde_json::from_str(&json_text)
-            .map_err(|e| format!("Failed to parse directory listing: {}", e))?;
+            .map_err(|e| {
+                error!("Failed to parse JSON: {}", e);
+                error!("JSON content: {}", json_text);
+                format!("Failed to parse directory listing: {}", e)
+            })?;
         
         debug!("Found {} items in directory {}", contents.len(), relative_path);
         
@@ -2067,6 +2093,7 @@ fn download_github_directory<'a>(
                     }
                     
                     // Download the file
+                    debug!("Downloading file: {} -> {:?}", download_url, target_path);
                     let mut file_response = http_client.get_async(&download_url).await
                         .map_err(|e| format!("Failed to download file {}: {}", item.name, e))?;
                         
@@ -2078,9 +2105,15 @@ fn download_github_directory<'a>(
                         
                     downloaded_files.push(target_path.to_string_lossy().to_string());
                     debug!("Downloaded file: {}", item.path);
+                } else {
+                    error!("No download URL for file: {}", item.name);
                 }
             } else if item.content_type == "dir" {
-                // Recursively download subdirectories - now properly boxed
+                // Create the directory
+                fs::create_dir_all(&target_path)
+                    .map_err(|e| format!("Failed to create directory {}: {}", target_path.display(), e))?;
+                
+                // Recursively download subdirectories
                 let subdir_url = format!(
                     "https://api.github.com/repos/Wynncraft-Overhaul/majestic-overhaul/contents/{}",
                     item.path
@@ -2088,10 +2121,12 @@ fn download_github_directory<'a>(
                 
                 match download_github_directory(http_client, &subdir_url, &item.path, modpack_root).await {
                     Ok(mut subfiles) => {
+                        debug!("Downloaded {} files from subdirectory {}", subfiles.len(), item.path);
                         downloaded_files.append(&mut subfiles);
                     },
                     Err(e) => {
-                        debug!("Failed to download subdirectory {}: {}", item.path, e);
+                        error!("Failed to download subdirectory {}: {}", item.path, e);
+                        // Continue with other files instead of failing completely
                     }
                 }
             }
