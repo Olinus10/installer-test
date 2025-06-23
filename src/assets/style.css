@@ -1664,45 +1664,102 @@ a:hover {
   z-index: 1;
 }
 
-/* Enhanced Progress Bar */
+/* Enhanced Progress Bar with animations */
 .progress-track {
-  width: 100%;
-  height: 20px;
-  background-color: rgba(0, 0, 0, 0.4);
-  border-radius: 10px;
-  margin-bottom: 20px;
-  position: relative;
-  overflow: hidden;
-  box-shadow: 
-    inset 0 2px 4px rgba(0, 0, 0, 0.5),
-    0 1px 2px rgba(255, 255, 255, 0.1);
+    width: 100%;
+    height: 24px;
+    background-color: rgba(0, 0, 0, 0.4);
+    border-radius: 12px;
+    margin-bottom: 20px;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 
+        inset 0 2px 4px rgba(0, 0, 0, 0.5),
+        0 1px 2px rgba(255, 255, 255, 0.1);
 }
 
 .progress-bar {
-  height: 100%;
-  width: 0%; /* Set dynamically with JS */
-  background: linear-gradient(90deg, #073c17, #0a5d23);
-  border-radius: 10px;
-  position: relative;
-  transition: width 0.5s ease;
-  box-shadow: 0 0 10px rgba(7, 60, 23, 0.5);
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, #073c17, #0a5d23, #0f6229);
+    background-size: 300% 100%;
+    border-radius: 12px;
+    position: relative;
+    transition: width 0.5s ease;
+    box-shadow: 0 0 20px rgba(7, 60, 23, 0.6);
+    animation: gradient-shift 3s ease infinite;
 }
 
+@keyframes gradient-shift {
+    0% {
+        background-position: 0% 50%;
+    }
+    50% {
+        background-position: 100% 50%;
+    }
+    100% {
+        background-position: 0% 50%;
+    }
+}
+
+/* Animated stripes overlay */
+.progress-bar::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-image: linear-gradient(
+        45deg,
+        transparent 25%,
+        rgba(255, 255, 255, 0.1) 25%,
+        rgba(255, 255, 255, 0.1) 50%,
+        transparent 50%,
+        transparent 75%,
+        rgba(255, 255, 255, 0.1) 75%,
+        rgba(255, 255, 255, 0.1)
+    );
+    background-size: 30px 30px;
+    animation: stripes 1s linear infinite;
+    border-radius: 12px;
+}
+
+@keyframes stripes {
+    0% {
+        background-position: 0 0;
+    }
+    100% {
+        background-position: 30px 30px;
+    }
+}
+
+/* Glowing edge effect */
 .progress-bar::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: linear-gradient(
-    90deg,
-    rgba(255, 255, 255, 0),
-    rgba(255, 255, 255, 0.1),
-    rgba(255, 255, 255, 0)
-  );
-  border-radius: 10px;
-  animation: progress-highlight 2s infinite ease-in-out;
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 4px;
+    height: 100%;
+    background: linear-gradient(
+        to bottom,
+        transparent,
+        rgba(255, 255, 255, 0.8),
+        transparent
+    );
+    border-radius: 0 12px 12px 0;
+    animation: edge-glow 2s ease-in-out infinite;
+}
+
+@keyframes edge-glow {
+    0%, 100% {
+        opacity: 0.5;
+    }
+    50% {
+        opacity: 1;
+        box-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
+    }
 }
 
 /* Step indicators */
@@ -1966,8 +2023,7 @@ a:hover {
     color: #fce8f6;
     letter-spacing: 0.05em;
 }
-
-/* Modern close button in top-right corner */
+/* Fix the close button alignment */
 .wizard-header .close-button {
     position: absolute;
     top: 15px;
@@ -1978,13 +2034,16 @@ a:hover {
     background: rgba(255, 255, 255, 0.1);
     border: 1px solid rgba(255, 255, 255, 0.2);
     color: rgba(255, 255, 255, 0.7);
-    font-size: 18px;
+    font-size: 20px;
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
     transition: all 0.3s ease;
     backdrop-filter: blur(10px);
+    line-height: 1;
+    padding: 0;
+    font-family: Arial, sans-serif; /* Use a standard font for the X */
 }
 
 .wizard-header .close-button:hover {
@@ -2181,26 +2240,23 @@ a:hover {
     transform: translateY(-2px);
 }
 
-/* Big animated create button */
+/* Simplified create button with cleaner effects */
 .create-button {
     background: linear-gradient(135deg, #0a5d23, #073c17);
     border: none;
     color: white;
-    border-radius: 15px;
-    padding: 18px 50px;
+    border-radius: 12px;
+    padding: 16px 45px;
     font-family: "HEADER_FONT";
-    font-size: 1.2rem;
+    font-size: 1.1rem;
     font-weight: 600;
     letter-spacing: 1px;
     cursor: pointer;
-    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     text-transform: uppercase;
     position: relative;
     overflow: hidden;
-    box-shadow: 
-        0 8px 25px rgba(7, 60, 23, 0.4),
-        0 0 30px rgba(7, 60, 23, 0.2);
-    animation: buttonPulse 3s infinite ease-in-out;
+    box-shadow: 0 4px 15px rgba(7, 60, 23, 0.3);
 }
 
 @keyframes buttonPulse {
@@ -2218,13 +2274,11 @@ a:hover {
     }
 }
 
+/* Remove the messy pulse animation */
 .create-button:hover {
     background: linear-gradient(135deg, #0c6e29, #0a5d23);
-    transform: translateY(-4px) scale(1.05);
-    box-shadow: 
-        0 15px 40px rgba(7, 60, 23, 0.7),
-        0 0 60px rgba(7, 60, 23, 0.5);
-    animation-play-state: paused;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(7, 60, 23, 0.5);
 }
 
 .create-button:disabled {
@@ -2236,25 +2290,33 @@ a:hover {
     opacity: 0.6;
 }
 
-/* Shine effect for create button */
+/* Simplified shine effect */
 .create-button::before {
     content: '';
     position: absolute;
-    top: -50%;
-    left: -50%;
-    width: 200%;
-    height: 200%;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
     background: linear-gradient(
-        45deg,
+        90deg,
         transparent,
-        rgba(255, 255, 255, 0.1),
-        rgba(255, 255, 255, 0.3),
-        rgba(255, 255, 255, 0.1),
+        rgba(255, 255, 255, 0.2),
         transparent
     );
-    transform: rotate(45deg);
-    animation: shine 3s infinite;
+    transition: left 0.5s ease;
 }
+
+.create-button:hover::before {
+    left: 100%;
+}
+
+
+.create-button:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 10px rgba(7, 60, 23, 0.3);
+}
+
 
 @keyframes shine {
     0% { transform: rotate(45deg) translateX(-200%); }
