@@ -411,8 +411,12 @@ fn main() {
 
 #[component]
 fn ChangelogSection(changelog: Option<ChangelogData>) -> Element {
+    let mut show_all = use_signal(|| false);
+    
     match changelog {
         Some(changelog_data) if !changelog_data.entries.is_empty() => {
+            let display_count = if *show_all.read() { changelog_data.entries.len() } else { 3 };
+            
             rsx! {
                 div { class: "changelog-container",
                     div { class: "section-divider with-title", 
@@ -420,7 +424,7 @@ fn ChangelogSection(changelog: Option<ChangelogData>) -> Element {
                     }
                     
                     div { class: "changelog-entries",
-                        for (index, entry) in changelog_data.entries.iter().enumerate().take(5) {
+                        for (index, entry) in changelog_data.entries.iter().enumerate().take(display_count) {
                             div { 
                                 class: "changelog-entry",
                                 "data-importance": "{entry.importance.clone().unwrap_or_else(|| String::from(\"normal\"))}",
@@ -442,21 +446,24 @@ fn ChangelogSection(changelog: Option<ChangelogData>) -> Element {
                                     dangerous_inner_html: "{entry.contents}"
                                 }
                                 
-                                if index < changelog_data.entries.len() - 1 && index < 4 {
+                                if index < display_count - 1 {
                                     div { class: "entry-divider" }
                                 }
                             }
                         }
                         
-                        if changelog_data.entries.len() > 5 {
+                        if changelog_data.entries.len() > 3 {
                             div { class: "view-all-changes",
                                 button { 
                                     class: "view-all-button",
                                     onclick: move |_| {
-                                        // Add handler to show all changes
-                                        debug!("View all changes clicked");
+                                        show_all.set(!*show_all.read());
                                     },
-                                    "View All Changes"
+                                    if *show_all.read() {
+                                        "Show Less"
+                                    } else {
+                                        {format!("View {} More Changes", changelog_data.entries.len() - 3)}
+                                    }
                                 }
                             }
                         }
@@ -465,7 +472,6 @@ fn ChangelogSection(changelog: Option<ChangelogData>) -> Element {
             }
         },
         _ => {
-            // Return empty element while loading or if no entries
             rsx! { Fragment {} }
         }
     }
