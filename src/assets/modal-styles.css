@@ -347,81 +347,149 @@
 /* Modern Memory Slider Design */
 .memory-slider-container {
     position: relative;
-    margin: 40px 0 60px 0; /* More space for markers */
+    margin: 40px 0 60px 0;
     padding: 0 10px;
 }
 
 .memory-slider {
     width: 100%;
-    height: 4px;
+    height: 6px;
     -webkit-appearance: none;
     appearance: none;
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 2px;
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 3px;
     outline: none;
     margin: 20px 0;
     position: relative;
+    cursor: pointer;
 }
 
-/* Track styling */
+/* Track styling - subtle gradient */
 .memory-slider::-webkit-slider-track {
-    height: 4px;
+    height: 6px;
     background: linear-gradient(to right, 
-        rgba(255, 255, 255, 0.1) 0%, 
-        rgba(255, 255, 255, 0.2) 100%);
-    border-radius: 2px;
+        rgba(255, 255, 255, 0.05) 0%, 
+        rgba(255, 255, 255, 0.1) 50%,
+        rgba(255, 255, 255, 0.05) 100%);
+    border-radius: 3px;
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.3);
 }
 
 .memory-slider::-moz-range-track {
-    height: 4px;
+    height: 6px;
     background: linear-gradient(to right, 
-        rgba(255, 255, 255, 0.1) 0%, 
-        rgba(255, 255, 255, 0.2) 100%);
-    border-radius: 2px;
+        rgba(255, 255, 255, 0.05) 0%, 
+        rgba(255, 255, 255, 0.1) 50%,
+        rgba(255, 255, 255, 0.05) 100%);
+    border-radius: 3px;
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.3);
 }
 
-/* Thumb styling - white and modern */
+
+/* Modern white thumb */
 .memory-slider::-webkit-slider-thumb {
     -webkit-appearance: none;
     appearance: none;
-    width: 20px;
-    height: 20px;
+    width: 22px;
+    height: 22px;
     border-radius: 50%;
     background: #ffffff;
     cursor: pointer;
     box-shadow: 
-        0 2px 4px rgba(0, 0, 0, 0.3),
-        0 0 0 1px rgba(255, 255, 255, 0.1);
+        0 0 0 1px rgba(0, 0, 0, 0.1),
+        0 2px 5px rgba(0, 0, 0, 0.2),
+        0 0 0 4px rgba(255, 255, 255, 0.1);
     transition: all 0.2s ease;
-    margin-top: -8px; /* Center on track */
+    margin-top: -8px;
+    position: relative;
 }
 
 .memory-slider::-moz-range-thumb {
-    width: 20px;
-    height: 20px;
+    width: 22px;
+    height: 22px;
     border-radius: 50%;
     background: #ffffff;
     cursor: pointer;
     box-shadow: 
-        0 2px 4px rgba(0, 0, 0, 0.3),
-        0 0 0 1px rgba(255, 255, 255, 0.1);
+        0 0 0 1px rgba(0, 0, 0, 0.1),
+        0 2px 5px rgba(0, 0, 0, 0.2),
+        0 0 0 4px rgba(255, 255, 255, 0.1);
     transition: all 0.2s ease;
     border: none;
 }
 
-/* Hover state */
+* Hover state with glow */
 .memory-slider::-webkit-slider-thumb:hover {
-    transform: scale(1.2);
+    transform: scale(1.15);
     box-shadow: 
-        0 2px 8px rgba(0, 0, 0, 0.4),
-        0 0 15px rgba(255, 255, 255, 0.3);
+        0 0 0 1px rgba(0, 0, 0, 0.1),
+        0 4px 8px rgba(0, 0, 0, 0.3),
+        0 0 0 6px rgba(255, 255, 255, 0.15),
+        0 0 20px rgba(255, 255, 255, 0.3);
 }
 
 .memory-slider::-moz-range-thumb:hover {
-    transform: scale(1.2);
+    transform: scale(1.15);
     box-shadow: 
-        0 2px 8px rgba(0, 0, 0, 0.4),
-        0 0 15px rgba(255, 255, 255, 0.3);
+        0 0 0 1px rgba(0, 0, 0, 0.1),
+        0 4px 8px rgba(0, 0, 0, 0.3),
+        0 0 0 6px rgba(255, 255, 255, 0.15),
+        0 0 20px rgba(255, 255, 255, 0.3);
+}
+
+/* Active/dragging state */
+.memory-slider::-webkit-slider-thumb:active {
+    transform: scale(1.05);
+    box-shadow: 
+        0 0 0 1px rgba(0, 0, 0, 0.2),
+        0 1px 3px rgba(0, 0, 0, 0.3),
+        0 0 0 8px rgba(255, 255, 255, 0.2);
+}
+
+.memory-slider::-moz-range-thumb:active {
+    transform: scale(1.05);
+    box-shadow: 
+        0 0 0 1px rgba(0, 0, 0, 0.2),
+        0 1px 3px rgba(0, 0, 0, 0.3),
+        0 0 0 8px rgba(255, 255, 255, 0.2);
+}
+
+/* Progress fill effect with gradient */
+.memory-slider {
+    background-image: linear-gradient(to right,
+        rgba(255, 255, 255, 0.25) 0%,
+        rgba(255, 255, 255, 0.25) var(--progress, 0%),
+        rgba(255, 255, 255, 0.08) var(--progress, 0%),
+        rgba(255, 255, 255, 0.08) 100%);
+}
+
+/* Add subtle animation to the filled portion */
+@keyframes slider-shimmer {
+    0% {
+        background-position: -200% center;
+    }
+    100% {
+        background-position: 200% center;
+    }
+}
+
+.memory-slider::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: var(--progress, 0%);
+    height: 100%;
+    background: linear-gradient(
+        90deg,
+        transparent,
+        rgba(255, 255, 255, 0.1),
+        transparent
+    );
+    background-size: 200% 100%;
+    animation: slider-shimmer 3s linear infinite;
+    border-radius: 3px;
+    pointer-events: none;
 }
 
 /* Simple markers - just start and end */
