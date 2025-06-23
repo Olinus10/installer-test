@@ -229,6 +229,8 @@ let apply_memory = {
     ("1 GB", 1024),
     ("8 GB", 8192),
     ];
+
+    
     
     rsx! {
         div { class: "performance-tab",
@@ -263,6 +265,10 @@ let apply_memory = {
                         max: "{*max_memory.read()}",
                         step: "{step}",
                         value: "{*memory_allocation.read()}",
+                        style: {
+    let progress = ((*memory_allocation.read() - min_memory) as f32 / (max_memory.read() - min_memory) as f32 * 100.0) as i32;
+    format!("--progress: {}%", progress)
+},
                         oninput: move |evt| {
                             if let Ok(value) = evt.value().parse::<i32>() {
                                 memory_allocation.set(value);
