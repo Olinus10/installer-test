@@ -323,8 +323,20 @@ let handle_rename = move |_| {
                     
                     // Display success message if everything went well
                     if success {
-                        operation_error_clone.set(Some("Cache successfully reset. You'll need to reinstall the modpack next time you play.".to_string()));
-                    }
+    // Mark installation as not installed to force re-download
+    let mut installation_clone = installation.clone();
+    installation_clone.installed = false;
+    
+    // Save the updated state
+    if let Err(e) = installation_clone.save() {
+        operation_error_clone.set(Some(format!("Failed to update installation state: {}", e)));
+    } else {
+        // Update the parent component's state
+        onupdate.call(installation_clone);
+    }
+    
+    operation_error_clone.set(Some("Cache successfully reset. You'll need to reinstall the modpack next time you play.".to_string()));
+}
                 });
             },
             "Reset Cache"
