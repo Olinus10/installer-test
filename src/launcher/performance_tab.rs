@@ -285,6 +285,15 @@ div { class: "memory-markers",
     }
 }
                 }
+
+                 div { class: "memory-info-box",
+    style: "background-color: rgba(74, 144, 226, 0.2); border-left: 3px solid #4a90e2; padding: 10px; margin: 15px 0; border-radius: 4px;",
+    
+    p { 
+        style: "margin: 0; font-size: 0.9rem; color: rgba(255, 255, 255, 0.9);",
+        "⚠️ Important: Close the Minecraft Launcher before applying memory changes to ensure they take effect properly."
+    }
+}
                 
                 // Apply button for memory changes
                 div { class: "memory-apply-container",
