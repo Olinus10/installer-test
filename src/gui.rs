@@ -1149,29 +1149,21 @@ pub fn InstallationManagementPage(
     });
     
     // Effect to detect changes
-    use_effect({
-        let enabled_features_for_effect = enabled_features.clone();
-        let java_args_for_effect = java_args.clone();
-        let original_features = installation.enabled_features.clone();
-        let original_java_args = installation.java_args.clone();
-        let memory_allocation_for_effect = memory_allocation.clone();
-        let original_memory = installation.memory_allocation;
-        let mut features_modified_copy = features_modified.clone();
-        let mut performance_modified_copy = performance_modified.clone();
+use_effect({
+    let enabled_features_for_effect = enabled_features.clone();
+    let original_features = installation.enabled_features.clone();
+    let mut features_modified_copy = features_modified.clone();
+    
+    move || {
+        let features_changed = enabled_features_for_effect.read().clone() != original_features;
         
-        move || {
-            let features_changed = enabled_features_for_effect.read().clone() != original_features;
-            let memory_changed = *memory_allocation_for_effect.read() != original_memory;
-            let args_changed = *java_args_for_effect.read() != original_java_args;
-            
-            // Update specific modification flags
-            features_modified_copy.set(features_changed);
-            performance_modified_copy.set(memory_changed || args_changed);
-            
-            // Update overall change flag
-            has_changes.set(features_changed || memory_changed || args_changed);
-        }
-    });
+        // Update specific modification flags
+        features_modified_copy.set(features_changed);
+        
+        // Only set has_changes for feature changes, not memory changes
+        has_changes.set(features_changed);
+    }
+});
     
     // Handle install/update with progress tracking
 let handle_update = move |_| {
@@ -1358,6 +1350,26 @@ let action_button_disabled = *is_installing.read() ||
                             }
                         }
                     });
+                }
+            }
+        });
+    }
+});
+
+use_effect({
+    let installation_id = installation.id.clone();
+    let mut installation_state = installation_state.clone();
+    
+    move || {
+        let installation_id = installation_id.clone();
+        let mut installation_state = installation_state.clone();
+        
+        spawn(async move {
+            loop {
+                tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
+                
+                if let Ok(updated_inst) = crate::installation::load_installation(&installation_id) {
+                    installation_state.set(updated_inst);
                 }
             }
         });
