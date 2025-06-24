@@ -91,7 +91,6 @@ pub struct Installation {
     pub created_at: DateTime<Utc>,
     pub last_used: DateTime<Utc>,
 
-    pub preset_update_available: bool,
     pub base_preset_id: Option<String>,
     pub base_preset_version: Option<String>,
     pub custom_features: Vec<String>,
@@ -114,8 +113,9 @@ pub struct Installation {
     
     // Installation status tracking
     pub installed: bool,
-    pub modified: bool,           // True if changes were made but not yet applied
-    pub update_available: bool,  // True if modpack has updates
+    pub modified: bool,
+    pub update_available: bool,
+    pub preset_update_available: bool,  // Keep only this one
     
     
     // Launcher and versioning information
