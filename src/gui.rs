@@ -1438,7 +1438,7 @@ use_effect({
                         }
                     }
                 }
-if let Some(update_msg) = preset_update_msg() {
+if let Some(update_msg) = preset_update_msg.read().clone() {
     div { class: "preset-update-notification",
         "{update_msg}"
         button {
