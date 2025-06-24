@@ -90,6 +90,11 @@ pub struct Installation {
     pub name: String,
     pub created_at: DateTime<Utc>,
     pub last_used: DateTime<Utc>,
+
+    pub base_preset_id: Option<String>,        // The preset originally selected
+    pub base_preset_version: Option<String>,   // Version of the preset when selected
+    pub custom_features: Vec<String>,          // Features added beyond the preset
+    pub removed_features: Vec<String>,         // Features removed from the preset
     
     // Minecraft configuration
     pub minecraft_version: String,
@@ -109,7 +114,8 @@ pub struct Installation {
     // Installation status tracking
     pub installed: bool,
     pub modified: bool,           // True if changes were made but not yet applied
-    pub update_available: bool,   // True if modpack has updates
+    pub update_available: bool,  // True if modpack has updates
+    pub preset_update_available: bool,
     
     // Launcher and versioning information
     pub launcher_type: String,    // "vanilla", "multimc", etc.
@@ -165,6 +171,10 @@ impl Installation {
             universal_version,
             last_launch: None,
             total_launches: 0,
+            base_preset_id: Some(preset.id.clone()),
+            base_preset_version: preset.preset_version.clone(),
+            custom_features: Vec::new(),
+            removed_features: Vec::new(),
         }
     }
 
@@ -205,7 +215,49 @@ impl Installation {
             universal_version,
             last_launch: None,
             total_launches: 0,
+            base_preset_id: None,
+            base_preset_version: None,
+            custom_features: Vec::new(),
+            removed_features: Vec::new(),
         }
+    }
+
+    pub async fn check_preset_updates(&self, presets: &[Preset]) -> Option<String> {
+        if let Some(base_preset_id) = &self.base_preset_id {
+            if let Some(current_preset) = presets.iter().find(|p| p.id == *base_preset_id) {
+                // Check if preset version has changed
+                if let (Some(current_version), Some(base_version)) = 
+                    (&current_preset.preset_version, &self.base_preset_version) {
+                    if current_version != base_version {
+                        return Some(format!(
+                            "Preset '{}' has been updated from {} to {}",
+                            current_preset.name, base_version, current_version
+                        ));
+                    }
+                }
+            }
+        }
+        None
+    }
+    
+    pub fn apply_preset_update(&mut self, preset: &Preset) {
+        // Start with the preset's features
+        let mut new_features = preset.enabled_features.clone();
+        
+        // Add custom features the user added
+        for custom in &self.custom_features {
+            if !new_features.contains(custom) {
+                new_features.push(custom.clone());
+            }
+        }
+        
+        // Remove features the user removed
+        for removed in &self.removed_features {
+            new_features.retain(|f| f != removed);
+        }
+        
+        self.enabled_features = new_features;
+        self.base_preset_version = preset.preset_version.clone();
     }
 
     pub fn mark_installed(&mut self) -> Result<(), String> {
@@ -301,26 +353,32 @@ impl Installation {
     }
     
     // Check if installation needs updates
-    pub async fn check_for_updates(&mut self, http_client: &CachedHttpClient) -> Result<bool, String> {
-        debug!("Checking for updates for installation: {}", self.name);
+    pub async fn check_for_updates(&mut self, http_client: &CachedHttpClient, presets: &[Preset]) -> Result<bool, String> {
+        // Check modpack updates (existing code)
+        let universal_manifest = crate::universal::load_universal_manifest(http_client, None).await?;
+        let modpack_update = universal_manifest.modpack_version != self.universal_version;
         
-        // Load the latest universal manifest
-        let universal_manifest = crate::universal::load_universal_manifest(http_client, None).await
-            .map_err(|e| format!("Failed to load universal manifest: {}", e))?;
-        
-        // Compare versions
-        let update_needed = universal_manifest.modpack_version != self.universal_version;
-        
-        if update_needed {
-            debug!("Update available: {} -> {}", self.universal_version, universal_manifest.modpack_version);
-            self.update_available = true;
+        // Check preset updates
+        let preset_update = if let Some(base_preset_id) = &self.base_preset_id {
+            if let Some(current_preset) = presets.iter().find(|p| p.id == *base_preset_id) {
+                if let (Some(current_version), Some(base_version)) = 
+                    (&current_preset.preset_version, &self.base_preset_version) {
+                    current_version != base_version
+                } else {
+                    false
+                }
+            } else {
+                false
+            }
         } else {
-            debug!("Installation is up to date");
-            self.update_available = false;
-        }
+            false
+        };
+        
+        self.update_available = modpack_update || preset_update;
+        self.preset_update_available = preset_update;
         
         self.save()?;
-        Ok(update_needed)
+        Ok(self.update_available)
     }
     
     // Update the installation after successful install/update
