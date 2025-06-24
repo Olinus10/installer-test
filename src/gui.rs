@@ -691,9 +691,18 @@ fn InstallationCard(
             div { class: "installation-card-header",
                 h3 { "{installation.name}" }
                 
-                if installation.update_available {
-                    span { class: "update-badge", "Update Available" }
-                }
+if installation.update_available {
+    span { 
+        class: "update-badge", 
+        if installation.preset_update_available && !installation.modpack_update_available {
+            "Preset Update"
+        } else if !installation.preset_update_available && installation.modpack_update_available {
+            "Modpack Update"
+        } else {
+            "Updates Available"
+        }
+    }
+}
             }
             
             div { class: "installation-card-details",
@@ -1409,6 +1418,21 @@ use_effect({
                         }
                     }
                 }
+if let Some(update_msg) = installation.check_preset_updates(&presets).await {
+    div { class: "preset-update-notification",
+        "{update_msg}"
+        button {
+            onclick: move |_| {
+                // Apply the preset update while preserving customizations
+                if let Some(preset) = find_preset_by_id(&presets, &installation.base_preset_id.unwrap()) {
+                    installation.apply_preset_update(&preset);
+                    installation.save();
+                }
+            },
+            "Apply Preset Update"
+        }
+    }
+}
                 
                 // Error display
                 if let Some(error) = &*installation_error.read() {
