@@ -14,29 +14,78 @@ pub fn FeaturesTab(
     let presets_for_closure = presets.clone();
     
     // Handle changing a preset
-    let apply_preset = move |preset_id: String| {
-        if let Some(preset) = find_preset_by_id(&presets_for_closure, &preset_id) {
-            // Update enabled features
-            enabled_features.set(preset.enabled_features.clone());
-            
-            // Mark as selected
-            selected_preset.set(Some(preset_id));
+let apply_preset = move |preset_id: String| {
+    if let Some(preset) = find_preset_by_id(&presets_for_closure, &preset_id) {
+        // Update enabled features
+        enabled_features.set(preset.enabled_features.clone());
+        
+        // Mark as selected
+        selected_preset.set(Some(preset_id.clone()));
+        
+        // Store the preset info in the installation
+        if let Ok(mut installation) = crate::installation::load_installation(&installation_id) {
+            installation.base_preset_id = Some(preset.id.clone());
+            installation.base_preset_version = preset.preset_version.clone();
+            installation.custom_features.clear();
+            installation.removed_features.clear();
+            let _ = installation.save();
         }
-    };
+    }
+};
+
     
     // Handle toggling a feature
-    let toggle_feature = move |feature_id: String| {
-        enabled_features.with_mut(|features| {
-            if features.contains(&feature_id) {
-                features.retain(|id| id != &feature_id);
-            } else {
-                features.push(feature_id.clone());
+let toggle_feature = move |feature_id: String| {
+    enabled_features.with_mut(|features| {
+        if features.contains(&feature_id) {
+            features.retain(|id| id != &feature_id);
+        } else {
+            features.push(feature_id.clone());
+        }
+    });
+
+        if let Ok(mut installation) = crate::installation::load_installation(&installation_id) {
+        if let Some(base_preset_id) = &installation.base_preset_id {
+            if let Some(base_preset) = find_preset_by_id(&presets, base_preset_id) {
+                // Check if this feature was in the original preset
+                let was_in_preset = base_preset.enabled_features.contains(&feature_id);
+                let is_enabled = enabled_features.read().contains(&feature_id);
+                
+                if was_in_preset && !is_enabled {
+                    // Feature was removed from preset
+                    if !installation.removed_features.contains(&feature_id) {
+                        installation.removed_features.push(feature_id.clone());
+                    }
+                    installation.custom_features.retain(|id| id != &feature_id);
+                } else if !was_in_preset && is_enabled {
+                    // Feature was added to preset
+                    if !installation.custom_features.contains(&feature_id) {
+                        installation.custom_features.push(feature_id.clone());
+                    }
+                    installation.removed_features.retain(|id| id != &feature_id);
+                }
+                
+                let _ = installation.save();
             }
-        });
-        
-        // Clear selected preset when features are manually changed
-        selected_preset.set(None);
+        }
+    }
     };
+
+    let is_updated = if let Some(installation_base_preset) = &current_installation.base_preset_id {
+    if installation_base_preset == &preset.id {
+        // Check if this preset has a newer version than what the installation has
+        if let (Some(preset_ver), Some(inst_ver)) = 
+            (&preset.preset_version, &current_installation.base_preset_version) {
+            preset_ver != inst_ver
+        } else {
+            false
+        }
+    } else {
+        false
+    }
+} else {
+    false
+};
     
     // Button hover states
     let mut custom_button_hover = use_signal(|| false);
@@ -205,6 +254,10 @@ pub fn FeaturesTab(
                                 div { class: "preset-card-content",
                                     h4 { "{preset.name}" }
                                     p { "{preset.description}" }
+                                }
+
+                                if is_updated {
+                                span { class: "update-badge", "Updated" }
                                 }
                                 
                                 // Select/Selected button with comprehensive inline styling
