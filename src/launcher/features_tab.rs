@@ -9,6 +9,7 @@ pub fn FeaturesTab(
     enabled_features: Signal<Vec<String>>,
     selected_preset: Signal<Option<String>>,
     filter_text: Signal<String>,
+    installation_id: String,
 ) -> Element {
     // Clone presets to avoid ownership issues in closure
     let presets_for_closure = presets.clone();
@@ -70,22 +71,6 @@ let toggle_feature = move |feature_id: String| {
         }
     }
     };
-
-    let is_updated = if let Some(installation_base_preset) = &current_installation.base_preset_id {
-    if installation_base_preset == &preset.id {
-        // Check if this preset has a newer version than what the installation has
-        if let (Some(preset_ver), Some(inst_ver)) = 
-            (&preset.preset_version, &current_installation.base_preset_version) {
-            preset_ver != inst_ver
-        } else {
-            false
-        }
-    } else {
-        false
-    }
-} else {
-    false
-};
     
     // Button hover states
     let mut custom_button_hover = use_signal(|| false);
@@ -196,18 +181,33 @@ let toggle_feature = move |feature_id: String| {
                 // Available presets - skip the "custom" preset since we handle it separately
                 for preset in presets.iter().filter(|p| p.id != "custom") {
                     {
-                        let preset_id = preset.id.clone();
-                        let is_selected = selected_preset.read().as_ref().map_or(false, |id| id == &preset_id);
+let preset_id = preset.id.clone();
+let is_selected = selected_preset.read().as_ref().map_or(false, |id| id == &preset_id);
                         let mut apply_preset_clone = apply_preset.clone();
                         let has_trending = preset.trending.unwrap_or(false);
                         
                         // Check if preset is updated (you'll need to implement version comparison logic)
-                        let is_updated = preset.preset_version.as_ref()
-                            .map(|v| {
-                                // Add your version comparison logic here
-                                false // Placeholder
-                            })
-                            .unwrap_or(false);
+let is_updated = {
+    // Load current installation to check
+    if let Ok(current_installation) = crate::installation::load_installation(&installation_id) {
+        if let Some(base_preset_id) = &current_installation.base_preset_id {
+            if base_preset_id == &preset.id {
+                if let (Some(preset_ver), Some(inst_ver)) = 
+                    (&preset.preset_version, &current_installation.base_preset_version) {
+                    preset_ver != inst_ver
+                } else {
+                    false
+                }
+            } else {
+                false
+            }
+        } else {
+            false
+        }
+    } else {
+        false
+    }
+};
                         
                         // Track if this specific button is being hovered
                         let button_id = preset_id.clone();
