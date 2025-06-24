@@ -91,10 +91,11 @@ pub struct Installation {
     pub created_at: DateTime<Utc>,
     pub last_used: DateTime<Utc>,
 
-    pub base_preset_id: Option<String>,        // The preset originally selected
-    pub base_preset_version: Option<String>,   // Version of the preset when selected
-    pub custom_features: Vec<String>,          // Features added beyond the preset
-    pub removed_features: Vec<String>,         // Features removed from the preset
+    pub preset_update_available: bool,
+    pub base_preset_id: Option<String>,
+    pub base_preset_version: Option<String>,
+    pub custom_features: Vec<String>,
+    pub removed_features: Vec<String>,
     
     // Minecraft configuration
     pub minecraft_version: String,
@@ -171,10 +172,11 @@ impl Installation {
             universal_version,
             last_launch: None,
             total_launches: 0,
-            base_preset_id: Some(preset.id.clone()),
-            base_preset_version: preset.preset_version.clone(),
-            custom_features: Vec::new(),
-            removed_features: Vec::new(),
+    preset_update_available: false,
+    base_preset_id: Some(preset.id.clone()),  // or None for custom
+    base_preset_version: preset.preset_version.clone(),  // or None for custom
+    custom_features: Vec::new(),
+    removed_features: Vec::new(),
         }
     }
 
@@ -215,10 +217,11 @@ impl Installation {
             universal_version,
             last_launch: None,
             total_launches: 0,
-            base_preset_id: None,
-            base_preset_version: None,
-            custom_features: Vec::new(),
-            removed_features: Vec::new(),
+    preset_update_available: false,
+    base_preset_id: Some(preset.id.clone()),  // or None for custom
+    base_preset_version: preset.preset_version.clone(),  // or None for custom
+    custom_features: Vec::new(),
+    removed_features: Vec::new(),
         }
     }
 
@@ -355,7 +358,8 @@ impl Installation {
     // Check if installation needs updates
     pub async fn check_for_updates(&mut self, http_client: &CachedHttpClient, presets: &[Preset]) -> Result<bool, String> {
         // Check modpack updates (existing code)
-        let universal_manifest = crate::universal::load_universal_manifest(http_client, None).await?;
+        let universal_manifest = crate::universal::load_universal_manifest(http_client, None).await
+        .map_err(|e| format!("Failed to load universal manifest: {}", e))?;  // Convert ManifestError to String
         let modpack_update = universal_manifest.modpack_version != self.universal_version;
         
         // Check preset updates
