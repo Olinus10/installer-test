@@ -1072,7 +1072,7 @@ pub fn InstallationManagementPage(
                 }
             }
         };
-    } 
+    }
     
     // Unwrap installation from result
     let installation = installation_result.read().as_ref().unwrap().clone();
@@ -1084,15 +1084,15 @@ pub fn InstallationManagementPage(
     let installation_id_for_delete = installation.id.clone();
     let installation_id_for_launch = installation.id.clone();
     let installation_for_update = installation.clone();
+    let installation_for_preset_update = installation.clone();
+    let installation_for_features = installation.clone();
     
     // State for modification tracking
     let mut has_changes = use_signal(|| false);
     let enabled_features = use_signal(|| installation.enabled_features.clone());
     let memory_allocation = use_signal(|| installation.memory_allocation);
     let java_args = use_signal(|| installation.java_args.clone());
-    let selected_preset = use_signal(|| Option::<String>::None);    
-    // State for preset update messages
-    let mut preset_update_msg = use_signal(|| Option::<String>::None);
+    let selected_preset = use_signal(|| Option::<String>::None);
     
     // State for tracking modifications in different areas 
     let mut features_modified = use_signal(|| false);
@@ -1100,6 +1100,9 @@ pub fn InstallationManagementPage(
     
     // Filter text for feature search
     let filter_text = use_signal(|| String::new());
+    
+    // Preset update message signal
+    let mut preset_update_msg = use_signal(|| Option::<String>::None);
 
     // Function to refresh installation data
     let _refresh_installation = move |updated_installation: Installation| {
@@ -1390,15 +1393,19 @@ use_effect({
     }
 });
 
-    use_effect({
+use_effect({
     let installation = installation.clone();
     let presets_resource = presets.clone();
     let mut preset_update_msg = preset_update_msg.clone();
     
     move || {
-        if let Some(presets_vec) = presets_resource.read().as_ref() {
+        // Clone the presets data if available
+        if let Some(presets_data) = presets_resource.read().as_ref() {
+            let presets_vec = presets_data.clone(); // Clone the data
+            let installation_clone = installation.clone();
+            
             spawn(async move {
-                if let Some(msg) = installation.check_preset_updates(presets_vec).await {
+                if let Some(msg) = installation_clone.check_preset_updates(&presets_vec).await {
                     preset_update_msg.set(Some(msg));
                 }
             });
@@ -1441,19 +1448,19 @@ use_effect({
 if let Some(update_msg) = preset_update_msg.read().clone() {
     div { class: "preset-update-notification",
         "{update_msg}"
-        button {
-            onclick: move |_| {
-                let presets_vec = presets.read().clone().unwrap_or_default();
-                if let Some(base_id) = &installation.base_preset_id {
-                    if let Some(preset) = find_preset_by_id(&presets_vec, base_id) {
-                        let mut installation_clone = installation.clone();
-                        installation_clone.apply_preset_update(&preset);
-                        let _ = installation_clone.save();
-                    }
-                }
-            },
-            "Apply Preset Update"
+button {
+    onclick: move |_| {
+        let presets_vec = presets.read().clone().unwrap_or_default();
+        if let Some(base_id) = &installation_for_preset_update.base_preset_id {
+            if let Some(preset) = find_preset_by_id(&presets_vec, base_id) {
+                let mut installation_clone = installation_for_preset_update.clone();
+                installation_clone.apply_preset_update(&preset);
+                let _ = installation_clone.save();
+            }
         }
+    },
+    "Apply Preset Update"
+}
     }
 }
                 
@@ -1559,7 +1566,7 @@ SettingsTab {
                     // Launch button
                     button {
                         class: "launch-button",
-                        disabled: !installation.installed || *is_installing.read(),
+                        disabled: !installation_state.read().installed || *is_installing.read(),
                         onclick: handle_launch,
                         "Launch Game"
                     }
