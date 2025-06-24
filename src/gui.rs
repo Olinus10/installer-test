@@ -1090,7 +1090,9 @@ pub fn InstallationManagementPage(
     let enabled_features = use_signal(|| installation.enabled_features.clone());
     let memory_allocation = use_signal(|| installation.memory_allocation);
     let java_args = use_signal(|| installation.java_args.clone());
-    let selected_preset = use_signal(|| Option::<String>::None);
+    let selected_preset = use_signal(|| Option::<String>::None);    
+    // State for preset update messages
+    let mut preset_update_msg = use_signal(|| Option::<String>::None);
     
     // State for tracking modifications in different areas 
     let mut features_modified = use_signal(|| false);
@@ -1198,7 +1200,6 @@ let handle_update = move |_| {
     let mut performance_modified_clone = performance_modified.clone();
     let mut installations = installations.clone();
     let installation_id = installation_clone.id.clone();
-    let mut preset_update_msg = use_signal(|| Option::<String>::None);
 
     
     spawn(async move {
