@@ -181,49 +181,49 @@ impl Installation {
     }
 
     // Custom installation without using a preset
-    pub fn new_custom(
-        name: String,
-        minecraft_version: String,
-        loader_type: String,
-        loader_version: String,
-        launcher_type: String,
-        universal_version: String,
-    ) -> Self {
-        let id = uuid::Uuid::new_v4().to_string();
-        let now = chrono::Utc::now();
-        
-        info!("Creating new custom installation '{}' with ID: {}", name, id);
-        
-        // Generate installation path based on ID
-        let installations_dir = get_installations_dir();
-        let installation_path = installations_dir.join(&id);
-        
-        Self {
-            id,
-            name,
-            created_at: now,
-            last_used: now,
-            minecraft_version,
-            loader_type,
-            loader_version,
-            installation_path,
-            enabled_features: vec!["default".to_string()],
-            memory_allocation: 3072, // 3GB default
-            java_args: "-XX:+UseG1GC -XX:+UnlockExperimentalVMOptions -XX:G1NewSizePercent=20 -XX:G1ReservePercent=20 -XX:MaxGCPauseMillis=50 -XX:G1HeapRegionSize=32M".to_string(),
-            installed: false,
-            modified: false,
-            update_available: false,
-            launcher_type,
-            universal_version,
-            last_launch: None,
-            total_launches: 0,
-    preset_update_available: false,
-    base_preset_id: Some(preset.id.clone()),  // or None for custom
-    base_preset_version: preset.preset_version.clone(),  // or None for custom
-    custom_features: Vec::new(),
-    removed_features: Vec::new(),
-        }
+pub fn new_custom(
+    name: String,
+    minecraft_version: String,
+    loader_type: String,
+    loader_version: String,
+    launcher_type: String,
+    universal_version: String,
+) -> Self {
+    let id = uuid::Uuid::new_v4().to_string();
+    let now = chrono::Utc::now();
+    
+    info!("Creating new custom installation '{}' with ID: {}", name, id);
+    
+    // Generate installation path based on ID
+    let installations_dir = get_installations_dir();
+    let installation_path = installations_dir.join(&id);
+    
+    Self {
+        id,
+        name,
+        created_at: now,
+        last_used: now,
+        minecraft_version,
+        loader_type,
+        loader_version,
+        installation_path,
+        enabled_features: vec!["default".to_string()],
+        memory_allocation: 3072, // 3GB default
+        java_args: "-XX:+UseG1GC -XX:+UnlockExperimentalVMOptions -XX:G1NewSizePercent=20 -XX:G1ReservePercent=20 -XX:MaxGCPauseMillis=50 -XX:G1HeapRegionSize=32M".to_string(),
+        installed: false,
+        modified: false,
+        update_available: false,
+        launcher_type,
+        universal_version,
+        last_launch: None,
+        total_launches: 0,
+        preset_update_available: false,
+        base_preset_id: None,  // Changed from preset.id.clone()
+        base_preset_version: None,  // Changed from preset.preset_version.clone()
+        custom_features: Vec::new(),
+        removed_features: Vec::new(),
     }
+}
 
     pub async fn check_preset_updates(&self, presets: &[Preset]) -> Option<String> {
         if let Some(base_preset_id) = &self.base_preset_id {
