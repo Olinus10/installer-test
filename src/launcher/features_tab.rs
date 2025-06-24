@@ -11,65 +11,69 @@ pub fn FeaturesTab(
     filter_text: Signal<String>,
     installation_id: String,
 ) -> Element {
-    // Clone presets to avoid ownership issues in closure
+    // Clone for closures
     let presets_for_closure = presets.clone();
+    let installation_id_for_apply = installation_id.clone();
+    let installation_id_for_toggle = installation_id.clone();
     
     // Handle changing a preset
-let apply_preset = move |preset_id: String| {
-    if let Some(preset) = find_preset_by_id(&presets_for_closure, &preset_id) {
-        // Update enabled features
-        enabled_features.set(preset.enabled_features.clone());
-        
-        // Mark as selected
-        selected_preset.set(Some(preset_id.clone()));
-        
-        // Store the preset info in the installation
-        if let Ok(mut installation) = crate::installation::load_installation(&installation_id) {
-            installation.base_preset_id = Some(preset.id.clone());
-            installation.base_preset_version = preset.preset_version.clone();
-            installation.custom_features.clear();
-            installation.removed_features.clear();
-            let _ = installation.save();
-        }
-    }
-};
-
-    
-    // Handle toggling a feature
-let toggle_feature = move |feature_id: String| {
-    enabled_features.with_mut(|features| {
-        if features.contains(&feature_id) {
-            features.retain(|id| id != &feature_id);
-        } else {
-            features.push(feature_id.clone());
-        }
-    });
-
-        if let Ok(mut installation) = crate::installation::load_installation(&installation_id) {
-        if let Some(base_preset_id) = &installation.base_preset_id {
-            if let Some(base_preset) = find_preset_by_id(&presets, base_preset_id) {
-                // Check if this feature was in the original preset
-                let was_in_preset = base_preset.enabled_features.contains(&feature_id);
-                let is_enabled = enabled_features.read().contains(&feature_id);
-                
-                if was_in_preset && !is_enabled {
-                    // Feature was removed from preset
-                    if !installation.removed_features.contains(&feature_id) {
-                        installation.removed_features.push(feature_id.clone());
-                    }
-                    installation.custom_features.retain(|id| id != &feature_id);
-                } else if !was_in_preset && is_enabled {
-                    // Feature was added to preset
-                    if !installation.custom_features.contains(&feature_id) {
-                        installation.custom_features.push(feature_id.clone());
-                    }
-                    installation.removed_features.retain(|id| id != &feature_id);
-                }
-                
+    let apply_preset = move |preset_id: String| {
+        if let Some(preset) = find_preset_by_id(&presets_for_closure, &preset_id) {
+            // Update enabled features
+            enabled_features.set(preset.enabled_features.clone());
+            
+            // Mark as selected
+            selected_preset.set(Some(preset_id.clone()));
+            
+            // Store the preset info in the installation
+            if let Ok(mut installation) = crate::installation::load_installation(&installation_id_for_apply) {
+                installation.base_preset_id = Some(preset.id.clone());
+                installation.base_preset_version = preset.preset_version.clone();
+                installation.custom_features.clear();
+                installation.removed_features.clear();
                 let _ = installation.save();
             }
         }
-    }
+    };
+    
+    // Clone presets again for toggle_feature
+    let presets_for_toggle = presets.clone();
+    
+    // Handle toggling a feature
+    let toggle_feature = move |feature_id: String| {
+        enabled_features.with_mut(|features| {
+            if features.contains(&feature_id) {
+                features.retain(|id| id != &feature_id);
+            } else {
+                features.push(feature_id.clone());
+            }
+        });
+
+        if let Ok(mut installation) = crate::installation::load_installation(&installation_id_for_toggle) {
+            if let Some(base_preset_id) = &installation.base_preset_id {
+                if let Some(base_preset) = find_preset_by_id(&presets_for_toggle, base_preset_id) {
+                    // Check if this feature was in the original preset
+                    let was_in_preset = base_preset.enabled_features.contains(&feature_id);
+                    let is_enabled = enabled_features.read().contains(&feature_id);
+                    
+                    if was_in_preset && !is_enabled {
+                        // Feature was removed from preset
+                        if !installation.removed_features.contains(&feature_id) {
+                            installation.removed_features.push(feature_id.clone());
+                        }
+                        installation.custom_features.retain(|id| id != &feature_id);
+                    } else if !was_in_preset && is_enabled {
+                        // Feature was added to preset
+                        if !installation.custom_features.contains(&feature_id) {
+                            installation.custom_features.push(feature_id.clone());
+                        }
+                        installation.removed_features.retain(|id| id != &feature_id);
+                    }
+                    
+                    let _ = installation.save();
+                }
+            }
+        }
     };
     
     // Button hover states
