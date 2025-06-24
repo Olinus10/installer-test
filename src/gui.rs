@@ -33,6 +33,7 @@ use crate::launcher::FeaturesTab;
 use crate::launcher::PerformanceTab;
 use crate::launcher::SettingsTab;
 use crate::installation::delete_installation;
+use crate::preset::find_preset_by_id;
 
 mod modal;
 
@@ -694,13 +695,13 @@ fn InstallationCard(
 if installation.update_available {
     span { 
         class: "update-badge", 
-        if installation.preset_update_available && !installation.modpack_update_available {
-            "Preset Update"
-        } else if !installation.preset_update_available && installation.modpack_update_available {
-            "Modpack Update"
-        } else {
-            "Updates Available"
-        }
+if installation.preset_update_available && !installation.update_available {
+    "Preset Update"
+} else if !installation.preset_update_available && installation.update_available {
+    "Modpack Update"
+} else {
+    "Updates Available"
+}
     }
 }
             }
@@ -1197,6 +1198,8 @@ let handle_update = move |_| {
     let mut performance_modified_clone = performance_modified.clone();
     let mut installations = installations.clone();
     let installation_id = installation_clone.id.clone();
+    let mut preset_update_msg = use_signal(|| Option::<String>::None);
+
     
     spawn(async move {
         // Calculate total items
@@ -1385,6 +1388,22 @@ use_effect({
         });
     }
 });
+
+    use_effect({
+    let installation = installation.clone();
+    let presets_resource = presets.clone();
+    let mut preset_update_msg = preset_update_msg.clone();
+    
+    move || {
+        if let Some(presets_vec) = presets_resource.read().as_ref() {
+            spawn(async move {
+                if let Some(msg) = installation.check_preset_updates(presets_vec).await {
+                    preset_update_msg.set(Some(msg));
+                }
+            });
+        }
+    }
+});
     
     rsx! {
         div { class: "installation-management-container",
@@ -1418,15 +1437,18 @@ use_effect({
                         }
                     }
                 }
-if let Some(update_msg) = installation.check_preset_updates(&presets).await {
+if let Some(update_msg) = preset_update_msg() {
     div { class: "preset-update-notification",
         "{update_msg}"
         button {
             onclick: move |_| {
-                // Apply the preset update while preserving customizations
-                if let Some(preset) = find_preset_by_id(&presets, &installation.base_preset_id.unwrap()) {
-                    installation.apply_preset_update(&preset);
-                    installation.save();
+                let presets_vec = presets.read().clone().unwrap_or_default();
+                if let Some(base_id) = &installation.base_preset_id {
+                    if let Some(preset) = find_preset_by_id(&presets_vec, base_id) {
+                        let mut installation_clone = installation.clone();
+                        installation_clone.apply_preset_update(&preset);
+                        let _ = installation_clone.save();
+                    }
                 }
             },
             "Apply Preset Update"
@@ -1488,6 +1510,7 @@ if let Some(update_msg) = installation.check_preset_updates(&presets).await {
                                         enabled_features: enabled_features,
                                         selected_preset: selected_preset,
                                         filter_text: filter_text,
+                                        installation_id: installation.id.clone(),
                                     }
                                 }
                             },
