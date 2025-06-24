@@ -116,7 +116,7 @@ pub struct Installation {
     pub installed: bool,
     pub modified: bool,           // True if changes were made but not yet applied
     pub update_available: bool,  // True if modpack has updates
-    pub preset_update_available: bool,
+    
     
     // Launcher and versioning information
     pub launcher_type: String,    // "vanilla", "multimc", etc.
