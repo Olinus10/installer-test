@@ -456,9 +456,10 @@ fn ChangelogSection(changelog: Option<ChangelogData>) -> Element {
                             div { class: "view-all-changes",
                                 button { 
                                     class: "view-all-button",
-                                    onclick: move |_| {
-                                        show_all.set(!*show_all.read());
-                                    },
+onclick: move |_| {
+    let current_state = *show_all.read();
+    show_all.set(!current_state);
+},
                                     if *show_all.read() {
                                         "Show Less"
                                     } else {
