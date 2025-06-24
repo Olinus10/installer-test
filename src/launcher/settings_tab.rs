@@ -267,78 +267,80 @@ let handle_rename = move |_| {
         button {
             class: "advanced-button reset-cache-button",
             disabled: *is_operating.read(),
-            onclick: move |_| {
-                debug!("Reset cache clicked for installation: {}", installation_id_for_cache);
-                is_operating.set(true);
-                
-                let installation_path_for_cache = installation.installation_path.clone();
-                let mut operation_error_clone = operation_error.clone();
-                let mut is_operating_clone = is_operating.clone();
-                
-                spawn(async move {
-                    // Define the folders to clear
-                    let cache_folders = [
-                        installation_path_for_cache.join("mods"),
-                        installation_path_for_cache.join("resourcepacks"),
-                        installation_path_for_cache.join("shaderpacks")
-                    ];
-                    
-                    debug!("Clearing cache folders: {:?}", cache_folders);
-                    
-                    let mut success = true;
-                    
-                    // Delete the content of each folder
-                    for folder in &cache_folders {
-                        if folder.exists() {
-                            match std::fs::remove_dir_all(folder) {
-                                Ok(_) => {
-                                    debug!("Removed folder: {:?}", folder);
-                                    // Recreate the empty folder
-                                    if let Err(e) = std::fs::create_dir_all(folder) {
-                                        error!("Failed to recreate folder {:?}: {}", folder, e);
-                                        operation_error_clone.set(Some(format!("Failed to recreate folder: {}", e)));
-                                        success = false;
-                                        break;
-                                    }
-                                },
-                                Err(e) => {
-                                    error!("Failed to remove folder {:?}: {}", folder, e);
-                                    operation_error_clone.set(Some(format!("Failed to clear cache: {}", e)));
-                                    success = false;
-                                    break;
-                                }
-                            }
-                        } else {
-                            // Create the folder if it doesn't exist
-                            if let Err(e) = std::fs::create_dir_all(folder) {
-                                error!("Failed to create folder {:?}: {}", folder, e);
-                                operation_error_clone.set(Some(format!("Failed to create folder: {}", e)));
-                                success = false;
-                                break;
-                            }
+onclick: move |_| {
+    debug!("Reset cache clicked for installation: {}", installation_id_for_cache);
+    is_operating.set(true);
+    
+    let installation_path_for_cache = installation.installation_path.clone();
+    let mut operation_error_clone = operation_error.clone();
+    let mut is_operating_clone = is_operating.clone();
+    let installation_clone_for_async = installation.clone(); // Clone here
+    let onupdate_clone = onupdate.clone(); // Clone the handler too
+    
+    spawn(async move {
+        // Define the folders to clear
+        let cache_folders = [
+            installation_path_for_cache.join("mods"),
+            installation_path_for_cache.join("resourcepacks"),
+            installation_path_for_cache.join("shaderpacks")
+        ];
+        
+        debug!("Clearing cache folders: {:?}", cache_folders);
+        
+        let mut success = true;
+        
+        // Delete the content of each folder
+        for folder in &cache_folders {
+            if folder.exists() {
+                match std::fs::remove_dir_all(folder) {
+                    Ok(_) => {
+                        debug!("Removed folder: {:?}", folder);
+                        // Recreate the empty folder
+                        if let Err(e) = std::fs::create_dir_all(folder) {
+                            error!("Failed to recreate folder {:?}: {}", folder, e);
+                            operation_error_clone.set(Some(format!("Failed to recreate folder: {}", e)));
+                            success = false;
+                            break;
                         }
+                    },
+                    Err(e) => {
+                        error!("Failed to remove folder {:?}: {}", folder, e);
+                        operation_error_clone.set(Some(format!("Failed to clear cache: {}", e)));
+                        success = false;
+                        break;
                     }
-                    
-                    is_operating_clone.set(false);
-                    
-                    // Display success message if everything went well
-                    if success {
-    // Mark installation as not installed to force re-download
-    let mut installation_clone = installation.clone();
-    installation_clone.installed = false;
-    
-    // Save the updated state
-    if let Err(e) = installation_clone.save() {
-        operation_error_clone.set(Some(format!("Failed to update installation state: {}", e)));
-    } else {
-        // Update the parent component's state
-        onupdate.call(installation_clone);
-    }
-    
-    operation_error_clone.set(Some("Cache successfully reset. You'll need to reinstall the modpack next time you play.".to_string()));
-}
-                });
-            },
+                }
+            } else {
+                // Create the folder if it doesn't exist
+                if let Err(e) = std::fs::create_dir_all(folder) {
+                    error!("Failed to create folder {:?}: {}", folder, e);
+                    operation_error_clone.set(Some(format!("Failed to create folder: {}", e)));
+                    success = false;
+                    break;
+                }
+            }
+        }
+        
+        is_operating_clone.set(false);
+        
+        // Display success message if everything went well
+        if success {
+            // Mark installation as not installed to force re-download
+            let mut installation_for_update = installation_clone_for_async.clone();
+            installation_for_update.installed = false;
+            
+            // Save the updated state
+            if let Err(e) = installation_for_update.save() {
+                operation_error_clone.set(Some(format!("Failed to update installation state: {}", e)));
+            } else {
+                // Update the parent component's state
+                onupdate_clone.call(installation_for_update);
+            }
+            
+            operation_error_clone.set(Some("Cache successfully reset. You'll need to reinstall the modpack next time you play.".to_string()));
+        }
+    });
+},
             "Reset Cache"
         }
     }
