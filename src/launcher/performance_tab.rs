@@ -265,8 +265,10 @@ let apply_memory = {
                         max: "{*max_memory.read()}",
                         step: "{step}",
                         value: "{*memory_allocation.read()}",
-                        style: {
-    let progress = ((*memory_allocation.read() - min_memory) as f32 / (max_memory.read() - min_memory) as f32 * 100.0) as i32;
+style: {
+    let current_mem = *memory_allocation.read();
+    let max_mem = *max_memory.read();
+    let progress = ((current_mem - min_memory) as f32 / (max_mem - min_memory) as f32 * 100.0) as i32;
     format!("--progress: {}%", progress)
 },
                         oninput: move |evt| {
