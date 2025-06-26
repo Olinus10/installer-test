@@ -41,11 +41,62 @@ pub fn FeaturesTab(
     
     // Handle toggling a feature
     let toggle_feature = move |feature_id: String| {
+        // Clone universal manifest for dependency checking
+        let manifest_for_deps = universal_manifest.clone();
+        
         enabled_features.with_mut(|features| {
-            if features.contains(&feature_id) {
-                features.retain(|id| id != &feature_id);
-            } else {
+            let is_enabling = !features.contains(&feature_id);
+            
+            if is_enabling {
+                // Add the feature
                 features.push(feature_id.clone());
+                
+                // Check for dependencies and enable them too
+                if let Some(manifest) = &manifest_for_deps {
+                    // Check all component types for the feature being enabled
+                    let all_components: Vec<&ModComponent> = manifest.mods.iter()
+                        .chain(manifest.shaderpacks.iter())
+                        .chain(manifest.resourcepacks.iter())
+                        .collect();
+                    
+                    // Find the component being enabled
+                    if let Some(component) = all_components.iter().find(|c| c.id == feature_id) {
+                        if let Some(deps) = &component.dependencies {
+                            for dep_id in deps {
+                                if !features.contains(dep_id) {
+                                    debug!("Auto-enabling dependency: {} for {}", dep_id, feature_id);
+                                    features.push(dep_id.clone());
+                                }
+                            }
+                        }
+                    }
+                }
+            } else {
+                // Remove the feature
+                features.retain(|id| id != &feature_id);
+                
+                // Check if any enabled features depend on this one
+                if let Some(manifest) = &manifest_for_deps {
+                    let all_components: Vec<&ModComponent> = manifest.mods.iter()
+                        .chain(manifest.shaderpacks.iter())
+                        .chain(manifest.resourcepacks.iter())
+                        .collect();
+                    
+                    // Find features that depend on the one being disabled
+                    let dependent_features: Vec<String> = all_components.iter()
+                        .filter(|c| {
+                            features.contains(&c.id) && 
+                            c.dependencies.as_ref().map_or(false, |deps| deps.contains(&feature_id))
+                        })
+                        .map(|c| c.id.clone())
+                        .collect();
+                    
+                    // Also disable dependent features
+                    for dep_feat in dependent_features {
+                        debug!("Auto-disabling dependent feature: {} (depends on {})", dep_feat, feature_id);
+                        features.retain(|id| id != &dep_feat);
+                    }
+                }
             }
         });
 
