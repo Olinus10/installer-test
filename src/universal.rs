@@ -371,6 +371,19 @@ pub fn universal_to_manifest(universal: &UniversalManifest, enabled_features: Ve
         }
     }
     
+    // Add optional includes as features
+    for include in &universal.include {
+        if include.optional && !include.id.is_empty() {
+            features.push(crate::Feature {
+                id: include.id.clone(),
+                name: include.name.clone().unwrap_or_else(|| include.location.clone()),
+                default: include.default_enabled,
+                hidden: false,
+                description: Some(format!("Include: {}", include.location)),
+            });
+        }
+    }
+    
     // Convert mods from universal format to original format
     let mods = universal.mods.iter().map(|component| {
         crate::Mod {
