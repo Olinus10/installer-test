@@ -1,6 +1,7 @@
 use dioxus::prelude::*;
 use crate::universal::{ModComponent, UniversalManifest};
 use crate::preset::{Preset, find_preset_by_id};
+use log::debug;
 
 #[component]
 pub fn FeaturesTab(
@@ -499,7 +500,7 @@ pub fn FeaturesTab(
                             let includes = manifest.include.clone();
                             
                             // Display features by category with includes
-                            render_features_by_category(all_components, includes, enabled_features.clone(), filter_text.clone(), toggle_feature)
+render_features_by_category(all_components, enabled_features.clone(), filter_text.clone(), toggle_feature)  
                         } else {
                             rsx! {
                                 div { class: "loading-container",
