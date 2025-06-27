@@ -39,7 +39,7 @@ pub fn FeaturesTab(
     // Clone presets again for toggle_feature
     let presets_for_toggle = presets.clone();
     
-    // Handle toggling a feature
+    // Handle toggling a feature with dependency checking
     let toggle_feature = move |feature_id: String| {
         // Clone universal manifest for dependency checking
         let manifest_for_deps = universal_manifest.clone();
@@ -49,7 +49,9 @@ pub fn FeaturesTab(
             
             if is_enabling {
                 // Add the feature
-                features.push(feature_id.clone());
+                if !features.contains(&feature_id) {
+                    features.push(feature_id.clone());
+                }
                 
                 // Check for dependencies and enable them too
                 if let Some(manifest) = &manifest_for_deps {
@@ -236,33 +238,32 @@ pub fn FeaturesTab(
                 // Available presets - skip the "custom" preset since we handle it separately
                 for preset in presets.iter().filter(|p| p.id != "custom") {
                     {
-let preset_id = preset.id.clone();
-let is_selected = selected_preset.read().as_ref().map_or(false, |id| id == &preset_id);
+                        let preset_id = preset.id.clone();
+                        let is_selected = selected_preset.read().as_ref().map_or(false, |id| id == &preset_id);
                         let mut apply_preset_clone = apply_preset.clone();
                         let has_trending = preset.trending.unwrap_or(false);
                         
-                        // Check if preset is updated (you'll need to implement version comparison logic)
-let is_updated = {
-    // Load current installation to check
-    if let Ok(current_installation) = crate::installation::load_installation(&installation_id) {
-        if let Some(base_preset_id) = &current_installation.base_preset_id {
-            if base_preset_id == &preset.id {
-                if let (Some(preset_ver), Some(inst_ver)) = 
-                    (&preset.preset_version, &current_installation.base_preset_version) {
-                    preset_ver != inst_ver
-                } else {
-                    false
-                }
-            } else {
-                false
-            }
-        } else {
-            false
-        }
-    } else {
-        false
-    }
-};
+                        // Check if preset is updated
+                        let is_updated = {
+                            if let Ok(current_installation) = crate::installation::load_installation(&installation_id) {
+                                if let Some(base_preset_id) = &current_installation.base_preset_id {
+                                    if base_preset_id == &preset.id {
+                                        if let (Some(preset_ver), Some(inst_ver)) = 
+                                            (&preset.preset_version, &current_installation.base_preset_version) {
+                                            preset_ver != inst_ver
+                                        } else {
+                                            false
+                                        }
+                                    } else {
+                                        false
+                                    }
+                                } else {
+                                    false
+                                }
+                            } else {
+                                false
+                            }
+                        };
                         
                         // Track if this specific button is being hovered
                         let button_id = preset_id.clone();
@@ -303,16 +304,13 @@ let is_updated = {
                                 if is_updated {
                                     span { class: "update-badge", "Updated" }
                                 }
+                                
                                 // Dark overlay for text readability
                                 div { class: "preset-card-overlay" }
                                 
                                 div { class: "preset-card-content",
                                     h4 { "{preset.name}" }
                                     p { "{preset.description}" }
-                                }
-
-                                if is_updated {
-                                span { class: "update-badge", "Updated" }
                                 }
                                 
                                 // Select/Selected button with comprehensive inline styling
@@ -404,11 +402,17 @@ let is_updated = {
                                     .filter(|m| m.optional)
                                     .count();
                                     
+                                let optional_includes = manifest.include.iter()
+                                    .filter(|i| i.optional && !i.id.is_empty())
+                                    .count();
+                                    
                                 // Calculate total features
-                                let total_features = optional_mods + optional_shaderpacks + optional_resourcepacks;
+                                let total_features = optional_mods + optional_shaderpacks + optional_resourcepacks + optional_includes;
                                 
-                                // Calculate enabled features
-                                let enabled_count = enabled_features.read().len();
+                                // Calculate enabled features (minus the default)
+                                let enabled_count = enabled_features.read().iter()
+                                    .filter(|id| *id != "default")
+                                    .count();
                                 
                                 rsx! { "{enabled_count}/{total_features} features enabled" }
                             } else {
@@ -491,8 +495,11 @@ let is_updated = {
                             all_components.extend(optional_shaderpacks);
                             all_components.extend(optional_resourcepacks);
                             
-                            // Display features by category
-                            render_features_by_category(all_components, enabled_features.clone(), filter_text.clone(), toggle_feature)
+                            // Get includes from manifest
+                            let includes = manifest.include.clone();
+                            
+                            // Display features by category with includes
+                            render_features_by_category(all_components, includes, enabled_features.clone(), filter_text.clone(), toggle_feature)
                         } else {
                             rsx! {
                                 div { class: "loading-container",
@@ -503,10 +510,10 @@ let is_updated = {
                         }
                     }
                 }
-            } // Closes optional-features-wrapper div
-        } // Closes features-tab div
-    } // Closes the main rsx! macro - NO SEMICOLON HERE
-} // Closes the FeaturesTab function
+            }
+        } 
+    } 
+}
 
 // Helper function to render features by category - unchanged
 fn render_features_by_category(
