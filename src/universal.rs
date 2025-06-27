@@ -422,16 +422,16 @@ pub fn universal_to_manifest(universal: &UniversalManifest, enabled_features: Ve
         }
     }).collect();
 
-let includes: Vec<crate::Include> = universal.include.iter().map(|inc| {
-    crate::Include {
-        location: inc.location.clone(),
-        id: if inc.id.is_empty() { "default".to_string() } else { inc.id.clone() },
-        name: inc.name.clone(),
-        authors: inc.authors.clone(),
-        optional: inc.optional,
-        default_enabled: inc.default_enabled,
-    }
-}).collect();
+    let includes: Vec<crate::Include> = universal.include.iter().map(|inc| {
+        crate::Include {
+            location: inc.location.clone(),
+            id: if inc.id.is_empty() { "default".to_string() } else { inc.id.clone() },
+            name: inc.name.clone(),
+            authors: inc.authors.clone(),
+            optional: inc.optional,
+            default_enabled: inc.default_enabled,
+        }
+    }).collect();
     
     // Build the manifest
     crate::Manifest {
@@ -456,7 +456,7 @@ let includes: Vec<crate::Include> = universal.include.iter().map(|inc| {
         shaderpacks,
         resourcepacks,
         remote_include: None,
-        include: includes, // Make sure this is set to includes, not Vec::new()
+        include: includes,
         features,
         trend: None,
         enabled_features,
