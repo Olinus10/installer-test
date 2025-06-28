@@ -1042,6 +1042,8 @@ pub fn InstallationManagementPage(
 ) -> Element {
     // State for the current tab
     let mut active_tab = use_signal(|| "features");
+
+
     
     // Load the installation data
     let installation_result = use_memo(move || {
@@ -1100,6 +1102,9 @@ pub fn InstallationManagementPage(
     
     // Filter text for feature search
     let filter_text = use_signal(|| String::new());
+
+    // Add this with other state declarations
+    let mut show_update_warning = use_signal(|| false);
     
     // Preset update message signal
     let mut preset_update_msg = use_signal(|| Option::<String>::None);
@@ -1183,8 +1188,21 @@ use_effect({
     
     // Handle install/update with progress tracking
 let handle_update = move |_| {
+    // Check if this is an update (not first install)
+    if installation_state.read().installed {
+        // Show the update warning dialog
+        show_update_warning.set(true);
+    } else {
+        // First install - proceed directly
+        proceed_with_update();
+    }
+};
+
+// Create a separate function for the actual update process
+let installation_for_update_clone = installation_for_update.clone();
+let proceed_with_update = move || {
     is_installing.set(true);
-    let mut installation_clone = installation_for_update.clone();
+    let mut installation_clone = installation_for_update_clone.clone();
     
     // Update settings
     installation_clone.enabled_features = enabled_features.read().clone();
@@ -1461,6 +1479,90 @@ button {
     },
     "Apply Preset Update"
 }
+    }
+}
+
+                // Update warning dialog
+if *show_update_warning.read() {
+    div { class: "modal-overlay",
+        div { class: "modal-container update-warning-dialog",
+            div { class: "modal-header",
+                h3 { "⚠️ Update Warning" }
+                button { 
+                    class: "modal-close",
+                    onclick: move |_| show_update_warning.set(false),
+                    "×"
+                }
+            }
+            
+            div { class: "modal-content",
+                div { class: "warning-message",
+                    p { 
+                        strong { "Important: " }
+                        "Updating may reset some mod configurations, especially Wynntils settings."
+                    }
+                    
+                    p { 
+                        "To protect your Wynntils configuration:"
+                    }
+                    
+                    ol { class: "protection-steps",
+                        li { "Click 'Open Installation Folder' below" }
+                        li { "Make a backup copy of the 'wynntils' folder" }
+                        li { "After updating, restore your backed-up folder if needed" }
+                    }
+                    
+                    div { class: "warning-note",
+                        p { 
+                            "💡 Tip: Keep your Wynntils folder backed up regularly to avoid losing your waypoints, "
+                            "map data, and custom settings."
+                        }
+                    }
+                }
+            }
+            
+            div { class: "modal-footer",
+                button { 
+                    class: "secondary-button",
+                    onclick: {
+                        let installation_path = installation.installation_path.clone();
+                        move |_| {
+                            // Open the installation folder
+                            #[cfg(target_os = "windows")]
+                            let _ = std::process::Command::new("explorer")
+                                .arg(&installation_path)
+                                .spawn();
+                            
+                            #[cfg(target_os = "macos")]
+                            let _ = std::process::Command::new("open")
+                                .arg(&installation_path)
+                                .spawn();
+                                
+                            #[cfg(target_os = "linux")]
+                            let _ = std::process::Command::new("xdg-open")
+                                .arg(&installation_path)
+                                .spawn();
+                        }
+                    },
+                    "Open Installation Folder"
+                }
+                
+                button { 
+                    class: "cancel-button",
+                    onclick: move |_| show_update_warning.set(false),
+                    "Cancel Update"
+                }
+                
+                button { 
+                    class: "primary-button update-proceed-button",
+                    onclick: move |_| {
+                        show_update_warning.set(false);
+                        proceed_with_update();
+                    },
+                    "Proceed with Update"
+                }
+            }
+        }
     }
 }
                 
