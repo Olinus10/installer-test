@@ -42,67 +42,67 @@ pub fn FeaturesTab(
     let universal_manifest_for_toggle = universal_manifest.clone();
     
     // Handle toggling a feature with dependency checking
-let toggle_feature = move |feature_id: String| {
-    // Use the cloned version inside the closure
-    let manifest_for_deps = universal_manifest_for_toggle.clone();
-    
-    enabled_features.with_mut(|features| {
-        let is_enabling = !features.contains(&feature_id);
+    let toggle_feature = move |feature_id: String| {
+        // Use the cloned version inside the closure
+        let manifest_for_deps = universal_manifest_for_toggle.clone();
         
-        if is_enabling {
-            // Add the feature
-            if !features.contains(&feature_id) {
-                features.push(feature_id.clone());
-            }
+        enabled_features.with_mut(|features| {
+            let is_enabling = !features.contains(&feature_id);
             
-            // Check for dependencies and enable them too
-            if let Some(manifest) = &manifest_for_deps {
-                // Check all component types for the feature being enabled
-                let all_components: Vec<&ModComponent> = manifest.mods.iter()
-                    .chain(manifest.shaderpacks.iter())
-                    .chain(manifest.resourcepacks.iter())
-                    .collect();
+            if is_enabling {
+                // Add the feature
+                if !features.contains(&feature_id) {
+                    features.push(feature_id.clone());
+                }
                 
-                // Find the component being enabled
-                if let Some(component) = all_components.iter().find(|c| c.id == feature_id) {
-                    if let Some(deps) = &component.dependencies {
-                        for dep_id in deps {
-                            if !features.contains(dep_id) {
-                                debug!("Auto-enabling dependency: {} for {}", dep_id, feature_id);
-                                features.push(dep_id.clone());
+                // Check for dependencies and enable them too
+                if let Some(manifest) = &manifest_for_deps {
+                    // Check all component types for the feature being enabled
+                    let all_components: Vec<&ModComponent> = manifest.mods.iter()
+                        .chain(manifest.shaderpacks.iter())
+                        .chain(manifest.resourcepacks.iter())
+                        .collect();
+                    
+                    // Find the component being enabled
+                    if let Some(component) = all_components.iter().find(|c| c.id == feature_id) {
+                        if let Some(deps) = &component.dependencies {
+                            for dep_id in deps {
+                                if !features.contains(dep_id) {
+                                    debug!("Auto-enabling dependency: {} for {}", dep_id, feature_id);
+                                    features.push(dep_id.clone());
+                                }
                             }
                         }
                     }
                 }
-            }
-        } else {
-            // Remove the feature
-            features.retain(|id| id != &feature_id);
-            
-            // Check if any enabled features depend on this one
-            if let Some(manifest) = &manifest_for_deps {
-                let all_components: Vec<&ModComponent> = manifest.mods.iter()
-                    .chain(manifest.shaderpacks.iter())
-                    .chain(manifest.resourcepacks.iter())
-                    .collect();
+            } else {
+                // Remove the feature
+                features.retain(|id| id != &feature_id);
                 
-                // Find features that depend on the one being disabled
-                let dependent_features: Vec<String> = all_components.iter()
-                    .filter(|c| {
-                        features.contains(&c.id) && 
-                        c.dependencies.as_ref().map_or(false, |deps| deps.contains(&feature_id))
-                    })
-                    .map(|c| c.id.clone())
-                    .collect();
-                
-                // Also disable dependent features
-                for dep_feat in dependent_features {
-                    debug!("Auto-disabling dependent feature: {} (depends on {})", dep_feat, feature_id);
-                    features.retain(|id| id != &dep_feat);
+                // Check if any enabled features depend on this one
+                if let Some(manifest) = &manifest_for_deps {
+                    let all_components: Vec<&ModComponent> = manifest.mods.iter()
+                        .chain(manifest.shaderpacks.iter())
+                        .chain(manifest.resourcepacks.iter())
+                        .collect();
+                    
+                    // Find features that depend on the one being disabled
+                    let dependent_features: Vec<String> = all_components.iter()
+                        .filter(|c| {
+                            features.contains(&c.id) && 
+                            c.dependencies.as_ref().map_or(false, |deps| deps.contains(&feature_id))
+                        })
+                        .map(|c| c.id.clone())
+                        .collect();
+                    
+                    // Also disable dependent features
+                    for dep_feat in dependent_features {
+                        debug!("Auto-disabling dependent feature: {} (depends on {})", dep_feat, feature_id);
+                        features.retain(|id| id != &dep_feat);
+                    }
                 }
             }
-        }
-    });
+        });
 
         if let Ok(mut installation) = crate::installation::load_installation(&installation_id_for_toggle) {
             if let Some(base_preset_id) = &installation.base_preset_id {
@@ -500,8 +500,93 @@ let toggle_feature = move |feature_id: String| {
                             // Get includes from manifest
                             let includes = manifest.include.clone();
                             
+                            // NEW: Get included (default-enabled) components for the top section
+                            let included_mods: Vec<ModComponent> = manifest.mods.iter()
+                                .filter(|m| m.default_enabled && m.optional)
+                                .cloned()
+                                .collect();
+                                
+                            let included_shaderpacks: Vec<ModComponent> = manifest.shaderpacks.iter()
+                                .filter(|m| m.default_enabled && m.optional)
+                                .cloned()
+                                .collect();
+                                
+                            let included_resourcepacks: Vec<ModComponent> = manifest.resourcepacks.iter()
+                                .filter(|m| m.default_enabled && m.optional)
+                                .cloned()
+                                .collect();
+                                
+                            // Combine all included components
+                            let mut included_components = Vec::new();
+                            included_components.extend(included_mods);
+                            included_components.extend(included_shaderpacks);
+                            included_components.extend(included_resourcepacks);
+                            
+                            // First render the included features section if there are any
+                            if !included_components.is_empty() {
+                                rsx! {
+                                    // Included Features Section (always visible)
+                                    div { class: "feature-category",
+                                        // Category header
+                                        div { class: "category-header",
+                                            div { class: "category-title-section",
+                                                h3 { class: "category-name", "✓ Included Components" }
+                                                span { class: "category-count included-count", 
+                                                    "{included_components.len()} included" 
+                                                }
+                                            }
+                                        }
+                                        
+                                        // Category content (always expanded)
+                                        div { class: "category-content expanded",
+                                            // Feature cards grid
+                                            div { class: "feature-cards-grid",
+                                                for component in included_components {
+                                                    {
+                                                        let component_id = component.id.clone();
+                                                        let is_enabled = enabled_features.read().contains(&component_id);
+                                                        
+                                                        rsx! {
+                                                            div { 
+                                                                class: "feature-card feature-included",
+                                                                
+                                                                div { class: "feature-card-header",
+                                                                    h3 { class: "feature-card-title", "{component.name}" }
+                                                                    
+                                                                    span {
+                                                                        class: "feature-toggle-button included-component",
+                                                                        "Included"
+                                                                    }
+                                                                }
+                                                                
+                                                                // Description display
+                                                                if let Some(description) = &component.description {
+                                                                    div { class: "feature-card-description", "{description}" }
+                                                                }
+                                                                
+                                                                // Dependencies display
+                                                                if let Some(deps) = &component.dependencies {
+                                                                    if !deps.is_empty() {
+                                                                        div { class: "feature-dependencies",
+                                                                            "Requires: ", 
+                                                                            span { class: "dependency-list", 
+                                                                                {deps.join(", ")}
+                                                                            }
+                                                                        }
+                                                                    }
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            
                             // Display features by category with includes
-render_features_by_category(all_components, enabled_features.clone(), filter_text.clone(), toggle_feature)  
+                            render_features_by_category(all_components, enabled_features.clone(), filter_text.clone(), toggle_feature)  
                         } else {
                             rsx! {
                                 div { class: "loading-container",
@@ -539,28 +624,16 @@ fn render_features_by_category(
             .collect()
     };
     
-    // Separate default and optional components
-    let mut default_components = Vec::new();
-    let mut optional_components = Vec::new();
-    
-    for component in filtered_components {
-        if component.id == "default" || !component.optional {
-            default_components.push(component);
-        } else {
-            optional_components.push(component);
-        }
-    }
-    
-    // Group optional components by category
+    // Group components by category
     let mut categories: std::collections::BTreeMap<String, Vec<ModComponent>> = std::collections::BTreeMap::new();
     
-    // Add default components as first category if they exist
-    if !default_components.is_empty() {
-        categories.insert("✓ Included Components".to_string(), default_components);
-    }
-    
-    // Group remaining components by their categories
-    for component in optional_components {
+    // Group components by their categories
+    for component in filtered_components {
+        // Skip if component is default_enabled as these are shown separately
+        if component.default_enabled {
+            continue;
+        }
+        
         let category = component.category.clone().unwrap_or_else(|| "Uncategorized".to_string());
         categories.entry(category).or_insert_with(Vec::new).push(component);
     }
