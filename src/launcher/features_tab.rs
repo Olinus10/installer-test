@@ -474,13 +474,12 @@ pub fn FeaturesTab(
 // Features content - only render if we have a universal manifest
 {
     if let Some(manifest) = &universal_manifest {
-        // Get all optional mods
+        // Get all optional mods for the main categories
         let optional_mods: Vec<ModComponent> = manifest.mods.iter()
             .filter(|m| m.optional)
             .cloned()
             .collect();
         
-        // Get all optional shaderpacks and resourcepacks too
         let optional_shaderpacks: Vec<ModComponent> = manifest.shaderpacks.iter()
             .filter(|m| m.optional)
             .cloned()
@@ -500,19 +499,19 @@ pub fn FeaturesTab(
         // Get includes from manifest
         let includes = manifest.include.clone();
         
-        // NEW: Get included (default-enabled) components for the top section
+        // NEW: Get ALL default-enabled components (both optional and non-optional)
         let included_mods: Vec<ModComponent> = manifest.mods.iter()
-            .filter(|m| m.default_enabled && m.optional)
+            .filter(|m| m.default_enabled)
             .cloned()
             .collect();
             
         let included_shaderpacks: Vec<ModComponent> = manifest.shaderpacks.iter()
-            .filter(|m| m.default_enabled && m.optional)
+            .filter(|m| m.default_enabled)
             .cloned()
             .collect();
             
         let included_resourcepacks: Vec<ModComponent> = manifest.resourcepacks.iter()
-            .filter(|m| m.default_enabled && m.optional)
+            .filter(|m| m.default_enabled)
             .cloned()
             .collect();
             
@@ -522,26 +521,50 @@ pub fn FeaturesTab(
         included_components.extend(included_shaderpacks);
         included_components.extend(included_resourcepacks);
         
+        // Create a signal to track if included section is expanded
+        let mut included_expanded = use_signal(|| true); // Start expanded by default
+        
         // Build a vector of elements to render
         let mut elements_to_render = Vec::new();
         
         // First render the included features section if there are any
         if !included_components.is_empty() {
             elements_to_render.push(rsx! {
-                // Included Features Section (always visible)
+                // Included Features Section (expandable)
                 div { class: "feature-category",
-                    // Category header
-                    div { class: "category-header",
+                    // Category header - clickable
+                    div { 
+                        class: "category-header",
+                        onclick: move |_| {
+                            included_expanded.with_mut(|expanded| *expanded = !*expanded);
+                        },
+                        
                         div { class: "category-title-section",
                             h3 { class: "category-name", "✓ Included Components" }
                             span { class: "category-count included-count", 
                                 "{included_components.len()} included" 
                             }
                         }
+                        
+                        // Expand/collapse indicator
+                        div { 
+                            class: if *included_expanded.read() {
+                                "category-toggle-indicator expanded"
+                            } else {
+                                "category-toggle-indicator"
+                            },
+                            "▼"
+                        }
                     }
                     
-                    // Category content (always expanded)
-                    div { class: "category-content expanded",
+                    // Category content (expandable)
+                    div { 
+                        class: if *included_expanded.read() {
+                            "category-content expanded"
+                        } else {
+                            "category-content"
+                        },
+                        
                         // Feature cards grid
                         div { class: "feature-cards-grid",
                             for component in included_components {
@@ -574,6 +597,29 @@ pub fn FeaturesTab(
                                                         "Requires: ", 
                                                         span { class: "dependency-list", 
                                                             {deps.join(", ")}
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                            
+                                            // Authors display (credits)
+                                            if !component.authors.is_empty() {
+                                                div { class: "feature-authors",
+                                                    "By: ",
+                                                    for (i, author) in component.authors.iter().enumerate() {
+                                                        {
+                                                            let is_last = i == component.authors.len() - 1;
+                                                            rsx! {
+                                                                a {
+                                                                    class: "author-link",
+                                                                    href: "{author.link}",
+                                                                    target: "_blank",
+                                                                    "{author.name}"
+                                                                }
+                                                                if !is_last {
+                                                                    ", "
+                                                                }
+                                                            }
                                                         }
                                                     }
                                                 }
