@@ -471,111 +471,109 @@ pub fn FeaturesTab(
                         }
                     }
                     
-                    // Features content - only render if we have a universal manifest
-                    {
-                        if let Some(manifest) = &universal_manifest {
-                            // Get all optional mods
-                            let optional_mods: Vec<ModComponent> = manifest.mods.iter()
-                                .filter(|m| m.optional)
-                                .cloned()
-                                .collect();
-                            
-                            // Get all optional shaderpacks and resourcepacks too
-                            let optional_shaderpacks: Vec<ModComponent> = manifest.shaderpacks.iter()
-                                .filter(|m| m.optional)
-                                .cloned()
-                                .collect();
-                            
-                            let optional_resourcepacks: Vec<ModComponent> = manifest.resourcepacks.iter()
-                                .filter(|m| m.optional)
-                                .cloned()
-                                .collect();
-                            
-                            // Combine all optional components
-                            let mut all_components = Vec::new();
-                            all_components.extend(optional_mods);
-                            all_components.extend(optional_shaderpacks);
-                            all_components.extend(optional_resourcepacks);
-                            
-                            // Get includes from manifest
-                            let includes = manifest.include.clone();
-                            
-                            // NEW: Get included (default-enabled) components for the top section
-                            let included_mods: Vec<ModComponent> = manifest.mods.iter()
-                                .filter(|m| m.default_enabled && m.optional)
-                                .cloned()
-                                .collect();
-                                
-                            let included_shaderpacks: Vec<ModComponent> = manifest.shaderpacks.iter()
-                                .filter(|m| m.default_enabled && m.optional)
-                                .cloned()
-                                .collect();
-                                
-                            let included_resourcepacks: Vec<ModComponent> = manifest.resourcepacks.iter()
-                                .filter(|m| m.default_enabled && m.optional)
-                                .cloned()
-                                .collect();
-                                
-                            // Combine all included components
-                            let mut included_components = Vec::new();
-                            included_components.extend(included_mods);
-                            included_components.extend(included_shaderpacks);
-                            included_components.extend(included_resourcepacks);
-                            
-                            // First render the included features section if there are any
-                            if !included_components.is_empty() {
-                                rsx! {
-                                    // Included Features Section (always visible)
-                                    div { class: "feature-category",
-                                        // Category header
-                                        div { class: "category-header",
-                                            div { class: "category-title-section",
-                                                h3 { class: "category-name", "✓ Included Components" }
-                                                span { class: "category-count included-count", 
-                                                    "{included_components.len()} included" 
+// Features content - only render if we have a universal manifest
+{
+    if let Some(manifest) = &universal_manifest {
+        // Get all optional mods
+        let optional_mods: Vec<ModComponent> = manifest.mods.iter()
+            .filter(|m| m.optional)
+            .cloned()
+            .collect();
+        
+        // Get all optional shaderpacks and resourcepacks too
+        let optional_shaderpacks: Vec<ModComponent> = manifest.shaderpacks.iter()
+            .filter(|m| m.optional)
+            .cloned()
+            .collect();
+        
+        let optional_resourcepacks: Vec<ModComponent> = manifest.resourcepacks.iter()
+            .filter(|m| m.optional)
+            .cloned()
+            .collect();
+        
+        // Combine all optional components
+        let mut all_components = Vec::new();
+        all_components.extend(optional_mods);
+        all_components.extend(optional_shaderpacks);
+        all_components.extend(optional_resourcepacks);
+        
+        // Get includes from manifest
+        let includes = manifest.include.clone();
+        
+        // NEW: Get included (default-enabled) components for the top section
+        let included_mods: Vec<ModComponent> = manifest.mods.iter()
+            .filter(|m| m.default_enabled && m.optional)
+            .cloned()
+            .collect();
+            
+        let included_shaderpacks: Vec<ModComponent> = manifest.shaderpacks.iter()
+            .filter(|m| m.default_enabled && m.optional)
+            .cloned()
+            .collect();
+            
+        let included_resourcepacks: Vec<ModComponent> = manifest.resourcepacks.iter()
+            .filter(|m| m.default_enabled && m.optional)
+            .cloned()
+            .collect();
+            
+        // Combine all included components
+        let mut included_components = Vec::new();
+        included_components.extend(included_mods);
+        included_components.extend(included_shaderpacks);
+        included_components.extend(included_resourcepacks);
+        
+        // Build a vector of elements to render
+        let mut elements_to_render = Vec::new();
+        
+        // First render the included features section if there are any
+        if !included_components.is_empty() {
+            elements_to_render.push(rsx! {
+                // Included Features Section (always visible)
+                div { class: "feature-category",
+                    // Category header
+                    div { class: "category-header",
+                        div { class: "category-title-section",
+                            h3 { class: "category-name", "✓ Included Components" }
+                            span { class: "category-count included-count", 
+                                "{included_components.len()} included" 
+                            }
+                        }
+                    }
+                    
+                    // Category content (always expanded)
+                    div { class: "category-content expanded",
+                        // Feature cards grid
+                        div { class: "feature-cards-grid",
+                            for component in included_components {
+                                {
+                                    let component_id = component.id.clone();
+                                    let is_enabled = enabled_features.read().contains(&component_id);
+                                    
+                                    rsx! {
+                                        div { 
+                                            class: "feature-card feature-included",
+                                            
+                                            div { class: "feature-card-header",
+                                                h3 { class: "feature-card-title", "{component.name}" }
+                                                
+                                                span {
+                                                    class: "feature-toggle-button included-component",
+                                                    "Included"
                                                 }
                                             }
-                                        }
-                                        
-                                        // Category content (always expanded)
-                                        div { class: "category-content expanded",
-                                            // Feature cards grid
-                                            div { class: "feature-cards-grid",
-                                                for component in included_components {
-                                                    {
-                                                        let component_id = component.id.clone();
-                                                        let is_enabled = enabled_features.read().contains(&component_id);
-                                                        
-                                                        rsx! {
-                                                            div { 
-                                                                class: "feature-card feature-included",
-                                                                
-                                                                div { class: "feature-card-header",
-                                                                    h3 { class: "feature-card-title", "{component.name}" }
-                                                                    
-                                                                    span {
-                                                                        class: "feature-toggle-button included-component",
-                                                                        "Included"
-                                                                    }
-                                                                }
-                                                                
-                                                                // Description display
-                                                                if let Some(description) = &component.description {
-                                                                    div { class: "feature-card-description", "{description}" }
-                                                                }
-                                                                
-                                                                // Dependencies display
-                                                                if let Some(deps) = &component.dependencies {
-                                                                    if !deps.is_empty() {
-                                                                        div { class: "feature-dependencies",
-                                                                            "Requires: ", 
-                                                                            span { class: "dependency-list", 
-                                                                                {deps.join(", ")}
-                                                                            }
-                                                                        }
-                                                                    }
-                                                                }
-                                                            }
+                                            
+                                            // Description display
+                                            if let Some(description) = &component.description {
+                                                div { class: "feature-card-description", "{description}" }
+                                            }
+                                            
+                                            // Dependencies display
+                                            if let Some(deps) = &component.dependencies {
+                                                if !deps.is_empty() {
+                                                    div { class: "feature-dependencies",
+                                                        "Requires: ", 
+                                                        span { class: "dependency-list", 
+                                                            {deps.join(", ")}
                                                         }
                                                     }
                                                 }
@@ -584,14 +582,24 @@ pub fn FeaturesTab(
                                     }
                                 }
                             }
-                            
-                            // Display features by category with includes
-                            render_features_by_category(all_components, enabled_features.clone(), filter_text.clone(), toggle_feature)  
-                        } else {
-                            rsx! {
-                                div { class: "loading-container",
-                                    div { class: "loading-spinner" }
-                                    div { class: "loading-text", "Loading features..." }
+                        }
+                    }
+                }
+            });
+        }
+        
+        // Then add the regular features by category
+        elements_to_render.push(render_features_by_category(all_components, enabled_features.clone(), filter_text.clone(), toggle_feature));
+        
+        // Return all elements
+        rsx! {
+            {elements_to_render.into_iter()}
+        }
+    } else {
+        rsx! {
+            div { class: "loading-container",
+                div { class: "loading-spinner" }
+                div { class: "loading-text", "Loading features..." }
                                 }
                             }
                         }
