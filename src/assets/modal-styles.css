@@ -734,3 +734,52 @@ button:disabled {
     justify-content: center;
     margin-top: 20px;
 }
+
+/* Update warning dialog styles */
+.update-warning-dialog {
+    max-width: 600px;
+}
+
+.warning-message {
+    background-color: rgba(255, 193, 7, 0.1);
+    border-left: 4px solid #ffc107;
+    padding: 15px;
+    border-radius: 4px;
+    margin-bottom: 20px;
+}
+
+.warning-message p {
+    margin: 10px 0;
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.protection-steps {
+    margin: 15px 0 15px 30px;
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.protection-steps li {
+    margin-bottom: 10px;
+}
+
+.warning-note {
+    background-color: rgba(74, 144, 226, 0.1);
+    border-left: 4px solid #4a90e2;
+    padding: 12px;
+    border-radius: 4px;
+    margin-top: 15px;
+}
+
+.warning-note p {
+    margin: 0;
+    font-size: 0.9rem;
+}
+
+.update-proceed-button {
+    background-color: #ffc107;
+    color: #000;
+}
+
+.update-proceed-button:hover {
+    background-color: #ffca28;
+}
