@@ -425,6 +425,7 @@ div { class: "features-count-container",
             }
         }
     }
+}
                 
                 // Centered expand/collapse button with improved styling
                 button { 
