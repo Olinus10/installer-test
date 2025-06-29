@@ -1185,21 +1185,11 @@ use_effect({
         has_changes.set(features_changed);
     }
 });
-    
-    // Handle install/update with progress tracking
-let handle_update = move |_| {
-    // Check if this is an update (not first install)
-    if installation_state.read().installed {
-        // Show the update warning dialog
-        show_update_warning.set(true);
-    } else {
-        // First install - proceed directly
-        proceed_with_update();
-    }
-};
+
+// Handle install/update with progress tracking
+let installation_for_update_clone = installation_for_update.clone();
 
 // Create a separate function for the actual update process
-let installation_for_update_clone = installation_for_update.clone();
 let proceed_with_update = move || {
     is_installing.set(true);
     let mut installation_clone = installation_for_update_clone.clone();
@@ -1280,6 +1270,17 @@ let proceed_with_update = move || {
         }
         is_installing_clone.set(false);
     });
+};
+
+let handle_update = move |_| {
+    // Check if this is an update (not first install)
+    if installation_state.read().installed {
+        // Show the update warning dialog
+        show_update_warning.set(true);
+    } else {
+        // First install - proceed directly
+        proceed_with_update();
+    }
 };
     
     // Button label based on state
