@@ -1,12 +1,15 @@
-/* Optional Features Wrapper with new theme */
+/* Main features section with expandable wrapper */
+.features-tab {
+    padding: 15px 0;
+}
+
+/* Make the whole section more consistent with other section dividers */
 .optional-features-wrapper {
-    background: linear-gradient(135deg, var(--bg-secondary), rgba(44, 45, 100, 0.6));
+    background-color: rgba(44, 45, 100, 0.4);
     border-radius: 10px;
     margin: 30px 0;
-    border-left: 4px solid var(--accent-primary);
+    border-left: 4px solid rgba(126, 90, 155, 0.7);
     padding: 20px;
-    box-shadow: 0 8px 25px var(--shadow);
-    border: 1px solid var(--border);
 }
 
 /* Improved Optional Features header styling */
@@ -22,11 +25,20 @@
 .optional-features-title {
     font-size: 1.6rem;
     margin: 0 0 10px 0;
-    color: var(--accent-gold);
+    color: #FFDDA0;
     font-family: "HEADER_FONT";
     text-transform: uppercase;
     letter-spacing: 0.08em;
-    text-shadow: 0 2px 8px var(--glow-gold);
+    text-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
+}
+
+/* Optional features description should come before the counter */
+.optional-features-description {
+    text-align: center;
+    color: rgba(255, 221, 160, 0.8);
+    font-size: 1rem;
+    margin: 10px auto;
+    max-width: 700px;
 }
 
 /* Enhanced Expand/Collapse Features Button */
@@ -34,9 +46,9 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background: linear-gradient(135deg, var(--bg-secondary), var(--accent-primary));
-    color: var(--text-primary);
-    border: 2px solid var(--border);
+    background: linear-gradient(135deg, #2C2D64, #1A1A2E);
+    color: #FFDDA0;
+    border: 2px solid rgba(126, 90, 155, 0.3);
     border-radius: 30px;
     padding: 14px 35px;
     font-family: "HEADER_FONT";
@@ -48,18 +60,86 @@
     margin: 20px auto 25px auto;
     width: fit-content;
     min-width: 250px;
-    box-shadow: 0 4px 20px var(--shadow);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
     position: relative;
     overflow: hidden;
     text-transform: uppercase;
 }
 
 .expand-collapse-button:hover {
-    background: linear-gradient(135deg, var(--accent-primary), #9B6BB8);
+    background: linear-gradient(135deg, #7E5A9B, #2C2D64);
     transform: translateY(-2px);
-    box-shadow: 0 6px 25px var(--shadow);
-    border-color: var(--accent-gold);
-    color: var(--accent-gold);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
+    border-color: rgba(255, 221, 160, 0.4);
+}
+
+.button-icon {
+    margin-right: 12px;
+    font-size: 20px;
+    transition: transform 0.3s ease;
+    display: inline-block;
+}
+
+/* Icon rotates on click, not hover */
+.expand-collapse-button.expanded .button-icon {
+    transform: rotate(180deg);
+}
+
+/* Feature expansion animation */
+.optional-features-content {
+    overflow: hidden;
+    max-height: 0;
+    opacity: 0;
+    transition: max-height 0.6s cubic-bezier(0.4, 0, 0.2, 1), 
+                opacity 0.4s ease;
+    padding: 0 20px;
+}
+
+.optional-features-content.expanded {
+    max-height: 10000px;
+    padding: 0 20px 20px 20px;
+    opacity: 1;
+    animation: fadeInUp 0.5s ease forwards;
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Add stagger effect to feature cards when expanding */
+.optional-features-content.expanded .feature-card {
+    opacity: 0;
+    animation: fadeInScale 0.4s ease forwards;
+}
+
+.optional-features-content.expanded .feature-card:nth-child(1) { animation-delay: 0.05s; }
+.optional-features-content.expanded .feature-card:nth-child(2) { animation-delay: 0.1s; }
+.optional-features-content.expanded .feature-card:nth-child(3) { animation-delay: 0.15s; }
+.optional-features-content.expanded .feature-card:nth-child(4) { animation-delay: 0.2s; }
+.optional-features-content.expanded .feature-card:nth-child(5) { animation-delay: 0.25s; }
+
+@keyframes fadeInScale {
+    from {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.optional-features-controls {
+    display: flex;
+    align-items: center;
+    gap: 15px;
 }
 
 /* Features count container styling */
@@ -69,39 +149,99 @@
 }
 
 .features-count-badge {
-    background: linear-gradient(135deg, var(--accent-primary), rgba(126, 90, 155, 0.8));
-    color: var(--text-primary);
+    background-color: rgba(126, 90, 155, 0.6);
+    color: #FFDDA0;
     padding: 5px 15px;
     border-radius: 20px;
     font-size: 0.9rem;
     font-family: "REGULAR_FONT";
     margin: 0 auto;
     cursor: default;
-    box-shadow: 0 2px 8px var(--shadow);
-    border: 1px solid var(--border-light);
+    box-shadow: none;
+    border: 1px solid rgba(126, 90, 155, 0.3);
 }
 
-/* CATEGORIES LAYOUT */
+/* Top-level expand indicator */
+.expand-indicator {
+    font-size: 24px;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: rgba(44, 45, 100, 0.6);
+    border-radius: 50%;
+    transition: transform 0.3s ease;
+    color: #FFDDA0;
+}
+
+.expand-indicator.expanded {
+    transform: rotate(180deg);
+}
+
+/* Feature filter search box */
+.feature-filter-container {
+    display: flex;
+    align-items: center;
+    margin-bottom: 20px;
+    background-color: rgba(44, 45, 100, 0.6);
+    border-radius: 6px;
+    padding: 8px 15px;
+    border: 1px solid rgba(126, 90, 155, 0.3);
+}
+
+.feature-filter {
+    flex-grow: 1;
+    background-color: transparent;
+    border: none;
+    color: #FFDDA0;
+    padding: 8px;
+}
+
+.feature-filter:focus {
+    outline: none;
+}
+
+.feature-filter-icon {
+    color: rgba(255, 221, 160, 0.5);
+    font-size: 1.2rem;
+    margin-right: 8px;
+}
+
+.feature-filter-clear {
+    background: none;
+    border: none;
+    color: rgba(255, 221, 160, 0.5);
+    cursor: pointer;
+    padding: 0 8px;
+    font-size: 1.2rem;
+}
+
+.feature-filter-clear:hover {
+    color: #FFDDA0;
+}
+
+/* CATEGORIES LAYOUT - FIXED */
 .feature-categories {
     display: block;
     width: 100%;
+    /* Ensure proper stacking context */
     position: relative;
 }
 
 .feature-category {
-    background: linear-gradient(135deg, var(--bg-secondary), rgba(44, 45, 100, 0.8));
+    background-color: rgba(44, 45, 100, 0.4);
     border-radius: 10px;
     padding: 15px 20px;
-    border-left: 3px solid var(--accent-primary);
+    border-left: 3px solid rgba(126, 90, 155, 0.8);
     margin-bottom: 20px;
     position: relative;
     width: 100%;
     box-sizing: border-box;
+    /* FIXED: Ensure proper height calculation and stacking */
     display: block;
     clear: both;
     overflow: visible;
-    box-shadow: 0 4px 15px var(--shadow);
-    border: 1px solid var(--border);
 }
 
 /* ENTIRE HEADER IS CLICKABLE */
@@ -110,16 +250,8 @@
     justify-content: space-between;
     align-items: center;
     cursor: pointer;
-    padding-right: 50px;
+    padding-right: 50px; /* More space for arrow */
     position: relative;
-    transition: all 0.3s ease;
-}
-
-.category-header:hover {
-    background: linear-gradient(135deg, rgba(126, 90, 155, 0.1), rgba(44, 45, 100, 0.3));
-    border-radius: 8px;
-    padding: 8px;
-    margin: -8px;
 }
 
 .category-title-section {
@@ -131,64 +263,59 @@
 .category-name {
     margin: 0;
     font-size: 1.2rem;
-    color: var(--accent-gold);
-    text-shadow: 0 1px 3px var(--shadow);
+    color: #FFDDA0;
 }
 
 .category-count {
-    background: linear-gradient(135deg, var(--accent-primary), rgba(126, 90, 155, 0.8));
-    color: var(--text-primary);
+    background-color: rgba(126, 90, 155, 0.5);
     padding: 3px 8px;
     border-radius: 20px;
     font-size: 0.8rem;
-    box-shadow: 0 2px 5px var(--shadow);
+    color: #FFDDA0;
 }
 
 /* All Enabled/Disabled button styling */
 .category-toggle-all {
-    background: linear-gradient(135deg, var(--bg-primary), rgba(26, 26, 46, 0.8));
-    border: 1px solid var(--border);
+    background-color: rgba(44, 45, 100, 0.6);
+    border: 1px solid rgba(126, 90, 155, 0.3);
     border-radius: 20px;
     padding: 6px 15px;
     font-family: "REGULAR_FONT";
     font-size: 0.85rem;
-    color: var(--text-primary);
+    color: #FFDDA0;
     letter-spacing: 0.5px;
     cursor: pointer;
     transition: all 0.2s ease;
     min-width: 110px;
     text-align: center;
-    box-shadow: 0 2px 8px var(--shadow);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
     z-index: 5;
 }
 
 .category-toggle-all.toggle-enable {
-    background: linear-gradient(135deg, var(--accent-gold), #FFE4B0);
-    color: var(--bg-primary);
-    border-color: var(--accent-gold);
-    font-weight: bold;
+    background-color: rgba(126, 90, 155, 0.6);
+    border-color: rgba(126, 90, 155, 0.8);
 }
 
 .category-toggle-all.toggle-disable {
-    background: linear-gradient(135deg, var(--danger), #C0392B);
-    color: white;
-    border-color: var(--danger);
+    background-color: rgba(217, 82, 72, 0.6);
+    border-color: rgba(217, 82, 72, 0.8);
 }
 
 .category-toggle-all:hover {
     transform: translateY(-2px);
-    box-shadow: 0 4px 15px var(--shadow);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
 }
 
 .category-toggle-all.all-enabled:hover {
-    background: linear-gradient(135deg, #FFEBB5, var(--accent-gold));
+    background-color: rgba(126, 90, 155, 0.8);
 }
 
 .category-toggle-all.all-disabled:hover {
-    background: linear-gradient(135deg, #E74C3C, var(--danger));
+    background-color: rgba(217, 82, 72, 0.8);
 }
 
-/* Arrow indicators */
+/* FIXED: Arrow indicators - visible and properly positioned */
 .category-toggle-indicator {
     position: absolute;
     right: 15px;
@@ -199,24 +326,24 @@
     display: flex;
     justify-content: center;
     align-items: center;
-    background: linear-gradient(135deg, var(--accent-primary), rgba(126, 90, 155, 0.8));
+    background-color: rgba(44, 45, 100, 0.6);
     border-radius: 50%;
     font-size: 22px;
-    color: var(--text-primary);
+    color: #FFDDA0; /* FIXED: Make arrow visible */
     transition: transform 0.3s ease;
-    z-index: 10;
-    box-shadow: 0 2px 8px var(--shadow);
+    z-index: 10; /* FIXED: Ensure it's on top */
 }
 
 .category-toggle-indicator.expanded {
     transform: translateY(-50%) rotate(180deg);
 }
 
-/* Category content with proper height management */
+/* FIXED: Category content with proper height management */
 .category-content {
     overflow: hidden;
     max-height: 0;
     transition: max-height 0.5s ease;
+    /* FIXED: Ensure proper flow */
     display: block;
     clear: both;
 }
@@ -225,15 +352,17 @@
     max-height: none;
     overflow: visible;
     padding-bottom: 20px;
+    /* FIXED: Force height calculation */
     height: auto;
     min-height: min-content;
 }
 
-/* Feature cards - stacked layout with proper spacing */
+/* FIXED: Feature cards - stacked layout with proper spacing */
 .feature-cards-grid {
     display: block;
     width: 100%;
     padding: 10px 0;
+    /* FIXED: Ensure proper height and flow */
     min-height: min-content;
     clear: both;
 }
@@ -242,6 +371,7 @@
     display: block;
     width: 100%;
     margin-bottom: 15px;
+    /* FIXED: Prevent floating and overlap */
     float: none;
     clear: both;
     position: relative;
@@ -250,44 +380,49 @@
 
 /* INCLUDED COMPONENTS STYLES */
 .feature-card.feature-included {
-    background: linear-gradient(135deg, var(--success), rgba(39, 174, 96, 0.3));
-    border-left: 3px solid var(--success);
+    background-color: rgba(0, 80, 0, 0.3);
+    border-left: 3px solid #4abb6e;
     opacity: 0.9;
     cursor: default;
 }
 
 .feature-card.feature-included:hover {
     transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(39, 174, 96, 0.3);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
 }
 
 .feature-card.feature-included .feature-card-title {
-    color: #A8E6A8;
+    color: #a8e6a8;
 }
 
 .feature-card.feature-included .feature-card-description {
     color: rgba(200, 255, 200, 0.8);
 }
 
+.feature-card.feature-included .feature-card-header {
+    cursor: default;
+}
+
 .feature-toggle-button.included-component {
-    background: linear-gradient(135deg, var(--success), #229954) !important;
-    border-color: var(--success) !important;
-    color: white !important;
+    background-color: rgba(74, 187, 110, 0.6) !important;
+    border-color: rgba(74, 187, 110, 0.8) !important;
+    color: #a8e6a8 !important;
     font-weight: 600;
     pointer-events: none;
 }
 
 /* Included category styling */
 .category-count.included-count {
-    background: linear-gradient(135deg, var(--success), rgba(39, 174, 96, 0.8));
-    color: white;
+    background-color: rgba(74, 187, 110, 0.5);
+    color: #a8e6a8;
     font-weight: 600;
 }
 
 /* Better visual distinction for included components category */
 .feature-category:has(.category-name:contains("INCLUDED MODS")) {
-    background: linear-gradient(135deg, rgba(39, 174, 96, 0.2), rgba(22, 160, 133, 0.1));
-    border-left-color: var(--success);
+    background-color: rgba(0, 60, 0, 0.2);
+    border-left-color: #4abb6e;
+    /* FIXED: Ensure proper spacing and flow */
     position: static;
     display: block;
     clear: both;
@@ -297,28 +432,34 @@
 }
 
 .feature-category:has(.category-name:contains("INCLUDED MODS")) .category-header {
-    background: linear-gradient(135deg, rgba(39, 174, 96, 0.1), rgba(22, 160, 133, 0.05));
+    background-color: rgba(0, 80, 0, 0.1);
 }
 
 .feature-category:has(.category-name:contains("INCLUDED MODS")) .category-header:hover {
-    background: linear-gradient(135deg, rgba(39, 174, 96, 0.2), rgba(22, 160, 133, 0.1));
+    background-color: rgba(0, 100, 0, 0.2);
+}
+
+/* FIXED: Ensure categories after included don't overlap */
+.feature-category:has(.category-name:contains("INCLUDED MODS")) + .feature-category {
+    clear: both;
+    margin-top: 20px;
 }
 
 /* Dependency warning styling */
 .feature-dependencies {
-    background: linear-gradient(135deg, rgba(243, 156, 18, 0.1), rgba(243, 156, 18, 0.05));
-    border-left: 2px solid var(--warning);
+    background: linear-gradient(135deg, rgba(255, 193, 7, 0.1), rgba(255, 193, 7, 0.05));
+    border-left: 2px solid #ffc107;
     padding: 6px 10px;
     margin-top: 10px;
     font-size: 0.85rem;
-    color: var(--text-secondary);
+    color: rgba(255, 221, 160, 0.9);
     border-radius: 4px;
     line-height: 1.4;
 }
 
 .dependency-list {
     font-weight: 600;
-    color: var(--accent-gold);
+    color: #ffeb3b;
     cursor: help;
     text-decoration: underline dotted;
     text-underline-offset: 2px;
@@ -331,14 +472,14 @@
 
 @keyframes dependency-flash {
     0% {
-        background: var(--bg-secondary);
+        background-color: rgba(44, 45, 100, 0.4);
     }
     50% {
-        background: rgba(243, 156, 18, 0.2);
-        box-shadow: 0 0 15px rgba(243, 156, 18, 0.3);
+        background-color: rgba(255, 193, 7, 0.2);
+        box-shadow: 0 0 15px rgba(255, 193, 7, 0.3);
     }
     100% {
-        background: var(--bg-secondary);
+        background-color: rgba(44, 45, 100, 0.4);
     }
 }
 
@@ -358,12 +499,12 @@
 
 /* Visual feedback when hovering over features with dependencies */
 .feature-card:has(.feature-dependencies):hover {
-    box-shadow: 0 6px 20px rgba(243, 156, 18, 0.2);
+    box-shadow: 0 6px 16px rgba(255, 193, 7, 0.15);
 }
 
 /* Style for features that are dependencies of others */
 .feature-card.is-dependency {
-    background: linear-gradient(135deg, rgba(243, 156, 18, 0.05), var(--bg-secondary));
+    background-color: rgba(255, 193, 7, 0.05);
 }
 
 .feature-card.is-dependency .feature-card-title::after {
