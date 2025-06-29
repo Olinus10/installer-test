@@ -1,120 +1,3 @@
-/* Fixed category layout to properly space included components */
-.feature-categories {
-    display: block; /* Keep as block, not flex */
-    width: 100%;
-}
-
-.feature-category {
-    background-color: rgba(0, 0, 0, 0.3);
-    border-radius: 10px;
-    padding: 15px 20px;
-    border-left: 3px solid rgba(7, 60, 23, 0.8);
-    margin-bottom: 20px;
-    position: static; /* Ensure proper layout flow */
-    width: 100%;
-    box-sizing: border-box;
-}
-
-/* ENTIRE HEADER IS CLICKABLE */
-.category-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    cursor: pointer;
-    padding-right: 40px;
-}
-
-.category-title-section {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-
-.category-name {
-    margin: 0;
-    font-size: 1.2rem;
-}
-
-.category-count {
-    background-color: rgba(7, 60, 23, 0.5);
-    padding: 3px 8px;
-    border-radius: 20px;
-    font-size: 0.8rem;
-}
-
-/* All Enabled/Disabled button styling */
-.category-toggle-all {
-    background-color: rgba(0, 0, 0, 0.4);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: 20px;
-    padding: 6px 15px;
-    font-family: "REGULAR_FONT";
-    font-size: 0.85rem;
-    color: white;
-    letter-spacing: 0.5px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    min-width: 110px;
-    text-align: center;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-}
-
-
-.category-toggle-all.toggle-enable {
-    background-color: rgba(7, 60, 23, 0.6);
-    border-color: rgba(7, 60, 23, 0.8);
-}
-
-.category-toggle-all.toggle-disable {
-    background-color: rgba(217, 82, 72, 0.6);
-    border-color: rgba(217, 82, 72, 0.8);
-}
-
-.category-toggle-all:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
-}
-
-.category-toggle-all.all-enabled:hover {
-    background-color: rgba(7, 60, 23, 0.8);
-}
-
-.category-toggle-all.all-disabled:hover {
-    background-color: rgba(217, 82, 72, 0.8);
-}
-
-/* Larger expand/collapse indicators */
-.category-toggle-indicator {
-    position: absolute;
-    right: 15px;
-    width: 36px; /* Much larger */
-    height: 36px; /* Much larger */
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    background-color: rgba(0, 0, 0, 0.3);
-    border-radius: 50%;
-    font-size: 22px; /* Larger font size for the arrow */
-    transition: transform 0.3s ease;
-}
-
-.category-toggle-indicator.expanded {
-    transform: rotate(180deg);
-}
-
-/* Category content should expand to contain all content */
-.category-content {
-    overflow: visible;
-    max-height: 0; /* Start collapsed */
-    transition: max-height 0.5s ease;
-}
-
-.category-content.expanded {
-    max-height: none; /* Allow full expansion */
-    overflow: visible;
-    padding-bottom: 20px;
-}
-
 /* Main features section with expandable wrapper */
 .features-tab {
     padding: 15px 0;
@@ -128,7 +11,6 @@
     border-left: 4px solid rgba(7, 60, 23, 0.7);
     padding: 20px;
 }
-
 
 /* Improved Optional Features header styling */
 .optional-features-header {
@@ -160,7 +42,6 @@
 }
 
 /* Enhanced Expand/Collapse Features Button */
-/* Enhanced Expand/Collapse Features Button - Redesigned */
 .expand-collapse-button {
     display: flex;
     align-items: center;
@@ -170,7 +51,7 @@
     border: 2px solid rgba(255, 255, 255, 0.2);
     border-radius: 30px;
     padding: 14px 35px;
-    font-family: "HEADER_FONT"; /* Use header font */
+    font-family: "HEADER_FONT";
     font-size: 1.1rem;
     font-weight: 600;
     letter-spacing: 1.5px;
@@ -211,10 +92,12 @@
     opacity: 0;
     transition: max-height 0.6s cubic-bezier(0.4, 0, 0.2, 1), 
                 opacity 0.4s ease;
+    padding: 0 20px;
 }
 
 .optional-features-content.expanded {
     max-height: 10000px;
+    padding: 0 20px 20px 20px;
     opacity: 1;
     animation: fadeInUp 0.5s ease forwards;
 }
@@ -273,31 +156,14 @@
     font-size: 0.9rem;
     font-family: "REGULAR_FONT";
     margin: 0 auto;
-    /* Remove any hover effects or transitions */
     cursor: default;
     box-shadow: none;
     border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-.optional-features-content {
-    overflow: hidden;
-    max-height: 0;
-    transition: max-height 0.7s ease;
-    padding: 0 20px;
-    opacity: 0;
-    transition: max-height 0.7s ease, opacity 0.3s ease;
-}
-
-.optional-features-content.expanded {
-    max-height: 10000px;
-    padding: 0 20px 20px 20px;
-    opacity: 1;
-}
-
 /* Top-level expand indicator */
-/* Much larger expand/collapse indicators */
 .expand-indicator {
-    font-size: 24px; /* Significantly larger */
+    font-size: 24px;
     width: 36px;
     height: 36px;
     display: flex;
@@ -354,14 +220,293 @@
     color: white;
 }
 
-/* Keep feature cards as stacked list (one per row) */
+/* CATEGORIES LAYOUT - FIXED */
+.feature-categories {
+    display: block;
+    width: 100%;
+    /* Ensure proper stacking context */
+    position: relative;
+}
+
+.feature-category {
+    background-color: rgba(0, 0, 0, 0.3);
+    border-radius: 10px;
+    padding: 15px 20px;
+    border-left: 3px solid rgba(7, 60, 23, 0.8);
+    margin-bottom: 20px;
+    position: relative;
+    width: 100%;
+    box-sizing: border-box;
+    /* FIXED: Ensure proper height calculation and stacking */
+    display: block;
+    clear: both;
+    overflow: visible;
+}
+
+/* ENTIRE HEADER IS CLICKABLE */
+.category-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    padding-right: 50px; /* More space for arrow */
+    position: relative;
+}
+
+.category-title-section {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.category-name {
+    margin: 0;
+    font-size: 1.2rem;
+}
+
+.category-count {
+    background-color: rgba(7, 60, 23, 0.5);
+    padding: 3px 8px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+}
+
+/* All Enabled/Disabled button styling */
+.category-toggle-all {
+    background-color: rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 20px;
+    padding: 6px 15px;
+    font-family: "REGULAR_FONT";
+    font-size: 0.85rem;
+    color: white;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    min-width: 110px;
+    text-align: center;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    z-index: 5;
+}
+
+.category-toggle-all.toggle-enable {
+    background-color: rgba(7, 60, 23, 0.6);
+    border-color: rgba(7, 60, 23, 0.8);
+}
+
+.category-toggle-all.toggle-disable {
+    background-color: rgba(217, 82, 72, 0.6);
+    border-color: rgba(217, 82, 72, 0.8);
+}
+
+.category-toggle-all:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+}
+
+.category-toggle-all.all-enabled:hover {
+    background-color: rgba(7, 60, 23, 0.8);
+}
+
+.category-toggle-all.all-disabled:hover {
+    background-color: rgba(217, 82, 72, 0.8);
+}
+
+/* FIXED: Arrow indicators - visible and properly positioned */
+.category-toggle-indicator {
+    position: absolute;
+    right: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 36px;
+    height: 36px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: rgba(0, 0, 0, 0.3);
+    border-radius: 50%;
+    font-size: 22px;
+    color: white; /* FIXED: Make arrow visible */
+    transition: transform 0.3s ease;
+    z-index: 10; /* FIXED: Ensure it's on top */
+}
+
+.category-toggle-indicator.expanded {
+    transform: translateY(-50%) rotate(180deg);
+}
+
+/* FIXED: Category content with proper height management */
+.category-content {
+    overflow: hidden;
+    max-height: 0;
+    transition: max-height 0.5s ease;
+    /* FIXED: Ensure proper flow */
+    display: block;
+    clear: both;
+}
+
+.category-content.expanded {
+    max-height: none;
+    overflow: visible;
+    padding-bottom: 20px;
+    /* FIXED: Force height calculation */
+    height: auto;
+    min-height: min-content;
+}
+
+/* FIXED: Feature cards - stacked layout with proper spacing */
 .feature-cards-grid {
-    display: block; /* Change from grid to block for stacked layout */
+    display: block;
     width: 100%;
     padding: 10px 0;
+    /* FIXED: Ensure proper height and flow */
+    min-height: min-content;
+    clear: both;
 }
 
 .feature-card {
-    margin-bottom: 15px; /* Space between stacked cards */
-    width: 100%; /* Full width cards */
+    display: block;
+    width: 100%;
+    margin-bottom: 15px;
+    /* FIXED: Prevent floating and overlap */
+    float: none;
+    clear: both;
+    position: relative;
+    box-sizing: border-box;
+}
+
+/* INCLUDED COMPONENTS STYLES */
+.feature-card.feature-included {
+    background-color: rgba(0, 50, 0, 0.3);
+    border-left: 3px solid #2d7a2d;
+    opacity: 0.9;
+    cursor: default;
+}
+
+.feature-card.feature-included:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
+}
+
+.feature-card.feature-included .feature-card-title {
+    color: #a8e6a8;
+}
+
+.feature-card.feature-included .feature-card-description {
+    color: rgba(200, 255, 200, 0.8);
+}
+
+.feature-card.feature-included .feature-card-header {
+    cursor: default;
+}
+
+.feature-toggle-button.included-component {
+    background-color: rgba(45, 122, 45, 0.6) !important;
+    border-color: rgba(45, 122, 45, 0.8) !important;
+    color: #a8e6a8 !important;
+    font-weight: 600;
+    pointer-events: none;
+}
+
+/* Included category styling */
+.category-count.included-count {
+    background-color: rgba(45, 122, 45, 0.5);
+    color: #a8e6a8;
+    font-weight: 600;
+}
+
+/* Better visual distinction for included components category */
+.feature-category:has(.category-name:contains("INCLUDED MODS")) {
+    background-color: rgba(0, 30, 0, 0.2);
+    border-left-color: #2d7a2d;
+    /* FIXED: Ensure proper spacing and flow */
+    position: static;
+    display: block;
+    clear: both;
+    margin-bottom: 30px;
+    height: auto;
+    min-height: min-content;
+}
+
+.feature-category:has(.category-name:contains("INCLUDED MODS")) .category-header {
+    background-color: rgba(0, 50, 0, 0.1);
+}
+
+.feature-category:has(.category-name:contains("INCLUDED MODS")) .category-header:hover {
+    background-color: rgba(0, 60, 0, 0.2);
+}
+
+/* FIXED: Ensure categories after included don't overlap */
+.feature-category:has(.category-name:contains("INCLUDED MODS")) + .feature-category {
+    clear: both;
+    margin-top: 20px;
+}
+
+/* Dependency warning styling */
+.feature-dependencies {
+    background: linear-gradient(135deg, rgba(255, 193, 7, 0.1), rgba(255, 193, 7, 0.05));
+    border-left: 2px solid #ffc107;
+    padding: 6px 10px;
+    margin-top: 10px;
+    font-size: 0.85rem;
+    color: rgba(255, 255, 255, 0.9);
+    border-radius: 4px;
+    line-height: 1.4;
+}
+
+.dependency-list {
+    font-weight: 600;
+    color: #ffeb3b;
+    cursor: help;
+    text-decoration: underline dotted;
+    text-underline-offset: 2px;
+}
+
+/* Visual feedback for auto-enabled dependencies */
+.feature-card.auto-enabled {
+    animation: dependency-flash 0.5s ease-in-out;
+}
+
+@keyframes dependency-flash {
+    0% {
+        background-color: rgba(0, 0, 0, 0.7);
+    }
+    50% {
+        background-color: rgba(255, 193, 7, 0.2);
+        box-shadow: 0 0 15px rgba(255, 193, 7, 0.3);
+    }
+    100% {
+        background-color: rgba(0, 0, 0, 0.7);
+    }
+}
+
+/* Dependency chain visual indicator */
+.feature-card.has-dependencies {
+    position: relative;
+}
+
+.feature-card.has-dependencies::after {
+    content: "🔗";
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    font-size: 0.8rem;
+    opacity: 0.6;
+}
+
+/* Visual feedback when hovering over features with dependencies */
+.feature-card:has(.feature-dependencies):hover {
+    box-shadow: 0 6px 16px rgba(255, 193, 7, 0.15);
+}
+
+/* Style for features that are dependencies of others */
+.feature-card.is-dependency {
+    background-color: rgba(255, 193, 7, 0.05);
+}
+
+.feature-card.is-dependency .feature-card-title::after {
+    content: " (Dependency)";
+    font-size: 0.7rem;
+    opacity: 0.6;
+    font-weight: normal;
 }
