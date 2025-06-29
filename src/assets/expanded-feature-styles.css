@@ -2,14 +2,14 @@
 .feature-dependencies, .feature-incompatibilities, .feature-authors {
     font-size: 0.85rem;
     margin-top: 8px;
-    color: rgba(255, 221, 160, 0.7);
-    background-color: rgba(44, 45, 100, 0.4);
+    color: rgba(255, 255, 255, 0.7);
+    background-color: rgba(0, 0, 0, 0.3);
     padding: 6px 10px;
     border-radius: 4px;
 }
 
 .feature-dependencies {
-    border-left: 2px solid #7E5A9B;
+    border-left: 2px solid #0a5d23;
 }
 
 .feature-incompatibilities {
@@ -17,13 +17,13 @@
 }
 
 .feature-authors {
-    border-left: 2px solid #FFDDA0;
+    border-left: 2px solid #ffb900;
     margin-top: 10px;
 }
 
 .dependency-list {
     font-weight: 600;
-    color: #B8A4D1;
+    color: #4abb6e;
 }
 
 .incompatibility-list {
@@ -33,13 +33,13 @@
 
 .author-link {
     font-weight: 600;
-    color: #FFDDA0;
+    color: #ffe9a0;
     text-decoration: none;
     transition: all 0.2s ease;
 }
 
 .author-link:hover {
-    color: #FFE6B3;
+    color: #fff;
     text-decoration: underline;
 }
 
@@ -72,11 +72,10 @@
 .category-header h3 {
     margin: 0;
     transition: color 0.2s ease;
-    color: #FFDDA0;
 }
 
 .category-header:hover h3 {
-    color: #FFE6B3;
+    color: #fff;
 }
 
 .category-content {
@@ -99,9 +98,8 @@
     display: flex;
     justify-content: center;
     align-items: center;
-    background-color: rgba(44, 45, 100, 0.6);
+    background-color: rgba(0, 0, 0, 0.3);
     border-radius: 50%;
-    color: #FFDDA0;
 }
 
 .category-toggle-indicator.expanded {
@@ -111,8 +109,8 @@
 /* Tab navigation improvements */
 .installation-tabs {
     display: flex;
-    background-color: rgba(44, 45, 100, 0.6);
-    border-bottom: 1px solid rgba(126, 90, 155, 0.3);
+    background-color: rgba(0, 0, 0, 0.5);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     padding: 0 15px;
 }
 
@@ -120,7 +118,7 @@
     padding: 16px 25px;
     background-color: transparent;
     border: none;
-    color: #FFDDA0;
+    color: #fff;
     font-family: "REGULAR_FONT";
     font-size: 1.1rem;
     cursor: pointer;
@@ -137,14 +135,14 @@
     bottom: -3px;
     width: 0;
     height: 3px;
-    background-color: #7E5A9B;
+    background-color: #0a5d23;
     transition: all 0.3s ease;
     transform: translateX(-50%);
 }
 
 .tab-button:hover {
     opacity: 1;
-    background-color: rgba(126, 90, 155, 0.1);
+    background-color: rgba(255, 255, 255, 0.05);
 }
 
 .tab-button:hover::after {
@@ -153,8 +151,8 @@
 
 .tab-button.active {
     opacity: 1;
-    border-bottom: 3px solid #7E5A9B;
-    background-color: rgba(126, 90, 155, 0.1);
+    border-bottom: 3px solid #0a5d23;
+    background-color: rgba(7, 60, 23, 0.1);
 }
 
 .tab-button.active::after {
@@ -168,7 +166,7 @@
     right: 10px;
     width: 8px;
     height: 8px;
-    background-color: #FFDDA0;
+    background-color: #ffb900;
     border-radius: 50%;
     display: block;
 }
