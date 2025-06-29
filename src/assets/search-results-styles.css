@@ -39,16 +39,16 @@
     font-size: 1.1rem;
 }
 
-/* Animation for when search changes */
+/* Animation for when search changes - Updated to green theme */
 @keyframes search-pulse {
     0% { 
-        box-shadow: 0 0 0 0 rgba(7, 60, 23, 0.4);
+        box-shadow: 0 0 0 0 rgba(76, 175, 80, 0.4);
     }
     70% { 
-        box-shadow: 0 0 0 10px rgba(7, 60, 23, 0);
+        box-shadow: 0 0 0 10px rgba(76, 175, 80, 0);
     }
     100% { 
-        box-shadow: 0 0 0 0 rgba(7, 60, 23, 0);
+        box-shadow: 0 0 0 0 rgba(76, 175, 80, 0);
     }
 }
 
@@ -76,6 +76,7 @@
 @media (max-width: 768px) {
     .presets-grid {
         grid-template-columns: 1fr;
+        justify-items: center;
     }
     
     .apply-preset-button,
@@ -88,6 +89,7 @@
     .preset-card {
         min-height: auto;
         padding-bottom: 60px;
+        max-width: 100%;
     }
     
     .feature-category-section {
@@ -102,5 +104,6 @@
         display: grid;
         grid-template-columns: 1fr;
         gap: 10px;
+        justify-items: center;
     }
 }
