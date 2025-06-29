@@ -95,16 +95,18 @@
     transform: rotate(180deg);
 }
 
-/* Category content animation */
+/* Category content should expand to contain all content */
 .category-content {
-    overflow: hidden;
-    max-height: 0;
+    overflow: visible; /* Allow content to be fully visible */
+    max-height: none; /* Remove any height restrictions when expanded */
     transition: max-height 0.5s ease;
 }
 
 .category-content.expanded {
-    max-height: none; /* Remove fixed height limit */
-    overflow: visible; /* Allow content to be fully visible */
+    max-height: none;
+    overflow: visible;
+    /* Add padding to ensure proper spacing */
+    padding-bottom: 20px;
 }
 
 /* Main features section with expandable wrapper */
