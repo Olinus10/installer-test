@@ -1,25 +1,25 @@
-/* Modal Styles for Dialogs with new theme */
+/* Modal Styles for Dialogs */
 .modal-overlay {
     position: fixed;
     top: 0;
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(26, 26, 46, 0.8);
+    background-color: rgba(26, 26, 46, 0.8);
     display: flex;
     align-items: center;
     justify-content: center;
     z-index: 1000;
-    backdrop-filter: blur(5px);
+    backdrop-filter: blur(3px);
 }
 
 .modal-container {
-    background: linear-gradient(135deg, var(--bg-secondary), var(--bg-primary));
+    background-color: rgba(44, 45, 100, 0.95);
     border-radius: 8px;
-    box-shadow: 0 5px 30px var(--shadow);
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.5);
     min-width: 400px;
     max-width: 90%;
-    border: 1px solid var(--border);
+    border: 1px solid rgba(126, 90, 155, 0.3);
     animation: modal-appear 0.3s ease-out;
 }
 
@@ -36,62 +36,56 @@
 
 .modal-header {
     padding: 15px 20px;
-    border-bottom: 1px solid var(--border);
+    border-bottom: 1px solid rgba(126, 90, 155, 0.3);
     display: flex;
     justify-content: space-between;
     align-items: center;
-    background: linear-gradient(135deg, var(--accent-primary), var(--bg-secondary));
 }
 
 .modal-header h3 {
     margin: 0;
     font-size: 1.2rem;
-    color: var(--accent-gold);
-    text-shadow: 0 1px 3px var(--shadow);
+    color: #FFDDA0;
 }
 
 .modal-close {
     background: none;
     border: none;
-    color: var(--text-muted);
+    color: rgba(255, 221, 160, 0.7);
     font-size: 1.5rem;
     cursor: pointer;
     padding: 0;
     line-height: 1;
-    transition: all 0.2s ease;
 }
 
 .modal-close:hover {
-    color: var(--accent-gold);
-    transform: scale(1.1);
+    color: #FFDDA0;
 }
 
 .modal-content {
     padding: 20px;
-    color: var(--text-primary);
 }
 
 .modal-footer {
     padding: 15px 20px;
-    border-top: 1px solid var(--border);
+    border-top: 1px solid rgba(126, 90, 155, 0.3);
     display: flex;
     justify-content: flex-end;
     gap: 10px;
-    background: linear-gradient(135deg, rgba(44, 45, 100, 0.3), var(--bg-primary));
 }
 
 /* Modal Dialog Specific Styles */
 .rename-dialog .rename-error {
-    background: linear-gradient(135deg, rgba(231, 76, 60, 0.2), rgba(231, 76, 60, 0.1));
+    background-color: rgba(217, 82, 72, 0.2);
     padding: 10px;
     border-radius: 4px;
     margin-bottom: 15px;
-    color: #FF9D93;
-    border-left: 3px solid var(--danger);
+    color: #ff9d93;
+    border-left: 3px solid #d95248;
 }
 
 .delete-dialog .delete-warning {
-    color: #FF9D93;
+    color: #ff9d93;
     font-weight: bold;
 }
 
@@ -104,23 +98,22 @@
     display: block;
     margin-bottom: 5px;
     font-weight: bold;
-    color: var(--text-primary);
+    color: #FFDDA0;
 }
 
 .modal-content .form-group input {
     width: 100%;
     padding: 10px;
-    background: linear-gradient(135deg, var(--bg-secondary), rgba(44, 45, 100, 0.8));
-    border: 1px solid var(--border);
+    background-color: rgba(26, 26, 46, 0.8);
+    border: 1px solid rgba(126, 90, 155, 0.3);
     border-radius: 4px;
-    color: var(--text-primary);
+    color: #FFDDA0;
     font-family: "REGULAR_FONT";
-    transition: all 0.3s ease;
 }
 
 .modal-content .form-group input:focus {
     outline: none;
-    border-color: var(--accent-gold);
+    border-color: rgba(255, 221, 160, 0.6);
     box-shadow: 0 0 0 2px rgba(255, 221, 160, 0.3);
 }
 
@@ -128,25 +121,21 @@
 .settings-tab {
     max-width: 900px;
     margin: 0 auto;
-    color: var(--text-primary);
 }
 
 .settings-section {
-    background: linear-gradient(135deg, var(--bg-secondary), rgba(44, 45, 100, 0.8));
+    background-color: rgba(44, 45, 100, 0.4);
     border-radius: 10px;
     padding: 20px;
     margin-bottom: 30px;
-    border-left: 3px solid var(--accent-primary);
-    box-shadow: 0 4px 15px var(--shadow);
-    border: 1px solid var(--border);
+    border-left: 3px solid rgba(126, 90, 155, 0.8);
 }
 
 .settings-section h3 {
     margin-top: 0;
     margin-bottom: 20px;
     font-size: 1.3rem;
-    color: var(--accent-gold);
-    text-shadow: 0 2px 5px var(--shadow);
+    color: #FFDDA0;
 }
 
 .info-grid {
@@ -164,7 +153,7 @@
 
 .info-label {
     font-weight: bold;
-    color: var(--text-secondary);
+    color: rgba(255, 221, 160, 0.7);
     min-width: 80px;
 }
 
@@ -173,6 +162,7 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    color: #FFDDA0;
 }
 
 .stats-grid {
@@ -183,27 +173,25 @@
 }
 
 .stats-grid .stat-item {
-    background: linear-gradient(135deg, var(--bg-primary), rgba(26, 26, 46, 0.8));
+    background-color: rgba(26, 26, 46, 0.6);
     padding: 15px;
     border-radius: 8px;
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: 5px;
-    box-shadow: 0 3px 10px var(--shadow);
-    border: 1px solid var(--border);
+    border: 1px solid rgba(126, 90, 155, 0.2);
 }
 
 .stats-grid .stat-value {
     font-size: 1.8rem;
     font-weight: bold;
-    color: var(--accent-gold);
-    text-shadow: 0 0 10px var(--glow-gold);
+    color: #FFDDA0;
 }
 
 .stats-grid .stat-label {
     font-size: 0.9rem;
-    color: var(--text-muted);
+    color: rgba(255, 221, 160, 0.6);
     text-transform: uppercase;
 }
 
@@ -215,10 +203,10 @@
 
 .settings-action-button {
     padding: 12px 15px;
-    background: linear-gradient(135deg, var(--bg-primary), rgba(26, 26, 46, 0.8));
-    border: 1px solid var(--border);
+    background-color: rgba(44, 45, 100, 0.6);
+    border: 1px solid rgba(126, 90, 155, 0.3);
     border-radius: 8px;
-    color: var(--text-primary);
+    color: #FFDDA0;
     font-family: "REGULAR_FONT";
     font-size: 1rem;
     display: flex;
@@ -229,9 +217,9 @@
 }
 
 .settings-action-button:hover {
-    background: linear-gradient(135deg, var(--bg-secondary), var(--accent-primary));
+    background-color: rgba(126, 90, 155, 0.4);
     transform: translateY(-3px);
-    box-shadow: 0 5px 15px var(--shadow);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
 }
 
 .settings-action-button .action-icon {
@@ -239,29 +227,29 @@
 }
 
 .delete-button {
-    border-color: rgba(231, 76, 60, 0.5);
+    border-color: rgba(217, 82, 72, 0.5);
 }
 
 .delete-button:hover {
-    background: linear-gradient(135deg, rgba(231, 76, 60, 0.2), rgba(231, 76, 60, 0.1));
-    border-color: var(--danger);
+    background-color: rgba(217, 82, 72, 0.2);
+    border-color: rgba(217, 82, 72, 0.8);
 }
 
 .rename-button:hover {
-    background: linear-gradient(135deg, rgba(126, 90, 155, 0.2), rgba(126, 90, 155, 0.1));
-    border-color: var(--accent-primary);
+    background-color: rgba(126, 90, 155, 0.2);
+    border-color: rgba(126, 90, 155, 0.5);
 }
 
 .folder-button:hover {
-    background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.1));
-    border-color: #3B82F6;
+    background-color: rgba(74, 85, 162, 0.2);
+    border-color: rgba(74, 85, 162, 0.5);
 }
 
 /* Advanced section styles */
 .advanced-description {
     margin-bottom: 20px;
     font-size: 0.95rem;
-    color: var(--text-secondary);
+    color: rgba(255, 221, 160, 0.8);
 }
 
 .advanced-option {
@@ -269,10 +257,10 @@
     justify-content: space-between;
     align-items: center;
     padding: 15px;
-    background: linear-gradient(135deg, var(--bg-primary), rgba(26, 26, 46, 0.6));
+    background-color: rgba(26, 26, 46, 0.4);
     border-radius: 8px;
     margin-bottom: 15px;
-    border: 1px solid var(--border);
+    border: 1px solid rgba(126, 90, 155, 0.2);
 }
 
 .advanced-option-info {
@@ -283,62 +271,64 @@
 .advanced-option-info h4 {
     margin: 0 0 5px 0;
     font-size: 1.1rem;
-    color: var(--accent-gold);
+    color: #FFDDA0;
 }
 
 .advanced-option-info p {
     margin: 0;
     font-size: 0.9rem;
-    color: var(--text-secondary);
+    color: rgba(255, 221, 160, 0.7);
 }
 
 .advanced-button {
     padding: 8px 15px;
     border-radius: 4px;
     font-family: "REGULAR_FONT";
-    background: linear-gradient(135deg, var(--bg-secondary), rgba(44, 45, 100, 0.8));
-    color: var(--text-primary);
-    border: 1px solid var(--border);
+    background-color: rgba(44, 45, 100, 0.6);
+    color: #FFDDA0;
+    border: 1px solid rgba(126, 90, 155, 0.3);
     cursor: pointer;
     transition: all 0.2s ease;
     white-space: nowrap;
 }
 
 .advanced-button:hover {
-    background: linear-gradient(135deg, var(--accent-primary), var(--bg-secondary));
+    background-color: rgba(126, 90, 155, 0.4);
     transform: translateY(-2px);
-    box-shadow: 0 4px 10px var(--shadow);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
 }
 
 .reset-cache-button:hover {
-    background: linear-gradient(135deg, rgba(59, 130, 246, 0.3), rgba(59, 130, 246, 0.2));
-    border-color: #3B82F6;
+    background-color: rgba(74, 144, 226, 0.3);
+    border-color: rgba(74, 144, 226, 0.7);
 }
 
 .repair-button:hover {
-    background: linear-gradient(135deg, rgba(243, 156, 18, 0.3), rgba(243, 156, 18, 0.2));
-    border-color: var(--warning);
+    background-color: rgba(240, 180, 41, 0.3);
+    border-color: rgba(240, 180, 41, 0.7);
 }
 
 .settings-error {
     margin-bottom: 20px;
+    background-color: rgba(217, 82, 72, 0.2);
+    border-left: 3px solid #d95248;
+    padding: 15px;
+    border-radius: 4px;
+    color: #ff9d93;
 }
 
 /* Performance Tab Styles */
 .performance-tab {
     max-width: 900px;
     margin: 0 auto;
-    color: var(--text-primary);
 }
 
 .performance-section {
-    background: linear-gradient(135deg, var(--bg-secondary), rgba(44, 45, 100, 0.8));
+    background-color: rgba(44, 45, 100, 0.4);
     border-radius: 10px;
     padding: 20px;
     margin-bottom: 30px;
-    border-left: 3px solid var(--accent-primary);
-    box-shadow: 0 4px 15px var(--shadow);
-    border: 1px solid var(--border);
+    border-left: 3px solid rgba(126, 90, 155, 0.8);
 }
 
 .memory-section h3,
@@ -346,8 +336,7 @@
     margin-top: 0;
     margin-bottom: 15px;
     font-size: 1.3rem;
-    color: var(--accent-gold);
-    text-shadow: 0 2px 5px var(--shadow);
+    color: #FFDDA0;
 }
 
 .current-memory-display {
@@ -358,13 +347,12 @@
 
 .memory-value {
     font-weight: bold;
-    color: var(--accent-gold);
-    text-shadow: 0 0 10px var(--glow-gold);
+    color: #FFDDA0;
 }
 
 .memory-gb {
     font-size: 0.9rem;
-    color: var(--text-secondary);
+    color: rgba(255, 221, 160, 0.7);
 }
 
 /* Modern Memory Slider Design */
@@ -387,40 +375,40 @@
     cursor: pointer;
 }
 
-/* Track styling with magical theme */
+/* Track styling - subtle gradient */
 .memory-slider::-webkit-slider-track {
     height: 6px;
     background: linear-gradient(to right, 
         rgba(126, 90, 155, 0.2) 0%, 
-        rgba(255, 221, 160, 0.3) 50%,
+        rgba(126, 90, 155, 0.3) 50%,
         rgba(126, 90, 155, 0.2) 100%);
     border-radius: 3px;
-    box-shadow: inset 0 1px 3px var(--shadow);
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.3);
 }
 
 .memory-slider::-moz-range-track {
     height: 6px;
     background: linear-gradient(to right, 
         rgba(126, 90, 155, 0.2) 0%, 
-        rgba(255, 221, 160, 0.3) 50%,
+        rgba(126, 90, 155, 0.3) 50%,
         rgba(126, 90, 155, 0.2) 100%);
     border-radius: 3px;
-    box-shadow: inset 0 1px 3px var(--shadow);
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.3);
 }
 
-/* Modern gold thumb */
+/* Modern white thumb */
 .memory-slider::-webkit-slider-thumb {
     -webkit-appearance: none;
     appearance: none;
     width: 22px;
     height: 22px;
     border-radius: 50%;
-    background: var(--accent-gold);
+    background: #FFDDA0;
     cursor: pointer;
     box-shadow: 
-        0 0 0 1px var(--bg-primary),
-        0 2px 5px var(--shadow),
-        0 0 0 4px var(--glow-gold);
+        0 0 0 1px rgba(26, 26, 46, 0.3),
+        0 2px 5px rgba(0, 0, 0, 0.2),
+        0 0 0 4px rgba(255, 221, 160, 0.2);
     transition: all 0.2s ease;
     margin-top: -8px;
     position: relative;
@@ -430,12 +418,12 @@
     width: 22px;
     height: 22px;
     border-radius: 50%;
-    background: var(--accent-gold);
+    background: #FFDDA0;
     cursor: pointer;
     box-shadow: 
-        0 0 0 1px var(--bg-primary),
-        0 2px 5px var(--shadow),
-        0 0 0 4px var(--glow-gold);
+        0 0 0 1px rgba(26, 26, 46, 0.3),
+        0 2px 5px rgba(0, 0, 0, 0.2),
+        0 0 0 4px rgba(255, 221, 160, 0.2);
     transition: all 0.2s ease;
     border: none;
 }
@@ -444,27 +432,82 @@
 .memory-slider::-webkit-slider-thumb:hover {
     transform: scale(1.15);
     box-shadow: 
-        0 0 0 1px var(--bg-primary),
-        0 4px 8px var(--shadow),
-        0 0 0 6px var(--glow-gold),
-        0 0 20px var(--glow-gold);
+        0 0 0 1px rgba(26, 26, 46, 0.3),
+        0 4px 8px rgba(0, 0, 0, 0.3),
+        0 0 0 6px rgba(255, 221, 160, 0.3),
+        0 0 20px rgba(255, 221, 160, 0.4);
 }
 
 .memory-slider::-moz-range-thumb:hover {
     transform: scale(1.15);
     box-shadow: 
-        0 0 0 1px var(--bg-primary),
-        0 4px 8px var(--shadow),
-        0 0 0 6px var(--glow-gold),
-        0 0 20px var(--glow-gold);
+        0 0 0 1px rgba(26, 26, 46, 0.3),
+        0 4px 8px rgba(0, 0, 0, 0.3),
+        0 0 0 6px rgba(255, 221, 160, 0.3),
+        0 0 20px rgba(255, 221, 160, 0.4);
 }
 
-/* Simple markers */
+/* Active/dragging state */
+.memory-slider::-webkit-slider-thumb:active {
+    transform: scale(1.05);
+    box-shadow: 
+        0 0 0 1px rgba(26, 26, 46, 0.4),
+        0 1px 3px rgba(0, 0, 0, 0.3),
+        0 0 0 8px rgba(255, 221, 160, 0.4);
+}
+
+.memory-slider::-moz-range-thumb:active {
+    transform: scale(1.05);
+    box-shadow: 
+        0 0 0 1px rgba(26, 26, 46, 0.4),
+        0 1px 3px rgba(0, 0, 0, 0.3),
+        0 0 0 8px rgba(255, 221, 160, 0.4);
+}
+
+/* Progress fill effect with gradient */
+.memory-slider {
+    background-image: linear-gradient(to right,
+        rgba(126, 90, 155, 0.6) 0%,
+        rgba(126, 90, 155, 0.6) var(--progress, 0%),
+        rgba(126, 90, 155, 0.2) var(--progress, 0%),
+        rgba(126, 90, 155, 0.2) 100%);
+}
+
+/* Add subtle animation to the filled portion */
+@keyframes slider-shimmer {
+    0% {
+        background-position: -200% center;
+    }
+    100% {
+        background-position: 200% center;
+    }
+}
+
+.memory-slider::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: var(--progress, 0%);
+    height: 100%;
+    background: linear-gradient(
+        90deg,
+        transparent,
+        rgba(255, 221, 160, 0.2),
+        transparent
+    );
+    background-size: 200% 100%;
+    animation: slider-shimmer 3s linear infinite;
+    border-radius: 3px;
+    pointer-events: none;
+}
+
+/* Simple markers - just start and end */
 .memory-markers {
     display: flex;
     justify-content: space-between;
     font-size: 0.9rem;
-    color: var(--text-secondary);
+    color: rgba(255, 221, 160, 0.8);
     margin-top: 10px;
     padding: 0 5px;
     font-family: "REGULAR_FONT";
@@ -476,9 +519,18 @@
     margin: 0;
 }
 
+/* Progress fill effect */
+.memory-slider::-webkit-slider-runnable-track {
+    background: linear-gradient(to right,
+        #7E5A9B 0%,
+        #7E5A9B var(--progress, 0%),
+        rgba(126, 90, 155, 0.3) var(--progress, 0%),
+        rgba(126, 90, 155, 0.3) 100%);
+}
+
 .memory-recommendation {
     font-size: 0.9rem;
-    color: var(--text-secondary);
+    color: rgba(255, 221, 160, 0.7);
     font-style: italic;
     margin-top: 15px;
     text-align: center;
@@ -487,17 +539,17 @@
 .java-args-description {
     font-size: 0.95rem;
     margin-bottom: 15px;
-    color: var(--text-secondary);
+    color: rgba(255, 221, 160, 0.8);
 }
 
 .java-args-input {
     width: 100%;
     height: 100px;
     padding: 10px;
-    background: linear-gradient(135deg, var(--bg-primary), rgba(26, 26, 46, 0.8));
-    border: 1px solid var(--border);
+    background-color: rgba(26, 26, 46, 0.8);
+    border: 1px solid rgba(126, 90, 155, 0.3);
     border-radius: 4px;
-    color: var(--text-primary);
+    color: #FFDDA0;
     font-family: monospace;
     font-size: 0.9rem;
     resize: vertical;
@@ -505,14 +557,14 @@
 
 .java-args-input:focus {
     outline: none;
-    border-color: var(--accent-gold);
+    border-color: rgba(255, 221, 160, 0.6);
     box-shadow: 0 0 0 2px rgba(255, 221, 160, 0.3);
 }
 
 .java-args-presets h4 {
     margin-top: 20px;
     font-size: 1.1rem;
-    color: var(--accent-gold);
+    color: #FFDDA0;
 }
 
 .java-preset-buttons {
@@ -524,19 +576,19 @@
 
 .java-preset-button {
     padding: 10px;
-    background: linear-gradient(135deg, var(--accent-primary), rgba(126, 90, 155, 0.8));
-    border: 1px solid var(--border);
+    background-color: rgba(126, 90, 155, 0.5);
+    border: 1px solid rgba(126, 90, 155, 0.3);
     border-radius: 4px;
-    color: var(--text-primary);
+    color: #FFDDA0;
     font-family: "REGULAR_FONT";
     cursor: pointer;
     transition: all 0.2s ease;
 }
 
 .java-preset-button:hover {
-    background: linear-gradient(135deg, #9B6BB8, var(--accent-primary));
+    background-color: rgba(126, 90, 155, 0.7);
     transform: translateY(-2px);
-    box-shadow: 0 4px 10px var(--shadow);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
 }
 
 /* Modal buttons */
@@ -551,39 +603,79 @@
 }
 
 .modal-footer .cancel-button {
-    background: linear-gradient(135deg, var(--danger), #C0392B);
-    border: 1px solid var(--danger);
-    color: white;
+    background-color: rgba(44, 45, 100, 0.6);
+    border: 1px solid rgba(126, 90, 155, 0.3);
+    color: #FFDDA0;
 }
 
 .modal-footer .cancel-button:hover {
-    background: linear-gradient(135deg, #E74C3C, var(--danger));
+    background-color: rgba(126, 90, 155, 0.4);
     transform: translateY(-2px);
 }
 
 .modal-footer .save-button {
-    background: linear-gradient(135deg, var(--accent-gold), #FFE4B0);
+    background-color: #FFDDA0;
     border: none;
-    color: var(--bg-primary);
-    font-weight: bold;
+    color: #1A1A2E;
+    font-weight: 600;
 }
 
 .modal-footer .save-button:hover {
-    background: linear-gradient(135deg, #FFEBB5, var(--accent-gold));
+    background-color: #FFE6B3;
     transform: translateY(-2px);
-    box-shadow: 0 4px 8px var(--shadow);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
 }
 
 .modal-footer .delete-button {
-    background: linear-gradient(135deg, var(--danger), #C0392B);
+    background-color: #d95248;
     border: none;
-    color: white;
+    color: #FFDDA0;
 }
 
 .modal-footer .delete-button:hover {
-    background: linear-gradient(135deg, #E74C3C, var(--danger));
+    background-color: #e63c30;
     transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(231, 76, 60, 0.4);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+/* Disabled button states */
+button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none !important;
+    box-shadow: none !important;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .info-grid,
+    .settings-actions,
+    .java-preset-buttons {
+        grid-template-columns: 1fr;
+    }
+    
+    .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .modal-container {
+        width: 90%;
+        min-width: 0;
+    }
+    
+    .advanced-option {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .advanced-option-info {
+        padding-right: 0;
+        margin-bottom: 15px;
+    }
+    
+    .advanced-button {
+        align-self: flex-end;
+    }
 }
 
 /* Character counter for installation names */
@@ -593,7 +685,7 @@
     margin-top: 5px;
     font-family: "REGULAR_FONT";
     transition: color 0.2s ease;
-    color: var(--text-muted);
+    color: rgba(255, 221, 160, 0.6);
 }
 
 /* Suggested names section */
@@ -603,7 +695,7 @@
 
 .suggestion-label {
     font-size: 0.9rem;
-    color: var(--text-secondary);
+    color: rgba(255, 221, 160, 0.7);
     margin-bottom: 8px;
 }
 
@@ -614,11 +706,11 @@
 }
 
 .suggestion-chip {
-    background: linear-gradient(135deg, var(--accent-primary), rgba(126, 90, 155, 0.8));
-    border: 1px solid var(--border);
+    background-color: rgba(126, 90, 155, 0.3);
+    border: 1px solid rgba(126, 90, 155, 0.4);
     border-radius: 20px;
     padding: 6px 14px;
-    color: var(--text-primary);
+    color: #FFDDA0;
     font-family: "REGULAR_FONT";
     font-size: 0.85rem;
     cursor: pointer;
@@ -626,30 +718,30 @@
 }
 
 .suggestion-chip:hover {
-    background: linear-gradient(135deg, #9B6BB8, var(--accent-primary));
-    border-color: var(--accent-gold);
+    background-color: rgba(126, 90, 155, 0.5);
+    border-color: rgba(255, 221, 160, 0.4);
     transform: translateY(-2px);
 }
 
 /* Completion button styling */
 .completion-button {
-    background: linear-gradient(135deg, var(--accent-gold), #FFE4B0);
-    color: var(--bg-primary);
+    background-color: #FFDDA0;
+    color: #1A1A2E;
     border: none;
     border-radius: 6px;
     padding: 12px 24px;
     font-family: "REGULAR_FONT";
     font-size: 1rem;
+    font-weight: 600;
     cursor: pointer;
     transition: all 0.3s ease;
     margin-top: 20px;
-    font-weight: bold;
 }
 
 .completion-button:hover {
-    background: linear-gradient(135deg, #FFEBB5, var(--accent-gold));
+    background-color: #FFE6B3;
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px var(--shadow);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
 
 .completion-actions {
@@ -664,8 +756,8 @@
 }
 
 .warning-message {
-    background: linear-gradient(135deg, rgba(243, 156, 18, 0.1), rgba(243, 156, 18, 0.05));
-    border-left: 4px solid var(--warning);
+    background-color: rgba(255, 193, 7, 0.1);
+    border-left: 4px solid #ffc107;
     padding: 15px;
     border-radius: 4px;
     margin-bottom: 20px;
@@ -673,12 +765,12 @@
 
 .warning-message p {
     margin: 10px 0;
-    color: var(--text-secondary);
+    color: rgba(255, 221, 160, 0.9);
 }
 
 .protection-steps {
     margin: 15px 0 15px 30px;
-    color: var(--text-secondary);
+    color: rgba(255, 221, 160, 0.9);
 }
 
 .protection-steps li {
@@ -686,8 +778,8 @@
 }
 
 .warning-note {
-    background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(59, 130, 246, 0.05));
-    border-left: 4px solid #3B82F6;
+    background-color: rgba(74, 144, 226, 0.1);
+    border-left: 4px solid #4a90e2;
     padding: 12px;
     border-radius: 4px;
     margin-top: 15px;
@@ -696,22 +788,31 @@
 .warning-note p {
     margin: 0;
     font-size: 0.9rem;
+    color: rgba(255, 221, 160, 0.8);
 }
 
 .update-proceed-button {
-    background: linear-gradient(135deg, var(--warning), #E67E22);
-    color: white;
+    background-color: #ffc107;
+    color: #1A1A2E;
+    font-weight: 600;
 }
 
 .update-proceed-button:hover {
-    background: linear-gradient(135deg, #F39C12, var(--warning));
+    background-color: #ffca28;
 }
 
-/* Memory apply button */
+.memory-apply-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-top: 20px;
+    gap: 10px;
+}
+
 .memory-apply-button {
-    background: linear-gradient(135deg, var(--bg-secondary), rgba(44, 45, 100, 0.8));
-    color: var(--text-muted);
-    border: 1px solid var(--border);
+    background-color: rgba(126, 90, 155, 0.3);
+    color: rgba(255, 221, 160, 0.5);
+    border: 1px solid rgba(126, 90, 155, 0.3);
     border-radius: 8px;
     padding: 12px 30px;
     font-family: "REGULAR_FONT";
@@ -724,36 +825,43 @@
 }
 
 .memory-apply-button.changed {
-    background: linear-gradient(135deg, var(--accent-gold), #FFE4B0) !important;
-    color: var(--bg-primary) !important;
-    border-color: var(--accent-gold) !important;
+    background-color: #FFDDA0 !important;
+    color: #1A1A2E !important;
+    border-color: #FFDDA0 !important;
     cursor: pointer !important;
-    box-shadow: 0 4px 15px var(--glow-gold);
+    box-shadow: 0 4px 15px rgba(255, 221, 160, 0.3);
     animation: buttonGlow 2s infinite alternate;
 }
 
 .memory-apply-button.changed:hover {
-    background: linear-gradient(135deg, #FFEBB5, var(--accent-gold)) !important;
+    background-color: #FFE6B3 !important;
     transform: translateY(-2px);
-    box-shadow: 0 6px 20px var(--glow-gold);
+    box-shadow: 0 6px 20px rgba(255, 221, 160, 0.5);
+}
+
+.memory-apply-button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed !important;
+    transform: none !important;
+    box-shadow: none !important;
 }
 
 .apply-success-message {
-    background: linear-gradient(135deg, rgba(39, 174, 96, 0.2), rgba(39, 174, 96, 0.1));
-    color: #4DFFAA;
+    background-color: rgba(126, 90, 155, 0.2);
+    color: #FFDDA0;
     padding: 8px 16px;
     border-radius: 6px;
-    border-left: 3px solid var(--success);
+    border-left: 3px solid #7E5A9B;
     font-size: 0.9rem;
     animation: fadeIn 0.3s ease;
 }
 
 @keyframes buttonGlow {
     0% {
-        box-shadow: 0 4px 15px var(--glow-gold);
+        box-shadow: 0 4px 15px rgba(255, 221, 160, 0.3);
     }
     100% {
-        box-shadow: 0 4px 20px var(--glow-gold);
+        box-shadow: 0 4px 20px rgba(255, 221, 160, 0.6);
     }
 }
 
