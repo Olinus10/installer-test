@@ -1549,23 +1549,66 @@ if *show_update_warning.read() {
                 button { 
                     class: "secondary-button",
                     onclick: {
-                        let installation_path = installation.installation_path.clone();
+                        // Use the same logic as settings tab
+                        let installation_path_for_folder = installation_state.read().installation_path.clone();
                         move |_| {
-                            // Open the installation folder
+                            let mut path = installation_path_for_folder.clone();
+                            
+                            debug!("Opening installation folder: {:?}", path);
+                            debug!("Path exists: {}", path.exists());
+                            debug!("Path is directory: {}", path.is_dir());
+                            
+                            // Normalize the path by converting to a canonical path
+                            match path.canonicalize() {
+                                Ok(canonical) => {
+                                    debug!("Canonical path: {:?}", canonical);
+                                    path = canonical;
+                                },
+                                Err(e) => {
+                                    debug!("Failed to canonicalize path: {}", e);
+                                    // Continue with the original path
+                                }
+                            }
+                            
+                            debug!("Final path to open: {:?}", path);
+                            
+                            // Check if path exists
+                            if !path.exists() {
+                                debug!("Installation path does not exist: {:?}", path);
+                                return;
+                            }
+                            
+                            // Launch appropriate command based on OS
                             #[cfg(target_os = "windows")]
-                            let _ = std::process::Command::new("explorer")
-                                .arg(&installation_path)
-                                .spawn();
+                            let result = {
+                                // Convert to a proper Windows-style path string
+                                let path_str = path.to_string_lossy().replace("/", "\\");
+                                debug!("Windows path string: {}", path_str);
+                                
+                                std::process::Command::new("explorer")
+                                    .arg(&path_str)
+                                    .spawn()
+                            };
                             
                             #[cfg(target_os = "macos")]
-                            let _ = std::process::Command::new("open")
-                                .arg(&installation_path)
+                            let result = std::process::Command::new("open")
+                                .arg(path)
                                 .spawn();
                                 
                             #[cfg(target_os = "linux")]
-                            let _ = std::process::Command::new("xdg-open")
-                                .arg(&installation_path)
+                            let result = std::process::Command::new("xdg-open")
+                                .arg(path)
                                 .spawn();
+                                
+                            #[cfg(not(any(target_os = "windows", target_os = "macos", target_os = "linux")))]
+                            let result = Err(std::io::Error::new(std::io::ErrorKind::Other, "Unsupported platform"));
+                            
+                            // Handle command result
+                            if let Err(e) = result {
+                                debug!("Failed to open installation folder: {}", e);
+                            } else {
+                                debug!("Successfully opened folder");
+                            }
                         }
                     },
                     "Open Installation Folder"
