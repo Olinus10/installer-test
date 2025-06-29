@@ -5,7 +5,7 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background-color: rgba(26, 26, 46, 0.8);
+    background-color: rgba(0, 0, 0, 0.7);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -14,12 +14,12 @@
 }
 
 .modal-container {
-    background-color: rgba(44, 45, 100, 0.95);
+    background-color: rgba(0, 0, 0, 0.9);
     border-radius: 8px;
     box-shadow: 0 5px 20px rgba(0, 0, 0, 0.5);
     min-width: 400px;
     max-width: 90%;
-    border: 1px solid rgba(126, 90, 155, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.1);
     animation: modal-appear 0.3s ease-out;
 }
 
@@ -36,7 +36,7 @@
 
 .modal-header {
     padding: 15px 20px;
-    border-bottom: 1px solid rgba(126, 90, 155, 0.3);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -45,13 +45,12 @@
 .modal-header h3 {
     margin: 0;
     font-size: 1.2rem;
-    color: #FFDDA0;
 }
 
 .modal-close {
     background: none;
     border: none;
-    color: rgba(255, 221, 160, 0.7);
+    color: #ddd;
     font-size: 1.5rem;
     cursor: pointer;
     padding: 0;
@@ -59,7 +58,7 @@
 }
 
 .modal-close:hover {
-    color: #FFDDA0;
+    color: white;
 }
 
 .modal-content {
@@ -68,7 +67,7 @@
 
 .modal-footer {
     padding: 15px 20px;
-    border-top: 1px solid rgba(126, 90, 155, 0.3);
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
     display: flex;
     justify-content: flex-end;
     gap: 10px;
@@ -98,23 +97,22 @@
     display: block;
     margin-bottom: 5px;
     font-weight: bold;
-    color: #FFDDA0;
 }
 
 .modal-content .form-group input {
     width: 100%;
     padding: 10px;
-    background-color: rgba(26, 26, 46, 0.8);
-    border: 1px solid rgba(126, 90, 155, 0.3);
+    background-color: rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.2);
     border-radius: 4px;
-    color: #FFDDA0;
+    color: white;
     font-family: "REGULAR_FONT";
 }
 
 .modal-content .form-group input:focus {
     outline: none;
-    border-color: rgba(255, 221, 160, 0.6);
-    box-shadow: 0 0 0 2px rgba(255, 221, 160, 0.3);
+    border-color: rgba(7, 60, 23, 0.6);
+    box-shadow: 0 0 0 2px rgba(7, 60, 23, 0.3);
 }
 
 /* Settings Tab Styles */
@@ -124,18 +122,18 @@
 }
 
 .settings-section {
-    background-color: rgba(44, 45, 100, 0.4);
+    background-color: rgba(0, 0, 0, 0.3);
     border-radius: 10px;
     padding: 20px;
     margin-bottom: 30px;
-    border-left: 3px solid rgba(126, 90, 155, 0.8);
+    border-left: 3px solid rgba(7, 60, 23, 0.8);
 }
 
 .settings-section h3 {
     margin-top: 0;
     margin-bottom: 20px;
     font-size: 1.3rem;
-    color: #FFDDA0;
+    color: #fce8f6;
 }
 
 .info-grid {
@@ -153,7 +151,7 @@
 
 .info-label {
     font-weight: bold;
-    color: rgba(255, 221, 160, 0.7);
+    color: rgba(255, 255, 255, 0.7);
     min-width: 80px;
 }
 
@@ -162,7 +160,6 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    color: #FFDDA0;
 }
 
 .stats-grid {
@@ -173,25 +170,24 @@
 }
 
 .stats-grid .stat-item {
-    background-color: rgba(26, 26, 46, 0.6);
+    background-color: rgba(0, 0, 0, 0.3);
     padding: 15px;
     border-radius: 8px;
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: 5px;
-    border: 1px solid rgba(126, 90, 155, 0.2);
 }
 
 .stats-grid .stat-value {
     font-size: 1.8rem;
     font-weight: bold;
-    color: #FFDDA0;
+    color: #fff;
 }
 
 .stats-grid .stat-label {
     font-size: 0.9rem;
-    color: rgba(255, 221, 160, 0.6);
+    color: rgba(255, 255, 255, 0.6);
     text-transform: uppercase;
 }
 
@@ -203,10 +199,10 @@
 
 .settings-action-button {
     padding: 12px 15px;
-    background-color: rgba(44, 45, 100, 0.6);
-    border: 1px solid rgba(126, 90, 155, 0.3);
+    background-color: rgba(0, 0, 0, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.2);
     border-radius: 8px;
-    color: #FFDDA0;
+    color: white;
     font-family: "REGULAR_FONT";
     font-size: 1rem;
     display: flex;
@@ -217,7 +213,7 @@
 }
 
 .settings-action-button:hover {
-    background-color: rgba(126, 90, 155, 0.4);
+    background-color: rgba(0, 0, 0, 0.7);
     transform: translateY(-3px);
     box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
 }
@@ -236,8 +232,8 @@
 }
 
 .rename-button:hover {
-    background-color: rgba(126, 90, 155, 0.2);
-    border-color: rgba(126, 90, 155, 0.5);
+    background-color: rgba(7, 60, 23, 0.2);
+    border-color: rgba(7, 60, 23, 0.5);
 }
 
 .folder-button:hover {
@@ -249,7 +245,7 @@
 .advanced-description {
     margin-bottom: 20px;
     font-size: 0.95rem;
-    color: rgba(255, 221, 160, 0.8);
+    color: rgba(255, 255, 255, 0.8);
 }
 
 .advanced-option {
@@ -257,10 +253,10 @@
     justify-content: space-between;
     align-items: center;
     padding: 15px;
-    background-color: rgba(26, 26, 46, 0.4);
+    background-color: rgba(0, 0, 0, 0.2);
     border-radius: 8px;
     margin-bottom: 15px;
-    border: 1px solid rgba(126, 90, 155, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .advanced-option-info {
@@ -271,29 +267,28 @@
 .advanced-option-info h4 {
     margin: 0 0 5px 0;
     font-size: 1.1rem;
-    color: #FFDDA0;
 }
 
 .advanced-option-info p {
     margin: 0;
     font-size: 0.9rem;
-    color: rgba(255, 221, 160, 0.7);
+    color: rgba(255, 255, 255, 0.7);
 }
 
 .advanced-button {
     padding: 8px 15px;
     border-radius: 4px;
     font-family: "REGULAR_FONT";
-    background-color: rgba(44, 45, 100, 0.6);
-    color: #FFDDA0;
-    border: 1px solid rgba(126, 90, 155, 0.3);
+    background-color: rgba(0, 0, 0, 0.5);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.2);
     cursor: pointer;
     transition: all 0.2s ease;
     white-space: nowrap;
 }
 
 .advanced-button:hover {
-    background-color: rgba(126, 90, 155, 0.4);
+    background-color: rgba(0, 0, 0, 0.7);
     transform: translateY(-2px);
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
 }
@@ -310,11 +305,6 @@
 
 .settings-error {
     margin-bottom: 20px;
-    background-color: rgba(217, 82, 72, 0.2);
-    border-left: 3px solid #d95248;
-    padding: 15px;
-    border-radius: 4px;
-    color: #ff9d93;
 }
 
 /* Performance Tab Styles */
@@ -324,11 +314,11 @@
 }
 
 .performance-section {
-    background-color: rgba(44, 45, 100, 0.4);
+    background-color: rgba(0, 0, 0, 0.3);
     border-radius: 10px;
     padding: 20px;
     margin-bottom: 30px;
-    border-left: 3px solid rgba(126, 90, 155, 0.8);
+    border-left: 3px solid rgba(7, 60, 23, 0.8);
 }
 
 .memory-section h3,
@@ -336,7 +326,6 @@
     margin-top: 0;
     margin-bottom: 15px;
     font-size: 1.3rem;
-    color: #FFDDA0;
 }
 
 .current-memory-display {
@@ -347,12 +336,12 @@
 
 .memory-value {
     font-weight: bold;
-    color: #FFDDA0;
+    color: #4abb6e;
 }
 
 .memory-gb {
     font-size: 0.9rem;
-    color: rgba(255, 221, 160, 0.7);
+    color: rgba(255, 255, 255, 0.7);
 }
 
 /* Modern Memory Slider Design */
@@ -367,7 +356,7 @@
     height: 6px;
     -webkit-appearance: none;
     appearance: none;
-    background: rgba(126, 90, 155, 0.2);
+    background: rgba(255, 255, 255, 0.08);
     border-radius: 3px;
     outline: none;
     margin: 20px 0;
@@ -379,9 +368,9 @@
 .memory-slider::-webkit-slider-track {
     height: 6px;
     background: linear-gradient(to right, 
-        rgba(126, 90, 155, 0.2) 0%, 
-        rgba(126, 90, 155, 0.3) 50%,
-        rgba(126, 90, 155, 0.2) 100%);
+        rgba(255, 255, 255, 0.05) 0%, 
+        rgba(255, 255, 255, 0.1) 50%,
+        rgba(255, 255, 255, 0.05) 100%);
     border-radius: 3px;
     box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.3);
 }
@@ -389,12 +378,13 @@
 .memory-slider::-moz-range-track {
     height: 6px;
     background: linear-gradient(to right, 
-        rgba(126, 90, 155, 0.2) 0%, 
-        rgba(126, 90, 155, 0.3) 50%,
-        rgba(126, 90, 155, 0.2) 100%);
+        rgba(255, 255, 255, 0.05) 0%, 
+        rgba(255, 255, 255, 0.1) 50%,
+        rgba(255, 255, 255, 0.05) 100%);
     border-radius: 3px;
     box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.3);
 }
+
 
 /* Modern white thumb */
 .memory-slider::-webkit-slider-thumb {
@@ -403,12 +393,12 @@
     width: 22px;
     height: 22px;
     border-radius: 50%;
-    background: #FFDDA0;
+    background: #ffffff;
     cursor: pointer;
     box-shadow: 
-        0 0 0 1px rgba(26, 26, 46, 0.3),
+        0 0 0 1px rgba(0, 0, 0, 0.1),
         0 2px 5px rgba(0, 0, 0, 0.2),
-        0 0 0 4px rgba(255, 221, 160, 0.2);
+        0 0 0 4px rgba(255, 255, 255, 0.1);
     transition: all 0.2s ease;
     margin-top: -8px;
     position: relative;
@@ -418,59 +408,59 @@
     width: 22px;
     height: 22px;
     border-radius: 50%;
-    background: #FFDDA0;
+    background: #ffffff;
     cursor: pointer;
     box-shadow: 
-        0 0 0 1px rgba(26, 26, 46, 0.3),
+        0 0 0 1px rgba(0, 0, 0, 0.1),
         0 2px 5px rgba(0, 0, 0, 0.2),
-        0 0 0 4px rgba(255, 221, 160, 0.2);
+        0 0 0 4px rgba(255, 255, 255, 0.1);
     transition: all 0.2s ease;
     border: none;
 }
 
-/* Hover state with glow */
+* Hover state with glow */
 .memory-slider::-webkit-slider-thumb:hover {
     transform: scale(1.15);
     box-shadow: 
-        0 0 0 1px rgba(26, 26, 46, 0.3),
+        0 0 0 1px rgba(0, 0, 0, 0.1),
         0 4px 8px rgba(0, 0, 0, 0.3),
-        0 0 0 6px rgba(255, 221, 160, 0.3),
-        0 0 20px rgba(255, 221, 160, 0.4);
+        0 0 0 6px rgba(255, 255, 255, 0.15),
+        0 0 20px rgba(255, 255, 255, 0.3);
 }
 
 .memory-slider::-moz-range-thumb:hover {
     transform: scale(1.15);
     box-shadow: 
-        0 0 0 1px rgba(26, 26, 46, 0.3),
+        0 0 0 1px rgba(0, 0, 0, 0.1),
         0 4px 8px rgba(0, 0, 0, 0.3),
-        0 0 0 6px rgba(255, 221, 160, 0.3),
-        0 0 20px rgba(255, 221, 160, 0.4);
+        0 0 0 6px rgba(255, 255, 255, 0.15),
+        0 0 20px rgba(255, 255, 255, 0.3);
 }
 
 /* Active/dragging state */
 .memory-slider::-webkit-slider-thumb:active {
     transform: scale(1.05);
     box-shadow: 
-        0 0 0 1px rgba(26, 26, 46, 0.4),
+        0 0 0 1px rgba(0, 0, 0, 0.2),
         0 1px 3px rgba(0, 0, 0, 0.3),
-        0 0 0 8px rgba(255, 221, 160, 0.4);
+        0 0 0 8px rgba(255, 255, 255, 0.2);
 }
 
 .memory-slider::-moz-range-thumb:active {
     transform: scale(1.05);
     box-shadow: 
-        0 0 0 1px rgba(26, 26, 46, 0.4),
+        0 0 0 1px rgba(0, 0, 0, 0.2),
         0 1px 3px rgba(0, 0, 0, 0.3),
-        0 0 0 8px rgba(255, 221, 160, 0.4);
+        0 0 0 8px rgba(255, 255, 255, 0.2);
 }
 
 /* Progress fill effect with gradient */
 .memory-slider {
     background-image: linear-gradient(to right,
-        rgba(126, 90, 155, 0.6) 0%,
-        rgba(126, 90, 155, 0.6) var(--progress, 0%),
-        rgba(126, 90, 155, 0.2) var(--progress, 0%),
-        rgba(126, 90, 155, 0.2) 100%);
+        rgba(255, 255, 255, 0.25) 0%,
+        rgba(255, 255, 255, 0.25) var(--progress, 0%),
+        rgba(255, 255, 255, 0.08) var(--progress, 0%),
+        rgba(255, 255, 255, 0.08) 100%);
 }
 
 /* Add subtle animation to the filled portion */
@@ -493,7 +483,7 @@
     background: linear-gradient(
         90deg,
         transparent,
-        rgba(255, 221, 160, 0.2),
+        rgba(255, 255, 255, 0.1),
         transparent
     );
     background-size: 200% 100%;
@@ -507,7 +497,7 @@
     display: flex;
     justify-content: space-between;
     font-size: 0.9rem;
-    color: rgba(255, 221, 160, 0.8);
+    color: rgba(255, 255, 255, 0.8);
     margin-top: 10px;
     padding: 0 5px;
     font-family: "REGULAR_FONT";
@@ -522,15 +512,15 @@
 /* Progress fill effect */
 .memory-slider::-webkit-slider-runnable-track {
     background: linear-gradient(to right,
-        #7E5A9B 0%,
-        #7E5A9B var(--progress, 0%),
-        rgba(126, 90, 155, 0.3) var(--progress, 0%),
-        rgba(126, 90, 155, 0.3) 100%);
+        #0a5d23 0%,
+        #0a5d23 var(--progress, 0%),
+        rgba(255, 255, 255, 0.1) var(--progress, 0%),
+        rgba(255, 255, 255, 0.1) 100%);
 }
 
 .memory-recommendation {
     font-size: 0.9rem;
-    color: rgba(255, 221, 160, 0.7);
+    color: rgba(255, 255, 255, 0.7);
     font-style: italic;
     margin-top: 15px;
     text-align: center;
@@ -539,17 +529,16 @@
 .java-args-description {
     font-size: 0.95rem;
     margin-bottom: 15px;
-    color: rgba(255, 221, 160, 0.8);
 }
 
 .java-args-input {
     width: 100%;
     height: 100px;
     padding: 10px;
-    background-color: rgba(26, 26, 46, 0.8);
-    border: 1px solid rgba(126, 90, 155, 0.3);
+    background-color: rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.2);
     border-radius: 4px;
-    color: #FFDDA0;
+    color: white;
     font-family: monospace;
     font-size: 0.9rem;
     resize: vertical;
@@ -557,14 +546,13 @@
 
 .java-args-input:focus {
     outline: none;
-    border-color: rgba(255, 221, 160, 0.6);
-    box-shadow: 0 0 0 2px rgba(255, 221, 160, 0.3);
+    border-color: rgba(7, 60, 23, 0.6);
+    box-shadow: 0 0 0 2px rgba(7, 60, 23, 0.3);
 }
 
 .java-args-presets h4 {
     margin-top: 20px;
     font-size: 1.1rem;
-    color: #FFDDA0;
 }
 
 .java-preset-buttons {
@@ -576,17 +564,17 @@
 
 .java-preset-button {
     padding: 10px;
-    background-color: rgba(126, 90, 155, 0.5);
-    border: 1px solid rgba(126, 90, 155, 0.3);
+    background-color: rgba(7, 60, 23, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.2);
     border-radius: 4px;
-    color: #FFDDA0;
+    color: white;
     font-family: "REGULAR_FONT";
     cursor: pointer;
     transition: all 0.2s ease;
 }
 
 .java-preset-button:hover {
-    background-color: rgba(126, 90, 155, 0.7);
+    background-color: rgba(7, 60, 23, 0.7);
     transform: translateY(-2px);
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
 }
@@ -603,25 +591,24 @@
 }
 
 .modal-footer .cancel-button {
-    background-color: rgba(44, 45, 100, 0.6);
-    border: 1px solid rgba(126, 90, 155, 0.3);
-    color: #FFDDA0;
+    background-color: rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: white;
 }
 
 .modal-footer .cancel-button:hover {
-    background-color: rgba(126, 90, 155, 0.4);
+    background-color: rgba(0, 0, 0, 0.6);
     transform: translateY(-2px);
 }
 
 .modal-footer .save-button {
-    background-color: #FFDDA0;
+    background-color: #073c17;
     border: none;
-    color: #1A1A2E;
-    font-weight: 600;
+    color: white;
 }
 
 .modal-footer .save-button:hover {
-    background-color: #FFE6B3;
+    background-color: #0a5d23;
     transform: translateY(-2px);
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
 }
@@ -629,7 +616,7 @@
 .modal-footer .delete-button {
     background-color: #d95248;
     border: none;
-    color: #FFDDA0;
+    color: white;
 }
 
 .modal-footer .delete-button:hover {
@@ -685,7 +672,6 @@ button:disabled {
     margin-top: 5px;
     font-family: "REGULAR_FONT";
     transition: color 0.2s ease;
-    color: rgba(255, 221, 160, 0.6);
 }
 
 /* Suggested names section */
@@ -695,7 +681,7 @@ button:disabled {
 
 .suggestion-label {
     font-size: 0.9rem;
-    color: rgba(255, 221, 160, 0.7);
+    color: rgba(255, 255, 255, 0.7);
     margin-bottom: 8px;
 }
 
@@ -706,11 +692,11 @@ button:disabled {
 }
 
 .suggestion-chip {
-    background-color: rgba(126, 90, 155, 0.3);
-    border: 1px solid rgba(126, 90, 155, 0.4);
+    background-color: rgba(7, 60, 23, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.2);
     border-radius: 20px;
     padding: 6px 14px;
-    color: #FFDDA0;
+    color: white;
     font-family: "REGULAR_FONT";
     font-size: 0.85rem;
     cursor: pointer;
@@ -718,28 +704,27 @@ button:disabled {
 }
 
 .suggestion-chip:hover {
-    background-color: rgba(126, 90, 155, 0.5);
-    border-color: rgba(255, 221, 160, 0.4);
+    background-color: rgba(7, 60, 23, 0.5);
+    border-color: rgba(255, 255, 255, 0.3);
     transform: translateY(-2px);
 }
 
 /* Completion button styling */
 .completion-button {
-    background-color: #FFDDA0;
-    color: #1A1A2E;
+    background-color: #073c17;
+    color: white;
     border: none;
     border-radius: 6px;
     padding: 12px 24px;
     font-family: "REGULAR_FONT";
     font-size: 1rem;
-    font-weight: 600;
     cursor: pointer;
     transition: all 0.3s ease;
     margin-top: 20px;
 }
 
 .completion-button:hover {
-    background-color: #FFE6B3;
+    background-color: #0a5d23;
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
@@ -765,12 +750,12 @@ button:disabled {
 
 .warning-message p {
     margin: 10px 0;
-    color: rgba(255, 221, 160, 0.9);
+    color: rgba(255, 255, 255, 0.9);
 }
 
 .protection-steps {
     margin: 15px 0 15px 30px;
-    color: rgba(255, 221, 160, 0.9);
+    color: rgba(255, 255, 255, 0.9);
 }
 
 .protection-steps li {
@@ -788,90 +773,13 @@ button:disabled {
 .warning-note p {
     margin: 0;
     font-size: 0.9rem;
-    color: rgba(255, 221, 160, 0.8);
 }
 
 .update-proceed-button {
     background-color: #ffc107;
-    color: #1A1A2E;
-    font-weight: 600;
+    color: #000;
 }
 
 .update-proceed-button:hover {
     background-color: #ffca28;
-}
-
-.memory-apply-container {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    margin-top: 20px;
-    gap: 10px;
-}
-
-.memory-apply-button {
-    background-color: rgba(126, 90, 155, 0.3);
-    color: rgba(255, 221, 160, 0.5);
-    border: 1px solid rgba(126, 90, 155, 0.3);
-    border-radius: 8px;
-    padding: 12px 30px;
-    font-family: "REGULAR_FONT";
-    font-size: 1rem;
-    font-weight: 600;
-    cursor: not-allowed;
-    transition: all 0.3s ease;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-}
-
-.memory-apply-button.changed {
-    background-color: #FFDDA0 !important;
-    color: #1A1A2E !important;
-    border-color: #FFDDA0 !important;
-    cursor: pointer !important;
-    box-shadow: 0 4px 15px rgba(255, 221, 160, 0.3);
-    animation: buttonGlow 2s infinite alternate;
-}
-
-.memory-apply-button.changed:hover {
-    background-color: #FFE6B3 !important;
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(255, 221, 160, 0.5);
-}
-
-.memory-apply-button:disabled {
-    opacity: 0.6;
-    cursor: not-allowed !important;
-    transform: none !important;
-    box-shadow: none !important;
-}
-
-.apply-success-message {
-    background-color: rgba(126, 90, 155, 0.2);
-    color: #FFDDA0;
-    padding: 8px 16px;
-    border-radius: 6px;
-    border-left: 3px solid #7E5A9B;
-    font-size: 0.9rem;
-    animation: fadeIn 0.3s ease;
-}
-
-@keyframes buttonGlow {
-    0% {
-        box-shadow: 0 4px 15px rgba(255, 221, 160, 0.3);
-    }
-    100% {
-        box-shadow: 0 4px 20px rgba(255, 221, 160, 0.6);
-    }
-}
-
-@keyframes fadeIn {
-    from {
-        opacity: 0;
-        transform: translateY(-10px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
 }
