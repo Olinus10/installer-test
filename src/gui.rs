@@ -1185,115 +1185,8 @@ use_effect({
         has_changes.set(features_changed);
     }
 });
-
-// Handle install/update with progress tracking
-let create_update_procedure = || {
-    // Clone all the signals and values we need - make them mutable
-    let mut installation_for_update = installation_for_update.clone();
-    let mut enabled_features = enabled_features.clone();
-    let mut memory_allocation = memory_allocation.clone();
-    let mut java_args = java_args.clone();
-    let mut is_installing = is_installing.clone();
-    let mut installation_error = installation_error.clone();
-    let mut installation_progress = installation_progress.clone();
-    let mut installation_total = installation_total.clone();
-    let mut installation_status = installation_status.clone();
-    let mut has_changes = has_changes.clone();
-    let mut features_modified = features_modified.clone();
-    let mut performance_modified = performance_modified.clone();
-    let mut installations = installations.clone();
-    let mut installation_state = installation_state.clone();
     
-    // Return a new function that captures these cloned values
-    move || {
-        is_installing.set(true);
-        let mut installation_clone = installation_for_update.clone();
-        
-        // Update settings
-        installation_clone.enabled_features = enabled_features.read().clone();
-        installation_clone.memory_allocation = *memory_allocation.read();
-        installation_clone.java_args = java_args.read().clone();
-        installation_clone.modified = true;
-        
-        let http_client = crate::CachedHttpClient::new();
-        let mut installation_error_clone = installation_error.clone();
-        let mut progress = installation_progress.clone();
-        let mut total = installation_total.clone();
-        let mut status = installation_status.clone();
-        let mut is_installing_clone = is_installing.clone();
-        let mut has_changes_clone = has_changes.clone();
-        let mut features_modified_clone = features_modified.clone();
-        let mut performance_modified_clone = performance_modified.clone();
-        let mut installations = installations.clone();
-        let installation_id = installation_clone.id.clone();
-        
-        spawn(async move {
-            // Calculate total items
-            match crate::universal::load_universal_manifest(&http_client, None).await {
-                Ok(manifest) => {
-                    let total_items = manifest.mods.len() + manifest.shaderpacks.len() + 
-                                     manifest.resourcepacks.len() + manifest.include.len();
-                    total.set(total_items as i64);
-                    progress.set(0);
-                    status.set("Preparing installation...".to_string());
-                    
-                    // Create a progress callback
-                    let progress_callback = move || {
-                        progress.with_mut(|p| *p += 1);
-                        let current = *progress.read();
-                        let total_val = *total.read();
-                        status.set(format!("Installing... {}/{}", current, total_val));
-                    };
-                    
-                    match installation_clone.install_or_update_with_progress(&http_client, progress_callback).await {
-                        Ok(_) => {
-                            // Mark as installed
-                            installation_clone.installed = true;
-                            installation_clone.update_available = false;
-                            installation_clone.modified = false;
-                            
-                            // Save the installation
-                            if let Err(e) = installation_clone.save() {
-                                error!("Failed to save installation: {}", e);
-                            } else {
-                                // Update the state signal
-                                installation_state.set(installation_clone.clone());
-                                
-                                // Update the installations list
-                                installations.with_mut(|list| {
-                                    if let Some(index) = list.iter().position(|i| i.id == installation_id) {
-                                        list[index] = installation_clone;
-                                    }
-                                });
-                                
-                                has_changes_clone.set(false);
-                                features_modified_clone.set(false);
-                                performance_modified_clone.set(false);
-                            }
-                        },
-                        Err(e) => {
-                            error!("Failed to update installation: {}", e);
-                            installation_error_clone.set(Some(e));
-                        }
-                    }
-                },
-                Err(e) => {
-                    error!("Failed to load universal manifest: {}", e);
-                    installation_error_clone.set(Some(format!("Failed to load manifest: {}", e)));
-                }
-            }
-            is_installing_clone.set(false);
-        });
-    }
-};
-
-// Create a procedure for the handle_update function - make it mutable
-let mut proceed_with_update = create_update_procedure();
-
-// Create a separate procedure for the modal button - make it mutable
-let mut proceed_with_update_from_modal = create_update_procedure();
-
-// Now use proceed_with_update in handle_update
+    // Handle install/update with progress tracking
 let handle_update = move |_| {
     // Check if this is an update (not first install)
     if installation_state.read().installed {
@@ -1303,6 +1196,90 @@ let handle_update = move |_| {
         // First install - proceed directly
         proceed_with_update();
     }
+};
+
+// Create a separate function for the actual update process
+let installation_for_update_clone = installation_for_update.clone();
+let proceed_with_update = move || {
+    is_installing.set(true);
+    let mut installation_clone = installation_for_update_clone.clone();
+    
+    // Update settings
+    installation_clone.enabled_features = enabled_features.read().clone();
+    installation_clone.memory_allocation = *memory_allocation.read();
+    installation_clone.java_args = java_args.read().clone();
+    installation_clone.modified = true;
+    
+    let http_client = crate::CachedHttpClient::new();
+    let mut installation_error_clone = installation_error.clone();
+    let mut progress = installation_progress.clone();
+    let mut total = installation_total.clone();
+    let mut status = installation_status.clone();
+    let mut is_installing_clone = is_installing.clone();
+    let mut has_changes_clone = has_changes.clone();
+    let mut features_modified_clone = features_modified.clone();
+    let mut performance_modified_clone = performance_modified.clone();
+    let mut installations = installations.clone();
+    let installation_id = installation_clone.id.clone();
+
+    
+    spawn(async move {
+        // Calculate total items
+        match crate::universal::load_universal_manifest(&http_client, None).await {
+            Ok(manifest) => {
+                let total_items = manifest.mods.len() + manifest.shaderpacks.len() + 
+                                 manifest.resourcepacks.len() + manifest.include.len();
+                total.set(total_items as i64);
+                progress.set(0);
+                status.set("Preparing installation...".to_string());
+                
+                // Create a progress callback
+                let progress_callback = move || {
+                    progress.with_mut(|p| *p += 1);
+                    let current = *progress.read();
+                    let total_val = *total.read();
+                    status.set(format!("Installing... {}/{}", current, total_val));
+                };
+                
+                match installation_clone.install_or_update_with_progress(&http_client, progress_callback).await {
+                    Ok(_) => {
+                        // Mark as installed
+                        installation_clone.installed = true;
+                        installation_clone.update_available = false;
+                        installation_clone.modified = false;
+                        
+                        // Save the installation
+                        if let Err(e) = installation_clone.save() {
+                            error!("Failed to save installation: {}", e);
+                        } else {
+                            // Update the state signal
+                            installation_state.set(installation_clone.clone());
+                            
+                            // Update the installations list
+                            installations.with_mut(|list| {
+                                if let Some(index) = list.iter().position(|i| i.id == installation_id) {
+                                    list[index] = installation_clone;
+                                }
+                            });
+                            
+                            has_changes_clone.set(false);
+                            features_modified_clone.set(false);
+                            performance_modified_clone.set(false);
+                        }
+                    },
+                    Err(e) => {
+                        error!("Failed to update installation: {}", e);
+                        installation_error_clone.set(Some(e));
+                    }
+                }
+            },
+            Err(e) => {
+                error!("Failed to load universal manifest: {}", e);
+                installation_error_clone.set(Some(format!("Failed to load manifest: {}", e)));
+            }
+        }
+        is_installing_clone.set(false);
+    });
 };
     
     // Button label based on state
