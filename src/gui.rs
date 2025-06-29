@@ -1190,12 +1190,12 @@ use_effect({
 let installation_for_update_clone = installation_for_update.clone();
 
 // Define the actual update process as a separate closure first
-let proceed_with_update = {
+let mut proceed_with_update = {
     let installation_for_update_clone = installation_for_update_clone.clone();
     let enabled_features = enabled_features.clone();
     let memory_allocation = memory_allocation.clone();
     let java_args = java_args.clone();
-    let is_installing = is_installing.clone();
+    let mut is_installing = is_installing.clone();
     let installation_error = installation_error.clone();
     let installation_progress = installation_progress.clone();
     let installation_total = installation_total.clone();
@@ -1291,9 +1291,9 @@ let proceed_with_update = {
 
 // Now define the handle_update function that uses proceed_with_update
 let handle_update = {
-    let proceed_with_update = proceed_with_update.clone();
+    let mut proceed_with_update = proceed_with_update.clone();
     let installation_state = installation_state.clone();
-    let show_update_warning = show_update_warning.clone();
+    let mut show_update_warning = show_update_warning.clone();
     
     move |_| {
         // Check if this is an update (not first install)
