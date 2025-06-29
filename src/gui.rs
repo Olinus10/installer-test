@@ -3205,7 +3205,6 @@ let feature_styles = include_str!("assets/expanded-feature-styles.css");
 let preset_styles = include_str!("assets/preset-styles.css");
 let search_styles = include_str!("assets/search-results-styles.css");
 let modal_styles = include_str!("assets/modal-styles.css");
-let included_styles = include_str!("assets/included-features.css");
 
 // Combine all CSS files
 let complete_css = format!("{}\n{}\n{}\n{}\n{}\n{}", 
