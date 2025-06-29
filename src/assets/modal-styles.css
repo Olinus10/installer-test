@@ -1,25 +1,25 @@
-/* Modal Styles for Dialogs */
+/* Modal Styles for Dialogs with new theme */
 .modal-overlay {
     position: fixed;
     top: 0;
     left: 0;
     right: 0;
     bottom: 0;
-    background-color: rgba(0, 0, 0, 0.7);
+    background: rgba(26, 26, 46, 0.8);
     display: flex;
     align-items: center;
     justify-content: center;
     z-index: 1000;
-    backdrop-filter: blur(3px);
+    backdrop-filter: blur(5px);
 }
 
 .modal-container {
-    background-color: rgba(0, 0, 0, 0.9);
+    background: linear-gradient(135deg, var(--bg-secondary), var(--bg-primary));
     border-radius: 8px;
-    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 5px 30px var(--shadow);
     min-width: 400px;
     max-width: 90%;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid var(--border);
     animation: modal-appear 0.3s ease-out;
 }
 
@@ -36,55 +36,62 @@
 
 .modal-header {
     padding: 15px 20px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    border-bottom: 1px solid var(--border);
     display: flex;
     justify-content: space-between;
     align-items: center;
+    background: linear-gradient(135deg, var(--accent-primary), var(--bg-secondary));
 }
 
 .modal-header h3 {
     margin: 0;
     font-size: 1.2rem;
+    color: var(--accent-gold);
+    text-shadow: 0 1px 3px var(--shadow);
 }
 
 .modal-close {
     background: none;
     border: none;
-    color: #ddd;
+    color: var(--text-muted);
     font-size: 1.5rem;
     cursor: pointer;
     padding: 0;
     line-height: 1;
+    transition: all 0.2s ease;
 }
 
 .modal-close:hover {
-    color: white;
+    color: var(--accent-gold);
+    transform: scale(1.1);
 }
 
 .modal-content {
     padding: 20px;
+    color: var(--text-primary);
 }
 
 .modal-footer {
     padding: 15px 20px;
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    border-top: 1px solid var(--border);
     display: flex;
     justify-content: flex-end;
     gap: 10px;
+    background: linear-gradient(135deg, rgba(44, 45, 100, 0.3), var(--bg-primary));
 }
 
 /* Modal Dialog Specific Styles */
 .rename-dialog .rename-error {
-    background-color: rgba(217, 82, 72, 0.2);
+    background: linear-gradient(135deg, rgba(231, 76, 60, 0.2), rgba(231, 76, 60, 0.1));
     padding: 10px;
     border-radius: 4px;
     margin-bottom: 15px;
-    color: #ff9d93;
-    border-left: 3px solid #d95248;
+    color: #FF9D93;
+    border-left: 3px solid var(--danger);
 }
 
 .delete-dialog .delete-warning {
-    color: #ff9d93;
+    color: #FF9D93;
     font-weight: bold;
 }
 
@@ -97,43 +104,49 @@
     display: block;
     margin-bottom: 5px;
     font-weight: bold;
+    color: var(--text-primary);
 }
 
 .modal-content .form-group input {
     width: 100%;
     padding: 10px;
-    background-color: rgba(0, 0, 0, 0.4);
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: linear-gradient(135deg, var(--bg-secondary), rgba(44, 45, 100, 0.8));
+    border: 1px solid var(--border);
     border-radius: 4px;
-    color: white;
+    color: var(--text-primary);
     font-family: "REGULAR_FONT";
+    transition: all 0.3s ease;
 }
 
 .modal-content .form-group input:focus {
     outline: none;
-    border-color: rgba(7, 60, 23, 0.6);
-    box-shadow: 0 0 0 2px rgba(7, 60, 23, 0.3);
+    border-color: var(--accent-gold);
+    box-shadow: 0 0 0 2px rgba(255, 221, 160, 0.3);
 }
 
 /* Settings Tab Styles */
 .settings-tab {
     max-width: 900px;
     margin: 0 auto;
+    color: var(--text-primary);
 }
 
 .settings-section {
-    background-color: rgba(0, 0, 0, 0.3);
+    background: linear-gradient(135deg, var(--bg-secondary), rgba(44, 45, 100, 0.8));
     border-radius: 10px;
     padding: 20px;
     margin-bottom: 30px;
-    border-left: 3px solid rgba(7, 60, 23, 0.8);
+    border-left: 3px solid var(--accent-primary);
+    box-shadow: 0 4px 15px var(--shadow);
+    border: 1px solid var(--border);
 }
 
 .settings-section h3 {
     margin-top: 0;
     margin-bottom: 20px;
     font-size: 1.3rem;
-    color: #fce8f6;
+    color: var(--accent-gold);
+    text-shadow: 0 2px 5px var(--shadow);
 }
 
 .info-grid {
@@ -151,7 +164,7 @@
 
 .info-label {
     font-weight: bold;
-    color: rgba(255, 255, 255, 0.7);
+    color: var(--text-secondary);
     min-width: 80px;
 }
 
@@ -170,24 +183,27 @@
 }
 
 .stats-grid .stat-item {
-    background-color: rgba(0, 0, 0, 0.3);
+    background: linear-gradient(135deg, var(--bg-primary), rgba(26, 26, 46, 0.8));
     padding: 15px;
     border-radius: 8px;
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: 5px;
+    box-shadow: 0 3px 10px var(--shadow);
+    border: 1px solid var(--border);
 }
 
 .stats-grid .stat-value {
     font-size: 1.8rem;
     font-weight: bold;
-    color: #fff;
+    color: var(--accent-gold);
+    text-shadow: 0 0 10px var(--glow-gold);
 }
 
 .stats-grid .stat-label {
     font-size: 0.9rem;
-    color: rgba(255, 255, 255, 0.6);
+    color: var(--text-muted);
     text-transform: uppercase;
 }
 
@@ -199,10 +215,10 @@
 
 .settings-action-button {
     padding: 12px 15px;
-    background-color: rgba(0, 0, 0, 0.5);
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: linear-gradient(135deg, var(--bg-primary), rgba(26, 26, 46, 0.8));
+    border: 1px solid var(--border);
     border-radius: 8px;
-    color: white;
+    color: var(--text-primary);
     font-family: "REGULAR_FONT";
     font-size: 1rem;
     display: flex;
@@ -213,9 +229,9 @@
 }
 
 .settings-action-button:hover {
-    background-color: rgba(0, 0, 0, 0.7);
+    background: linear-gradient(135deg, var(--bg-secondary), var(--accent-primary));
     transform: translateY(-3px);
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 5px 15px var(--shadow);
 }
 
 .settings-action-button .action-icon {
@@ -223,29 +239,29 @@
 }
 
 .delete-button {
-    border-color: rgba(217, 82, 72, 0.5);
+    border-color: rgba(231, 76, 60, 0.5);
 }
 
 .delete-button:hover {
-    background-color: rgba(217, 82, 72, 0.2);
-    border-color: rgba(217, 82, 72, 0.8);
+    background: linear-gradient(135deg, rgba(231, 76, 60, 0.2), rgba(231, 76, 60, 0.1));
+    border-color: var(--danger);
 }
 
 .rename-button:hover {
-    background-color: rgba(7, 60, 23, 0.2);
-    border-color: rgba(7, 60, 23, 0.5);
+    background: linear-gradient(135deg, rgba(126, 90, 155, 0.2), rgba(126, 90, 155, 0.1));
+    border-color: var(--accent-primary);
 }
 
 .folder-button:hover {
-    background-color: rgba(74, 85, 162, 0.2);
-    border-color: rgba(74, 85, 162, 0.5);
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.1));
+    border-color: #3B82F6;
 }
 
 /* Advanced section styles */
 .advanced-description {
     margin-bottom: 20px;
     font-size: 0.95rem;
-    color: rgba(255, 255, 255, 0.8);
+    color: var(--text-secondary);
 }
 
 .advanced-option {
@@ -253,10 +269,10 @@
     justify-content: space-between;
     align-items: center;
     padding: 15px;
-    background-color: rgba(0, 0, 0, 0.2);
+    background: linear-gradient(135deg, var(--bg-primary), rgba(26, 26, 46, 0.6));
     border-radius: 8px;
     margin-bottom: 15px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid var(--border);
 }
 
 .advanced-option-info {
@@ -267,40 +283,41 @@
 .advanced-option-info h4 {
     margin: 0 0 5px 0;
     font-size: 1.1rem;
+    color: var(--accent-gold);
 }
 
 .advanced-option-info p {
     margin: 0;
     font-size: 0.9rem;
-    color: rgba(255, 255, 255, 0.7);
+    color: var(--text-secondary);
 }
 
 .advanced-button {
     padding: 8px 15px;
     border-radius: 4px;
     font-family: "REGULAR_FONT";
-    background-color: rgba(0, 0, 0, 0.5);
-    color: white;
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: linear-gradient(135deg, var(--bg-secondary), rgba(44, 45, 100, 0.8));
+    color: var(--text-primary);
+    border: 1px solid var(--border);
     cursor: pointer;
     transition: all 0.2s ease;
     white-space: nowrap;
 }
 
 .advanced-button:hover {
-    background-color: rgba(0, 0, 0, 0.7);
+    background: linear-gradient(135deg, var(--accent-primary), var(--bg-secondary));
     transform: translateY(-2px);
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 4px 10px var(--shadow);
 }
 
 .reset-cache-button:hover {
-    background-color: rgba(74, 144, 226, 0.3);
-    border-color: rgba(74, 144, 226, 0.7);
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.3), rgba(59, 130, 246, 0.2));
+    border-color: #3B82F6;
 }
 
 .repair-button:hover {
-    background-color: rgba(240, 180, 41, 0.3);
-    border-color: rgba(240, 180, 41, 0.7);
+    background: linear-gradient(135deg, rgba(243, 156, 18, 0.3), rgba(243, 156, 18, 0.2));
+    border-color: var(--warning);
 }
 
 .settings-error {
@@ -311,14 +328,17 @@
 .performance-tab {
     max-width: 900px;
     margin: 0 auto;
+    color: var(--text-primary);
 }
 
 .performance-section {
-    background-color: rgba(0, 0, 0, 0.3);
+    background: linear-gradient(135deg, var(--bg-secondary), rgba(44, 45, 100, 0.8));
     border-radius: 10px;
     padding: 20px;
     margin-bottom: 30px;
-    border-left: 3px solid rgba(7, 60, 23, 0.8);
+    border-left: 3px solid var(--accent-primary);
+    box-shadow: 0 4px 15px var(--shadow);
+    border: 1px solid var(--border);
 }
 
 .memory-section h3,
@@ -326,6 +346,8 @@
     margin-top: 0;
     margin-bottom: 15px;
     font-size: 1.3rem;
+    color: var(--accent-gold);
+    text-shadow: 0 2px 5px var(--shadow);
 }
 
 .current-memory-display {
@@ -336,12 +358,13 @@
 
 .memory-value {
     font-weight: bold;
-    color: #4abb6e;
+    color: var(--accent-gold);
+    text-shadow: 0 0 10px var(--glow-gold);
 }
 
 .memory-gb {
     font-size: 0.9rem;
-    color: rgba(255, 255, 255, 0.7);
+    color: var(--text-secondary);
 }
 
 /* Modern Memory Slider Design */
@@ -356,7 +379,7 @@
     height: 6px;
     -webkit-appearance: none;
     appearance: none;
-    background: rgba(255, 255, 255, 0.08);
+    background: rgba(126, 90, 155, 0.2);
     border-radius: 3px;
     outline: none;
     margin: 20px 0;
@@ -364,41 +387,40 @@
     cursor: pointer;
 }
 
-/* Track styling - subtle gradient */
+/* Track styling with magical theme */
 .memory-slider::-webkit-slider-track {
     height: 6px;
     background: linear-gradient(to right, 
-        rgba(255, 255, 255, 0.05) 0%, 
-        rgba(255, 255, 255, 0.1) 50%,
-        rgba(255, 255, 255, 0.05) 100%);
+        rgba(126, 90, 155, 0.2) 0%, 
+        rgba(255, 221, 160, 0.3) 50%,
+        rgba(126, 90, 155, 0.2) 100%);
     border-radius: 3px;
-    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.3);
+    box-shadow: inset 0 1px 3px var(--shadow);
 }
 
 .memory-slider::-moz-range-track {
     height: 6px;
     background: linear-gradient(to right, 
-        rgba(255, 255, 255, 0.05) 0%, 
-        rgba(255, 255, 255, 0.1) 50%,
-        rgba(255, 255, 255, 0.05) 100%);
+        rgba(126, 90, 155, 0.2) 0%, 
+        rgba(255, 221, 160, 0.3) 50%,
+        rgba(126, 90, 155, 0.2) 100%);
     border-radius: 3px;
-    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.3);
+    box-shadow: inset 0 1px 3px var(--shadow);
 }
 
-
-/* Modern white thumb */
+/* Modern gold thumb */
 .memory-slider::-webkit-slider-thumb {
     -webkit-appearance: none;
     appearance: none;
     width: 22px;
     height: 22px;
     border-radius: 50%;
-    background: #ffffff;
+    background: var(--accent-gold);
     cursor: pointer;
     box-shadow: 
-        0 0 0 1px rgba(0, 0, 0, 0.1),
-        0 2px 5px rgba(0, 0, 0, 0.2),
-        0 0 0 4px rgba(255, 255, 255, 0.1);
+        0 0 0 1px var(--bg-primary),
+        0 2px 5px var(--shadow),
+        0 0 0 4px var(--glow-gold);
     transition: all 0.2s ease;
     margin-top: -8px;
     position: relative;
@@ -408,96 +430,41 @@
     width: 22px;
     height: 22px;
     border-radius: 50%;
-    background: #ffffff;
+    background: var(--accent-gold);
     cursor: pointer;
     box-shadow: 
-        0 0 0 1px rgba(0, 0, 0, 0.1),
-        0 2px 5px rgba(0, 0, 0, 0.2),
-        0 0 0 4px rgba(255, 255, 255, 0.1);
+        0 0 0 1px var(--bg-primary),
+        0 2px 5px var(--shadow),
+        0 0 0 4px var(--glow-gold);
     transition: all 0.2s ease;
     border: none;
 }
 
-* Hover state with glow */
+/* Hover state with glow */
 .memory-slider::-webkit-slider-thumb:hover {
     transform: scale(1.15);
     box-shadow: 
-        0 0 0 1px rgba(0, 0, 0, 0.1),
-        0 4px 8px rgba(0, 0, 0, 0.3),
-        0 0 0 6px rgba(255, 255, 255, 0.15),
-        0 0 20px rgba(255, 255, 255, 0.3);
+        0 0 0 1px var(--bg-primary),
+        0 4px 8px var(--shadow),
+        0 0 0 6px var(--glow-gold),
+        0 0 20px var(--glow-gold);
 }
 
 .memory-slider::-moz-range-thumb:hover {
     transform: scale(1.15);
     box-shadow: 
-        0 0 0 1px rgba(0, 0, 0, 0.1),
-        0 4px 8px rgba(0, 0, 0, 0.3),
-        0 0 0 6px rgba(255, 255, 255, 0.15),
-        0 0 20px rgba(255, 255, 255, 0.3);
+        0 0 0 1px var(--bg-primary),
+        0 4px 8px var(--shadow),
+        0 0 0 6px var(--glow-gold),
+        0 0 20px var(--glow-gold);
 }
 
-/* Active/dragging state */
-.memory-slider::-webkit-slider-thumb:active {
-    transform: scale(1.05);
-    box-shadow: 
-        0 0 0 1px rgba(0, 0, 0, 0.2),
-        0 1px 3px rgba(0, 0, 0, 0.3),
-        0 0 0 8px rgba(255, 255, 255, 0.2);
-}
-
-.memory-slider::-moz-range-thumb:active {
-    transform: scale(1.05);
-    box-shadow: 
-        0 0 0 1px rgba(0, 0, 0, 0.2),
-        0 1px 3px rgba(0, 0, 0, 0.3),
-        0 0 0 8px rgba(255, 255, 255, 0.2);
-}
-
-/* Progress fill effect with gradient */
-.memory-slider {
-    background-image: linear-gradient(to right,
-        rgba(255, 255, 255, 0.25) 0%,
-        rgba(255, 255, 255, 0.25) var(--progress, 0%),
-        rgba(255, 255, 255, 0.08) var(--progress, 0%),
-        rgba(255, 255, 255, 0.08) 100%);
-}
-
-/* Add subtle animation to the filled portion */
-@keyframes slider-shimmer {
-    0% {
-        background-position: -200% center;
-    }
-    100% {
-        background-position: 200% center;
-    }
-}
-
-.memory-slider::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: var(--progress, 0%);
-    height: 100%;
-    background: linear-gradient(
-        90deg,
-        transparent,
-        rgba(255, 255, 255, 0.1),
-        transparent
-    );
-    background-size: 200% 100%;
-    animation: slider-shimmer 3s linear infinite;
-    border-radius: 3px;
-    pointer-events: none;
-}
-
-/* Simple markers - just start and end */
+/* Simple markers */
 .memory-markers {
     display: flex;
     justify-content: space-between;
     font-size: 0.9rem;
-    color: rgba(255, 255, 255, 0.8);
+    color: var(--text-secondary);
     margin-top: 10px;
     padding: 0 5px;
     font-family: "REGULAR_FONT";
@@ -509,18 +476,9 @@
     margin: 0;
 }
 
-/* Progress fill effect */
-.memory-slider::-webkit-slider-runnable-track {
-    background: linear-gradient(to right,
-        #0a5d23 0%,
-        #0a5d23 var(--progress, 0%),
-        rgba(255, 255, 255, 0.1) var(--progress, 0%),
-        rgba(255, 255, 255, 0.1) 100%);
-}
-
 .memory-recommendation {
     font-size: 0.9rem;
-    color: rgba(255, 255, 255, 0.7);
+    color: var(--text-secondary);
     font-style: italic;
     margin-top: 15px;
     text-align: center;
@@ -529,16 +487,17 @@
 .java-args-description {
     font-size: 0.95rem;
     margin-bottom: 15px;
+    color: var(--text-secondary);
 }
 
 .java-args-input {
     width: 100%;
     height: 100px;
     padding: 10px;
-    background-color: rgba(0, 0, 0, 0.4);
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: linear-gradient(135deg, var(--bg-primary), rgba(26, 26, 46, 0.8));
+    border: 1px solid var(--border);
     border-radius: 4px;
-    color: white;
+    color: var(--text-primary);
     font-family: monospace;
     font-size: 0.9rem;
     resize: vertical;
@@ -546,13 +505,14 @@
 
 .java-args-input:focus {
     outline: none;
-    border-color: rgba(7, 60, 23, 0.6);
-    box-shadow: 0 0 0 2px rgba(7, 60, 23, 0.3);
+    border-color: var(--accent-gold);
+    box-shadow: 0 0 0 2px rgba(255, 221, 160, 0.3);
 }
 
 .java-args-presets h4 {
     margin-top: 20px;
     font-size: 1.1rem;
+    color: var(--accent-gold);
 }
 
 .java-preset-buttons {
@@ -564,19 +524,19 @@
 
 .java-preset-button {
     padding: 10px;
-    background-color: rgba(7, 60, 23, 0.5);
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: linear-gradient(135deg, var(--accent-primary), rgba(126, 90, 155, 0.8));
+    border: 1px solid var(--border);
     border-radius: 4px;
-    color: white;
+    color: var(--text-primary);
     font-family: "REGULAR_FONT";
     cursor: pointer;
     transition: all 0.2s ease;
 }
 
 .java-preset-button:hover {
-    background-color: rgba(7, 60, 23, 0.7);
+    background: linear-gradient(135deg, #9B6BB8, var(--accent-primary));
     transform: translateY(-2px);
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 4px 10px var(--shadow);
 }
 
 /* Modal buttons */
@@ -591,78 +551,39 @@
 }
 
 .modal-footer .cancel-button {
-    background-color: rgba(0, 0, 0, 0.4);
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: linear-gradient(135deg, var(--danger), #C0392B);
+    border: 1px solid var(--danger);
     color: white;
 }
 
 .modal-footer .cancel-button:hover {
-    background-color: rgba(0, 0, 0, 0.6);
+    background: linear-gradient(135deg, #E74C3C, var(--danger));
     transform: translateY(-2px);
 }
 
 .modal-footer .save-button {
-    background-color: #073c17;
+    background: linear-gradient(135deg, var(--accent-gold), #FFE4B0);
     border: none;
-    color: white;
+    color: var(--bg-primary);
+    font-weight: bold;
 }
 
 .modal-footer .save-button:hover {
-    background-color: #0a5d23;
+    background: linear-gradient(135deg, #FFEBB5, var(--accent-gold));
     transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 4px 8px var(--shadow);
 }
 
 .modal-footer .delete-button {
-    background-color: #d95248;
+    background: linear-gradient(135deg, var(--danger), #C0392B);
     border: none;
     color: white;
 }
 
 .modal-footer .delete-button:hover {
-    background-color: #e63c30;
+    background: linear-gradient(135deg, #E74C3C, var(--danger));
     transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
-}
-
-/* Disabled button states */
-button:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-    transform: none !important;
-    box-shadow: none !important;
-}
-
-/* Responsive adjustments */
-@media (max-width: 768px) {
-    .info-grid,
-    .settings-actions,
-    .java-preset-buttons {
-        grid-template-columns: 1fr;
-    }
-    
-    .stats-grid {
-        grid-template-columns: repeat(2, 1fr);
-    }
-    
-    .modal-container {
-        width: 90%;
-        min-width: 0;
-    }
-    
-    .advanced-option {
-        flex-direction: column;
-        align-items: flex-start;
-    }
-    
-    .advanced-option-info {
-        padding-right: 0;
-        margin-bottom: 15px;
-    }
-    
-    .advanced-button {
-        align-self: flex-end;
-    }
+    box-shadow: 0 4px 8px rgba(231, 76, 60, 0.4);
 }
 
 /* Character counter for installation names */
@@ -672,6 +593,7 @@ button:disabled {
     margin-top: 5px;
     font-family: "REGULAR_FONT";
     transition: color 0.2s ease;
+    color: var(--text-muted);
 }
 
 /* Suggested names section */
@@ -681,7 +603,7 @@ button:disabled {
 
 .suggestion-label {
     font-size: 0.9rem;
-    color: rgba(255, 255, 255, 0.7);
+    color: var(--text-secondary);
     margin-bottom: 8px;
 }
 
@@ -692,11 +614,11 @@ button:disabled {
 }
 
 .suggestion-chip {
-    background-color: rgba(7, 60, 23, 0.3);
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: linear-gradient(135deg, var(--accent-primary), rgba(126, 90, 155, 0.8));
+    border: 1px solid var(--border);
     border-radius: 20px;
     padding: 6px 14px;
-    color: white;
+    color: var(--text-primary);
     font-family: "REGULAR_FONT";
     font-size: 0.85rem;
     cursor: pointer;
@@ -704,15 +626,15 @@ button:disabled {
 }
 
 .suggestion-chip:hover {
-    background-color: rgba(7, 60, 23, 0.5);
-    border-color: rgba(255, 255, 255, 0.3);
+    background: linear-gradient(135deg, #9B6BB8, var(--accent-primary));
+    border-color: var(--accent-gold);
     transform: translateY(-2px);
 }
 
 /* Completion button styling */
 .completion-button {
-    background-color: #073c17;
-    color: white;
+    background: linear-gradient(135deg, var(--accent-gold), #FFE4B0);
+    color: var(--bg-primary);
     border: none;
     border-radius: 6px;
     padding: 12px 24px;
@@ -721,12 +643,13 @@ button:disabled {
     cursor: pointer;
     transition: all 0.3s ease;
     margin-top: 20px;
+    font-weight: bold;
 }
 
 .completion-button:hover {
-    background-color: #0a5d23;
+    background: linear-gradient(135deg, #FFEBB5, var(--accent-gold));
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 4px 12px var(--shadow);
 }
 
 .completion-actions {
@@ -741,8 +664,8 @@ button:disabled {
 }
 
 .warning-message {
-    background-color: rgba(255, 193, 7, 0.1);
-    border-left: 4px solid #ffc107;
+    background: linear-gradient(135deg, rgba(243, 156, 18, 0.1), rgba(243, 156, 18, 0.05));
+    border-left: 4px solid var(--warning);
     padding: 15px;
     border-radius: 4px;
     margin-bottom: 20px;
@@ -750,12 +673,12 @@ button:disabled {
 
 .warning-message p {
     margin: 10px 0;
-    color: rgba(255, 255, 255, 0.9);
+    color: var(--text-secondary);
 }
 
 .protection-steps {
     margin: 15px 0 15px 30px;
-    color: rgba(255, 255, 255, 0.9);
+    color: var(--text-secondary);
 }
 
 .protection-steps li {
@@ -763,8 +686,8 @@ button:disabled {
 }
 
 .warning-note {
-    background-color: rgba(74, 144, 226, 0.1);
-    border-left: 4px solid #4a90e2;
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(59, 130, 246, 0.05));
+    border-left: 4px solid #3B82F6;
     padding: 12px;
     border-radius: 4px;
     margin-top: 15px;
@@ -776,10 +699,71 @@ button:disabled {
 }
 
 .update-proceed-button {
-    background-color: #ffc107;
-    color: #000;
+    background: linear-gradient(135deg, var(--warning), #E67E22);
+    color: white;
 }
 
 .update-proceed-button:hover {
-    background-color: #ffca28;
+    background: linear-gradient(135deg, #F39C12, var(--warning));
+}
+
+/* Memory apply button */
+.memory-apply-button {
+    background: linear-gradient(135deg, var(--bg-secondary), rgba(44, 45, 100, 0.8));
+    color: var(--text-muted);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 30px;
+    font-family: "REGULAR_FONT";
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: not-allowed;
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.memory-apply-button.changed {
+    background: linear-gradient(135deg, var(--accent-gold), #FFE4B0) !important;
+    color: var(--bg-primary) !important;
+    border-color: var(--accent-gold) !important;
+    cursor: pointer !important;
+    box-shadow: 0 4px 15px var(--glow-gold);
+    animation: buttonGlow 2s infinite alternate;
+}
+
+.memory-apply-button.changed:hover {
+    background: linear-gradient(135deg, #FFEBB5, var(--accent-gold)) !important;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px var(--glow-gold);
+}
+
+.apply-success-message {
+    background: linear-gradient(135deg, rgba(39, 174, 96, 0.2), rgba(39, 174, 96, 0.1));
+    color: #4DFFAA;
+    padding: 8px 16px;
+    border-radius: 6px;
+    border-left: 3px solid var(--success);
+    font-size: 0.9rem;
+    animation: fadeIn 0.3s ease;
+}
+
+@keyframes buttonGlow {
+    0% {
+        box-shadow: 0 4px 15px var(--glow-gold);
+    }
+    100% {
+        box-shadow: 0 4px 20px var(--glow-gold);
+    }
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
