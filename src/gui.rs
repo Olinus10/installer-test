@@ -1512,7 +1512,7 @@ if *show_update_warning.read() {
     div { class: "modal-overlay",
         div { class: "modal-container update-warning-dialog",
             div { class: "modal-header",
-                h3 { "⚠️ Update Warning" }
+                h3 { "UPDATE WARNING" }
                 button { 
                     class: "modal-close",
                     onclick: move |_| show_update_warning.set(false),
@@ -1524,11 +1524,11 @@ if *show_update_warning.read() {
                 div { class: "warning-message",
                     p { 
                         strong { "Important: " }
-                        "Updating may reset some mod configurations, especially Wynntils settings."
+                        "Updating may reset some mod configs, especially Wynntils settings."
                     }
                     
                     p { 
-                        "To protect your Wynntils configuration:"
+                        "To protect your Wynntils config:"
                     }
                     
                     ol { class: "protection-steps",
@@ -1539,8 +1539,7 @@ if *show_update_warning.read() {
                     
                     div { class: "warning-note",
                         p { 
-                            "💡 Tip: Keep your Wynntils folder backed up regularly to avoid losing your waypoints, "
-                            "map data, and custom settings."
+                            "Tip: Keep your Wynntils folder backed up regularly to avoid losing your custom settings."
                         }
                     }
                 }
@@ -1720,6 +1719,30 @@ fn ProgressView(
 ) -> Element {
     let percentage = if max > 0 { (value * 100) / max } else { 0 };
     
+    // Add a timer for showing helpful messages
+    let mut message_index = use_signal(|| 0);
+    
+    // Rotate through helpful messages every 5 seconds
+    use_effect(move || {
+        if percentage < 100 && percentage > 0 {
+            spawn(async move {
+                loop {
+                    tokio::time::sleep(tokio::time::Duration::from_secs(5)).await;
+                    message_index.with_mut(|idx| *idx = (*idx + 1) % 5);
+                }
+            });
+        }
+    });
+    
+    // Helpful messages to display during download
+    let helpful_messages = vec![
+        "Large files may take a while to download...",
+        "Download speed depends on your internet connection",
+        "Please be patient while files are being downloaded",
+        "Some files can be over 1GB in size",
+        "The installer is still working - don't close it!",
+    ];
+    
     // Ensure we show completion state
     let (current_step, step_label) = if percentage >= 100 {
         ("complete", "Complete")
@@ -1812,6 +1835,15 @@ fn ProgressView(
                 }
                 
                 p { class: "progress-status", "{display_status}" }
+                
+                // Add helpful message during download
+                if percentage > 0 && percentage < 100 && current_step == "download" {
+                    p { 
+                        class: "progress-helpful-message",
+                        style: "color: rgba(255, 255, 255, 0.7); font-size: 0.9rem; margin-top: 10px; font-style: italic;",
+                        "{helpful_messages[*message_index.read()]}"
+                    }
+                }
                 
                 // Add completion button
 if percentage >= 100 {
