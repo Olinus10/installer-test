@@ -536,7 +536,7 @@ div { class: "features-count-container",
         included_components.extend(included_resourcepacks);
         
         // Create a signal to track if included section is expanded
-        let mut included_expanded = use_signal(|| true); // Start expanded by default
+        let mut included_expanded = use_signal(|| false); // Start collapsed by default
         
         // Build a vector of elements to render
         let mut elements_to_render = Vec::new();
