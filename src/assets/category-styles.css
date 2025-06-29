@@ -103,7 +103,8 @@
 }
 
 .category-content.expanded {
-    max-height: 5000px;
+    max-height: none; /* Remove fixed height limit */
+    overflow: visible; /* Allow content to be fully visible */
 }
 
 /* Main features section with expandable wrapper */
