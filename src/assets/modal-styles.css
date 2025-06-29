@@ -14,7 +14,7 @@
 }
 
 .modal-container {
-    background-color: rgba(0, 0, 0, 0.9);
+    background-color: rgba(20, 20, 20, 0.95);
     border-radius: 8px;
     box-shadow: 0 5px 20px rgba(0, 0, 0, 0.5);
     min-width: 400px;
@@ -37,6 +37,7 @@
 .modal-header {
     padding: 15px 20px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    background-color: rgba(30, 30, 30, 0.8);
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -68,6 +69,7 @@
 .modal-footer {
     padding: 15px 20px;
     border-top: 1px solid rgba(255, 255, 255, 0.1);
+    background-color: rgba(30, 30, 30, 0.8);
     display: flex;
     justify-content: flex-end;
     gap: 10px;
@@ -102,7 +104,7 @@
 .modal-content .form-group input {
     width: 100%;
     padding: 10px;
-    background-color: rgba(0, 0, 0, 0.4);
+    background-color: rgba(40, 40, 40, 0.8);
     border: 1px solid rgba(255, 255, 255, 0.2);
     border-radius: 4px;
     color: white;
@@ -111,8 +113,8 @@
 
 .modal-content .form-group input:focus {
     outline: none;
-    border-color: rgba(7, 60, 23, 0.6);
-    box-shadow: 0 0 0 2px rgba(7, 60, 23, 0.3);
+    border-color: rgba(76, 175, 80, 0.6);
+    box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.2);
 }
 
 /* Settings Tab Styles */
@@ -122,11 +124,11 @@
 }
 
 .settings-section {
-    background-color: rgba(0, 0, 0, 0.3);
+    background-color: rgba(30, 30, 30, 0.8);
     border-radius: 10px;
     padding: 20px;
     margin-bottom: 30px;
-    border-left: 3px solid rgba(7, 60, 23, 0.8);
+    border-left: 3px solid rgba(76, 175, 80, 0.8);
 }
 
 .settings-section h3 {
@@ -164,7 +166,7 @@
 
 .stats-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmin(200px, 1fr));
     gap: 20px;
     text-align: center;
 }
@@ -314,11 +316,11 @@
 }
 
 .performance-section {
-    background-color: rgba(0, 0, 0, 0.3);
+    background-color: rgba(30, 30, 30, 0.8);
     border-radius: 10px;
     padding: 20px;
     margin-bottom: 30px;
-    border-left: 3px solid rgba(7, 60, 23, 0.8);
+    border-left: 3px solid rgba(76, 175, 80, 0.8);
 }
 
 .memory-section h3,
@@ -356,12 +358,13 @@
     height: 6px;
     -webkit-appearance: none;
     appearance: none;
-    background: rgba(255, 255, 255, 0.08);
+    background: rgba(60, 60, 60, 0.6);
     border-radius: 3px;
     outline: none;
     margin: 20px 0;
     position: relative;
     cursor: pointer;
+    border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 /* Track styling - subtle gradient */
@@ -385,7 +388,6 @@
     box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.3);
 }
 
-
 /* Modern white thumb */
 .memory-slider::-webkit-slider-thumb {
     -webkit-appearance: none;
@@ -396,12 +398,13 @@
     background: #ffffff;
     cursor: pointer;
     box-shadow: 
-        0 0 0 1px rgba(0, 0, 0, 0.1),
-        0 2px 5px rgba(0, 0, 0, 0.2),
-        0 0 0 4px rgba(255, 255, 255, 0.1);
+        0 0 0 1px rgba(255, 255, 255, 0.1),
+        0 2px 8px rgba(0, 0, 0, 0.3),
+        0 0 0 4px rgba(255, 255, 255, 0.05);
     transition: all 0.2s ease;
     margin-top: -8px;
     position: relative;
+    border: 2px solid #2a2a2a;
 }
 
 .memory-slider::-moz-range-thumb {
@@ -411,30 +414,30 @@
     background: #ffffff;
     cursor: pointer;
     box-shadow: 
-        0 0 0 1px rgba(0, 0, 0, 0.1),
-        0 2px 5px rgba(0, 0, 0, 0.2),
-        0 0 0 4px rgba(255, 255, 255, 0.1);
+        0 0 0 1px rgba(255, 255, 255, 0.1),
+        0 2px 8px rgba(0, 0, 0, 0.3),
+        0 0 0 4px rgba(255, 255, 255, 0.05);
     transition: all 0.2s ease;
-    border: none;
+    border: 2px solid #2a2a2a;
 }
 
-* Hover state with glow */
+/* Hover state with glow */
 .memory-slider::-webkit-slider-thumb:hover {
     transform: scale(1.15);
     box-shadow: 
-        0 0 0 1px rgba(0, 0, 0, 0.1),
-        0 4px 8px rgba(0, 0, 0, 0.3),
-        0 0 0 6px rgba(255, 255, 255, 0.15),
-        0 0 20px rgba(255, 255, 255, 0.3);
+        0 0 0 1px rgba(255, 255, 255, 0.2),
+        0 4px 12px rgba(0, 0, 0, 0.4),
+        0 0 0 6px rgba(255, 255, 255, 0.1),
+        0 0 25px rgba(255, 255, 255, 0.3);
 }
 
 .memory-slider::-moz-range-thumb:hover {
     transform: scale(1.15);
     box-shadow: 
-        0 0 0 1px rgba(0, 0, 0, 0.1),
-        0 4px 8px rgba(0, 0, 0, 0.3),
-        0 0 0 6px rgba(255, 255, 255, 0.15),
-        0 0 20px rgba(255, 255, 255, 0.3);
+        0 0 0 1px rgba(255, 255, 255, 0.2),
+        0 4px 12px rgba(0, 0, 0, 0.4),
+        0 0 0 6px rgba(255, 255, 255, 0.1),
+        0 0 25px rgba(255, 255, 255, 0.3);
 }
 
 /* Active/dragging state */
@@ -546,8 +549,8 @@
 
 .java-args-input:focus {
     outline: none;
-    border-color: rgba(7, 60, 23, 0.6);
-    box-shadow: 0 0 0 2px rgba(7, 60, 23, 0.3);
+    border-color: rgba(76, 175, 80, 0.6);
+    box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.2);
 }
 
 .java-args-presets h4 {
@@ -591,36 +594,36 @@
 }
 
 .modal-footer .cancel-button {
-    background-color: rgba(0, 0, 0, 0.4);
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: linear-gradient(135deg, #f44336, #d32f2f);
+    border: none;
     color: white;
 }
 
 .modal-footer .cancel-button:hover {
-    background-color: rgba(0, 0, 0, 0.6);
+    background: linear-gradient(135deg, #f66356, #f44336);
     transform: translateY(-2px);
 }
 
 .modal-footer .save-button {
-    background-color: #073c17;
+    background: linear-gradient(135deg, #4CAF50, #45a049);
     border: none;
     color: white;
 }
 
 .modal-footer .save-button:hover {
-    background-color: #0a5d23;
+    background: linear-gradient(135deg, #5CBF60, #4CAF50);
     transform: translateY(-2px);
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
 }
 
 .modal-footer .delete-button {
-    background-color: #d95248;
+    background: linear-gradient(135deg, #f44336, #d32f2f);
     border: none;
     color: white;
 }
 
 .modal-footer .delete-button:hover {
-    background-color: #e63c30;
+    background: linear-gradient(135deg, #f66356, #f44336);
     transform: translateY(-2px);
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
 }
@@ -672,6 +675,7 @@ button:disabled {
     margin-top: 5px;
     font-family: "REGULAR_FONT";
     transition: color 0.2s ease;
+    color: rgba(255, 255, 255, 0.6);
 }
 
 /* Suggested names section */
@@ -692,7 +696,7 @@ button:disabled {
 }
 
 .suggestion-chip {
-    background-color: rgba(7, 60, 23, 0.3);
+    background: linear-gradient(135deg, rgba(60, 60, 60, 0.8), rgba(40, 40, 40, 0.8));
     border: 1px solid rgba(255, 255, 255, 0.2);
     border-radius: 20px;
     padding: 6px 14px;
@@ -704,14 +708,14 @@ button:disabled {
 }
 
 .suggestion-chip:hover {
-    background-color: rgba(7, 60, 23, 0.5);
-    border-color: rgba(255, 255, 255, 0.3);
+    background: linear-gradient(135deg, rgba(76, 175, 80, 0.6), rgba(60, 150, 64, 0.6));
+    border-color: rgba(76, 175, 80, 0.8);
     transform: translateY(-2px);
 }
 
 /* Completion button styling */
 .completion-button {
-    background-color: #073c17;
+    background: linear-gradient(135deg, #4CAF50, #45a049);
     color: white;
     border: none;
     border-radius: 6px;
@@ -724,7 +728,7 @@ button:disabled {
 }
 
 .completion-button:hover {
-    background-color: #0a5d23;
+    background: linear-gradient(135deg, #5CBF60, #4CAF50);
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
@@ -776,10 +780,10 @@ button:disabled {
 }
 
 .update-proceed-button {
-    background-color: #ffc107;
+    background: linear-gradient(135deg, #ffc107, #ffca28);
     color: #000;
 }
 
 .update-proceed-button:hover {
-    background-color: #ffca28;
+    background: linear-gradient(135deg, #ffca28, #ffd54f);
 }
