@@ -3208,14 +3208,13 @@ let modal_styles = include_str!("assets/modal-styles.css");
 let included_styles = include_str!("assets/included-features.css");
 
 // Combine all CSS files
-let complete_css = format!("{}\n{}\n{}\n{}\n{}\n{}\n{}", 
+let complete_css = format!("{}\n{}\n{}\n{}\n{}\n{}", 
     css_content, 
     category_styles, 
     feature_styles, 
     preset_styles, 
     search_styles,
-    modal_styles,
-    included_styles
+    modal_styles
 );
 
     // Create header component if needed
