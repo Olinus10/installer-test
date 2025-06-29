@@ -157,9 +157,7 @@
     position: static;
     display: block;
     margin-bottom: 30px;
-}
-
-/* Make sure the included category doesn't interfere with others */
+}/* Make sure the included category doesn't interfere with others */
 .feature-category:has(.category-name:contains("INCLUDED MODS")) {
     position: static;
     display: block;
