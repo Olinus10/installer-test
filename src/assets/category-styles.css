@@ -1,11 +1,18 @@
-/* Category Styles for Features */
+/* Fixed category layout to properly space included components */
+.feature-categories {
+    display: block; /* Keep as block, not flex */
+    width: 100%;
+}
+
 .feature-category {
     background-color: rgba(0, 0, 0, 0.3);
     border-radius: 10px;
     padding: 15px 20px;
     border-left: 3px solid rgba(7, 60, 23, 0.8);
     margin-bottom: 20px;
-    position: relative;
+    position: static; /* Ensure proper layout flow */
+    width: 100%;
+    box-sizing: border-box;
 }
 
 /* ENTIRE HEADER IS CLICKABLE */
@@ -97,15 +104,14 @@
 
 /* Category content should expand to contain all content */
 .category-content {
-    overflow: visible; /* Allow content to be fully visible */
-    max-height: none; /* Remove any height restrictions when expanded */
+    overflow: visible;
+    max-height: 0; /* Start collapsed */
     transition: max-height 0.5s ease;
 }
 
 .category-content.expanded {
-    max-height: none;
+    max-height: none; /* Allow full expansion */
     overflow: visible;
-    /* Add padding to ensure proper spacing */
     padding-bottom: 20px;
 }
 
@@ -348,11 +354,14 @@
     color: white;
 }
 
+/* Keep feature cards as stacked list (one per row) */
 .feature-cards-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: 15px;
-    padding: 10px 0;
+    display: block; /* Change from grid to block for stacked layout */
     width: 100%;
-    box-sizing: border-box;
+    padding: 10px 0;
+}
+
+.feature-card {
+    margin-bottom: 15px; /* Space between stacked cards */
+    width: 100%; /* Full width cards */
 }
