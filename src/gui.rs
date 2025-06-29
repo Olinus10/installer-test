@@ -1319,15 +1319,15 @@ let (action_button_label, button_class, button_disabled) = {
            installed, update_available, has_changes, is_installing);
     
     if is_installing {
-        ("Installing...", "action-button installing", true)
+        ("INSTALLING...", "action-button installing", true)
     } else if !installed {
-        ("Install", "action-button install-button", false)
+        ("INSTALL", "action-button install-button", false)
     } else if update_available {
-        ("Update Available", "action-button update-button", false)
+        ("UPDATE", "action-button update-button", false)
     } else if has_changes {
-        ("Apply Changes", "action-button modify-button", false)
+        ("UPDATE", "action-button modify-button", false)
     } else {
-        ("Up to Date", "action-button up-to-date", true)
+        ("INSTALLED", "action-button up-to-date", true)
     }
 };
 
@@ -1737,7 +1737,7 @@ SettingsTab {
                         class: "launch-button",
                         disabled: !installation_state.read().installed || *is_installing.read(),
                         onclick: handle_launch,
-                        "Launch Game"
+                        "LAUNCH GAME"
                     }
                     
                     // Install/Update/Modify button
