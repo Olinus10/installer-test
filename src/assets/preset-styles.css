@@ -5,7 +5,8 @@
     gap: 20px;
     margin: 25px 0 35px 0;
     perspective: 1000px;
-    grid-auto-rows: 250px; /* Add this to force square cells */
+    grid-auto-rows: 250px;
+    justify-items: center;
 }
 
 /* Fix for the 1px outline issue */
@@ -15,7 +16,6 @@
     padding: 0;
     transition: all 0.4s cubic-bezier(0.175, 0.84, 0.44, 1);
     position: relative;
-    /*  min-height: 220px;*/
     min-height: unset;
     cursor: pointer;
     overflow: hidden;
@@ -23,10 +23,11 @@
     display: flex;
     flex-direction: column;
     transform-style: preserve-3d;
-    border: 1px solid rgba(0, 0, 0, 0.2); /* Darker border color to hide any potential gap */
+    border: 1px solid rgba(0, 0, 0, 0.2);
     height: 100%;
+    width: 100%;
+    max-width: 280px;
 }
-
 
 /* Content area takes up most of card */
 .preset-card-content {
@@ -39,7 +40,7 @@
     text-align: center;
     flex-grow: 1;
     padding-bottom: 50px;
-    padding: 20px; /* Space for badges and button */
+    padding: 20px;
 }
 
 /* Select button at bottom */
@@ -48,49 +49,33 @@
     bottom: 15px;
     left: 50%;
     transform: translateX(-50%);
-    background-color: rgba(7, 60, 23, 0.7);
+    background: linear-gradient(135deg, #4CAF50, #2E7D32);
     color: white;
     border: none;
     border-radius: 20px;
-    padding: 10px 25px; /* Larger padding */
+    padding: 10px 25px;
     font-family: "REGULAR_FONT";
-    font-size: 1rem; /* Larger font */
+    font-size: 1rem;
     font-weight: bold;
     letter-spacing: 1px;
     transition: all 0.3s ease;
     z-index: 5;
-    min-width: 150px; /* Ensure minimum width */
+    min-width: 150px;
+    box-shadow: 0 2px 8px rgba(76, 175, 80, 0.3);
 }
 
 .preset-card:hover {
-    transform: translateY(-10px) scale(1.03) rotateX(5deg); /* 3D rotation */
+    transform: translateY(-10px) scale(1.03) rotateX(5deg);
     box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
     border-color: rgba(255, 255, 255, 0.3);
 }
 
-/* Golden button for trending cards */
-.preset-card:has(.trending-badge) {
-    background: linear-gradient(135deg, #d4a017, #b78500);
-    color: #000;
-}
-
-/*
-.preset-card:has(.trending-badge):hover {
-    background: linear-gradient(135deg, #e6b017, #cc9500);
-} */
-
 /* Enhanced hover effects for buttons */
 .preset-card:hover .select-preset-button {
-    background-color: rgba(7, 60, 23, 0.9);
+    background: linear-gradient(135deg, #66BB6A, #4CAF50);
     transform: translateX(-50%) translateY(-3px);
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.4);
+    box-shadow: 0 4px 12px rgba(76, 175, 80, 0.4);
 }
-
-/*
-.preset-card:has(.trending-badge):hover .select-preset-button {
-    background: linear-gradient(135deg, #e6b017, #cc9500);
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.4);
-} */
 
 /* Card title styling */
 .preset-card h4 {
@@ -142,7 +127,7 @@
     z-index: 5;
 }
 
-/* Also ensure the overlay covers the entire card with no gaps */
+/* Overlay covers the entire card with no gaps */
 .preset-card-overlay {
     position: absolute;
     top: 0;
@@ -151,37 +136,37 @@
     bottom: 0;
     background: rgba(0, 0, 0, 0.4);
     z-index: 1;
-    border-radius: 11px; /* Slightly smaller than card to avoid edge artifacts */
-    margin: 1px; /* Small margin to ensure it sits inside the border */
+    border-radius: 11px;
+    margin: 1px;
 }
 
-/* Selected state */
+/* Selected state - Updated with bright green */
 .preset-card.selected {
-    background: #0a3d16; /* Solid green background */
-    box-shadow: 0 10px 25px rgba(7, 60, 23, 0.6), 0 0 30px rgba(7, 60, 23, 0.8);
-    border: 2px solid rgba(7, 60, 23, 0.8); /* Slightly darker border color */
+    background: linear-gradient(135deg, #4CAF50, #2E7D32);
+    box-shadow: 0 10px 25px rgba(76, 175, 80, 0.6), 0 0 30px rgba(76, 175, 80, 0.8);
+    border: 2px solid rgba(76, 175, 80, 0.8);
     transform: translateY(-12px) scale(1.05);
     z-index: 5;
 }
 
 .preset-card.selected .select-preset-button {
     background-color: white !important;
-    color: #0a3d16;
+    color: #2E7D32;
     border: none;
 }
 
 /* Override for trending card when selected */
 .preset-card.selected:has(.trending-badge) {
-    background: #0a3d16; /* Same strong green background */
-    box-shadow: 0 10px 25px rgba(7, 60, 23, 0.6), 0 0 30px rgba(7, 60, 23, 0.8);
-    border: 2px solid rgba(181, 137, 20, 0.8); /* Golden border for trending */
+    background: linear-gradient(135deg, #4CAF50, #2E7D32);
+    box-shadow: 0 10px 25px rgba(76, 175, 80, 0.6), 0 0 30px rgba(76, 175, 80, 0.8);
+    border: 2px solid rgba(181, 137, 20, 0.8);
 }
 
 /* Much stronger glow animation for selected cards */
 @keyframes selected-glow {
-    0% { box-shadow: 0 10px 25px rgba(7, 60, 23, 0.6), 0 0 20px rgba(7, 60, 23, 0.4); }
-    50% { box-shadow: 0 10px 30px rgba(7, 60, 23, 0.8), 0 0 50px rgba(7, 60, 23, 0.9); }
-    100% { box-shadow: 0 10px 25px rgba(7, 60, 23, 0.6), 0 0 20px rgba(7, 60, 23, 0.4); }
+    0% { box-shadow: 0 10px 25px rgba(76, 175, 80, 0.6), 0 0 20px rgba(76, 175, 80, 0.4); }
+    50% { box-shadow: 0 10px 30px rgba(76, 175, 80, 0.8), 0 0 50px rgba(76, 175, 80, 0.9); }
+    100% { box-shadow: 0 10px 25px rgba(76, 175, 80, 0.6), 0 0 20px rgba(76, 175, 80, 0.4); }
 }
 
 .preset-card.selected {
@@ -190,7 +175,7 @@
 
 /* Override overlay for selected cards to make green more visible */
 .preset-card.selected .preset-card-overlay {
-    background: rgba(7, 60, 23, 0.2); /* Much lighter overlay to show green */
+    background: rgba(76, 175, 80, 0.2);
 }
 
 /* Trending card enhancements */
@@ -241,9 +226,9 @@
     background-size: 200% 200%;
     background-image: linear-gradient(
         135deg, 
-        #0a3d16,
-        #0f5d23,
-        #0a3d16
+        #4CAF50,
+        #66BB6A,
+        #4CAF50
     );
     animation: background-swoosh 6s infinite cubic-bezier(0.45, 0.05, 0.55, 0.95);
 }
@@ -260,8 +245,6 @@
     animation: background-swoosh 6s infinite cubic-bezier(0.45, 0.05, 0.55, 0.95);
 }
 
-
-/* Selected button for trending card */
 /* Override specifically for trending cards */
 .preset-card.selected:has(.trending-badge) .select-preset-button {
     background-color: white !important; 
@@ -273,15 +256,10 @@
 .preset-card-content, 
 .preset-card h4, 
 .preset-card p {
-    /* Disable transitions for these text elements */
     transition: none !important; 
-    /* Ensure text color stays consistent */
     color: #ffffff !important; 
-    /* Disable any transform animations that might be affecting the text */
     transform: none !important;
-    /* Prevent any animation on these elements */
     animation: none !important;
-    /* Ensure the text doesn't move during hover */
     position: relative;
     z-index: 5;
 }
@@ -325,11 +303,10 @@
     box-shadow: 0 0 15px rgba(255, 179, 0, 0.3) !important;
 }
 
-
 /* Normal selected button */
 .selected-button {
     background-color: white !important;
-    color: #0a3d16 !important;
+    color: #2E7D32 !important;
 }
 
 /* Trending non-selected button */
