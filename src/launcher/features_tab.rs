@@ -391,52 +391,41 @@ div { class: "features-count-container",
     span { class: "features-count-badge",
         {
             if let Some(manifest) = &universal_manifest {
-                // Get all optional components (excluding default-enabled ones)
+                // Count ALL optional components (including default-enabled ones)
                 let optional_mods = manifest.mods.iter()
-                    .filter(|m| m.optional && !m.default_enabled)
+                    .filter(|m| m.optional) // Only check if optional, not default_enabled
                     .count();
                     
                 let optional_shaderpacks = manifest.shaderpacks.iter()
-                    .filter(|m| m.optional && !m.default_enabled)
+                    .filter(|s| s.optional)
                     .count();
                     
                 let optional_resourcepacks = manifest.resourcepacks.iter()
-                    .filter(|m| m.optional && !m.default_enabled)
+                    .filter(|r| r.optional)
                     .count();
                     
                 let optional_includes = manifest.include.iter()
-                    .filter(|i| i.optional && !i.default_enabled && !i.id.is_empty())
+                    .filter(|i| i.optional && !i.id.is_empty())
                     .count();
                     
-                // Calculate total optional features (excluding default-enabled)
+                // Calculate total optional features (including default-enabled)
                 let total_optional_features = optional_mods + optional_shaderpacks + optional_resourcepacks + optional_includes;
                 
-                // Calculate enabled features (minus the default and already included ones)
+                // Calculate enabled features (exclude only the "default" system ID)
                 let enabled_count = enabled_features.read().iter()
                     .filter(|id| {
-                        // Skip "default" and any component that is default_enabled
-                        if *id == "default" {
-                            return false;
-                        }
-                        
-                        // Check if this is a default-enabled component
-                        let is_default_mod = manifest.mods.iter().any(|m| m.id == **id && m.default_enabled);
-                        let is_default_shader = manifest.shaderpacks.iter().any(|s| s.id == **id && s.default_enabled);
-                        let is_default_resource = manifest.resourcepacks.iter().any(|r| r.id == **id && r.default_enabled);
-                        let is_default_include = manifest.include.iter().any(|i| i.id == **id && i.default_enabled);
-                        
-                        // Only count if it's not default-enabled
-                        !(is_default_mod || is_default_shader || is_default_resource || is_default_include)
+                        // Only skip the system "default" ID
+                        *id != "default"
                     })
                     .count();
                 
                 rsx! { "{enabled_count}/{total_optional_features} features enabled" }
             } else {
                 rsx! { "Loading features..." }
-                            }
-                        }
-                    }
-                }
+            }
+        }
+    }
+}
                 
                 // Centered expand/collapse button with improved styling
                 button { 
