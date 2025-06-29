@@ -151,3 +151,18 @@
     opacity: 0.6;
     font-weight: normal;
 }
+
+/* Ensure included category gets proper spacing */
+.feature-category.included-category {
+    position: static;
+    display: block;
+    margin-bottom: 30px;
+}
+
+/* Make sure the included category doesn't interfere with others */
+.feature-category:has(.category-name:contains("INCLUDED MODS")) {
+    position: static;
+    display: block;
+    margin-bottom: 30px;
+    z-index: auto;
+}
