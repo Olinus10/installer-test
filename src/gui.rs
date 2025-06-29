@@ -1188,21 +1188,21 @@ use_effect({
 
 // Handle install/update with progress tracking
 let create_update_procedure = || {
-    // Clone all the signals and values we need
-    let installation_for_update = installation_for_update.clone();
-    let enabled_features = enabled_features.clone();
-    let memory_allocation = memory_allocation.clone();
-    let java_args = java_args.clone();
-    let is_installing = is_installing.clone();
-    let installation_error = installation_error.clone();
-    let installation_progress = installation_progress.clone();
-    let installation_total = installation_total.clone();
-    let installation_status = installation_status.clone();
-    let has_changes = has_changes.clone();
-    let features_modified = features_modified.clone();
-    let performance_modified = performance_modified.clone();
-    let installations = installations.clone();
-    let installation_state = installation_state.clone();
+    // Clone all the signals and values we need - make them mutable
+    let mut installation_for_update = installation_for_update.clone();
+    let mut enabled_features = enabled_features.clone();
+    let mut memory_allocation = memory_allocation.clone();
+    let mut java_args = java_args.clone();
+    let mut is_installing = is_installing.clone();
+    let mut installation_error = installation_error.clone();
+    let mut installation_progress = installation_progress.clone();
+    let mut installation_total = installation_total.clone();
+    let mut installation_status = installation_status.clone();
+    let mut has_changes = has_changes.clone();
+    let mut features_modified = features_modified.clone();
+    let mut performance_modified = performance_modified.clone();
+    let mut installations = installations.clone();
+    let mut installation_state = installation_state.clone();
     
     // Return a new function that captures these cloned values
     move || {
@@ -1287,11 +1287,11 @@ let create_update_procedure = || {
     }
 };
 
-// Create a procedure for the handle_update function
-let proceed_with_update = create_update_procedure();
+// Create a procedure for the handle_update function - make it mutable
+let mut proceed_with_update = create_update_procedure();
 
-// Create a separate procedure for the modal button
-let proceed_with_update_from_modal = create_update_procedure();
+// Create a separate procedure for the modal button - make it mutable
+let mut proceed_with_update_from_modal = create_update_procedure();
 
 // Now use proceed_with_update in handle_update
 let handle_update = move |_| {
