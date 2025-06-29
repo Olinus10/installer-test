@@ -77,12 +77,12 @@
 
 /* Modal Dialog Specific Styles */
 .rename-dialog .rename-error {
-    background-color: rgba(217, 82, 72, 0.2);
+    background-color: rgba(244, 67, 54, 0.2);
     padding: 10px;
     border-radius: 4px;
     margin-bottom: 15px;
     color: #ff9d93;
-    border-left: 3px solid #d95248;
+    border-left: 3px solid #f44336;
 }
 
 .delete-dialog .delete-warning {
@@ -166,7 +166,7 @@
 
 .stats-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmin(200px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
     gap: 20px;
     text-align: center;
 }
@@ -225,17 +225,17 @@
 }
 
 .delete-button {
-    border-color: rgba(217, 82, 72, 0.5);
+    border-color: rgba(244, 67, 54, 0.5);
 }
 
 .delete-button:hover {
-    background-color: rgba(217, 82, 72, 0.2);
-    border-color: rgba(217, 82, 72, 0.8);
+    background-color: rgba(244, 67, 54, 0.2);
+    border-color: rgba(244, 67, 54, 0.8);
 }
 
 .rename-button:hover {
-    background-color: rgba(7, 60, 23, 0.2);
-    border-color: rgba(7, 60, 23, 0.5);
+    background-color: rgba(76, 175, 80, 0.2);
+    border-color: rgba(76, 175, 80, 0.5);
 }
 
 .folder-button:hover {
@@ -346,7 +346,7 @@
     color: rgba(255, 255, 255, 0.7);
 }
 
-/* Modern Memory Slider Design */
+/* Modern Memory Slider Design - Updated to grey theme */
 .memory-slider-container {
     position: relative;
     margin: 40px 0 60px 0;
@@ -515,8 +515,8 @@
 /* Progress fill effect */
 .memory-slider::-webkit-slider-runnable-track {
     background: linear-gradient(to right,
-        #0a5d23 0%,
-        #0a5d23 var(--progress, 0%),
+        #4CAF50 0%,
+        #4CAF50 var(--progress, 0%),
         rgba(255, 255, 255, 0.1) var(--progress, 0%),
         rgba(255, 255, 255, 0.1) 100%);
 }
@@ -567,22 +567,23 @@
 
 .java-preset-button {
     padding: 10px;
-    background-color: rgba(7, 60, 23, 0.5);
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: linear-gradient(135deg, #4CAF50, #2E7D32);
+    border: 1px solid rgba(76, 175, 80, 0.6);
     border-radius: 4px;
     color: white;
     font-family: "REGULAR_FONT";
     cursor: pointer;
     transition: all 0.2s ease;
+    box-shadow: 0 2px 8px rgba(76, 175, 80, 0.3);
 }
 
 .java-preset-button:hover {
-    background-color: rgba(7, 60, 23, 0.7);
+    background: linear-gradient(135deg, #66BB6A, #4CAF50);
     transform: translateY(-2px);
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 4px 12px rgba(76, 175, 80, 0.4);
 }
 
-/* Modal buttons */
+/* Modal buttons - Updated with bright colors */
 .modal-footer .cancel-button,
 .modal-footer .save-button,
 .modal-footer .delete-button {
@@ -597,35 +598,39 @@
     background: linear-gradient(135deg, #f44336, #d32f2f);
     border: none;
     color: white;
+    box-shadow: 0 2px 8px rgba(244, 67, 54, 0.3);
 }
 
 .modal-footer .cancel-button:hover {
     background: linear-gradient(135deg, #f66356, #f44336);
     transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(244, 67, 54, 0.4);
 }
 
 .modal-footer .save-button {
     background: linear-gradient(135deg, #4CAF50, #45a049);
     border: none;
     color: white;
+    box-shadow: 0 2px 8px rgba(76, 175, 80, 0.3);
 }
 
 .modal-footer .save-button:hover {
     background: linear-gradient(135deg, #5CBF60, #4CAF50);
     transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 4px 12px rgba(76, 175, 80, 0.4);
 }
 
 .modal-footer .delete-button {
     background: linear-gradient(135deg, #f44336, #d32f2f);
     border: none;
     color: white;
+    box-shadow: 0 2px 8px rgba(244, 67, 54, 0.3);
 }
 
 .modal-footer .delete-button:hover {
     background: linear-gradient(135deg, #f66356, #f44336);
     transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 4px 12px rgba(244, 67, 54, 0.4);
 }
 
 /* Disabled button states */
@@ -725,12 +730,13 @@ button:disabled {
     cursor: pointer;
     transition: all 0.3s ease;
     margin-top: 20px;
+    box-shadow: 0 2px 8px rgba(76, 175, 80, 0.3);
 }
 
 .completion-button:hover {
     background: linear-gradient(135deg, #5CBF60, #4CAF50);
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 4px 12px rgba(76, 175, 80, 0.4);
 }
 
 .completion-actions {
