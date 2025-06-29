@@ -554,7 +554,7 @@ div { class: "features-count-container",
                         },
                         
                         div { class: "category-title-section",
-                            h3 { class: "category-name", "✓ Included Components" }
+                            h3 { class: "category-name", "INCLUDED MODS" }
                             span { class: "category-count included-count", 
                                 "{included_components.len()} included" 
                             }
