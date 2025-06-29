@@ -3193,11 +3193,11 @@ let changelog = use_resource(move || async {
     }
 
     // Build CSS content
-let css_content = css
-    .replace("<BG_COLOR>", "#1A1A2E")  // Very Dark Blue
-    .replace("<BG_IMAGE>", "https://raw.githubusercontent.com/Wynncraft-Overhaul/installer/master/src/assets/background_installer.png")
-    .replace("<SECONDARY_FONT>", "\"HEADER_FONT\"")
-    .replace("<PRIMARY_FONT>", "\"REGULAR_FONT\"");
+    let css_content = css
+        .replace("<BG_COLOR>", "#320625")
+        .replace("<BG_IMAGE>", "https://raw.githubusercontent.com/Wynncraft-Overhaul/installer/master/src/assets/background_installer.png")
+        .replace("<SECONDARY_FONT>", "\"HEADER_FONT\"")
+        .replace("<PRIMARY_FONT>", "\"REGULAR_FONT\"");
     
 // Add custom category styles
 let category_styles = include_str!("assets/category-styles.css");
@@ -3207,34 +3207,7 @@ let search_styles = include_str!("assets/search-results-styles.css");
 let modal_styles = include_str!("assets/modal-styles.css");
 
 // Combine all CSS files
-let complete_css = format!(
-    r#"
-/* New Color Variables */
-:root {{
-    --bg-primary: #1A1A2E;
-    --bg-secondary: #2C2D64;
-    --accent-primary: #7E5A9B;
-    --accent-gold: #FFDDA0;
-    --text-primary: #FFDDA0;
-    --text-secondary: rgba(255, 221, 160, 0.8);
-    --text-muted: rgba(255, 221, 160, 0.6);
-    --danger: #E74C3C;
-    --success: #27AE60;
-    --warning: #F39C12;
-    --border: rgba(126, 90, 155, 0.3);
-    --border-light: rgba(255, 221, 160, 0.2);
-    --shadow: rgba(26, 26, 46, 0.8);
-    --glow-primary: rgba(126, 90, 155, 0.4);
-    --glow-gold: rgba(255, 221, 160, 0.3);
-}}
-
-{}
-{}
-{}
-{}
-{}
-{}
-"#,
+let complete_css = format!("{}\n{}\n{}\n{}\n{}\n{}", 
     css_content, 
     category_styles, 
     feature_styles, 
