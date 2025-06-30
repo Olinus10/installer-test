@@ -146,17 +146,42 @@
     gap: 15px;
 }
 
+.minecraft-info {
+    background-color: rgba(30, 30, 30, 0.6);
+    border-radius: 8px;
+    padding: 20px; /* Increased padding */
+    margin: 20px 0; /* Added margin */
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
 .info-row {
     display: flex;
-    align-items: baseline;
-    gap: 10px;
-    font-size: 0.95rem;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0; /* Added padding */
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+
+.info-row:last-child {
+    border-bottom: none;
+}
+.info-item {
+    display: flex;
+    align-items: center;
+    gap: 15px; /* Increased gap */
+    font-size: 1rem; /* Increased font size */
 }
 
 .info-label {
     font-weight: bold;
     color: rgba(255, 255, 255, 0.7);
-    min-width: 80px;
+    min-width: 100px; /* Increased min width */
+}
+
+.info-value {
+    color: #fff;
+    font-weight: 500;
 }
 
 .truncate-path {
@@ -727,7 +752,91 @@ button:disabled {
 
 /* 2. UPDATE WARNING POPUP - Button Fixes */
 .update-warning-dialog {
-    max-width: 600px;
+    max-width: 700px; /* Increased width */
+}
+
+.update-warning-dialog .modal-header h3 {
+    font-family: "HEADER_FONT";
+    font-size: 1.4rem;
+    color: #ffb900;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+
+.warning-message {
+    background: linear-gradient(135deg, rgba(255, 185, 0, 0.1), rgba(255, 152, 0, 0.05));
+    border-left: 4px solid #ffb900;
+    padding: 20px;
+    border-radius: 8px;
+    margin-bottom: 25px;
+}
+
+.protection-steps {
+    background-color: rgba(0, 0, 0, 0.3);
+    border-radius: 8px;
+    padding: 20px;
+    margin: 20px 0;
+}
+
+.protection-steps li {
+    padding: 10px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    font-size: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.protection-steps li:before {
+    content: counter(step-counter);
+    counter-increment: step-counter;
+    background: linear-gradient(135deg, #4CAF50, #2E7D32);
+    color: white;
+    border-radius: 50%;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 0.9rem;
+    flex-shrink: 0;
+}
+
+.protection-steps {
+    counter-reset: step-counter;
+}
+
+.warning-note {
+    background: linear-gradient(135deg, rgba(76, 175, 80, 0.1), rgba(46, 125, 50, 0.05));
+    border-left: 4px solid #4CAF50;
+    padding: 15px;
+    border-radius: 8px;
+    margin-top: 20px;
+}
+
+/* Blue button for "Open Installation Folder" */
+.secondary-button {
+    background: linear-gradient(135deg, #2196F3, #1565C0) !important;
+    border: none;
+    color: white;
+    border-radius: 8px;
+    padding: 12px 24px;
+    font-family: "HEADER_FONT";
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-weight: 600;
+    box-shadow: 0 4px 15px rgba(33, 150, 243, 0.3);
+}
+
+.secondary-button:hover {
+    background: linear-gradient(135deg, #42A5F5, #2196F3) !important;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(33, 150, 243, 0.5);
 }
 
 .update-warning-dialog .modal-footer .cancel-button {
