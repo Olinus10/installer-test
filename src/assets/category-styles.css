@@ -1,3 +1,111 @@
+/* Category Styles for Features */
+.feature-category {
+    background-color: rgba(0, 0, 0, 0.3);
+    border-radius: 10px;
+    padding: 15px 20px;
+    border-left: 3px solid rgba(7, 60, 23, 0.8);
+    margin-bottom: 20px;
+    position: relative;
+}
+
+/* ENTIRE HEADER IS CLICKABLE */
+.category-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    padding-right: 40px;
+}
+
+.category-title-section {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.category-name {
+    margin: 0;
+    font-size: 1.2rem;
+}
+
+.category-count {
+    background-color: rgba(7, 60, 23, 0.5);
+    padding: 3px 8px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+}
+
+/* All Enabled/Disabled button styling */
+.category-toggle-all {
+    background-color: rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 20px;
+    padding: 6px 15px;
+    font-family: "REGULAR_FONT";
+    font-size: 0.85rem;
+    color: white;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    min-width: 110px;
+    text-align: center;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+
+.category-toggle-all.toggle-enable {
+    background-color: rgba(7, 60, 23, 0.6);
+    border-color: rgba(7, 60, 23, 0.8);
+}
+
+.category-toggle-all.toggle-disable {
+    background-color: rgba(217, 82, 72, 0.6);
+    border-color: rgba(217, 82, 72, 0.8);
+}
+
+.category-toggle-all:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+}
+
+.category-toggle-all.all-enabled:hover {
+    background-color: rgba(7, 60, 23, 0.8);
+}
+
+.category-toggle-all.all-disabled:hover {
+    background-color: rgba(217, 82, 72, 0.8);
+}
+
+/* Larger expand/collapse indicators */
+.category-toggle-indicator {
+    position: absolute;
+    right: 15px;
+    width: 36px; /* Much larger */
+    height: 36px; /* Much larger */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: rgba(0, 0, 0, 0.3);
+    border-radius: 50%;
+    font-size: 22px; /* Larger font size for the arrow */
+    transition: transform 0.3s ease;
+}
+
+.category-toggle-indicator.expanded {
+    transform: rotate(180deg);
+}
+
+/* Category content animation */
+.category-content {
+    overflow: hidden;
+    max-height: 0;
+    transition: max-height 0.5s ease;
+}
+
+.category-content.expanded {
+    max-height: 5000px;
+}
+
 /* Main features section with expandable wrapper */
 .features-tab {
     padding: 15px 0;
@@ -8,9 +116,10 @@
     background-color: rgba(0, 0, 0, 0.2);
     border-radius: 10px;
     margin: 30px 0;
-    border-left: 4px solid rgba(76, 175, 80, 0.7);
+    border-left: 4px solid rgba(7, 60, 23, 0.7);
     padding: 20px;
 }
+
 
 /* Improved Optional Features header styling */
 .optional-features-header {
@@ -41,17 +150,18 @@
     max-width: 700px;
 }
 
-/* Enhanced Expand/Collapse Features Button - Updated to bright green */
+/* Enhanced Expand/Collapse Features Button */
+/* Enhanced Expand/Collapse Features Button - Redesigned */
 .expand-collapse-button {
     display: flex;
     align-items: center;
     justify-content: center;
-    background: linear-gradient(135deg, #4CAF50, #2E7D32);
+    background: linear-gradient(135deg, #2a2a35, #1a1a25);
     color: white;
-    border: 2px solid rgba(76, 175, 80, 0.6);
+    border: 2px solid rgba(255, 255, 255, 0.2);
     border-radius: 30px;
     padding: 14px 35px;
-    font-family: "HEADER_FONT";
+    font-family: "HEADER_FONT"; /* Use header font */
     font-size: 1.1rem;
     font-weight: 600;
     letter-spacing: 1.5px;
@@ -60,17 +170,17 @@
     margin: 20px auto 25px auto;
     width: fit-content;
     min-width: 250px;
-    box-shadow: 0 4px 15px rgba(76, 175, 80, 0.4);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
     position: relative;
     overflow: hidden;
     text-transform: uppercase;
 }
 
 .expand-collapse-button:hover {
-    background: linear-gradient(135deg, #66BB6A, #4CAF50);
+    background: linear-gradient(135deg, #3a3a45, #2a2a35);
     transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(76, 175, 80, 0.5);
-    border-color: rgba(76, 175, 80, 0.8);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
+    border-color: rgba(255, 255, 255, 0.3);
 }
 
 .button-icon {
@@ -92,12 +202,10 @@
     opacity: 0;
     transition: max-height 0.6s cubic-bezier(0.4, 0, 0.2, 1), 
                 opacity 0.4s ease;
-    padding: 0 20px;
 }
 
 .optional-features-content.expanded {
     max-height: 10000px;
-    padding: 0 20px 20px 20px;
     opacity: 1;
     animation: fadeInUp 0.5s ease forwards;
 }
@@ -149,21 +257,38 @@
 }
 
 .features-count-badge {
-    background-color: rgba(76, 175, 80, 0.6);
+    background-color: rgba(7, 60, 23, 0.6);
     color: white;
     padding: 5px 15px;
     border-radius: 20px;
     font-size: 0.9rem;
     font-family: "REGULAR_FONT";
     margin: 0 auto;
+    /* Remove any hover effects or transitions */
     cursor: default;
     box-shadow: none;
     border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
+.optional-features-content {
+    overflow: hidden;
+    max-height: 0;
+    transition: max-height 0.7s ease;
+    padding: 0 20px;
+    opacity: 0;
+    transition: max-height 0.7s ease, opacity 0.3s ease;
+}
+
+.optional-features-content.expanded {
+    max-height: 10000px;
+    padding: 0 20px 20px 20px;
+    opacity: 1;
+}
+
 /* Top-level expand indicator */
+/* Much larger expand/collapse indicators */
 .expand-indicator {
-    font-size: 24px;
+    font-size: 24px; /* Significantly larger */
     width: 36px;
     height: 36px;
     display: flex;
@@ -218,411 +343,4 @@
 
 .feature-filter-clear:hover {
     color: white;
-}
-
-/* CATEGORIES LAYOUT - FIXED TO STACKED LINES */
-.feature-categories {
-    display: block;
-    width: 100%;
-    position: relative;
-}
-
-.feature-category {
-    background-color: rgba(0, 0, 0, 0.3);
-    border-radius: 10px;
-    padding: 15px 20px;
-    border-left: 3px solid rgba(76, 175, 80, 0.8);
-    margin-bottom: 20px;
-    position: relative;
-    width: 100%;
-    box-sizing: border-box;
-    display: block;
-    clear: both;
-    overflow: visible;
-}
-
-/* ENTIRE HEADER IS CLICKABLE */
-.category-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    cursor: pointer;
-    padding-right: 50px; /* More space for arrow */
-    position: relative;
-}
-
-.category-title-section {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-
-.category-name {
-    margin: 0;
-    font-size: 1.2rem;
-}
-
-.category-count {
-    background-color: rgba(76, 175, 80, 0.5);
-    padding: 3px 8px;
-    border-radius: 20px;
-    font-size: 0.8rem;
-}
-
-/* All Enabled/Disabled button styling - Updated with bright colors */
-.category-toggle-all {
-    background-color: rgba(60, 60, 60, 0.8);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: 20px;
-    padding: 6px 15px;
-    font-family: "REGULAR_FONT";
-    font-size: 0.85rem;
-    color: white;
-    letter-spacing: 0.5px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    min-width: 110px;
-    text-align: center;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-    z-index: 5;
-}
-
-.category-toggle-all.toggle-enable {
-    background: linear-gradient(135deg, #4CAF50, #2E7D32);
-    border-color: rgba(76, 175, 80, 0.6);
-    box-shadow: 0 2px 8px rgba(76, 175, 80, 0.3);
-}
-
-.category-toggle-all.toggle-disable {
-    background: linear-gradient(135deg, #f44336, #d32f2f);
-    border-color: rgba(244, 67, 54, 0.6);
-    box-shadow: 0 2px 8px rgba(244, 67, 54, 0.3);
-}
-
-.category-toggle-all:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
-}
-
-.category-toggle-all.toggle-enable:hover {
-    background: linear-gradient(135deg, #66BB6A, #4CAF50);
-    box-shadow: 0 4px 12px rgba(76, 175, 80, 0.4);
-}
-
-.category-toggle-all.toggle-disable:hover {
-    background: linear-gradient(135deg, #f66356, #f44336);
-    box-shadow: 0 4px 12px rgba(244, 67, 54, 0.4);
-}
-
-/* FIXED: Arrow indicators - visible and properly positioned */
-.category-toggle-indicator {
-    position: absolute;
-    right: 15px;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 36px;
-    height: 36px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    background-color: rgba(0, 0, 0, 0.3);
-    border-radius: 50%;
-    font-size: 22px;
-    color: white;
-    transition: transform 0.3s ease;
-    z-index: 10;
-}
-
-.category-toggle-indicator.expanded {
-    transform: translateY(-50%) rotate(180deg);
-}
-
-/* FIXED: Category content with proper height management */
-.category-content {
-    overflow: hidden;
-    max-height: 0;
-    transition: max-height 0.5s ease;
-    display: block;
-    clear: both;
-}
-
-.category-content.expanded {
-    max-height: none;
-    overflow: visible;
-    padding-bottom: 20px;
-    height: auto;
-    min-height: min-content;
-}
-
-.feature-cards-grid {
-    display: block !important;
-    width: 100%;
-    padding: 10px 0;
-    min-height: min-content;
-    clear: both;
-}
-
-.feature-card {
-    display: flex !important;
-    align-items: center;
-    justify-content: space-between;
-    gap: 20px;
-    width: 100%;
-    margin-bottom: 15px;
-    float: none;
-    clear: both;
-    position: relative;
-    box-sizing: border-box;
-    min-height: 80px;
-    
-    /* Styling for horizontal line layout */
-    background-color: rgba(0, 0, 0, 0.7);
-    border-radius: 8px;
-    padding: 15px 20px;
-    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-}
-
-/* Feature card content area - horizontal layout */
-.feature-card-content {
-    display: flex;
-    flex-direction: column;
-    flex-grow: 1;
-    min-width: 0;
-}
-
-/* Feature card header - horizontal layout */
-.feature-card-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    margin-bottom: 5px;
-    width: 100%;
-}
-
-.feature-card-header .feature-card-title {
-    margin: 0;
-    padding: 0;
-    flex-grow: 1;
-    font-size: 1.1rem;
-    line-height: 1.3;
-    color: white;
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
-}
-
-/* Description below title in line layout */
-.feature-card-description {
-    margin: 5px 0 0 0;
-    font-size: 0.9rem;
-    line-height: 1.4;
-    color: rgba(255, 255, 255, 0.8);
-    max-height: none;
-    overflow: visible;
-}
-
-/* Toggle button on the right side */
-.feature-toggle-button {
-    margin: 0;
-    padding: 8px 16px;
-    font-size: 0.85rem;
-    min-width: 80px;
-    text-align: center;
-    flex-shrink: 0;
-    align-self: center;
-    
-    background-color: rgba(60, 60, 60, 0.8);
-    color: white;
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: 6px;
-    font-family: "REGULAR_FONT";
-    cursor: pointer;
-    transition: all 0.3s ease;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
-}
-
-.feature-toggle-button.enabled {
-    background: linear-gradient(135deg, #4CAF50, #2E7D32);
-    border-color: rgba(76, 175, 80, 0.6);
-    box-shadow: 0 2px 8px rgba(76, 175, 80, 0.3);
-}
-
-.feature-toggle-button.disabled {
-    background: linear-gradient(135deg, #f44336, #d32f2f);
-    border-color: rgba(244, 67, 54, 0.6);
-    box-shadow: 0 2px 8px rgba(244, 67, 54, 0.3);
-}
-
-.feature-toggle-button:hover {
-    transform: translateY(-2px);
-}
-
-.feature-toggle-button.enabled:hover {
-    background: linear-gradient(135deg, #66BB6A, #4CAF50);
-    box-shadow: 0 4px 12px rgba(76, 175, 80, 0.4);
-}
-
-.feature-toggle-button.disabled:hover {
-    background: linear-gradient(135deg, #f66356, #f44336);
-    box-shadow: 0 4px 12px rgba(244, 67, 54, 0.4);
-}
-
-/* Enabled/disabled states for line layout */
-.feature-card.feature-enabled {
-    border-left: 4px solid #4CAF50;
-    background-image: linear-gradient(135deg, rgba(0, 0, 0, 0.7), rgba(76, 175, 80, 0.1));
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3), 0 0 10px rgba(76, 175, 80, 0.2);
-}
-
-.feature-card.feature-enabled:hover {
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4), 0 0 20px rgba(76, 175, 80, 0.3);
-    border-left: 4px solid #66BB6A;
-}
-
-.feature-card.feature-disabled {
-    border-left: 4px solid #f44336;
-    background-image: linear-gradient(135deg, rgba(0, 0, 0, 0.7), rgba(244, 67, 54, 0.1));
-}
-
-.feature-card.feature-disabled:hover {
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4), 0 0 15px rgba(244, 67, 54, 0.3);
-}
-
-.feature-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
-}
-
-/* INCLUDED COMPONENTS STYLES */
-.feature-card.feature-included {
-    background-color: rgba(0, 50, 0, 0.3);
-    border-left: 4px solid #2d7a2d;
-    opacity: 0.9;
-    cursor: default;
-}
-
-.feature-card.feature-included:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
-}
-
-.feature-card.feature-included .feature-card-title {
-    color: #a8e6a8;
-}
-
-.feature-card.feature-included .feature-card-description {
-    color: rgba(200, 255, 200, 0.8);
-}
-
-.feature-card.feature-included .feature-card-header {
-    cursor: default;
-}
-
-.feature-toggle-button.included-component {
-    background: linear-gradient(135deg, #6a6a6a, #4a4a4a) !important;
-    color: #cccccc !important;
-    cursor: default;
-    pointer-events: none;
-    opacity: 0.8;
-}
-
-/* Included category styling */
-.category-count.included-count {
-    background-color: rgba(45, 122, 45, 0.5);
-    color: #a8e6a8;
-    font-weight: 600;
-}
-
-/* Better visual distinction for included components category */
-.feature-category:has(.category-name:contains("INCLUDED MODS")) {
-    background-color: rgba(0, 30, 0, 0.2);
-    border-left-color: #2d7a2d;
-    position: static;
-    display: block;
-    clear: both;
-    margin-bottom: 30px;
-    height: auto;
-    min-height: min-content;
-}
-
-.feature-category:has(.category-name:contains("INCLUDED MODS")) .category-header {
-    background-color: rgba(0, 50, 0, 0.1);
-}
-
-.feature-category:has(.category-name:contains("INCLUDED MODS")) .category-header:hover {
-    background-color: rgba(0, 60, 0, 0.2);
-}
-
-/* FIXED: Ensure categories after included don't overlap */
-.feature-category:has(.category-name:contains("INCLUDED MODS")) + .feature-category {
-    clear: both;
-    margin-top: 20px;
-}
-
-/* Dependency warning styling */
-.feature-dependencies {
-    background: linear-gradient(135deg, rgba(255, 193, 7, 0.1), rgba(255, 193, 7, 0.05));
-    border-left: 2px solid #ffc107;
-    padding: 6px 10px;
-    margin-top: 10px;
-    font-size: 0.85rem;
-    color: rgba(255, 255, 255, 0.9);
-    border-radius: 4px;
-    line-height: 1.4;
-}
-
-.dependency-list {
-    font-weight: 600;
-    color: #ffeb3b;
-    cursor: help;
-    text-decoration: underline dotted;
-    text-underline-offset: 2px;
-}
-
-/* Visual feedback for auto-enabled dependencies */
-.feature-card.auto-enabled {
-    animation: dependency-flash 0.5s ease-in-out;
-}
-
-@keyframes dependency-flash {
-    0% {
-        background-color: rgba(0, 0, 0, 0.7);
-    }
-    50% {
-        background-color: rgba(255, 193, 7, 0.2);
-        box-shadow: 0 0 15px rgba(255, 193, 7, 0.3);
-    }
-    100% {
-        background-color: rgba(0, 0, 0, 0.7);
-    }
-}
-
-/* Dependency chain visual indicator */
-.feature-card.has-dependencies {
-    position: relative;
-}
-
-.feature-card.has-dependencies::after {
-    content: "🔗";
-    position: absolute;
-    top: 10px;
-    right: 10px;
-    font-size: 0.8rem;
-    opacity: 0.6;
-}
-
-/* Visual feedback when hovering over features with dependencies */
-.feature-card:has(.feature-dependencies):hover {
-    box-shadow: 0 6px 16px rgba(255, 193, 7, 0.15);
-}
-
-/* Style for features that are dependencies of others */
-.feature-card.is-dependency {
-    background-color: rgba(255, 193, 7, 0.05);
-}
-
-.feature-card.is-dependency .feature-card-title::after {
-    content: " (Dependency)";
-    font-size: 0.7rem;
-    opacity: 0.6;
-    font-weight: normal;
 }
