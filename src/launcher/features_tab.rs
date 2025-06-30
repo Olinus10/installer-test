@@ -157,85 +157,74 @@ pub fn FeaturesTab(
             // Presets grid - ONLY ONE RENDERING BLOCK
             div { class: "presets-grid",
                 // Custom preset (no preset selected)
-                div { 
-                    class: if selected_preset.read().is_none() {
-                        "preset-card selected"
-                    } else {
-                        "preset-card"
-                    },
-                    // Apply custom preset background if available
-                    style: if let Some(preset) = custom_preset {
-                        if let Some(bg) = &preset.background {
-                            format!("background-image: url('{}'); background-size: cover; background-position: center;", bg)
-                        } else {
-                            String::new()
-                        }
-                    } else {
-                        String::new()
-                    },
-                    onclick: move |_| {
-                        // When selecting custom preset, ensure default features are included
-                        enabled_features.with_mut(|features| {
-                            // Always ensure "default" is present
-                            if !features.contains(&"default".to_string()) {
-                                features.insert(0, "default".to_string());
-                            }
-                            
-                            // Add any default-enabled features from the universal manifest if available
-                            if let Some(manifest) = &universal_manifest {
-                                for component in &manifest.mods {
-                                    if component.default_enabled && !features.contains(&component.id) {
-                                        features.push(component.id.clone());
-                                    }
-                                }
-                                for component in &manifest.shaderpacks {
-                                    if component.default_enabled && !features.contains(&component.id) {
-                                        features.push(component.id.clone());
-                                    }
-                                }
-                                for component in &manifest.resourcepacks {
-                                    if component.default_enabled && !features.contains(&component.id) {
-                                        features.push(component.id.clone());
-                                    }
-                                }
-                            }
-                        });
-                        
-                        selected_preset.set(None);
-                    },
-                    
-                    div { class: "preset-card-overlay" }
-                    
-                    div { class: "preset-card-content",
-                        h4 { "CUSTOM OVERHAUL" }
-                        p { "Start with your current selection and customize everything yourself." }
-                    }
-                    
-                    // Select/Selected button
-                    button {
-                        class: "select-preset-button",
-                        style: {
-                            let is_selected = selected_preset.read().is_none();
-                            let is_hovered = *custom_button_hover.read();
-                            
-                            if is_selected {
-                                "background-color: white !important; color: #0a3d16 !important; border: none !important;"
-                            } else if is_hovered {
-                                "background-color: rgba(10, 80, 30, 0.9) !important; color: white !important; transform: translateX(-50%) translateY(-3px) !important; box-shadow: 0 5px 15px rgba(0, 0, 0, 0.4) !important;"
-                            } else {
-                                "background-color: rgba(7, 60, 23, 0.7) !important; color: white !important;"
-                            }
-                        },
-                        onmouseenter: move |_| custom_button_hover.set(true),
-                        onmouseleave: move |_| custom_button_hover.set(false),
-                        
-                        if selected_preset.read().is_none() {
-                            "SELECTED"
-                        } else {
-                            "SELECT"
-                        }
+div { 
+    class: if selected_preset.read().is_none() {
+        "preset-card selected"
+    } else {
+        "preset-card"
+    },
+    onclick: move |_| {
+        // UPDATED: Clear features when selecting custom preset
+        enabled_features.with_mut(|features| {
+            // Clear all features except "default"
+            features.clear();
+            features.push("default".to_string());
+            
+            // Add any default-enabled features from the universal manifest
+            if let Some(manifest) = &universal_manifest {
+                for component in &manifest.mods {
+                    if component.default_enabled && !features.contains(&component.id) {
+                        features.push(component.id.clone());
                     }
                 }
+                for component in &manifest.shaderpacks {
+                    if component.default_enabled && !features.contains(&component.id) {
+                        features.push(component.id.clone());
+                    }
+                }
+                for component in &manifest.resourcepacks {
+                    if component.default_enabled && !features.contains(&component.id) {
+                        features.push(component.id.clone());
+                    }
+                }
+            }
+        });
+        
+        selected_preset.set(None);
+    },
+    
+    div { class: "preset-card-overlay" }
+    
+    div { class: "preset-card-content",
+        h4 { "CUSTOM OVERHAUL" }
+        p { "Start with default features and customize everything yourself." }
+    }
+    
+    // Select/Selected button
+    button {
+        class: "select-preset-button",
+        style: {
+            let is_selected = selected_preset.read().is_none();
+            let is_hovered = *custom_button_hover.read();
+            
+            if is_selected {
+                "background-color: white !important; color: #0a3d16 !important; border: none !important;"
+            } else if is_hovered {
+                "background-color: rgba(10, 80, 30, 0.9) !important; color: white !important; transform: translateX(-50%) translateY(-3px) !important; box-shadow: 0 5px 15px rgba(0, 0, 0, 0.4) !important;"
+            } else {
+                "background-color: rgba(7, 60, 23, 0.7) !important; color: white !important;"
+            }
+        },
+        onmouseenter: move |_| custom_button_hover.set(true),
+        onmouseleave: move |_| custom_button_hover.set(false),
+        
+        if selected_preset.read().is_none() {
+            "SELECTED"
+        } else {
+            "SELECT"
+        }
+    }
+}
                 
                 // Available presets - skip the "custom" preset since we handle it separately
                 for preset in presets.iter().filter(|p| p.id != "custom") {
