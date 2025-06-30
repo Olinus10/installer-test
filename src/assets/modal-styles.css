@@ -214,33 +214,20 @@
     transition: all 0.2s ease;
 }
 
-.settings-action-button:hover {
-    background-color: rgba(0, 0, 0, 0.7);
-    transform: translateY(-3px);
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+/* Settings action buttons with colors */
+.settings-action-button.folder-button:hover {
+    background: linear-gradient(135deg, rgba(33, 150, 243, 0.3), rgba(21, 101, 192, 0.3));
+    border-color: rgba(33, 150, 243, 0.5);
 }
 
-.settings-action-button .action-icon {
-    font-size: 1.2rem;
-}
-
-.delete-button {
-    border-color: rgba(244, 67, 54, 0.5);
-}
-
-.delete-button:hover {
-    background-color: rgba(244, 67, 54, 0.2);
-    border-color: rgba(244, 67, 54, 0.8);
-}
-
-.rename-button:hover {
-    background-color: rgba(76, 175, 80, 0.2);
+.settings-action-button.rename-button:hover {
+    background: linear-gradient(135deg, rgba(76, 175, 80, 0.3), rgba(46, 125, 50, 0.3));
     border-color: rgba(76, 175, 80, 0.5);
 }
 
-.folder-button:hover {
-    background-color: rgba(74, 85, 162, 0.2);
-    border-color: rgba(74, 85, 162, 0.5);
+.settings-action-button.delete-button:hover {
+    background: linear-gradient(135deg, rgba(244, 67, 54, 0.3), rgba(211, 47, 47, 0.3));
+    border-color: rgba(244, 67, 54, 0.5);
 }
 
 /* Advanced section styles */
@@ -745,51 +732,43 @@ button:disabled {
     margin-top: 20px;
 }
 
-/* Update warning dialog styles */
+/* 2. UPDATE WARNING POPUP - Button Fixes */
 .update-warning-dialog {
     max-width: 600px;
 }
 
-.warning-message {
-    background-color: rgba(255, 193, 7, 0.1);
-    border-left: 4px solid #ffc107;
-    padding: 15px;
-    border-radius: 4px;
-    margin-bottom: 20px;
+.update-warning-dialog .modal-footer .cancel-button {
+    background: linear-gradient(135deg, #f44336, #d32f2f);
+    border: none;
+    color: white;
+    padding: 10px 20px;
+    border-radius: 6px;
+    font-family: "REGULAR_FONT";
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(244, 67, 54, 0.3);
 }
 
-.warning-message p {
-    margin: 10px 0;
-    color: rgba(255, 255, 255, 0.9);
-}
-
-.protection-steps {
-    margin: 15px 0 15px 30px;
-    color: rgba(255, 255, 255, 0.9);
-}
-
-.protection-steps li {
-    margin-bottom: 10px;
-}
-
-.warning-note {
-    background-color: rgba(74, 144, 226, 0.1);
-    border-left: 4px solid #4a90e2;
-    padding: 12px;
-    border-radius: 4px;
-    margin-top: 15px;
-}
-
-.warning-note p {
-    margin: 0;
-    font-size: 0.9rem;
+.update-warning-dialog .modal-footer .cancel-button:hover {
+    background: linear-gradient(135deg, #f66356, #f44336);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(244, 67, 54, 0.4);
 }
 
 .update-proceed-button {
-    background: linear-gradient(135deg, #ffc107, #ffca28);
-    color: #000;
+    background: linear-gradient(135deg, #2196F3, #1565C0) !important;
+    color: white !important;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 6px;
+    font-family: "REGULAR_FONT";
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(33, 150, 243, 0.3);
 }
 
 .update-proceed-button:hover {
-    background: linear-gradient(135deg, #ffca28, #ffd54f);
+    background: linear-gradient(135deg, #42A5F5, #2196F3) !important;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(33, 150, 243, 0.4);
 }
