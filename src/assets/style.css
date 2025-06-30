@@ -423,6 +423,21 @@ a:hover {
     box-sizing: border-box;
 }
 
+.main-container {
+    animation: pageSlideIn 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+@keyframes pageSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
 .version-container, .home-container, .settings-container, 
 .launcher-container, .no-launcher-container, .progress-container {
     padding-right: 20px;
@@ -2007,35 +2022,36 @@ a:hover {
     }
 }
 
-/* Animated stripes overlay */
+.progress-bar {
+    position: relative;
+    overflow: hidden;
+}
+
 .progress-bar::before {
     content: '';
     position: absolute;
     top: 0;
     left: 0;
-    right: 0;
-    bottom: 0;
-    background-image: linear-gradient(
-        45deg,
-        transparent 25%,
-        rgba(255, 255, 255, 0.1) 25%,
-        rgba(255, 255, 255, 0.1) 50%,
-        transparent 50%,
-        transparent 75%,
-        rgba(255, 255, 255, 0.1) 75%,
-        rgba(255, 255, 255, 0.1)
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+        90deg,
+        transparent,
+        rgba(255, 255, 255, 0.4),
+        transparent
     );
-    background-size: 30px 30px;
-    animation: stripes-move 1s linear infinite;
-    border-radius: 12px;
+    animation: progressShine 2s ease-in-out infinite;
 }
 
-@keyframes stripes-move {
+@keyframes progressShine {
     0% {
-        background-position: 30px 30px;
+        transform: translateX(-100%);
+    }
+    50% {
+        transform: translateX(0);
     }
     100% {
-        background-position: 0 0;
+        transform: translateX(100%);
     }
 }
 
@@ -2252,13 +2268,23 @@ a:hover {
     margin: 50px auto;
 }
 
+/* 5. LOADING ANIMATIONS */
 .loading-spinner {
     width: 60px;
     height: 60px;
-    border: 6px solid rgba(255, 255, 255, 0.2);
+    border: 6px solid rgba(76, 175, 80, 0.2);
     border-radius: 50%;
-    border-top-color: #fff;
-    animation: spin 1s ease-in-out infinite;
+    border-top-color: #4CAF50;
+    animation: modernSpin 1s ease-in-out infinite;
+}
+
+@keyframes modernSpin {
+    0% {
+        transform: rotate(0deg);
+    }
+    100% {
+        transform: rotate(360deg);
+    }
 }
 
 .loading-text {
@@ -2789,7 +2815,7 @@ a:hover {
     color: rgba(255, 255, 255, 0.5);
 }
 
-/* Background Particles */
+/* 2. ADVANCED PARTICLE SYSTEM */
 .particles-container {
     position: fixed;
     top: 0;
@@ -2801,20 +2827,85 @@ a:hover {
     pointer-events: none;
 }
 
+/* Enhanced particles with more variety */
 .particle {
     position: absolute;
     border-radius: 50%;
-    background-color: rgba(255, 255, 255, 0.3);
     pointer-events: none;
     will-change: transform;
 }
 
+.particle.glow {
+    background: radial-gradient(circle, rgba(76, 175, 80, 0.6) 0%, rgba(76, 175, 80, 0.1) 70%, transparent 100%);
+    box-shadow: 0 0 20px rgba(76, 175, 80, 0.3);
+}
+
+.particle.sparkle {
+    background: linear-gradient(45deg, 
+        rgba(255, 255, 255, 0.8) 0%, 
+        rgba(255, 215, 0, 0.6) 50%, 
+        rgba(255, 255, 255, 0.8) 100%);
+    animation: sparkle 3s ease-in-out infinite;
+}
+
 .particle.purple {
-    background-color: rgba(140, 58, 120, 0.3);
+    background: radial-gradient(circle, rgba(156, 39, 176, 0.4) 0%, transparent 70%);
 }
 
 .particle.green {
-    background-color: rgba(7, 60, 23, 0.3);
+    background: radial-gradient(circle, rgba(76, 175, 80, 0.4) 0%, transparent 70%);
+}
+
+@keyframes sparkle {
+    0%, 100% { 
+        opacity: 0.3;
+        transform: scale(0.8);
+    }
+    50% { 
+        opacity: 1;
+        transform: scale(1.2);
+    }
+}
+
+/* Floating geometric shapes */
+.particle.triangle {
+    width: 0;
+    height: 0;
+    border-left: 8px solid transparent;
+    border-right: 8px solid transparent;
+    border-bottom: 14px solid rgba(76, 175, 80, 0.3);
+    border-radius: 0;
+    animation: floatRotate 15s linear infinite;
+}
+
+.particle.diamond {
+    width: 12px;
+    height: 12px;
+    background: rgba(255, 215, 0, 0.4);
+    transform: rotate(45deg);
+    border-radius: 0;
+    animation: diamondFloat 12s ease-in-out infinite;
+}
+
+@keyframes floatRotate {
+    0% {
+        transform: translateY(100vh) rotate(0deg);
+    }
+    100% {
+        transform: translateY(-10vh) rotate(360deg);
+    }
+}
+
+@keyframes diamondFloat {
+    0% {
+        transform: translateY(100vh) rotate(45deg) scale(0.5);
+    }
+    50% {
+        transform: translateY(50vh) rotate(225deg) scale(1.2);
+    }
+    100% {
+        transform: translateY(-10vh) rotate(405deg) scale(0.8);
+    }
 }
 
 /* Section dividers */
@@ -3317,4 +3408,26 @@ a:hover {
     }
 }
 
+.content-fade-in {
+    animation: contentFadeIn 0.8s ease-out;
+}
 
+@keyframes contentFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px) scale(0.98);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+/* Performance optimizations */
+.particle,
+.installation-card,
+.preset-card,
+.feature-card {
+    transform: translateZ(0);
+    backface-visibility: hidden;
+}
