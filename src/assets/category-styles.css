@@ -41,14 +41,14 @@
     max-width: 700px;
 }
 
-/* Enhanced Expand/Collapse Features Button */
+/* Enhanced Expand/Collapse Features Button - Updated to bright green */
 .expand-collapse-button {
     display: flex;
     align-items: center;
     justify-content: center;
-    background: linear-gradient(135deg, #2a2a35, #1a1a25);
+    background: linear-gradient(135deg, #4CAF50, #2E7D32);
     color: white;
-    border: 2px solid rgba(255, 255, 255, 0.2);
+    border: 2px solid rgba(76, 175, 80, 0.6);
     border-radius: 30px;
     padding: 14px 35px;
     font-family: "HEADER_FONT";
@@ -60,17 +60,17 @@
     margin: 20px auto 25px auto;
     width: fit-content;
     min-width: 250px;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+    box-shadow: 0 4px 15px rgba(76, 175, 80, 0.4);
     position: relative;
     overflow: hidden;
     text-transform: uppercase;
 }
 
 .expand-collapse-button:hover {
-    background: linear-gradient(135deg, #3a3a45, #2a2a35);
+    background: linear-gradient(135deg, #66BB6A, #4CAF50);
     transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
-    border-color: rgba(255, 255, 255, 0.3);
+    box-shadow: 0 6px 20px rgba(76, 175, 80, 0.5);
+    border-color: rgba(76, 175, 80, 0.8);
 }
 
 .button-icon {
@@ -220,11 +220,10 @@
     color: white;
 }
 
-/* CATEGORIES LAYOUT - FIXED */
+/* CATEGORIES LAYOUT - FIXED TO STACKED LINES */
 .feature-categories {
     display: block;
     width: 100%;
-    /* Ensure proper stacking context */
     position: relative;
 }
 
@@ -237,7 +236,6 @@
     position: relative;
     width: 100%;
     box-sizing: border-box;
-    /* FIXED: Ensure proper height calculation and stacking */
     display: block;
     clear: both;
     overflow: visible;
@@ -289,7 +287,6 @@
     z-index: 5;
 }
 
-/* 10. CATEGORY TOGGLE BUTTONS - Updated Colors */
 .category-toggle-all.toggle-enable {
     background: linear-gradient(135deg, #4CAF50, #2E7D32);
     border-color: rgba(76, 175, 80, 0.6);
@@ -302,6 +299,11 @@
     box-shadow: 0 2px 8px rgba(244, 67, 54, 0.3);
 }
 
+.category-toggle-all:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+}
+
 .category-toggle-all.toggle-enable:hover {
     background: linear-gradient(135deg, #66BB6A, #4CAF50);
     box-shadow: 0 4px 12px rgba(76, 175, 80, 0.4);
@@ -311,13 +313,6 @@
     background: linear-gradient(135deg, #f66356, #f44336);
     box-shadow: 0 4px 12px rgba(244, 67, 54, 0.4);
 }
-
-.category-toggle-all:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
-}
-
-
 
 /* FIXED: Arrow indicators - visible and properly positioned */
 .category-toggle-indicator {
@@ -333,9 +328,9 @@
     background-color: rgba(0, 0, 0, 0.3);
     border-radius: 50%;
     font-size: 22px;
-    color: white; /* FIXED: Make arrow visible */
+    color: white;
     transition: transform 0.3s ease;
-    z-index: 10; /* FIXED: Ensure it's on top */
+    z-index: 10;
 }
 
 .category-toggle-indicator.expanded {
@@ -347,7 +342,6 @@
     overflow: hidden;
     max-height: 0;
     transition: max-height 0.5s ease;
-    /* FIXED: Ensure proper flow */
     display: block;
     clear: both;
 }
@@ -356,36 +350,153 @@
     max-height: none;
     overflow: visible;
     padding-bottom: 20px;
-    /* FIXED: Force height calculation */
     height: auto;
     min-height: min-content;
 }
 
-/* FIXED: Feature cards - stacked layout with proper spacing */
+/* FIXED: Feature cards - FULL WIDTH STACKED LAYOUT (not grid) */
 .feature-cards-grid {
-    display: block;
+    display: block !important;
     width: 100%;
     padding: 10px 0;
-    /* FIXED: Ensure proper height and flow */
     min-height: min-content;
     clear: both;
 }
 
 .feature-card {
-    display: block;
+    display: flex !important;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
     width: 100%;
     margin-bottom: 15px;
-    /* FIXED: Prevent floating and overlap */
     float: none;
     clear: both;
     position: relative;
     box-sizing: border-box;
+    min-height: 80px;
+    
+    /* Styling for horizontal line layout */
+    background-color: rgba(0, 0, 0, 0.7);
+    border-radius: 8px;
+    padding: 15px 20px;
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+/* Feature card content area - horizontal layout */
+.feature-card-content {
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+    min-width: 0;
+}
+
+/* Feature card header - horizontal layout */
+.feature-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 5px;
+    width: 100%;
+}
+
+.feature-card-header .feature-card-title {
+    margin: 0;
+    padding: 0;
+    flex-grow: 1;
+    font-size: 1.1rem;
+    line-height: 1.3;
+    color: white;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+/* Description below title in line layout */
+.feature-card-description {
+    margin: 5px 0 0 0;
+    font-size: 0.9rem;
+    line-height: 1.4;
+    color: rgba(255, 255, 255, 0.8);
+    max-height: none;
+    overflow: visible;
+}
+
+/* Toggle button on the right side */
+.feature-toggle-button {
+    margin: 0;
+    padding: 8px 16px;
+    font-size: 0.85rem;
+    min-width: 80px;
+    text-align: center;
+    flex-shrink: 0;
+    align-self: center;
+    
+    background-color: rgba(60, 60, 60, 0.8);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 6px;
+    font-family: "REGULAR_FONT";
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+.feature-toggle-button.enabled {
+    background: linear-gradient(135deg, #4CAF50, #2E7D32);
+    border-color: rgba(76, 175, 80, 0.6);
+    box-shadow: 0 2px 8px rgba(76, 175, 80, 0.3);
+}
+
+.feature-toggle-button.disabled {
+    background: linear-gradient(135deg, #f44336, #d32f2f);
+    border-color: rgba(244, 67, 54, 0.6);
+    box-shadow: 0 2px 8px rgba(244, 67, 54, 0.3);
+}
+
+.feature-toggle-button:hover {
+    transform: translateY(-2px);
+}
+
+.feature-toggle-button.enabled:hover {
+    background: linear-gradient(135deg, #66BB6A, #4CAF50);
+    box-shadow: 0 4px 12px rgba(76, 175, 80, 0.4);
+}
+
+.feature-toggle-button.disabled:hover {
+    background: linear-gradient(135deg, #f66356, #f44336);
+    box-shadow: 0 4px 12px rgba(244, 67, 54, 0.4);
+}
+
+/* Enabled/disabled states for line layout */
+.feature-card.feature-enabled {
+    border-left: 4px solid #4CAF50;
+    background-image: linear-gradient(135deg, rgba(0, 0, 0, 0.7), rgba(76, 175, 80, 0.1));
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3), 0 0 10px rgba(76, 175, 80, 0.2);
+}
+
+.feature-card.feature-enabled:hover {
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4), 0 0 20px rgba(76, 175, 80, 0.3);
+    border-left: 4px solid #66BB6A;
+}
+
+.feature-card.feature-disabled {
+    border-left: 4px solid #f44336;
+    background-image: linear-gradient(135deg, rgba(0, 0, 0, 0.7), rgba(244, 67, 54, 0.1));
+}
+
+.feature-card.feature-disabled:hover {
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4), 0 0 15px rgba(244, 67, 54, 0.3);
+}
+
+.feature-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
 }
 
 /* INCLUDED COMPONENTS STYLES */
 .feature-card.feature-included {
     background-color: rgba(0, 50, 0, 0.3);
-    border-left: 3px solid #2d7a2d;
+    border-left: 4px solid #2d7a2d;
     opacity: 0.9;
     cursor: default;
 }
@@ -408,11 +519,11 @@
 }
 
 .feature-toggle-button.included-component {
-    background-color: rgba(45, 122, 45, 0.6) !important;
-    border-color: rgba(45, 122, 45, 0.8) !important;
-    color: #a8e6a8 !important;
-    font-weight: 600;
+    background: linear-gradient(135deg, #6a6a6a, #4a4a4a) !important;
+    color: #cccccc !important;
+    cursor: default;
     pointer-events: none;
+    opacity: 0.8;
 }
 
 /* Included category styling */
@@ -426,7 +537,6 @@
 .feature-category:has(.category-name:contains("INCLUDED MODS")) {
     background-color: rgba(0, 30, 0, 0.2);
     border-left-color: #2d7a2d;
-    /* FIXED: Ensure proper spacing and flow */
     position: static;
     display: block;
     clear: both;
@@ -516,4 +626,63 @@
     font-size: 0.7rem;
     opacity: 0.6;
     font-weight: normal;
+}
+
+/* Dependencies and metadata - inline for line layout */
+.feature-dependencies, .feature-incompatibilities, .feature-authors {
+    font-size: 0.8rem;
+    margin-top: 8px;
+    color: rgba(255, 255, 255, 0.7);
+    background-color: rgba(0, 0, 0, 0.3);
+    padding: 5px 8px;
+    border-radius: 4px;
+    display: inline-block;
+    margin-right: 10px;
+}
+
+.feature-dependencies {
+    border-left: 2px solid #4CAF50;
+}
+
+.feature-incompatibilities {
+    border-left: 2px solid #f44336;
+}
+
+.feature-authors {
+    border-left: 2px solid #ffb900;
+}
+
+/* Responsive - stack elements on mobile */
+@media (max-width: 768px) {
+    .feature-card {
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        gap: 10px;
+        min-height: auto;
+        padding: 15px;
+    }
+    
+    .feature-card-header {
+        flex-direction: column;
+        align-items: flex-start;
+        width: 100%;
+    }
+    
+    .feature-toggle-button {
+        align-self: flex-end;
+        margin-top: 10px;
+    }
+    
+    .feature-card-description {
+        margin-top: 10px;
+    }
+}
+
+/* Make sure this overrides any grid layouts from other CSS files */
+.features-tab .feature-cards-grid,
+.optional-features-content .feature-cards-grid,
+.category-content .feature-cards-grid {
+    display: block !important;
+    grid-template-columns: none !important;
+    gap: 0 !important;
 }
