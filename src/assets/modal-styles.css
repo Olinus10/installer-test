@@ -749,20 +749,34 @@ button:disabled {
 }
 
 .update-proceed-button {
-    background: linear-gradient(135deg, #2196F3, #1565C0) !important;
-    color: white !important;
+    background: linear-gradient(135deg, #FFD700, #FFA500) !important;
+    color: #000 !important;
     border: none;
     padding: 10px 20px;
     border-radius: 6px;
     font-family: "REGULAR_FONT";
     cursor: pointer;
     transition: all 0.3s ease;
-    box-shadow: 0 2px 8px rgba(33, 150, 243, 0.3);
+    box-shadow: 0 2px 8px rgba(255, 215, 0, 0.3);
 }
 
 .update-proceed-button:hover {
-    background: linear-gradient(135deg, #42A5F5, #2196F3) !important;
+    background: linear-gradient(135deg, #FFEF94, #FFD700) !important;
     transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(255, 215, 0, 0.4);
+}
+
+.settings-action-button.folder-button,
+.folder-button {
+    background: linear-gradient(135deg, #2196F3, #1565C0);
+    border-color: rgba(33, 150, 243, 0.6);
+    box-shadow: 0 2px 8px rgba(33, 150, 243, 0.3);
+}
+
+.settings-action-button.folder-button:hover,
+.folder-button:hover {
+    background: linear-gradient(135deg, #42A5F5, #2196F3);
+    border-color: rgba(33, 150, 243, 0.8);
     box-shadow: 0 4px 12px rgba(33, 150, 243, 0.4);
 }
 
