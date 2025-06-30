@@ -1440,9 +1440,13 @@ let action_button_disabled = *is_installing.read() ||
                              !*has_changes.read());
     
     // Handle launch
-    let handle_launch = move |_| {
-        let mut installation_error_clone = installation_error.clone();
-        let installation_id = installation_id_for_launch.clone();
+let handle_launch = {
+    let mut installation_error_clone = installation_error.clone();
+    let installation_id = installation_id_for_launch.clone();
+    
+    move |_| {
+        let mut installation_error_clone = installation_error_clone.clone();
+        let installation_id = installation_id.clone();
         
         // Create a channel to communicate back to the main thread
         let (error_tx, error_rx) = std::sync::mpsc::channel::<String>();
@@ -1466,7 +1470,8 @@ let action_button_disabled = *is_installing.read() ||
                 installation_error_clone.set(Some(error_message));
             }
         });
-    };
+    }
+};
 
     use_effect({
     let installation_id = installation.id.clone();
@@ -1535,6 +1540,8 @@ use_effect({
         }
     }
 });
+
+    let handle_launch_header = handle_launch.clone();
     
     rsx! {
         div { class: "installation-management-container",
@@ -1571,15 +1578,15 @@ use_effect({
     }
     
     // ADD LAUNCH BUTTON TO HEADER
-    div { class: "installation-header-actions",
-        button {
-            class: "header-launch-button",
-            disabled: !installation_state.read().installed || *is_installing.read(),
-            onclick: &handle_launch,
-            if installation_state.read().installed {
-                "LAUNCH GAME"
-            } else {
-                "INSTALL FIRST"
+        div { class: "installation-header-actions",
+            button {
+                class: "header-launch-button",
+                disabled: !installation_state.read().installed || *is_installing.read(),
+                onclick: handle_launch_header, // Use the cloned version
+                if installation_state.read().installed {
+                    "LAUNCH GAME"
+                } else {
+                    "INSTALL FIRST"
             }
         }
     }
@@ -1827,15 +1834,7 @@ SettingsTab {
                 }
                 
                 // Bottom action bar with install/update/modify button
-                div { class: "installation-actions",
-                    // Launch button
-                    button {
-                        class: "launch-button",
-                        disabled: !installation_state.read().installed || *is_installing.read(),
-                        onclick: handle_launch,
-                        "LAUNCH GAME"
-                    }
-                    
+                div { class: "installation-actions",                    
                     // Install/Update/Modify button
 button {
     class: button_class,
