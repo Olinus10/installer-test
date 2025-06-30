@@ -1790,7 +1790,6 @@ a:hover {
     margin-bottom: 15px;
     padding-bottom: 15px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    transition: background-color 0.2s ease;
 }
 
 .credit-item:hover {
@@ -2235,16 +2234,6 @@ a:hover {
     text-transform: uppercase;
     letter-spacing: 0.1em;
     opacity: 0.8;
-}
-
-.stat-item:hover .stat-value {
-    transform: translateY(-3px);
-    transition: transform 0.3s ease;
-}
-
-.stat-item:hover .stat-label {
-    opacity: 1;
-    transition: opacity 0.3s ease;
 }
 
 /* Loading Container */
@@ -2884,13 +2873,6 @@ a:hover {
     border-radius: 6px;
     box-shadow: 0 3px 8px rgba(0, 0, 0, 0.3);
     border-left: 3px solid rgba(255, 255, 255, 0.2);
-    transition: all 0.3s ease;
-}
-
-.changelog-entry:hover {
-    background-color: rgba(0, 0, 0, 0.4);
-    transform: translateY(-2px);
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.4);
 }
 
 .changelog-entry[data-importance="major"] {
@@ -3325,5 +3307,411 @@ a:hover {
     to {
         opacity: 1;
         transform: translateY(0);
+    }
+}
+
+
+/* AAAAAAAAAAAAAAAAAAA */
+
+/* Main container fade-in animation */
+.main-container {
+    animation: pageSlideIn 0.6s cubic-bezier(0.23, 1, 0.32, 1) forwards;
+}
+
+@keyframes pageSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Staggered content animation */
+.version-container,
+.home-container,
+.settings-container,
+.launcher-container,
+.no-launcher-container,
+.progress-container {
+    animation: contentFadeUp 0.8s cubic-bezier(0.23, 1, 0.32, 1) forwards;
+    animation-delay: 0.2s;
+    opacity: 0;
+}
+
+@keyframes contentFadeUp {
+    from {
+        opacity: 0;
+        transform: translateY(40px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* 4. FLOATING PARTICLES BACKGROUND EFFECT */
+.particles-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    z-index: 0;
+    pointer-events: none;
+}
+
+/* Add more particles with different animations */
+.particle {
+    position: absolute;
+    border-radius: 50%;
+    pointer-events: none;
+    will-change: transform;
+    opacity: 0.6;
+}
+
+.particle.small {
+    width: 4px;
+    height: 4px;
+    background: radial-gradient(circle, rgba(76, 175, 80, 0.3), transparent);
+    animation: floatUp 8s linear infinite;
+}
+
+.particle.medium {
+    width: 8px;
+    height: 8px;
+    background: radial-gradient(circle, rgba(255, 255, 255, 0.2), transparent);
+    animation: floatDiagonal 12s linear infinite;
+}
+
+.particle.large {
+    width: 12px;
+    height: 12px;
+    background: radial-gradient(circle, rgba(76, 175, 80, 0.1), transparent);
+    animation: floatSlow 15s linear infinite;
+}
+
+@keyframes floatUp {
+    0% {
+        transform: translateY(100vh) rotate(0deg);
+        opacity: 0;
+    }
+    10% {
+        opacity: 0.6;
+    }
+    90% {
+        opacity: 0.6;
+    }
+    100% {
+        transform: translateY(-10vh) rotate(360deg);
+        opacity: 0;
+    }
+}
+
+@keyframes floatDiagonal {
+    0% {
+        transform: translate(0, 100vh) rotate(0deg);
+        opacity: 0;
+    }
+    10% {
+        opacity: 0.4;
+    }
+    90% {
+        opacity: 0.4;
+    }
+    100% {
+        transform: translate(50px, -10vh) rotate(360deg);
+        opacity: 0;
+    }
+}
+
+@keyframes floatSlow {
+    0% {
+        transform: translate(0, 100vh) rotate(0deg) scale(0.5);
+        opacity: 0;
+    }
+    10% {
+        opacity: 0.3;
+        transform: translate(0, 95vh) rotate(30deg) scale(1);
+    }
+    90% {
+        opacity: 0.3;
+    }
+    100% {
+        transform: translate(-30px, -10vh) rotate(360deg) scale(0.5);
+        opacity: 0;
+    }
+}
+
+/* 5. ADVANCED BUTTON EFFECTS */
+
+/* Ripple effect on button click */
+.header-tab-button,
+.primary-button,
+.secondary-button,
+.main-install-button,
+.create-button,
+.category-toggle-all {
+    position: relative;
+    overflow: hidden;
+}
+
+.header-tab-button::after,
+.primary-button::after,
+.secondary-button::after,
+.main-install-button::after,
+.create-button::after,
+.category-toggle-all::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    transition: width 0.6s, height 0.6s;
+    pointer-events: none;
+}
+
+.header-tab-button:active::after,
+.primary-button:active::after,
+.secondary-button:active::after,
+.main-install-button:active::after,
+.create-button:active::after,
+.category-toggle-all:active::after {
+    width: 300px;
+    height: 300px;
+}
+
+/* 6. CARD ENTRANCE ANIMATIONS */
+
+/* Installation cards staggered entrance */
+.installation-card {
+    animation: cardSlideIn 0.6s cubic-bezier(0.23, 1, 0.32, 1) forwards;
+    opacity: 0;
+}
+
+.installation-card:nth-child(1) { animation-delay: 0.1s; }
+.installation-card:nth-child(2) { animation-delay: 0.2s; }
+.installation-card:nth-child(3) { animation-delay: 0.3s; }
+.installation-card:nth-child(4) { animation-delay: 0.4s; }
+
+@keyframes cardSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(50px) scale(0.9);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+/* Preset cards entrance */
+.preset-card {
+    animation: presetPopIn 0.7s cubic-bezier(0.68, -0.55, 0.265, 1.55) forwards;
+    opacity: 0;
+}
+
+.preset-card:nth-child(1) { animation-delay: 0.1s; }
+.preset-card:nth-child(2) { animation-delay: 0.15s; }
+.preset-card:nth-child(3) { animation-delay: 0.2s; }
+.preset-card:nth-child(4) { animation-delay: 0.25s; }
+.preset-card:nth-child(5) { animation-delay: 0.3s; }
+.preset-card:nth-child(6) { animation-delay: 0.35s; }
+
+@keyframes presetPopIn {
+    from {
+        opacity: 0;
+        transform: scale(0.3) rotate(10deg);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1) rotate(0deg);
+    }
+}
+
+/* 7. SMOOTH SCROLLING ENHANCEMENTS */
+html {
+    scroll-behavior: smooth;
+}
+
+/* Custom scrollbar with animation */
+::-webkit-scrollbar-thumb {
+    background: linear-gradient(135deg, #404040, rgba(64, 64, 64, 0.8));
+    border-radius: 6px;
+    border: 2px solid rgba(0, 0, 0, 0.3);
+    box-shadow: inset 0 0 6px rgba(255, 255, 255, 0.1);
+    transition: all 0.3s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(135deg, #505050, #606060);
+    transform: scaleY(1.1);
+    box-shadow: inset 0 0 10px rgba(255, 255, 255, 0.2);
+}
+
+/* 8. GLOWING BORDERS EFFECT */
+.optional-features-wrapper,
+.feature-category,
+.settings-section,
+.performance-section {
+    position: relative;
+    overflow: hidden;
+}
+
+.optional-features-wrapper::before,
+.feature-category::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+        90deg,
+        transparent,
+        rgba(76, 175, 80, 0.1),
+        transparent
+    );
+    animation: borderGlow 3s linear infinite;
+    pointer-events: none;
+}
+
+@keyframes borderGlow {
+    0% { left: -100%; }
+    100% { left: 100%; }
+}
+
+/* 9. HEADER ANIMATION */
+.app-header {
+    animation: headerSlideDown 0.8s cubic-bezier(0.23, 1, 0.32, 1) forwards;
+    transform: translateY(-100%);
+}
+
+@keyframes headerSlideDown {
+    from {
+        transform: translateY(-100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+/* 10. MODAL ENTRANCE EFFECTS */
+.modal-overlay {
+    animation: modalFadeIn 0.3s ease forwards;
+}
+
+.modal-container {
+    animation: modalSlideIn 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55) forwards;
+    transform: scale(0.7) translateY(-50px);
+}
+
+@keyframes modalFadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes modalSlideIn {
+    from {
+        transform: scale(0.7) translateY(-50px);
+        opacity: 0;
+    }
+    to {
+        transform: scale(1) translateY(0);
+        opacity: 1;
+    }
+}
+
+/* 11. TAB SWITCHING ANIMATION */
+.installation-content {
+    animation: tabContentSlide 0.5s cubic-bezier(0.23, 1, 0.32, 1) forwards;
+}
+
+@keyframes tabContentSlide {
+    from {
+        opacity: 0;
+        transform: translateX(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+/* 12. LOADING ANIMATIONS */
+.loading-spinner {
+    animation: spinPulse 1.5s ease-in-out infinite;
+}
+
+@keyframes spinPulse {
+    0% {
+        transform: rotate(0deg) scale(1);
+    }
+    50% {
+        transform: rotate(180deg) scale(1.1);
+    }
+    100% {
+        transform: rotate(360deg) scale(1);
+    }
+}
+
+/* 13. PROGRESS BAR ENHANCEMENTS */
+.progress-bar {
+    position: relative;
+    overflow: hidden;
+}
+
+.progress-bar::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+        90deg,
+        transparent,
+        rgba(255, 255, 255, 0.4),
+        transparent
+    );
+    animation: progressShine 2s linear infinite;
+}
+
+@keyframes progressShine {
+    0% { left: -100%; }
+    100% { left: 100%; }
+}
+
+/* 14. FEATURE CARD REVEAL ANIMATION */
+.feature-card {
+    animation: featureReveal 0.6s cubic-bezier(0.23, 1, 0.32, 1) forwards;
+    opacity: 0;
+}
+
+.feature-card:nth-child(odd) {
+    animation-delay: 0.1s;
+}
+
+.feature-card:nth-child(even) {
+    animation-delay: 0.2s;
+}
+
+@keyframes featureReveal {
+    from {
+        opacity: 0;
+        transform: translateX(-30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
     }
 }
