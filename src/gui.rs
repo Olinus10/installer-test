@@ -108,48 +108,46 @@ pub fn handle_play_click(uuid: String, error_signal: &Signal<Option<String>>) {
 fn BackgroundParticles() -> Element {
     rsx! {
         div { class: "particles-container",
-            // Basic floating particles (40 instead of 20)
-            for i in 0..40 {
+            // Basic floating particles - simplified to only circles
+            for i in 0..30 {
                 {
-                    let size = 2 + (i % 8); // More size variation
-                    let delay = (i as f32) * 0.3; // Staggered delays
-                    let duration = 8.0 + (i % 12) as f32; // More duration variation
-                    let left = 2 + (i * 3) % 96; // Better distribution
+                    let size = 2 + (i % 6); // Size variation
+                    let delay = (i as f32) * 0.4; // Staggered delays
+                    let duration = 8.0 + (i % 10) as f32; // Duration variation
+                    let left = 5 + (i * 3) % 90; // Better distribution
                     
-                    let particle_class = match i % 5 {
+                    // Simplified particle classes - only basic and glow
+                    let particle_class = match i % 3 {
                         0 => "particle glow",
-                        1 => "particle sparkle", 
-                        2 => "particle purple",
-                        3 => "particle green",
+                        1 => "particle subtle",
                         _ => "particle",
                     };
                     
-                    let animation = match i % 4 {
+                    // Simpler animations - just float
+                    let animation = match i % 2 {
                         0 => "float",
-                        1 => "float-horizontal", 
-                        2 => "floatRotate",
-                        _ => "diamondFloat",
+                        _ => "float-horizontal",
                     };
                     
                     rsx! {
                         div {
                             class: "{particle_class}",
                             style: "width: {size}px; height: {size}px; left: {left}%; 
-                                bottom: -50px; opacity: {0.3 + (i % 3) as f32 * 0.2}; 
+                                bottom: -50px; opacity: {0.2 + (i % 3) as f32 * 0.15}; 
                                 animation: {animation} {duration}s ease-in-out infinite {delay}s;"
                         }
                     }
                 }
             }
             
-            // Add some larger glowing orbs for ambiance
-            for i in 70..80 {
+            // Add some larger ambient orbs
+            for i in 30..40 {
                 {
-                    let size = 15 + (i % 10);
-                    let delay = (i as f32) * 1.2;
-                    let duration = 20.0 + (i % 15) as f32;
-                    let left = 10 + (i * 9) % 80;
-                    let opacity = 0.1 + (i % 3) as f32 * 0.1;
+                    let size = 12 + (i % 8);
+                    let delay = (i as f32) * 1.5;
+                    let duration = 20.0 + (i % 12) as f32;
+                    let left = 10 + (i * 8) % 80;
+                    let opacity = 0.1 + (i % 2) as f32 * 0.1;
                     
                     rsx! {
                         div {
@@ -157,24 +155,6 @@ fn BackgroundParticles() -> Element {
                             style: "width: {size}px; height: {size}px; left: {left}%; 
                                 bottom: -80px; opacity: {opacity}; 
                                 animation: float {duration}s ease-in-out infinite {delay}s;"
-                        }
-                    }
-                }
-            }
-            
-            // Add some fast-moving streak particles
-            for i in 80..90 {
-                {
-                    let delay = (i as f32) * 0.8;
-                    let duration = 3.0 + (i % 4) as f32;
-                    let left = (i * 11) % 100;
-                    
-                    rsx! {
-                        div {
-                            class: "particle sparkle",
-                            style: "width: 3px; height: 3px; left: {left}%; 
-                                bottom: -10px; opacity: 0.8; 
-                                animation: float {duration}s linear infinite {delay}s;"
                         }
                     }
                 }
