@@ -354,6 +354,14 @@
     min-height: min-content;
 }
 
+.feature-cards-grid {
+    display: block !important;
+    width: 100%;
+    padding: 10px 0;
+    min-height: min-content;
+    clear: both;
+}
+
 .feature-card {
     display: flex !important;
     align-items: center;
