@@ -750,42 +750,48 @@ button:disabled {
     margin-top: 20px;
 }
 
-/* 2. UPDATE WARNING POPUP - Button Fixes */
+/* 5. UPDATE WARNING IMPROVEMENTS */
 .update-warning-dialog {
-    max-width: 700px; /* Increased width */
+    max-width: 550px; /* Reduced from 700px */
+    max-height: 85vh; /* Ensure it fits on screen */
 }
 
 .update-warning-dialog .modal-header h3 {
     font-family: "HEADER_FONT";
-    font-size: 1.4rem;
+    font-size: 1.3rem; /* Reduced from 1.4rem */
     color: #ffb900;
     text-transform: uppercase;
     letter-spacing: 1px;
 }
 
+.update-warning-dialog .modal-content {
+    padding: 15px; /* Reduced from default 20px */
+    max-height: 60vh; /* Limit content height */
+    overflow-y: auto; /* Allow scrolling if needed */
+}
 
 .warning-message {
     background: linear-gradient(135deg, rgba(255, 185, 0, 0.1), rgba(255, 152, 0, 0.05));
     border-left: 4px solid #ffb900;
-    padding: 20px;
+    padding: 15px; /* Reduced from 20px */
     border-radius: 8px;
-    margin-bottom: 25px;
+    margin-bottom: 20px; /* Reduced from 25px */
 }
 
 .protection-steps {
     background-color: rgba(0, 0, 0, 0.3);
     border-radius: 8px;
-    padding: 20px;
-    margin: 20px 0;
+    padding: 15px; /* Reduced from 20px */
+    margin: 15px 0; /* Reduced from 20px */
 }
 
 .protection-steps li {
-    padding: 10px 0;
+    padding: 8px 0; /* Reduced from 10px */
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    font-size: 1rem;
+    font-size: 0.95rem; /* Slightly reduced */
     display: flex;
     align-items: center;
-    gap: 15px;
+    gap: 12px; /* Reduced from 15px */
 }
 
 .protection-steps li:before {
@@ -794,13 +800,13 @@ button:disabled {
     background: linear-gradient(135deg, #4CAF50, #2E7D32);
     color: white;
     border-radius: 50%;
-    width: 28px;
-    height: 28px;
+    width: 24px; /* Reduced from 28px */
+    height: 24px; /* Reduced from 28px */
     display: flex;
     align-items: center;
     justify-content: center;
     font-weight: bold;
-    font-size: 0.9rem;
+    font-size: 0.8rem; /* Reduced from 0.9rem */
     flex-shrink: 0;
 }
 
@@ -811,9 +817,9 @@ button:disabled {
 .warning-note {
     background: linear-gradient(135deg, rgba(76, 175, 80, 0.1), rgba(46, 125, 50, 0.05));
     border-left: 4px solid #4CAF50;
-    padding: 15px;
+    padding: 12px; /* Reduced from 15px */
     border-radius: 8px;
-    margin-top: 20px;
+    margin-top: 15px; /* Reduced from 20px */
 }
 
 /* Blue button for "Open Installation Folder" */
@@ -822,9 +828,9 @@ button:disabled {
     border: none;
     color: white;
     border-radius: 8px;
-    padding: 12px 24px;
-    font-family: "HEADER_FONT";
-    font-size: 1rem;
+    padding: 10px 20px; /* Reduced padding */
+    font-family: "HEADER_FONT"; /* Header font */
+    font-size: 0.95rem; /* Slightly smaller */
     cursor: pointer;
     transition: all 0.3s ease;
     text-transform: uppercase;
@@ -839,15 +845,20 @@ button:disabled {
     box-shadow: 0 6px 20px rgba(33, 150, 243, 0.5);
 }
 
+/* Update warning specific button styling */
 .update-warning-dialog .modal-footer .cancel-button {
     background: linear-gradient(135deg, #f44336, #d32f2f);
     border: none;
     color: white;
-    padding: 10px 20px;
+    padding: 10px 20px; /* Reduced padding */
     border-radius: 6px;
-    font-family: "REGULAR_FONT";
+    font-family: "HEADER_FONT"; /* Header font */
+    font-size: 0.95rem; /* Consistent size */
     cursor: pointer;
     transition: all 0.3s ease;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-weight: 600;
     box-shadow: 0 2px 8px rgba(244, 67, 54, 0.3);
 }
 
@@ -861,11 +872,15 @@ button:disabled {
     background: linear-gradient(135deg, #FFD700, #FFA500) !important;
     color: #000 !important;
     border: none;
-    padding: 10px 20px;
+    padding: 10px 20px; /* Reduced padding */
     border-radius: 6px;
-    font-family: "REGULAR_FONT";
+    font-family: "HEADER_FONT" !important; /* Header font */
+    font-size: 0.95rem !important; /* Consistent size */
     cursor: pointer;
     transition: all 0.3s ease;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-weight: 600;
     box-shadow: 0 2px 8px rgba(255, 215, 0, 0.3);
 }
 
