@@ -142,40 +142,6 @@ fn BackgroundParticles() -> Element {
                 }
             }
             
-            // Add geometric shapes (triangles)
-            for i in 40..55 {
-                {
-                    let delay = (i as f32) * 0.4;
-                    let duration = 15.0 + (i % 8) as f32;
-                    let left = 5 + (i * 7) % 90;
-                    
-                    rsx! {
-                        div {
-                            class: "particle triangle",
-                            style: "left: {left}%; bottom: -30px; opacity: 0.4;
-                                animation: floatRotate {duration}s linear infinite {delay}s;"
-                        }
-                    }
-                }
-            }
-            
-            // Add diamond shapes
-            for i in 55..70 {
-                {
-                    let delay = (i as f32) * 0.5;
-                    let duration = 12.0 + (i % 6) as f32;
-                    let left = 8 + (i * 6) % 85;
-                    
-                    rsx! {
-                        div {
-                            class: "particle diamond",
-                            style: "left: {left}%; bottom: -20px; opacity: 0.5;
-                                animation: diamondFloat {duration}s ease-in-out infinite {delay}s;"
-                        }
-                    }
-                }
-            }
-            
             // Add some larger glowing orbs for ambiance
             for i in 70..80 {
                 {
