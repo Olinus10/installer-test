@@ -1575,7 +1575,7 @@ use_effect({
         button {
             class: "header-launch-button",
             disabled: !installation_state.read().installed || *is_installing.read(),
-            onclick: handle_launch,
+            onclick: &handle_launch,
             if installation_state.read().installed {
                 "LAUNCH GAME"
             } else {
