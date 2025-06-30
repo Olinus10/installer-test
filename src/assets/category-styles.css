@@ -289,6 +289,7 @@
     z-index: 5;
 }
 
+/* 10. CATEGORY TOGGLE BUTTONS - Updated Colors */
 .category-toggle-all.toggle-enable {
     background: linear-gradient(135deg, #4CAF50, #2E7D32);
     border-color: rgba(76, 175, 80, 0.6);
@@ -301,11 +302,6 @@
     box-shadow: 0 2px 8px rgba(244, 67, 54, 0.3);
 }
 
-.category-toggle-all:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
-}
-
 .category-toggle-all.toggle-enable:hover {
     background: linear-gradient(135deg, #66BB6A, #4CAF50);
     box-shadow: 0 4px 12px rgba(76, 175, 80, 0.4);
@@ -315,6 +311,13 @@
     background: linear-gradient(135deg, #f66356, #f44336);
     box-shadow: 0 4px 12px rgba(244, 67, 54, 0.4);
 }
+
+.category-toggle-all:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+}
+
+
 
 /* FIXED: Arrow indicators - visible and properly positioned */
 .category-toggle-indicator {
