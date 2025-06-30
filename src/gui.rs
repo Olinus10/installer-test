@@ -103,32 +103,112 @@ pub fn handle_play_click(uuid: String, error_signal: &Signal<Option<String>>) {
     });
 }
 
+
 #[component]
 fn BackgroundParticles() -> Element {
     rsx! {
         div { class: "particles-container",
-            // Generate particles with different sizes, colors and animations
-            for i in 0..20 {
+            // Basic floating particles (40 instead of 20)
+            for i in 0..40 {
                 {
-                    let size = 4 + (i % 6);
-                    let delay = i as f32 * 0.5;
-                    let duration = 10.0 + (i % 10) as f32;
-                    let left = 5 + (i * 5) % 95;
+                    let size = 2 + (i % 8); // More size variation
+                    let delay = (i as f32) * 0.3; // Staggered delays
+                    let duration = 8.0 + (i % 12) as f32; // More duration variation
+                    let left = 2 + (i * 3) % 96; // Better distribution
                     
-                    let particle_class = match i % 3 {
-                        0 => "particle",
-                        1 => "particle purple",
-                        _ => "particle green",
+                    let particle_class = match i % 5 {
+                        0 => "particle glow",
+                        1 => "particle sparkle", 
+                        2 => "particle purple",
+                        3 => "particle green",
+                        _ => "particle",
                     };
                     
-                    let animation = if i % 2 == 0 { "float" } else { "float-horizontal" };
+                    let animation = match i % 4 {
+                        0 => "float",
+                        1 => "float-horizontal", 
+                        2 => "floatRotate",
+                        _ => "diamondFloat",
+                    };
                     
                     rsx! {
                         div {
                             class: "{particle_class}",
                             style: "width: {size}px; height: {size}px; left: {left}%; 
-                                bottom: -50px; opacity: 0.6; 
-                                animation: {animation} {duration}s ease-in infinite {delay}s;"
+                                bottom: -50px; opacity: {0.3 + (i % 3) as f32 * 0.2}; 
+                                animation: {animation} {duration}s ease-in-out infinite {delay}s;"
+                        }
+                    }
+                }
+            }
+            
+            // Add geometric shapes (triangles)
+            for i in 40..55 {
+                {
+                    let delay = (i as f32) * 0.4;
+                    let duration = 15.0 + (i % 8) as f32;
+                    let left = 5 + (i * 7) % 90;
+                    
+                    rsx! {
+                        div {
+                            class: "particle triangle",
+                            style: "left: {left}%; bottom: -30px; opacity: 0.4;
+                                animation: floatRotate {duration}s linear infinite {delay}s;"
+                        }
+                    }
+                }
+            }
+            
+            // Add diamond shapes
+            for i in 55..70 {
+                {
+                    let delay = (i as f32) * 0.5;
+                    let duration = 12.0 + (i % 6) as f32;
+                    let left = 8 + (i * 6) % 85;
+                    
+                    rsx! {
+                        div {
+                            class: "particle diamond",
+                            style: "left: {left}%; bottom: -20px; opacity: 0.5;
+                                animation: diamondFloat {duration}s ease-in-out infinite {delay}s;"
+                        }
+                    }
+                }
+            }
+            
+            // Add some larger glowing orbs for ambiance
+            for i in 70..80 {
+                {
+                    let size = 15 + (i % 10);
+                    let delay = (i as f32) * 1.2;
+                    let duration = 20.0 + (i % 15) as f32;
+                    let left = 10 + (i * 9) % 80;
+                    let opacity = 0.1 + (i % 3) as f32 * 0.1;
+                    
+                    rsx! {
+                        div {
+                            class: "particle glow",
+                            style: "width: {size}px; height: {size}px; left: {left}%; 
+                                bottom: -80px; opacity: {opacity}; 
+                                animation: float {duration}s ease-in-out infinite {delay}s;"
+                        }
+                    }
+                }
+            }
+            
+            // Add some fast-moving streak particles
+            for i in 80..90 {
+                {
+                    let delay = (i as f32) * 0.8;
+                    let duration = 3.0 + (i % 4) as f32;
+                    let left = (i * 11) % 100;
+                    
+                    rsx! {
+                        div {
+                            class: "particle sparkle",
+                            style: "width: 3px; height: 3px; left: {left}%; 
+                                bottom: -10px; opacity: 0.8; 
+                                animation: float {duration}s linear infinite {delay}s;"
                         }
                     }
                 }
