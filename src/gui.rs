@@ -1477,17 +1477,33 @@ use_effect({
                 }
                 
                 // Header with installation name
-                div { class: "installation-header",
-                    h1 { "{installation.name}" }
-                    div { class: "installation-meta",
-                        span { class: "minecraft-version", "Minecraft {installation.minecraft_version}" }
-                        span { class: "loader-version", "{installation.loader_type} {installation.loader_version}" }
-                        
-                        if installation.update_available {
-                            span { class: "update-badge", "Update Available" }
-                        }
-                    }
-                }
+ div { class: "installation-header",
+    div { class: "installation-header-content",
+        h1 { "{installation.name}" }
+        div { class: "installation-meta",
+            span { class: "minecraft-version", "Minecraft {installation.minecraft_version}" }
+            span { class: "loader-version", "{installation.loader_type} {installation.loader_version}" }
+            
+            if installation.update_available {
+                span { class: "update-badge", "Update Available" }
+            }
+        }
+    }
+    
+    // ADD LAUNCH BUTTON TO HEADER
+    div { class: "installation-header-actions",
+        button {
+            class: "header-launch-button",
+            disabled: !installation_state.read().installed || *is_installing.read(),
+            onclick: handle_launch,
+            if installation_state.read().installed {
+                "LAUNCH GAME"
+            } else {
+                "INSTALL FIRST"
+            }
+        }
+    }
+}
 if let Some(update_msg) = preset_update_msg.read().clone() {
     div { class: "preset-update-notification",
         "{update_msg}"
@@ -2073,13 +2089,7 @@ fn Settings(mut props: SettingsProps) -> Element {
     let mut prism = None;
     let mut custom = None;
     let launcher = get_launcher(&props.config.read().launcher).unwrap();
-    let packs = match get_installed_packs(&launcher) {
-        Ok(v) => v,
-        Err(err) => {
-            *props.error.write() = Some(err.to_string());
-            return None;
-        }
-    };
+    
     match &props.config.read().launcher[..] {
         "vanilla" => vanilla = Some("true"),
         "multimc-MultiMC" => multimc = Some("true"),
@@ -2092,7 +2102,7 @@ fn Settings(mut props: SettingsProps) -> Element {
 
     rsx! {
         div { class: "settings-container",
-            h1 { class: "settings-title", "Settings" }
+            h1 { class: "settings-title", "Launcher Settings" }  // Updated title
             form {
                 id: "settings",
                 class: "settings-form",
@@ -2111,14 +2121,14 @@ fn Settings(mut props: SettingsProps) -> Element {
                 },
                 
                 div { class: "setting-group",
-                    label { class: "setting-label", "Launcher:" }
+                    label { class: "setting-label", "Minecraft Launcher:" }
                     select {
                         name: "launcher-select",
                         id: "launcher-select",
                         form: "settings",
                         class: "setting-select",
                         if super::get_minecraft_folder().is_dir() {
-                            option { value: "vanilla", selected: vanilla, "Vanilla" }
+                            option { value: "vanilla", selected: vanilla, "Vanilla Launcher" }
                         }
                         if super::get_multimc_folder("MultiMC").is_ok() {
                             option { value: "multimc-MultiMC", selected: multimc, "MultiMC" }
@@ -2150,35 +2160,9 @@ fn Settings(mut props: SettingsProps) -> Element {
                 div { class: "settings-buttons",
                     input {
                         r#type: "submit",
-                        value: "Save",
+                        value: "Save Changes",
                         class: "primary-button",
                         id: "save"
-                    }
-                    
-                    button {
-                        class: "secondary-button",
-                        r#type: "button",
-                        disabled: packs.is_empty(),
-                        onclick: move |evt| {
-                            let mut modal = use_context::<ModalContext>();
-                            modal
-                                .open(
-                                    "Select modpack to uninstall",
-                                    rsx! {
-                                        div { class: "uninstall-list-container",
-                                            ul { class: "uninstall-list",
-                                                for pack in packs.clone() {
-                                                    PackUninstallButton { launcher: launcher.clone(), pack }
-                                                }
-                                            }
-                                        }
-                                    },
-                                    false,
-                                    Some(|_| {}),
-                                );
-                            evt.stop_propagation();
-                        },
-                        "Uninstall"
                     }
                 }
             }
@@ -3078,7 +3062,7 @@ fn AppHeader(
             button { 
                 class: "settings-button",
                 onclick: move |_| on_open_settings.call(()),
-                "Settings"
+                "Launcher"
             }
         }
     }
