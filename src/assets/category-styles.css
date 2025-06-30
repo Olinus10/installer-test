@@ -354,15 +354,6 @@
     min-height: min-content;
 }
 
-/* FIXED: Feature cards - FULL WIDTH STACKED LAYOUT (not grid) */
-.feature-cards-grid {
-    display: block !important;
-    width: 100%;
-    padding: 10px 0;
-    min-height: min-content;
-    clear: both;
-}
-
 .feature-card {
     display: flex !important;
     align-items: center;
