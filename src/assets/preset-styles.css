@@ -34,11 +34,11 @@
     z-index: 3;
     display: flex;
     flex-direction: column;
-    justify-content: flex-start; /* Changed from center */
+    justify-content: center;
     align-items: center;
     text-align: center;
     flex-grow: 1;
-    padding: 25px 20px 60px 20px; /* Increased top padding, kept bottom for button */
+    padding: 45px 20px 60px 20px; /* More top padding to avoid badges */
 }
 
 /* Select button at bottom */
@@ -141,6 +141,11 @@
     border-radius: 20px;
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
     z-index: 5;
+}
+
+.preset-card:has(.trending-badge) .preset-features-count {
+    right: 15px;
+    top: 50px; /* Move down when trending badge is present */
 }
 
 /* Also ensure the overlay covers the entire card with no gaps */
