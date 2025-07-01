@@ -3496,9 +3496,6 @@ a:hover {
         max-width: 100%;
     }
     
-    .feature-cards-container {
-        grid-template-columns: 1fr;
-    }
     
     .main-install-button {
         padding: 15px 40px;
@@ -3579,17 +3576,7 @@ a:hover {
     }
 }
 
-@media (min-width: 992px) {
-    .feature-cards-container {
-        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    }
-}
-
-@media (min-width: 1280px) {
-    .feature-cards-container {
-        grid-template-columns: repeat(3, 1fr);
-    }
-}-overlay {
+-overlay {
     position: fixed;
     top: 0;
     left: 0;
