@@ -391,45 +391,53 @@ div { class: "features-count-container",
     span { class: "features-count-badge",
         {
             if let Some(manifest) = &universal_manifest {
-                // Count ALL components that can be toggled (optional ones)
-                let optional_mods = manifest.mods.iter()
-                    .filter(|m| m.optional)  // Only optional mods can be toggled
-                    .count();
-                    
-                let optional_shaderpacks = manifest.shaderpacks.iter()
-                    .filter(|s| s.optional)
-                    .count();
-                    
-                let optional_resourcepacks = manifest.resourcepacks.iter()
-                    .filter(|r| r.optional)
-                    .count();
-                    
-                let optional_includes = manifest.include.iter()
-                    .filter(|i| i.optional && !i.id.is_empty() && i.id != "default")
-                    .count();
-                    
-                // Total toggleable features
-                let total_toggleable_features = optional_mods + optional_shaderpacks + optional_resourcepacks + optional_includes;
+                // Count ALL components that will actually be installed
+                let mut total_components = 0;
+                let mut enabled_components = 0;
                 
-                // Count currently enabled toggleable features
-                let enabled_count = enabled_features.read().iter()
-                    .filter(|id| {
-                        // Skip the system "default" ID and count only toggleable features
-                        if *id == "default" {
-                            return false;
-                        }
-                        
-                        // Check if this ID corresponds to a toggleable feature
-                        manifest.mods.iter().any(|m| m.optional && &m.id == *id) ||
-                        manifest.shaderpacks.iter().any(|s| s.optional && &s.id == *id) ||
-                        manifest.resourcepacks.iter().any(|r| r.optional && &r.id == *id) ||
-                        manifest.include.iter().any(|i| i.optional && !i.id.is_empty() && i.id != "default" && &i.id == *id)
-                    })
-                    .count();
+                // Count mods
+                for mod_component in &manifest.mods {
+                    total_components += 1;
+                    if enabled_features.read().contains(&mod_component.id) || mod_component.id == "default" {
+                        enabled_components += 1;
+                    }
+                }
                 
-                rsx! { "{enabled_count}/{total_toggleable_features} features enabled" }
+                // Count shaderpacks
+                for shader in &manifest.shaderpacks {
+                    total_components += 1;
+                    if enabled_features.read().contains(&shader.id) || shader.id == "default" {
+                        enabled_components += 1;
+                    }
+                }
+                
+                // Count resourcepacks
+                for resource in &manifest.resourcepacks {
+                    total_components += 1;
+                    if enabled_features.read().contains(&resource.id) || resource.id == "default" {
+                        enabled_components += 1;
+                    }
+                }
+                
+                // Count includes (but only ones that will actually be downloaded)
+                for include in &manifest.include {
+                    total_components += 1;
+                    let should_include = if include.id.is_empty() || include.id == "default" {
+                        true
+                    } else if !include.optional {
+                        true
+                    } else {
+                        enabled_features.read().contains(&include.id)
+                    };
+                    
+                    if should_include {
+                        enabled_components += 1;
+                    }
+                }
+                
+                rsx! { "{enabled_components}/{total_components} components enabled" }
             } else {
-                rsx! { "Loading features..." }
+                rsx! { "Loading components..." }
             }
         }
     }
