@@ -2956,6 +2956,7 @@ fn Version(mut props: VersionProps) -> Element {
 }
 /// New header component with tabs - updated to display tab groups 1-3 in main row
 #[component]
+#[component]
 fn AppHeader(
     installations: Signal<Vec<Installation>>,
     current_installation_id: Signal<Option<String>>,
@@ -2964,12 +2965,13 @@ fn AppHeader(
     on_open_settings: EventHandler<()>,
 ) -> Element {
     // Number of installation tabs to show directly
-    let MAX_INSTALLATION_TABS = 3;
+    let MAX_INSTALLATION_TABS = 2;
     
     // Prepare installation tabs
     let all_installations = installations();
     let direct_installations = all_installations.iter().take(MAX_INSTALLATION_TABS).cloned().collect::<Vec<_>>();
     let dropdown_installations = all_installations.iter().skip(MAX_INSTALLATION_TABS).cloned().collect::<Vec<_>>();
+
     
     // Current ID for active state
     let current_id = current_installation_id();
@@ -3032,7 +3034,7 @@ fn AppHeader(
         
         rsx! {
             div { class: "dropdown",
-                button { class: "header-tab-button", "More Installations ▼" }
+                button { class: "header-tab-button", "More ▼" }
                 div { class: "dropdown-content",
                     {dropdown_items.into_iter()}
                 }
