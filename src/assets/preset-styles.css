@@ -34,12 +34,11 @@
     z-index: 3;
     display: flex;
     flex-direction: column;
-    justify-content: center;
+    justify-content: flex-start; /* Changed from center */
     align-items: center;
     text-align: center;
     flex-grow: 1;
-    padding-bottom: 50px;
-    padding: 20px; /* Space for badges and button */
+    padding: 25px 20px 60px 20px; /* Increased top padding, kept bottom for button */
 }
 
 /* Select button at bottom */
@@ -52,14 +51,14 @@
     color: white;
     border: none;
     border-radius: 20px;
-    padding: 10px 25px; /* Larger padding */
+    padding: 10px 25px;
     font-family: "REGULAR_FONT";
-    font-size: 1rem; /* Larger font */
+    font-size: 1rem;
     font-weight: bold;
     letter-spacing: 1px;
     transition: all 0.3s ease;
     z-index: 5;
-    min-width: 150px; /* Ensure minimum width */
+    min-width: 150px;
 }
 
 .preset-card:hover {
@@ -95,21 +94,23 @@
 /* Card title styling */
 .preset-card h4 {
     font-size: 1.3rem;
-    margin: 0 0 12px 0;
+    margin: 0 0 15px 0; /* Increased bottom margin */
     color: #ffffff;
     font-weight: 600;
     letter-spacing: 0.5px;
+    line-height: 1.2;
 }
 
 .preset-card p {
     color: rgba(255, 255, 255, 0.8);
     font-size: 0.95rem;
-    line-height: 1.5;
+    line-height: 1.4; /* Better line height */
     max-width: 90%;
     overflow: hidden;
     display: -webkit-box;
-    -webkit-line-clamp: 3;
+    -webkit-line-clamp: 4; /* Allow one more line */
     -webkit-box-orient: vertical;
+    margin: 0; /* Remove default margin */
 }
 
 /* Feature count badge in top corner */
