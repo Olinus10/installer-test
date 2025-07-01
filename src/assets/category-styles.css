@@ -344,3 +344,51 @@
 .feature-filter-clear:hover {
     color: white;
 }
+
+/* Inside categories - full width cards */
+.category-content .feature-cards-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    width: 100%;
+}
+
+.category-content .feature-card {
+    background-color: rgba(0, 0, 0, 0.7);
+    border-radius: 8px;
+    padding: 15px;
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    min-height: auto;
+    max-height: none;
+    position: relative;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    width: 100%;
+    max-width: none; /* Remove max-width constraint */
+}
+
+/* Feature card header for full-width cards */
+.category-content .feature-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0;
+    width: 100%;
+}
+
+.category-content .feature-card-title {
+    margin: 0;
+    padding: 0;
+    flex-grow: 1;
+    font-size: 1.1rem;
+}
+
+.category-content .feature-toggle-button {
+    margin: 0 0 0 10px;
+    font-size: 0.85rem;
+    padding: 6px 14px;
+    min-width: 80px;
+    text-align: center;
+}
