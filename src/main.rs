@@ -324,6 +324,7 @@ macro_rules! gen_downloadble_impl {
                     path,
                     id,
                     authors,
+                    ignore_update: false, // Add this line with default value
                 }
             }
 
