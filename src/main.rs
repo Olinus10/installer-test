@@ -1298,13 +1298,18 @@ async fn download_helper<T: Downloadable + Debug, F: FnMut() + Clone>(
     modpack_root: &Path,
     loader_type: &str,
     http_client: &CachedHttpClient,
-    progress_callback: F
+    progress_callback: F,
+    is_update: bool,  // NEW: Add parameter to know if this is an update
+    ignore_update_items: &std::collections::HashSet<String>,  // NEW: Items to ignore during updates
 ) -> Result<Vec<T>, DownloadError> {
     let results = futures::stream::iter(items.into_iter().map(|item| async {
         // Always include items with "default" ID or items that are in enabled_features
         let should_include = item.get_id() == "default" || enabled_features.contains(item.get_id());
         
-        if item.get_path().is_none() && should_include {
+        // NEW: Check if we should ignore this item during updates
+        let should_ignore_update = is_update && ignore_update_items.contains(item.get_id());
+        
+        if item.get_path().is_none() && should_include && !should_ignore_update {
             let path = item
                 .download(modpack_root, loader_type, http_client)
                 .await?;
@@ -1321,13 +1326,19 @@ async fn download_helper<T: Downloadable + Debug, F: FnMut() + Clone>(
         } else {
             let item = validate_item_path!(item, modpack_root);
             let path;
-            if !should_include && item.get_path().is_some() {
+            
+            // NEW: If this is an update and we should ignore this item, keep existing file
+            if should_ignore_update && item.get_path().is_some() {
+                debug!("Ignoring update for: '{}' (ignore_update=true)", item.get_name());
+                path = item.get_path().to_owned();
+            } else if !should_include && item.get_path().is_some() {
                 debug!("Removing: '{:#?}'", item.get_path());
                 let _ = fs::remove_file(item.get_path().as_ref().unwrap());
                 path = None;
             } else {
                 path = item.get_path().to_owned();
             }
+            
             Ok(T::new(
                 item.get_name().to_owned(),
                 item.get_source().to_owned(),
@@ -1342,6 +1353,7 @@ async fn download_helper<T: Downloadable + Debug, F: FnMut() + Clone>(
     .buffer_unordered(CONCURRENCY)
     .collect::<Vec<Result<T, DownloadError>>>()
     .await;
+    
     let mut return_vec = vec![];
     for res in results {
         match res {
@@ -1426,6 +1438,48 @@ async fn install<F: FnMut() + Clone>(installer_profile: &InstallerProfile, mut p
     let manifest = &installer_profile.manifest;
     let http_client = &installer_profile.http_client;
     let minecraft_folder = get_minecraft_folder();
+    
+    // NEW: Check if this is an update by looking for existing manifest
+    let is_update = modpack_root.join("manifest.json").exists();
+    
+    // NEW: Collect items that should be ignored during updates
+    let mut ignore_update_items = std::collections::HashSet::new();
+    
+    // Check universal manifest for ignore_update flags
+    if let Ok(universal_manifest) = crate::universal::load_universal_manifest(http_client, None).await {
+        // Add mods with ignore_update=true
+        for mod_component in &universal_manifest.mods {
+            if mod_component.ignore_update {
+                ignore_update_items.insert(mod_component.id.clone());
+                debug!("Will ignore updates for mod: {}", mod_component.name);
+            }
+        }
+        
+        // Add shaderpacks with ignore_update=true
+        for shader in &universal_manifest.shaderpacks {
+            if shader.ignore_update {
+                ignore_update_items.insert(shader.id.clone());
+                debug!("Will ignore updates for shaderpack: {}", shader.name);
+            }
+        }
+        
+        // Add resourcepacks with ignore_update=true
+        for resource in &universal_manifest.resourcepacks {
+            if resource.ignore_update {
+                ignore_update_items.insert(resource.id.clone());
+                debug!("Will ignore updates for resourcepack: {}", resource.name);
+            }
+        }
+        
+        // Add includes with ignore_update=true
+        for include in &universal_manifest.include {
+            if include.ignore_update {
+                ignore_update_items.insert(include.id.clone());
+                debug!("Will ignore updates for include: {}", include.location);
+            }
+        }
+    }
+    
     let loader_future = match installer_profile.launcher.as_ref().unwrap() {
         Launcher::Vanilla(_) => Some(manifest.loader.download(
             &minecraft_folder,
@@ -1435,14 +1489,16 @@ async fn install<F: FnMut() + Clone>(installer_profile: &InstallerProfile, mut p
         Launcher::MultiMC(_) => None,
     };
     
-    // Download mods, shaderpacks, and resourcepacks
+    // Download mods, shaderpacks, and resourcepacks with ignore_update support
     let mods_w_path = match download_helper(
         manifest.mods.clone(),
         &installer_profile.enabled_features,
         modpack_root.as_path(),
         &manifest.loader.r#type,
         http_client,
-        progress_callback.clone()
+        progress_callback.clone(),
+        is_update,
+        &ignore_update_items,
     )
     .await
     {
@@ -1456,7 +1512,9 @@ async fn install<F: FnMut() + Clone>(installer_profile: &InstallerProfile, mut p
         modpack_root.as_path(),
         &manifest.loader.r#type,
         http_client,
-        progress_callback.clone()
+        progress_callback.clone(),
+        is_update,
+        &ignore_update_items,
     )
     .await
     {
@@ -1470,7 +1528,9 @@ async fn install<F: FnMut() + Clone>(installer_profile: &InstallerProfile, mut p
         modpack_root.as_path(),
         &manifest.loader.r#type,
         http_client,
-        progress_callback.clone()
+        progress_callback.clone(),
+        is_update,
+        &ignore_update_items,
     )
     .await
     {
@@ -1480,26 +1540,32 @@ async fn install<F: FnMut() + Clone>(installer_profile: &InstallerProfile, mut p
     
     let mut included_files: HashMap<String, Included> = HashMap::new();
     
-    // Handle includes - download them from GitHub
-if !manifest.include.is_empty() {
-    debug!("Processing {} includes from manifest", manifest.include.len());
-    
-    for inc in &manifest.include {
-        // Check if this include should be installed
-        let should_install = if inc.id.is_empty() || inc.id == "default" {
-            true // Always install default/no-id includes
-        } else if !inc.optional {
-            true // Always install non-optional includes
-        } else {
-            // For optional includes, check if they're enabled
-            installer_profile.enabled_features.contains(&inc.id)
-        };
+    // Handle includes with ignore_update support
+    if !manifest.include.is_empty() {
+        debug!("Processing {} includes from manifest", manifest.include.len());
         
-        if !should_install {
-            debug!("Skipping disabled include: {} (optional={}, enabled={})", 
-                   inc.id, inc.optional, installer_profile.enabled_features.contains(&inc.id));
-            continue;
-        }
+        for inc in &manifest.include {
+            // NEW: Check if we should ignore this include during updates
+            if is_update && ignore_update_items.contains(&inc.id) {
+                debug!("Ignoring update for include: {} (ignore_update=true)", inc.id);
+                continue;
+            }
+            
+            // Check if this include should be installed
+            let should_install = if inc.id.is_empty() || inc.id == "default" {
+                true // Always install default/no-id includes
+            } else if !inc.optional {
+                true // Always install non-optional includes
+            } else {
+                // For optional includes, check if they're enabled
+                installer_profile.enabled_features.contains(&inc.id)
+            };
+            
+            if !should_install {
+                debug!("Skipping disabled include: {} (optional={}, enabled={})", 
+                       inc.id, inc.optional, installer_profile.enabled_features.contains(&inc.id));
+                continue;
+            }
         
         debug!("Processing include: {} (location: {}, optional: {}, default_enabled: {})", 
                inc.id, inc.location, inc.optional, inc.default_enabled);
