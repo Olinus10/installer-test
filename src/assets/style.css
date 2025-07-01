@@ -535,7 +535,7 @@ a:hover {
 }
 
 .installation-card {
-    background: linear-gradient(145deg, rgba(40, 40, 50, 0.9), rgba(25, 25, 35, 0.95));
+    background: linear-gradient(145deg, rgba(40, 40, 50, 0.6), rgba(25, 25, 35, 0.7)); /* Reduced opacity */
     border-radius: 16px;
     overflow: hidden;
     box-shadow: 
@@ -584,7 +584,7 @@ a:hover {
 }
 
 .installation-card-header {
-    background: linear-gradient(135deg, rgba(60, 60, 70, 0.8), rgba(45, 45, 55, 0.9));
+    background: linear-gradient(135deg, rgba(60, 60, 70, 0.5), rgba(45, 45, 55, 0.6)); /* More transparent */
     padding: 20px;
     position: relative;
     border-bottom: 1px solid rgba(255, 255, 255, 0.08);
@@ -682,7 +682,7 @@ a:hover {
     gap: 12px;
     z-index: 2;
     position: relative;
-    background: linear-gradient(135deg, rgba(30, 30, 40, 0.8), rgba(20, 20, 30, 0.9));
+    background: linear-gradient(135deg, rgba(30, 30, 40, 0.5), rgba(20, 20, 30, 0.6)); /* More transparent */
 }
 
 .installation-card-actions button {
@@ -2061,6 +2061,8 @@ a:hover {
     border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
+
+
 .progress-bar {
     height: 100%;
     width: 0%;
@@ -2070,32 +2072,25 @@ a:hover {
     position: relative;
     transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
     box-shadow: 
-        0 0 25px rgba(76, 175, 80, 0.6),
+        0 0 15px rgba(76, 175, 80, 0.4), /* Reduced glow */
         inset 0 2px 4px rgba(255, 255, 255, 0.2);
     animation: 
         gradient-shift 2s ease infinite,
-        pulse-glow 3s ease-in-out infinite,
-        progress-stripe 1.5s linear infinite;
+        progress-stripe 1.5s linear infinite,
+        pulse-glow-contained 3s ease-in-out infinite;
+    overflow: hidden; /* Prevent glow from going outside */
 }
 
-/* Moving gradient animation */
-@keyframes gradient-shift {
-    0% { background-position: 0% 50%; }
-    50% { background-position: 100% 50%; }
-    100% { background-position: 0% 50%; }
-}
-
-/* Pulsing glow effect */
-@keyframes pulse-glow {
+/* Contained glow that doesn't exceed progress bar bounds */
+@keyframes pulse-glow-contained {
     0%, 100% {
         box-shadow: 
-            0 0 25px rgba(76, 175, 80, 0.6),
+            0 0 15px rgba(76, 175, 80, 0.4),
             inset 0 2px 4px rgba(255, 255, 255, 0.2);
     }
     50% {
         box-shadow: 
-            0 0 40px rgba(76, 175, 80, 0.9), 
-            0 0 60px rgba(76, 175, 80, 0.4),
+            0 0 20px rgba(76, 175, 80, 0.6), 
             inset 0 2px 4px rgba(255, 255, 255, 0.3);
     }
 }
@@ -2163,26 +2158,17 @@ a:hover {
 .progress-header h1 {
     font-size: 2.4rem;
     margin: 0 0 15px 0;
-    text-shadow: 0 3px 6px rgba(0, 0, 0, 0.7);
     color: #fce8f6;
     letter-spacing: 0.08em;
+    font-family: "HEADER_FONT";
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7); /* Fixed shadow direction */
     background: linear-gradient(135deg, #fce8f6, #d8b8d0);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
-    animation: title-glow 4s ease-in-out infinite alternate;
+    filter: drop-shadow(2px 2px 4px rgba(0, 0, 0, 0.5)); /* Additional drop shadow */
 }
 
-@keyframes title-glow {
-    0% {
-        text-shadow: 0 3px 6px rgba(0, 0, 0, 0.7);
-        filter: drop-shadow(0 0 10px rgba(252, 232, 246, 0.3));
-    }
-    100% {
-        text-shadow: 0 3px 8px rgba(0, 0, 0, 0.8);
-        filter: drop-shadow(0 0 20px rgba(252, 232, 246, 0.6));
-    }
-}
 
 .progress-subtitle {
     font-family: "REGULAR_FONT";
@@ -2316,12 +2302,14 @@ a:hover {
 /* Progress Details with Enhanced Styling */
 .progress-details {
     display: flex;
-    justify-content: space-between;
+    justify-content: center; /* Center the percentage */
+    align-items: center;
     width: 100%;
-    margin-top: 10px;
+    margin-top: 15px;
     font-family: "REGULAR_FONT";
     position: relative;
     z-index: 1;
+    gap: 20px; /* Add gap between elements */
 }
 
 .progress-percentage {
@@ -2347,6 +2335,7 @@ a:hover {
     margin: 15px 0 0 0;
     text-shadow: 0 2px 4px rgba(0, 0, 0, 0.6);
     color: #fce8f6;
+    text-align: center;
     animation: status-fade 3s ease-in-out infinite alternate;
 }
 
@@ -3637,15 +3626,17 @@ a:hover {
 
 /* Compact Installation Header Styles */
 .installation-header-compact {
-    margin-bottom: 20px; /* Reduced from 30px */
-    padding: 15px 0; /* Reduced padding */
+    margin-bottom: 20px;
+    padding: 15px 0;
+    text-align: center;
 }
 
 .header-top-row {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    margin-bottom: 8px; /* Small gap to meta info */
+    justify-content: flex-start;
+    margin-bottom: 15px;
+    position: relative;
 }
 
 .back-button-inline {
@@ -3653,11 +3644,13 @@ a:hover {
     border: 1px solid rgba(255, 255, 255, 0.2);
     color: white;
     border-radius: 6px;
-    padding: 8px 16px; /* Smaller padding */
+    padding: 8px 16px;
     font-family: "REGULAR_FONT";
     cursor: pointer;
     transition: all 0.3s ease;
-    font-size: 0.9rem; /* Smaller font */
+    font-size: 0.9rem;
+    position: absolute;
+    left: 0;
 }
 
 .back-button-inline:hover {
@@ -3667,14 +3660,14 @@ a:hover {
 }
 
 .installation-title-compact {
-    font-size: 2rem; /* Reduced from 2.5rem */
+    font-size: 2rem;
     margin: 0;
     color: #fce8f6;
     font-family: "HEADER_FONT";
     letter-spacing: 0.08em;
     text-shadow: 0 0 15px rgba(252, 232, 246, 0.3);
     text-align: center;
-    flex-grow: 1;
+    width: 100%;
 }
 
 .header-launch-button-compact {
@@ -3757,4 +3750,31 @@ a:hover {
 /* Remove old header styles to avoid conflicts */
 .installation-header {
     display: none;
+}
+
+/* Center the launch button under the title */
+.header-launch-section {
+    display: flex;
+    justify-content: center;
+    margin-top: 15px;
+}
+
+.header-launch-button-compact {
+    background: linear-gradient(135deg, #FFD700, #FFA500);
+    border: 2px solid rgba(255, 215, 0, 0.6);
+    border-radius: 8px;
+    padding: 12px 24px;
+    font-family: "HEADER_FONT";
+    font-size: 1.1rem;
+    color: #1a1a1a;
+    cursor: pointer;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-weight: 700;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+    box-shadow: 
+        0 4px 15px rgba(255, 215, 0, 0.4),
+        0 0 25px rgba(255, 215, 0, 0.3);
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    animation: golden-glow 3s ease-in-out infinite alternate;
 }
