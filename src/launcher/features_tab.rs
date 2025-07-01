@@ -380,9 +380,9 @@ div { class: "features-count-container",
     span { class: "features-count-badge",
         {
             if let Some(manifest) = &universal_manifest {
-                // Count ALL optional components (including default-enabled ones)
+                // Count ALL components that can be toggled (optional ones)
                 let optional_mods = manifest.mods.iter()
-                    .filter(|m| m.optional) // Only check if optional, not default_enabled
+                    .filter(|m| m.optional)  // Only optional mods can be toggled
                     .count();
                     
                 let optional_shaderpacks = manifest.shaderpacks.iter()
@@ -394,21 +394,29 @@ div { class: "features-count-container",
                     .count();
                     
                 let optional_includes = manifest.include.iter()
-                    .filter(|i| i.optional && !i.id.is_empty())
+                    .filter(|i| i.optional && !i.id.is_empty() && i.id != "default")
                     .count();
                     
-                // Calculate total optional features (including default-enabled)
-                let total_optional_features = optional_mods + optional_shaderpacks + optional_resourcepacks + optional_includes;
+                // Total toggleable features
+                let total_toggleable_features = optional_mods + optional_shaderpacks + optional_resourcepacks + optional_includes;
                 
-                // Calculate enabled features (exclude only the "default" system ID)
+                // Count currently enabled toggleable features
                 let enabled_count = enabled_features.read().iter()
                     .filter(|id| {
-                        // Only skip the system "default" ID
-                        *id != "default"
+                        // Skip the system "default" ID and count only toggleable features
+                        if *id == "default" {
+                            return false;
+                        }
+                        
+                        // Check if this ID corresponds to a toggleable feature
+                        manifest.mods.iter().any(|m| m.optional && &m.id == *id) ||
+                        manifest.shaderpacks.iter().any(|s| s.optional && &s.id == *id) ||
+                        manifest.resourcepacks.iter().any(|r| r.optional && &r.id == *id) ||
+                        manifest.include.iter().any(|i| i.optional && !i.id.is_empty() && i.id != "default" && &i.id == *id)
                     })
                     .count();
                 
-                rsx! { "{enabled_count}/{total_optional_features} features enabled" }
+                rsx! { "{enabled_count}/{total_toggleable_features} features enabled" }
             } else {
                 rsx! { "Loading features..." }
             }
