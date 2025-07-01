@@ -535,7 +535,7 @@ a:hover {
 }
 
 .installation-card {
-    background: linear-gradient(145deg, rgba(40, 40, 50, 0.6), rgba(25, 25, 35, 0.7)); /* Reduced opacity */
+    background: linear-gradient(145deg, rgba(40, 40, 50, 0.4), rgba(25, 25, 35, 0.5)); /* Even more transparent */
     border-radius: 16px;
     overflow: hidden;
     box-shadow: 
@@ -566,12 +566,27 @@ a:hover {
         rgba(255, 255, 255, 0.1),
         transparent
     );
-    transition: left 0.6s ease;
+    transition: none; /* Remove transition to prevent reverse animation */
     z-index: 1;
+    pointer-events: none;
 }
 
 .installation-card:hover::before {
-    left: 100%;
+    animation: card-flash 0.6s ease-out forwards;
+}
+
+@keyframes card-flash {
+    0% { 
+        left: -100%; 
+        opacity: 0;
+    }
+    50% {
+        opacity: 1;
+    }
+    100% { 
+        left: 100%; 
+        opacity: 0;
+    }
 }
 
 .installation-card:hover {
@@ -584,7 +599,7 @@ a:hover {
 }
 
 .installation-card-header {
-    background: linear-gradient(135deg, rgba(60, 60, 70, 0.5), rgba(45, 45, 55, 0.6)); /* More transparent */
+    background: linear-gradient(135deg, rgba(60, 60, 70, 0.3), rgba(45, 45, 55, 0.4)); /* Even more transparent */
     padding: 20px;
     position: relative;
     border-bottom: 1px solid rgba(255, 255, 255, 0.08);
@@ -682,7 +697,7 @@ a:hover {
     gap: 12px;
     z-index: 2;
     position: relative;
-    background: linear-gradient(135deg, rgba(30, 30, 40, 0.5), rgba(20, 20, 30, 0.6)); /* More transparent */
+    background: linear-gradient(135deg, rgba(30, 30, 40, 0.3), rgba(20, 20, 30, 0.4)); /* Even more transparent */
 }
 
 .installation-card-actions button {
@@ -1023,6 +1038,7 @@ a:hover {
     min-height: min-content;
     clear: both;
 }
+
 
 .feature-card {
     background-color: rgba(0, 0, 0, 0.7);
@@ -3627,16 +3643,17 @@ a:hover {
 /* Compact Installation Header Styles */
 .installation-header-compact {
     margin-bottom: 20px;
-    padding: 15px 0;
+    padding: 5px 0; /* Reduced padding to close gap */
     text-align: center;
 }
 
 .header-top-row {
     display: flex;
     align-items: center;
-    justify-content: flex-start;
-    margin-bottom: 15px;
+    justify-content: center; /* Center the content */
+    margin-bottom: 8px; /* Reduced margin */
     position: relative;
+    min-height: 40px;
 }
 
 .back-button-inline {
@@ -3667,22 +3684,20 @@ a:hover {
     letter-spacing: 0.08em;
     text-shadow: 0 0 15px rgba(252, 232, 246, 0.3);
     text-align: center;
-    width: 100%;
 }
+
 
 .header-launch-button-compact {
     background: linear-gradient(135deg, #FFD700, #FFA500);
     border: 2px solid rgba(255, 215, 0, 0.6);
-    border-radius: 8px; /* More compact radius */
-    padding: 10px 20px; /* Smaller padding */
+    border-radius: 8px;
+    padding: 12px 24px;
     font-family: "HEADER_FONT";
-    font-size: 1rem; /* Smaller font */
+    font-size: 1.1rem;
     color: #1a1a1a;
     cursor: pointer;
     text-transform: uppercase;
     letter-spacing: 1px;
-    position: relative;
-    overflow: hidden;
     font-weight: 700;
     text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
     box-shadow: 
@@ -3713,12 +3728,13 @@ a:hover {
     opacity: 0.7;
 }
 
+
 .installation-meta-compact {
     display: flex;
     justify-content: center;
     align-items: center;
     gap: 8px;
-    margin-top: 5px;
+    margin-top: 8px; /* Reduced margin */
     opacity: 0.8;
 }
 
@@ -3756,25 +3772,25 @@ a:hover {
 .header-launch-section {
     display: flex;
     justify-content: center;
-    margin-top: 15px;
+    margin-top: 10px; /* Reduced margin */
 }
 
-.header-launch-button-compact {
-    background: linear-gradient(135deg, #FFD700, #FFA500);
-    border: 2px solid rgba(255, 215, 0, 0.6);
-    border-radius: 8px;
-    padding: 12px 24px;
-    font-family: "HEADER_FONT";
-    font-size: 1.1rem;
-    color: #1a1a1a;
-    cursor: pointer;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    font-weight: 700;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
-    box-shadow: 
-        0 4px 15px rgba(255, 215, 0, 0.4),
-        0 0 25px rgba(255, 215, 0, 0.3);
-    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    animation: golden-glow 3s ease-in-out infinite alternate;
+
+/* Center section descriptions under dividers */
+.section-description {
+    text-align: center;
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 1rem;
+    margin: 15px auto 25px auto;
+    max-width: 600px;
+    line-height: 1.5;
+}
+
+/* Optional features description */
+.optional-features-description {
+    text-align: center;
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 1rem;
+    margin: 10px auto;
+    max-width: 700px;
 }
