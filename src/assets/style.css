@@ -1017,14 +1017,11 @@ a:hover {
 
 /* Feature Cards - Fixed centering */
 .feature-cards-container {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-    gap: 15px;
-    padding: 5px;
-    border: none !important;
-    justify-items: center;
-    margin: 0 auto;
-    max-width: 1200px;
+    display: block !important;
+    width: 100%;
+    padding: 10px 0;
+    min-height: min-content;
+    clear: both;
 }
 
 .feature-card {
@@ -2709,11 +2706,11 @@ a:hover {
 }
 
 .features-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-    gap: 20px;
-    margin-top: 20px;
-    justify-items: center;
+    display: block !important;
+    width: 100%;
+    padding: 10px 0;
+    min-height: min-content;
+    clear: both;
 }
 
 /* Fixed Modal Styles - These need to display as overlays, not replace main content */
