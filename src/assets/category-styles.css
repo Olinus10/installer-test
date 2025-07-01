@@ -374,7 +374,7 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 0;
+    margin-bottom: 8px;
     width: 100%;
 }
 
@@ -383,6 +383,29 @@
     padding: 0;
     flex-grow: 1;
     font-size: 1.1rem;
+    text-align: left;
+}
+.category-content .feature-card-description {
+    margin-bottom: 10px;
+    font-size: 0.85rem;
+    line-height: 1.4;
+    color: #ddd;
+    text-align: left;
+    width: 100%;
+}
+
+.category-content .feature-dependencies,
+.category-content .feature-incompatibilities,
+.category-content .feature-authors {
+    font-size: 0.85rem;
+    margin-top: 8px;
+    color: rgba(255, 255, 255, 0.7);
+    background-color: rgba(0, 0, 0, 0.3);
+    padding: 6px 10px;
+    border-radius: 4px;
+    text-align: left;
+    width: 100%;
+    box-sizing: border-box;
 }
 
 .category-content .feature-toggle-button {
