@@ -163,10 +163,21 @@ div {
     } else {
         "preset-card"
     },
+    // Apply background if available from custom preset
+    style: {
+        if let Some(custom_preset) = custom_preset {
+            if let Some(bg) = &custom_preset.background {
+                format!("background-image: url('{}'); background-size: cover; background-position: center;", bg)
+            } else {
+                String::new()
+            }
+        } else {
+            String::new()
+        }
+    },
     onclick: move |_| {
-        // UPDATED: Clear features when selecting custom preset
+        // Clear features when selecting custom preset
         enabled_features.with_mut(|features| {
-            // Clear all features except "default"
             features.clear();
             features.push("default".to_string());
             
