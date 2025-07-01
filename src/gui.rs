@@ -1510,33 +1510,44 @@ use_effect({
                 }
                 
                 // Header with installation name
- div { class: "installation-header",
-    div { class: "installation-header-content",
-        h1 { "{installation.name}" }
-        div { class: "installation-meta",
-            span { class: "minecraft-version", "Minecraft {installation.minecraft_version}" }
-            span { class: "loader-version", "{installation.loader_type} {installation.loader_version}" }
-            
-            if installation.update_available {
-                span { class: "update-badge", "Update Available" }
+div { class: "installation-header-compact",
+    div { class: "header-top-row",
+        // Back button on the left
+        button { 
+            class: "back-button-inline",
+            onclick: move |_| onback.call(()),
+            "← Back"
+        }
+        
+        // Title in the center
+        h1 { class: "installation-title-compact", "{installation.name}" }
+        
+        // Launch button on the right
+        button {
+            class: "header-launch-button-compact",
+            disabled: !installation_state.read().installed || *is_installing.read(),
+            onclick: handle_launch_header,
+            if installation_state.read().installed {
+                "LAUNCH"
+            } else {
+                "INSTALL FIRST"
             }
         }
     }
     
-    // ADD LAUNCH BUTTON TO HEADER
-        div { class: "installation-header-actions",
-            button {
-                class: "header-launch-button",
-                disabled: !installation_state.read().installed || *is_installing.read(),
-                onclick: handle_launch_header, // Use the cloned version
-                if installation_state.read().installed {
-                    "LAUNCH GAME"
-                } else {
-                    "INSTALL FIRST"
-            }
+    // Minecraft info in a subtle row below
+    div { class: "installation-meta-compact",
+        span { class: "meta-item", "Minecraft {installation.minecraft_version}" }
+        span { class: "meta-separator", "•" }
+        span { class: "meta-item", "{installation.loader_type} {installation.loader_version}" }
+        
+        if installation.update_available {
+            span { class: "meta-separator", "•" }
+            span { class: "update-badge-inline", "Update Available" }
         }
     }
 }
+
 if let Some(update_msg) = preset_update_msg.read().clone() {
     div { class: "preset-update-notification",
         "{update_msg}"
