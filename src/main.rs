@@ -1442,6 +1442,39 @@ async fn download_zip(name: &str, http_client: &CachedHttpClient, url: &str, pat
 
 async fn install<F: FnMut() + Clone>(installer_profile: &InstallerProfile, mut progress_callback: F) -> Result<(), String> {
     info!("Installing modpack");
+    
+    // Calculate total items correctly - count actual items to be downloaded
+    let mut total_items = 0;
+    
+    // Count enabled mods
+    total_items += installer_profile.manifest.mods.iter()
+        .filter(|m| installer_profile.enabled_features.contains(&m.id) || m.id == "default")
+        .count();
+    
+    // Count enabled shaderpacks
+    total_items += installer_profile.manifest.shaderpacks.iter()
+        .filter(|s| installer_profile.enabled_features.contains(&s.id) || s.id == "default")
+        .count();
+    
+    // Count enabled resourcepacks
+    total_items += installer_profile.manifest.resourcepacks.iter()
+        .filter(|r| installer_profile.enabled_features.contains(&r.id) || r.id == "default")
+        .count();
+    
+    // Count enabled includes
+    total_items += installer_profile.manifest.include.iter()
+        .filter(|i| {
+            if i.id.is_empty() || i.id == "default" {
+                true
+            } else if !i.optional {
+                true
+            } else {
+                installer_profile.enabled_features.contains(&i.id)
+            }
+        })
+        .count();
+    
+    debug!("Total items to install: {}", total_items);
     debug!("installer_profile = {installer_profile:#?}");
     let modpack_root = &get_modpack_root(
         installer_profile
