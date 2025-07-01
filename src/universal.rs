@@ -12,7 +12,6 @@ use crate::preset::{Preset, PresetsContainer};
 
 // Structure for a mod/component in the universal manifest
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
-#[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
 pub struct ModComponent {
     pub id: String,
     pub name: String,
