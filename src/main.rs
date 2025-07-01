@@ -246,6 +246,23 @@ trait Downloadable {
     fn get_authors(&self) -> &Vec<Author>;
 }
 
+
+#[derive(Debug, Deserialize, Serialize, Clone, PartialEq)]
+struct Include {
+    location: String,
+    #[serde(default = "default_id")]
+    id: String,
+    name: Option<String>,
+    authors: Option<Vec<Author>>,
+    #[serde(default = "default_false")]
+    optional: bool,
+    #[serde(default = "default_false")]
+    default_enabled: bool,
+    // NEW: Add ignore_update support
+    #[serde(default = "default_false")]
+    ignore_update: bool,
+}
+
 #[derive(Debug, Deserialize, Serialize, PartialEq, Clone)]
 struct Config {
     launcher: String,
@@ -375,22 +392,6 @@ struct Resourcepack {
     #[serde(default = "default_id")]
     id: String,
     authors: Vec<Author>,
-    // NEW: Add ignore_update support
-    #[serde(default = "default_false")]
-    ignore_update: bool,
-}
-
-#[derive(Debug, Deserialize, Serialize, Clone, PartialEq)]
-struct Include {
-    location: String,
-    #[serde(default = "default_id")]
-    id: String,
-    name: Option<String>,
-    authors: Option<Vec<Author>>,
-    #[serde(default = "default_false")]
-    optional: bool,
-    #[serde(default = "default_false")]
-    default_enabled: bool,
     // NEW: Add ignore_update support
     #[serde(default = "default_false")]
     ignore_update: bool,
