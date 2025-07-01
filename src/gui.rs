@@ -1512,8 +1512,10 @@ div { class: "installation-header-compact",
         
         // Title in the center
         h1 { class: "installation-title-compact", "{installation.name}" }
-        
-        // Launch button on the right
+    }
+    
+    // Launch button centered under the title
+    div { class: "header-launch-section",
         button {
             class: "header-launch-button-compact",
             disabled: !installation_state.read().installed || *is_installing.read(),
@@ -1538,7 +1540,7 @@ div { class: "installation-header-compact",
         }
     }
 }
-
+                
 if let Some(update_msg) = preset_update_msg.read().clone() {
     div { class: "preset-update-notification",
         "{update_msg}"
