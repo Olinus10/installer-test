@@ -2954,8 +2954,8 @@ fn Version(mut props: VersionProps) -> Element {
         }
     }
 }
+
 /// New header component with tabs - updated to display tab groups 1-3 in main row
-#[component]
 #[component]
 fn AppHeader(
     installations: Signal<Vec<Installation>>,
