@@ -12,6 +12,7 @@ use crate::preset::{Preset, PresetsContainer};
 
 // Structure for a mod/component in the universal manifest
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
 pub struct ModComponent {
     pub id: String,
     pub name: String,
@@ -34,6 +35,9 @@ pub struct ModComponent {
     pub dependencies: Option<Vec<String>>,
     #[serde(default)]
     pub incompatibilities: Option<Vec<String>>,
+    // NEW: Add ignore_update support
+    #[serde(default = "default_false")]
+    pub ignore_update: bool,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
@@ -90,6 +94,9 @@ pub struct IncludeComponent {
     pub optional: bool,
     #[serde(default = "default_false")]
     pub default_enabled: bool,
+    // NEW: Add ignore_update support
+    #[serde(default = "default_false")]
+    pub ignore_update: bool,
 }
 
 fn default_empty_string() -> String {
@@ -385,53 +392,57 @@ pub fn universal_to_manifest(universal: &UniversalManifest, enabled_features: Ve
     }
     
     // Convert mods from universal format to original format
-    let mods = universal.mods.iter().map(|component| {
-        crate::Mod {
-            name: component.name.clone(),
-            source: component.source.clone(),
-            location: component.location.clone(),
-            version: component.version.clone(),
-            path: component.path.clone(),
-            id: component.id.clone(),
-            authors: component.authors.clone(),
-        }
-    }).collect();
-    
-    // Convert shaderpacks and resourcepacks similarly
-    let shaderpacks = universal.shaderpacks.iter().map(|component| {
-        crate::Shaderpack {
-            name: component.name.clone(),
-            source: component.source.clone(),
-            location: component.location.clone(),
-            version: component.version.clone(),
-            path: component.path.clone(),
-            id: component.id.clone(),
-            authors: component.authors.clone(),
-        }
-    }).collect();
-    
-    let resourcepacks = universal.resourcepacks.iter().map(|component| {
-        crate::Resourcepack {
-            name: component.name.clone(),
-            source: component.source.clone(),
-            location: component.location.clone(),
-            version: component.version.clone(),
-            path: component.path.clone(),
-            id: component.id.clone(),
-            authors: component.authors.clone(),
-        }
-    }).collect();
+let mods = universal.mods.iter().map(|component| {
+    crate::Mod {
+        name: component.name.clone(),
+        source: component.source.clone(),
+        location: component.location.clone(),
+        version: component.version.clone(),
+        path: component.path.clone(),
+        id: component.id.clone(),
+        authors: component.authors.clone(),
+        ignore_update: component.ignore_update,  // NEW: Copy ignore_update field
+    }
+}).collect();
 
-    let includes: Vec<crate::Include> = universal.include.iter().map(|inc| {
-        crate::Include {
-            location: inc.location.clone(),
-            id: if inc.id.is_empty() { "default".to_string() } else { inc.id.clone() },
-            name: inc.name.clone(),
-            authors: inc.authors.clone(),
-            optional: inc.optional,
-            default_enabled: inc.default_enabled,
-        }
-    }).collect();
+// Convert shaderpacks and resourcepacks similarly
+let shaderpacks = universal.shaderpacks.iter().map(|component| {
+    crate::Shaderpack {
+        name: component.name.clone(),
+        source: component.source.clone(),
+        location: component.location.clone(),
+        version: component.version.clone(),
+        path: component.path.clone(),
+        id: component.id.clone(),
+        authors: component.authors.clone(),
+        ignore_update: component.ignore_update,  // NEW: Copy ignore_update field
+    }
+}).collect();
+
+let resourcepacks = universal.resourcepacks.iter().map(|component| {
+    crate::Resourcepack {
+        name: component.name.clone(),
+        source: component.source.clone(),
+        location: component.location.clone(),
+        version: component.version.clone(),
+        path: component.path.clone(),
+        id: component.id.clone(),
+        authors: component.authors.clone(),
+        ignore_update: component.ignore_update,  // NEW: Copy ignore_update field
+    }
+}).collect();
+
+let includes: Vec<crate::Include> = universal.include.iter().map(|inc| {
+    crate::Include {
+        location: inc.location.clone(),
+        id: if inc.id.is_empty() { "default".to_string() } else { inc.id.clone() },
+        name: inc.name.clone(),
+        authors: inc.authors.clone(),
+        optional: inc.optional,
+        default_enabled: inc.default_enabled,
+        ignore_update: inc.ignore_update,  // NEW: Copy ignore_update field
+    }
+}).collect();
     
     // Build the manifest
     crate::Manifest {
