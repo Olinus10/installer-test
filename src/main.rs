@@ -345,6 +345,9 @@ struct Mod {
     #[serde(default = "default_id")]
     id: String,
     authors: Vec<Author>,
+    // NEW: Add ignore_update support
+    #[serde(default = "default_false")]
+    ignore_update: bool,
 }
 
 #[derive(Debug, Deserialize, Serialize, PartialEq, Clone)]
@@ -357,6 +360,9 @@ struct Shaderpack {
     #[serde(default = "default_id")]
     id: String,
     authors: Vec<Author>,
+    // NEW: Add ignore_update support
+    #[serde(default = "default_false")]
+    ignore_update: bool,
 }
 
 #[derive(Debug, Deserialize, Serialize, PartialEq, Clone)]
@@ -369,6 +375,25 @@ struct Resourcepack {
     #[serde(default = "default_id")]
     id: String,
     authors: Vec<Author>,
+    // NEW: Add ignore_update support
+    #[serde(default = "default_false")]
+    ignore_update: bool,
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone, PartialEq)]
+struct Include {
+    location: String,
+    #[serde(default = "default_id")]
+    id: String,
+    name: Option<String>,
+    authors: Option<Vec<Author>>,
+    #[serde(default = "default_false")]
+    optional: bool,
+    #[serde(default = "default_false")]
+    default_enabled: bool,
+    // NEW: Add ignore_update support
+    #[serde(default = "default_false")]
+    ignore_update: bool,
 }
 
 gen_downloadble_impl!(Mod, "mod");
@@ -421,18 +446,6 @@ struct Feature {
     #[serde(default = "default_hidden")]
     hidden: bool,
     description: Option<String>,
-}
-#[derive(Debug, Deserialize, Serialize, Clone, PartialEq)]
-struct Include {
-    location: String,
-    #[serde(default = "default_id")]
-    id: String,
-    name: Option<String>,
-    authors: Option<Vec<Author>>,
-    #[serde(default = "default_false")]
-    optional: bool,
-    #[serde(default = "default_false")]
-    default_enabled: bool,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone, PartialEq)]
