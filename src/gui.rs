@@ -1500,15 +1500,6 @@ use_effect({
                     title: format!("Installing {}", installation.name)
                 }
             } else {
-                // Back navigation
-                div { class: "navigation-row",
-                    button { 
-                        class: "back-button",
-                        onclick: move |_| onback.call(()),
-                        "← Back to Installations"
-                    }
-                }
-                
                 // Header with installation name
 div { class: "installation-header-compact",
     div { class: "header-top-row",
