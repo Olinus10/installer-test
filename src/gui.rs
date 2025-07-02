@@ -1284,33 +1284,36 @@ let mut proceed_with_update = {
                             if let Err(e) = installation_clone.save() {
                                 error!("Failed to save installation: {}", e);
                             } else {
-                                // Update the state signal
-                                installation_state.set(installation_clone.clone());
-                                
-                                // Update the installations list
-                                installations.with_mut(|list| {
-                                    if let Some(index) = list.iter().position(|i| i.id == installation_id) {
-                                        list[index] = installation_clone;
-                                    }
-                                });
-                                
-                                has_changes_clone.set(false);
-                                features_modified_clone.set(false);
-                                performance_modified_clone.set(false);
-                            }
-                        },
-                        Err(e) => {
-                            error!("Failed to update installation: {}", e);
-                            installation_error_clone.set(Some(e));
+            if success {
+                // Update installation state
+                installation_clone.installed = true;
+                installation_clone.update_available = false;
+                installation_clone.modified = false;
+                
+                // Save and update UI
+                if let Err(e) = installation_clone.save() {
+                    error!("Failed to save installation: {}", e);
+                } else {
+                    // Update the state signal
+                    installation_state.set(installation_clone.clone());
+                    
+                    // Update the installations list
+                    installations.with_mut(|list| {
+                        if let Some(index) = list.iter().position(|i| i.id == installation_id) {
+                            list[index] = installation_clone;
                         }
-                    }
-                },
-                Err(e) => {
-                    error!("Failed to load universal manifest: {}", e);
-                    installation_error_clone.set(Some(format!("Failed to load manifest: {}", e)));
+                    });
+                    
+                    // Clear modification flags
+                    has_changes_clone.set(false);
+                    features_modified_clone.set(false);
+                    performance_modified_clone.set(false);
+                    
+                    // Stop showing progress after a brief delay
+                    tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
+                    is_installing_clone.set(false);
                 }
             }
-            is_installing_clone.set(false);
         });
     }
 };
@@ -1492,14 +1495,14 @@ use_effect({
     rsx! {
         div { class: "installation-management-container",
             // Show progress view if installing
-            if *is_installing.read() {
-                ProgressView {
-                    value: *installation_progress.read(),
-                    max: *installation_total.read(),
-                    status: installation_status.read().clone(),
-                    title: format!("Installing {}", installation.name)
-                }
-            } else {
+if *is_installing.read() {
+    ProgressView {
+        value: *installation_progress.read(),
+        max: *installation_total.read(),
+        status: installation_status.read().clone(),
+        title: format!("Installing {}", installation.name)
+    }
+} else {
                 // Header with installation name
 div { class: "installation-header-compact",
     div { class: "header-top-row",
@@ -1807,18 +1810,22 @@ fn ProgressView(
 ) -> Element {
     let percentage = if max > 0 { (value * 100) / max } else { 0 };
     
-    // Add a timer for showing helpful messages
-    let mut message_index = use_signal(|| 0);
+    // Add completion detection
+    let is_complete = percentage >= 100;
     
-    // Rotate through helpful messages every 5 seconds
-    use_effect(move || {
-        if percentage < 100 && percentage > 0 {
-            spawn(async move {
-                loop {
-                    tokio::time::sleep(tokio::time::Duration::from_secs(5)).await;
-                    message_index.with_mut(|idx| *idx = (*idx + 1) % 5);
-                }
-            });
+    // Auto-hide progress after completion with delay
+    let mut auto_close_timer = use_signal(|| 0);
+    
+    use_effect({
+        let auto_close_timer = auto_close_timer.clone();
+        move || {
+            if is_complete {
+                spawn(async move {
+                    // Wait 2 seconds after completion, then signal to close
+                    tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
+                    auto_close_timer.set(1);
+                });
+            }
         }
     });
     
@@ -1867,7 +1874,9 @@ fn ProgressView(
     
     rsx! {
         div { 
+            iv { 
             class: "progress-container",
+            "data-complete": if is_complete { "true" } else { "false" },
             "data-value": "{value}",
             "data-max": "{max}",
             "data-step": "{current_step}",
@@ -1934,17 +1943,15 @@ fn ProgressView(
                 }
                 
                 // Add completion button
-if percentage >= 100 {
-    div { class: "completion-actions",
-        button {
-            class: "completion-button",
-            onclick: move |_| {
-                // This should trigger a state change in the parent
-                // You might need to add a completion handler prop
-                debug!("Progress completion acknowledged");
-            },
-            "Continue"
-                        }
+            if is_complete && *auto_close_timer.read() > 0 {
+                div { class: "completion-overlay",
+                    "Installation completed successfully!"
+                    button {
+                        onclick: move |_| {
+                            // Signal completion to parent
+                            debug!("Progress completion acknowledged");
+                        },
+                        "Continue"
                     }
                 }
             }
