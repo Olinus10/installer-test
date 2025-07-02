@@ -1,5 +1,4 @@
 /* Complete redesign of preset cards */
-/* Complete redesign of preset cards */
 .presets-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
@@ -96,23 +95,21 @@
 /* Card title styling */
 .preset-card h4 {
     font-size: 1.3rem;
-    margin: 0 0 15px 0; /* Increased bottom margin */
+    margin: 0 0 12px 0;
     color: #ffffff;
     font-weight: 600;
     letter-spacing: 0.5px;
-    line-height: 1.2;
 }
 
 .preset-card p {
     color: rgba(255, 255, 255, 0.8);
     font-size: 0.95rem;
-    line-height: 1.4; /* Better line height */
+    line-height: 1.5;
     max-width: 90%;
     overflow: hidden;
     display: -webkit-box;
-    -webkit-line-clamp: 4; /* Allow one more line */
+    -webkit-line-clamp: 3;
     -webkit-box-orient: vertical;
-    margin: 0; /* Remove default margin */
 }
 
 /* Feature count badge in top corner */
@@ -143,11 +140,6 @@
     border-radius: 20px;
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
     z-index: 5;
-}
-
-.preset-card:has(.trending-badge) .preset-features-count {
-    right: 15px;
-    top: 50px; /* Move down when trending badge is present */
 }
 
 /* Also ensure the overlay covers the entire card with no gaps */
