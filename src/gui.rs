@@ -1069,8 +1069,6 @@ pub fn InstallationManagementPage(
     // State for the current tab
     let mut active_tab = use_signal(|| "features");
 
-
-    
     // Load the installation data
     let installation_result = use_memo(move || {
         crate::installation::load_installation(&installation_id)
@@ -1196,508 +1194,503 @@ pub fn InstallationManagementPage(
     });
     
     // Effect to detect changes
-use_effect({
-    let enabled_features_for_effect = enabled_features.clone();
-    let original_features = installation.enabled_features.clone();
-    let mut features_modified_copy = features_modified.clone();
-    
-    move || {
-        let features_changed = enabled_features_for_effect.read().clone() != original_features;
-        
-        // Update specific modification flags
-        features_modified_copy.set(features_changed);
-        
-        // Only set has_changes for feature changes, not memory changes
-        has_changes.set(features_changed);
-    }
-});
-    
-// Handle install/update with progress tracking
-let installation_for_update_clone = installation_for_update.clone();
-
-// Define the actual update process as a separate closure first
-let mut proceed_with_update = {
-// Handle install/update with progress tracking
-let installation_for_update_clone = installation_for_update_clone.clone();
-
-// Define the actual update process as a separate closure first
-let mut proceed_with_update = {
-    let installation_for_update_clone = installation_for_update_clone.clone();
-    let enabled_features = enabled_features.clone();
-    let memory_allocation = memory_allocation.clone();
-    let java_args = java_args.clone();
-    let mut is_installing = is_installing.clone();
-    let installation_error = installation_error.clone();
-    let installation_progress = installation_progress.clone();
-    let installation_total = installation_total.clone();
-    let installation_status = installation_status.clone();
-    let has_changes = has_changes.clone();
-    let features_modified = features_modified.clone();
-    let performance_modified = performance_modified.clone();
-    let installations = installations.clone();
-    let installation_state = installation_state.clone();
-    
-    move || {
-        is_installing.set(true);
-        let mut installation_clone = installation_for_update_clone.clone();
-        
-        // Update settings
-        installation_clone.enabled_features = enabled_features.read().clone();
-        installation_clone.memory_allocation = *memory_allocation.read();
-        installation_clone.java_args = java_args.read().clone();
-        installation_clone.modified = true;
-        
-        let http_client = crate::CachedHttpClient::new();
-        let mut installation_error_clone = installation_error.clone();
-        let mut progress = installation_progress.clone();
-        let mut total = installation_total.clone();
-        let mut status = installation_status.clone();
-        let mut is_installing_clone = is_installing.clone();
-        let mut has_changes_clone = has_changes.clone();
-        let mut features_modified_clone = features_modified.clone();
-        let mut performance_modified_clone = performance_modified.clone();
-        let mut installations = installations.clone();
-        let mut installation_state = installation_state.clone();
-        let installation_id = installation_clone.id.clone();
-
-        spawn(async move {
-            // Calculate total items
-            match crate::universal::load_universal_manifest(&http_client, None).await {
-                Ok(manifest) => {
-                    let total_items = manifest.mods.len() + manifest.shaderpacks.len() + 
-                                     manifest.resourcepacks.len() + manifest.include.len();
-                    total.set(total_items as i64);
-                    progress.set(0);
-                    status.set("Preparing installation...".to_string());
-                    
-                    // Create a progress callback
-                    let progress_callback = move || {
-                        progress.with_mut(|p| *p += 1);
-                        let current = *progress.read();
-                        let total_val = *total.read();
-                        status.set(format!("Installing... {}/{}", current, total_val));
-                    };
-                    
-                    match installation_clone.install_or_update_with_progress(&http_client, progress_callback).await {
-                        Ok(_) => {
-                            // Mark as installed
-                            installation_clone.installed = true;
-                            installation_clone.update_available = false;
-                            installation_clone.modified = false;
-                            
-                            // Save the installation
-                            if let Err(e) = installation_clone.save() {
-                                error!("Failed to save installation: {}", e);
-                                installation_error_clone.set(Some(format!("Failed to save installation: {}", e)));
-                            } else {
-                                // Update installation state
-                                installation_state.set(installation_clone.clone());
-                                
-                                // Update the installations list
-                                installations.with_mut(|list| {
-                                    if let Some(index) = list.iter().position(|i| i.id == installation_id) {
-                                        list[index] = installation_clone;
-                                    }
-                                });
-                                
-                                // Clear modification flags
-                                has_changes_clone.set(false);
-                                features_modified_clone.set(false);
-                                performance_modified_clone.set(false);
-                                
-                                // Stop showing progress after a brief delay
-                                tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
-                            }
-                        },
-                        Err(e) => {
-                            error!("Installation failed: {}", e);
-                            installation_error_clone.set(Some(format!("Installation failed: {}", e)));
-                        }
-                    }
-                },
-                Err(e) => {
-                    error!("Failed to load manifest: {}", e);
-                    installation_error_clone.set(Some(format!("Failed to load manifest: {}", e)));
-                }
-            }
-            
-            // Always stop installing state
-            is_installing_clone.set(false);
-        });
-    }
-};
-
-// Now define the handle_update function that uses proceed_with_update
-let handle_update = {
-    let mut proceed_with_update = proceed_with_update.clone();
-    let installation_state = installation_state.clone();
-    let mut show_update_warning = show_update_warning.clone();
-    
-    move |_| {
-        // Check if this is an update (not first install)
-        if installation_state.read().installed {
-            // Show the update warning dialog
-            show_update_warning.set(true);
-        } else {
-            // First install - proceed directly
-            proceed_with_update();
-        }
-    }
-};
-    
-    // Button label based on state
-let (action_button_label, button_class, button_disabled) = {
-    let current_installation = installation_state.read();
-    let installed = current_installation.installed;
-    let update_available = current_installation.update_available;
-    let has_changes = *has_changes.read();
-    let is_installing = *is_installing.read();
-    
-    debug!("Button state check: installed={}, update_available={}, has_changes={}, is_installing={}", 
-           installed, update_available, has_changes, is_installing);
-    
-    if is_installing {
-        ("INSTALLING...", "action-button installing", true)
-    } else if !installed {
-        ("INSTALL", "action-button install-button", false)
-    } else if update_available {
-        ("UPDATE", "action-button update-button", false)
-    } else if has_changes {
-        ("UPDATE", "action-button modify-button", false)
-    } else {
-        ("INSTALLED", "action-button up-to-date", true)
-    }
-};
-
-// Also add this effect to refresh installation state periodically:
-use_effect({
-    let installation_id = installation.id.clone();
-    let mut installations = installations.clone();
-    
-    move || {
-        let installation_id = installation_id.clone();
-        let mut installations = installations.clone();
-        
-        spawn(async move {
-            // Reload installation state after any changes
-            if let Ok(updated_inst) = crate::installation::load_installation(&installation_id) {
-                installations.with_mut(|list| {
-                    if let Some(index) = list.iter().position(|i| i.id == updated_inst.id) {
-                        list[index] = updated_inst;
-                    }
-                });
-            }
-        });
-    }
-});
-    
-    // Button disable logic
-let action_button_disabled = *is_installing.read() || 
-                            (installation.installed && 
-                             !installation.update_available && 
-                             !*has_changes.read());
-    
-    // Handle launch
-let handle_launch = {
-    let mut installation_error_clone = installation_error.clone();
-    let installation_id = installation_id_for_launch.clone();
-    
-    move |_| {
-        let mut installation_error_clone = installation_error_clone.clone();
-        let installation_id = installation_id.clone();
-        
-        // Create a channel to communicate back to the main thread
-        let (error_tx, error_rx) = std::sync::mpsc::channel::<String>();
-        
-        // Launch the game
-        std::thread::spawn(move || {
-            match crate::launch_modpack(&installation_id) {
-                Ok(_) => {
-                    debug!("Successfully launched modpack: {}", installation_id);
-                },
-                Err(e) => {
-                    error!("Failed to launch modpack: {}", e);
-                    let _ = error_tx.send(format!("Failed to launch modpack: {}", e));
-                }
-            }
-        });
-        
-        // Create a task to check for errors from the background thread
-        spawn(async move {
-            if let Ok(error_message) = error_rx.recv() {
-                installation_error_clone.set(Some(error_message));
-            }
-        });
-    }
-};
-
     use_effect({
-    let installation_id = installation.id.clone();
-    let mut installations = installations.clone();
+        let enabled_features_for_effect = enabled_features.clone();
+        let original_features = installation.enabled_features.clone();
+        let mut features_modified_copy = features_modified.clone();
+        
+        move || {
+            let features_changed = enabled_features_for_effect.read().clone() != original_features;
+            
+            // Update specific modification flags
+            features_modified_copy.set(features_changed);
+            
+            // Only set has_changes for feature changes, not memory changes
+            has_changes.set(features_changed);
+        }
+    });
     
-    move || {
-        // Set up a timer to periodically check installation state
-        let installation_id = installation_id.clone();
+    // Handle install/update with progress tracking
+    let installation_for_update_clone = installation_for_update.clone();
+
+    // Define the actual update process as a separate closure first
+    let mut proceed_with_update = {
+        let installation_for_update_clone = installation_for_update_clone.clone();
+        let enabled_features = enabled_features.clone();
+        let memory_allocation = memory_allocation.clone();
+        let java_args = java_args.clone();
+        let mut is_installing = is_installing.clone();
+        let installation_error = installation_error.clone();
+        let installation_progress = installation_progress.clone();
+        let installation_total = installation_total.clone();
+        let installation_status = installation_status.clone();
+        let has_changes = has_changes.clone();
+        let features_modified = features_modified.clone();
+        let performance_modified = performance_modified.clone();
+        let installations = installations.clone();
+        let installation_state = installation_state.clone();
+        
+        move || {
+            is_installing.set(true);
+            let mut installation_clone = installation_for_update_clone.clone();
+            
+            // Update settings
+            installation_clone.enabled_features = enabled_features.read().clone();
+            installation_clone.memory_allocation = *memory_allocation.read();
+            installation_clone.java_args = java_args.read().clone();
+            installation_clone.modified = true;
+            
+            let http_client = crate::CachedHttpClient::new();
+            let mut installation_error_clone = installation_error.clone();
+            let mut progress = installation_progress.clone();
+            let mut total = installation_total.clone();
+            let mut status = installation_status.clone();
+            let mut is_installing_clone = is_installing.clone();
+            let mut has_changes_clone = has_changes.clone();
+            let mut features_modified_clone = features_modified.clone();
+            let mut performance_modified_clone = performance_modified.clone();
+            let mut installations = installations.clone();
+            let mut installation_state = installation_state.clone();
+            let installation_id = installation_clone.id.clone();
+
+            spawn(async move {
+                // Calculate total items
+                match crate::universal::load_universal_manifest(&http_client, None).await {
+                    Ok(manifest) => {
+                        let total_items = manifest.mods.len() + manifest.shaderpacks.len() + 
+                                         manifest.resourcepacks.len() + manifest.include.len();
+                        total.set(total_items as i64);
+                        progress.set(0);
+                        status.set("Preparing installation...".to_string());
+                        
+                        // Create a progress callback
+                        let progress_callback = move || {
+                            progress.with_mut(|p| *p += 1);
+                            let current = *progress.read();
+                            let total_val = *total.read();
+                            status.set(format!("Installing... {}/{}", current, total_val));
+                        };
+                        
+                        match installation_clone.install_or_update_with_progress(&http_client, progress_callback).await {
+                            Ok(_) => {
+                                // Mark as installed
+                                installation_clone.installed = true;
+                                installation_clone.update_available = false;
+                                installation_clone.modified = false;
+                                
+                                // Save the installation
+                                if let Err(e) = installation_clone.save() {
+                                    error!("Failed to save installation: {}", e);
+                                    installation_error_clone.set(Some(format!("Failed to save installation: {}", e)));
+                                } else {
+                                    // Update installation state
+                                    installation_state.set(installation_clone.clone());
+                                    
+                                    // Update the installations list
+                                    installations.with_mut(|list| {
+                                        if let Some(index) = list.iter().position(|i| i.id == installation_id) {
+                                            list[index] = installation_clone;
+                                        }
+                                    });
+                                    
+                                    // Clear modification flags
+                                    has_changes_clone.set(false);
+                                    features_modified_clone.set(false);
+                                    performance_modified_clone.set(false);
+                                    
+                                    // Stop showing progress after a brief delay
+                                    tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
+                                }
+                            },
+                            Err(e) => {
+                                error!("Installation failed: {}", e);
+                                installation_error_clone.set(Some(format!("Installation failed: {}", e)));
+                            }
+                        }
+                    },
+                    Err(e) => {
+                        error!("Failed to load manifest: {}", e);
+                        installation_error_clone.set(Some(format!("Failed to load manifest: {}", e)));
+                    }
+                }
+                
+                // Always stop installing state
+                is_installing_clone.set(false);
+            });
+        }
+    };
+
+    // Now define the handle_update function that uses proceed_with_update
+    let handle_update = {
+        let mut proceed_with_update = proceed_with_update.clone();
+        let installation_state = installation_state.clone();
+        let mut show_update_warning = show_update_warning.clone();
+        
+        move |_| {
+            // Check if this is an update (not first install)
+            if installation_state.read().installed {
+                // Show the update warning dialog
+                show_update_warning.set(true);
+            } else {
+                // First install - proceed directly
+                proceed_with_update();
+            }
+        }
+    };
+        
+    // Button label based on state
+    let (action_button_label, button_class, button_disabled) = {
+        let current_installation = installation_state.read();
+        let installed = current_installation.installed;
+        let update_available = current_installation.update_available;
+        let has_changes = *has_changes.read();
+        let is_installing = *is_installing.read();
+        
+        debug!("Button state check: installed={}, update_available={}, has_changes={}, is_installing={}", 
+               installed, update_available, has_changes, is_installing);
+        
+        if is_installing {
+            ("INSTALLING...", "action-button installing", true)
+        } else if !installed {
+            ("INSTALL", "action-button install-button", false)
+        } else if update_available {
+            ("UPDATE", "action-button update-button", false)
+        } else if has_changes {
+            ("UPDATE", "action-button modify-button", false)
+        } else {
+            ("INSTALLED", "action-button up-to-date", true)
+        }
+    };
+
+    // Also add this effect to refresh installation state periodically:
+    use_effect({
+        let installation_id = installation.id.clone();
         let mut installations = installations.clone();
         
-        spawn(async move {
-            loop {
-                tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
-                
+        move || {
+            let installation_id = installation_id.clone();
+            let mut installations = installations.clone();
+            
+            spawn(async move {
+                // Reload installation state after any changes
                 if let Ok(updated_inst) = crate::installation::load_installation(&installation_id) {
                     installations.with_mut(|list| {
-                        if let Some(index) = list.iter().position(|i| i.id == installation_id) {
-                            if list[index].installed != updated_inst.installed || 
-                               list[index].update_available != updated_inst.update_available {
-                                list[index] = updated_inst;
-                            }
+                        if let Some(index) = list.iter().position(|i| i.id == updated_inst.id) {
+                            list[index] = updated_inst;
                         }
                     });
                 }
-            }
-        });
-    }
-});
-
-use_effect({
-    let installation_id = installation.id.clone();
-    let mut installation_state = installation_state.clone();
-    
-    move || {
-        let installation_id = installation_id.clone();
-        let mut installation_state = installation_state.clone();
+            });
+        }
+    });
         
-        spawn(async move {
-            loop {
-                tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
-                
-                if let Ok(updated_inst) = crate::installation::load_installation(&installation_id) {
-                    installation_state.set(updated_inst);
-                }
-            }
-        });
-    }
-});
-
-use_effect({
-    let installation = installation.clone();
-    let presets_resource = presets.clone();
-    let mut preset_update_msg = preset_update_msg.clone();
-    
-    move || {
-        // Clone the presets data if available
-        if let Some(presets_data) = presets_resource.read().as_ref() {
-            let presets_vec = presets_data.clone(); // Clone the data
-            let installation_clone = installation.clone();
+    // Button disable logic
+    let action_button_disabled = *is_installing.read() || 
+                                (installation.installed && 
+                                 !installation.update_available && 
+                                 !*has_changes.read());
+        
+    // Handle launch
+    let handle_launch = {
+        let mut installation_error_clone = installation_error.clone();
+        let installation_id = installation_id_for_launch.clone();
+        
+        move |_| {
+            let mut installation_error_clone = installation_error_clone.clone();
+            let installation_id = installation_id.clone();
             
+            // Create a channel to communicate back to the main thread
+            let (error_tx, error_rx) = std::sync::mpsc::channel::<String>();
+            
+            // Launch the game
+            std::thread::spawn(move || {
+                match crate::launch_modpack(&installation_id) {
+                    Ok(_) => {
+                        debug!("Successfully launched modpack: {}", installation_id);
+                    },
+                    Err(e) => {
+                        error!("Failed to launch modpack: {}", e);
+                        let _ = error_tx.send(format!("Failed to launch modpack: {}", e));
+                    }
+                }
+            });
+            
+            // Create a task to check for errors from the background thread
             spawn(async move {
-                if let Some(msg) = installation_clone.check_preset_updates(&presets_vec).await {
-                    preset_update_msg.set(Some(msg));
+                if let Ok(error_message) = error_rx.recv() {
+                    installation_error_clone.set(Some(error_message));
                 }
             });
         }
-    }
-});
+    };
+
+    use_effect({
+        let installation_id = installation.id.clone();
+        let mut installations = installations.clone();
+        
+        move || {
+            // Set up a timer to periodically check installation state
+            let installation_id = installation_id.clone();
+            let mut installations = installations.clone();
+            
+            spawn(async move {
+                loop {
+                    tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
+                    
+                    if let Ok(updated_inst) = crate::installation::load_installation(&installation_id) {
+                        installations.with_mut(|list| {
+                            if let Some(index) = list.iter().position(|i| i.id == installation_id) {
+                                if list[index].installed != updated_inst.installed || 
+                                   list[index].update_available != updated_inst.update_available {
+                                    list[index] = updated_inst;
+                                }
+                            }
+                        });
+                    }
+                }
+            });
+        }
+    });
+
+    use_effect({
+        let installation_id = installation.id.clone();
+        let mut installation_state = installation_state.clone();
+        
+        move || {
+            let installation_id = installation_id.clone();
+            let mut installation_state = installation_state.clone();
+            
+            spawn(async move {
+                loop {
+                    tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
+                    
+                    if let Ok(updated_inst) = crate::installation::load_installation(&installation_id) {
+                        installation_state.set(updated_inst);
+                    }
+                }
+            });
+        }
+    });
+
+    use_effect({
+        let installation = installation.clone();
+        let presets_resource = presets.clone();
+        let mut preset_update_msg = preset_update_msg.clone();
+        
+        move || {
+            // Clone the presets data if available
+            if let Some(presets_data) = presets_resource.read().as_ref() {
+                let presets_vec = presets_data.clone(); // Clone the data
+                let installation_clone = installation.clone();
+                
+                spawn(async move {
+                    if let Some(msg) = installation_clone.check_preset_updates(&presets_vec).await {
+                        preset_update_msg.set(Some(msg));
+                    }
+                });
+            }
+        }
+    });
 
     let handle_launch_header = handle_launch.clone();
     
     rsx! {
         div { class: "installation-management-container",
             // Show progress view if installing
-if *is_installing.read() {
-    ProgressView {
-        value: *installation_progress.read(),
-        max: *installation_total.read(),
-        status: installation_status.read().clone(),
-        title: format!("Installing {}", installation.name)
-    }
-} else {
-                // Header with installation name
-div { class: "installation-header-compact",
-    div { class: "header-top-row",
-        // Back button on the left
-        button { 
-            class: "back-button-inline",
-            onclick: move |_| onback.call(()),
-            "← Back"
-        }
-        
-        // Title in the center
-        h1 { class: "installation-title-compact", "{installation.name}" }
-    }
-    
-    // Launch button centered under the title
-    div { class: "header-launch-section",
-        button {
-            class: "header-launch-button-compact",
-            disabled: !installation_state.read().installed || *is_installing.read(),
-            onclick: handle_launch_header,
-            if installation_state.read().installed {
-                "LAUNCH"
-            } else {
-                "INSTALL FIRST"
-            }
-        }
-    }
-    
-    // Minecraft info in a subtle row below
-    div { class: "installation-meta-compact",
-        span { class: "meta-item", "Minecraft {installation.minecraft_version}" }
-        span { class: "meta-separator", "•" }
-        span { class: "meta-item", "{installation.loader_type} {installation.loader_version}" }
-        
-        if installation.update_available {
-            span { class: "meta-separator", "•" }
-            span { class: "update-badge-inline", "Update Available" }
-        }
-    }
-}
-                
-if let Some(update_msg) = preset_update_msg.read().clone() {
-    div { class: "preset-update-notification",
-        "{update_msg}"
-button {
-    onclick: move |_| {
-        let presets_vec = presets.read().clone().unwrap_or_default();
-        if let Some(base_id) = &installation_for_preset_update.base_preset_id {
-            if let Some(preset) = find_preset_by_id(&presets_vec, base_id) {
-                let mut installation_clone = installation_for_preset_update.clone();
-                installation_clone.apply_preset_update(&preset);
-                let _ = installation_clone.save();
-            }
-        }
-    },
-    "Apply Preset Update"
-}
-    }
-}
-
-                // Update warning dialog
-if *show_update_warning.read() {
-    div { class: "modal-overlay",
-        div { class: "modal-container update-warning-dialog",
-            div { class: "modal-header",
-                h3 { "UPDATE WARNING" }
-                button { 
-                    class: "modal-close",
-                    onclick: move |_| show_update_warning.set(false),
-                    "×"
+            if *is_installing.read() {
+                ProgressView {
+                    value: *installation_progress.read(),
+                    max: *installation_total.read(),
+                    status: installation_status.read().clone(),
+                    title: format!("Installing {}", installation.name)
                 }
-            }
-            
-            div { class: "modal-content",
-                div { class: "warning-message",
-                    p { 
-                        strong { "Important: " }
-                        "Updating may reset some mod configs, especially Wynntils settings."
+            } else {
+                // Header with installation name
+                div { class: "installation-header-compact",
+                    div { class: "header-top-row",
+                        // Back button on the left
+                        button { 
+                            class: "back-button-inline",
+                            onclick: move |_| onback.call(()),
+                            "← Back"
+                        }
+                        
+                        // Title in the center
+                        h1 { class: "installation-title-compact", "{installation.name}" }
                     }
                     
-                    p { 
-                        "To protect your Wynntils config:"
+                    // Launch button centered under the title
+                    div { class: "header-launch-section",
+                        button {
+                            class: "header-launch-button-compact",
+                            disabled: !installation_state.read().installed || *is_installing.read(),
+                            onclick: handle_launch_header,
+                            if installation_state.read().installed {
+                                "LAUNCH"
+                            } else {
+                                "INSTALL FIRST"
+                            }
+                        }
                     }
                     
-                    ol { class: "protection-steps",
-                        li { "Click 'Open Installation Folder' below" }
-                        li { "Make a backup copy of the 'wynntils' folder" }
-                        li { "After updating, restore your backed-up folder if needed" }
-                    }
-                    
-                    div { class: "warning-note",
-                        p { 
-                            "Tip: Keep your Wynntils folder backed up regularly to avoid losing your custom settings."
+                    // Minecraft info in a subtle row below
+                    div { class: "installation-meta-compact",
+                        span { class: "meta-item", "Minecraft {installation.minecraft_version}" }
+                        span { class: "meta-separator", "•" }
+                        span { class: "meta-item", "{installation.loader_type} {installation.loader_version}" }
+                        
+                        if installation.update_available {
+                            span { class: "meta-separator", "•" }
+                            span { class: "update-badge-inline", "Update Available" }
                         }
                     }
                 }
-            }
-            
-            div { class: "modal-footer",
-                button { 
-                    class: "secondary-button",
-                    onclick: {
-                        // Use the same logic as settings tab
-                        let installation_path_for_folder = installation_state.read().installation_path.clone();
-                        move |_| {
-                            let mut path = installation_path_for_folder.clone();
-                            
-                            debug!("Opening installation folder: {:?}", path);
-                            debug!("Path exists: {}", path.exists());
-                            debug!("Path is directory: {}", path.is_dir());
-                            
-                            // Normalize the path by converting to a canonical path
-                            match path.canonicalize() {
-                                Ok(canonical) => {
-                                    debug!("Canonical path: {:?}", canonical);
-                                    path = canonical;
-                                },
-                                Err(e) => {
-                                    debug!("Failed to canonicalize path: {}", e);
-                                    // Continue with the original path
+                
+                if let Some(update_msg) = preset_update_msg.read().clone() {
+                    div { class: "preset-update-notification",
+                        "{update_msg}"
+                        button {
+                            onclick: move |_| {
+                                let presets_vec = presets.read().clone().unwrap_or_default();
+                                if let Some(base_id) = &installation_for_preset_update.base_preset_id {
+                                    if let Some(preset) = find_preset_by_id(&presets_vec, base_id) {
+                                        let mut installation_clone = installation_for_preset_update.clone();
+                                        installation_clone.apply_preset_update(&preset);
+                                        let _ = installation_clone.save();
+                                    }
+                                }
+                            },
+                            "Apply Preset Update"
+                        }
+                    }
+                }
+
+                // Update warning dialog
+                if *show_update_warning.read() {
+                    div { class: "modal-overlay",
+                        div { class: "modal-container update-warning-dialog",
+                            div { class: "modal-header",
+                                h3 { "UPDATE WARNING" }
+                                button { 
+                                    class: "modal-close",
+                                    onclick: move |_| show_update_warning.set(false),
+                                    "×"
                                 }
                             }
                             
-                            debug!("Final path to open: {:?}", path);
-                            
-                            // Check if path exists
-                            if !path.exists() {
-                                debug!("Installation path does not exist: {:?}", path);
-                                return;
+                            div { class: "modal-content",
+                                div { class: "warning-message",
+                                    p { 
+                                        strong { "Important: " }
+                                        "Updating may reset some mod configs, especially Wynntils settings."
+                                    }
+                                    
+                                    p { 
+                                        "To protect your Wynntils config:"
+                                    }
+                                    
+                                    ol { class: "protection-steps",
+                                        li { "Click 'Open Installation Folder' below" }
+                                        li { "Make a backup copy of the 'wynntils' folder" }
+                                        li { "After updating, restore your backed-up folder if needed" }
+                                    }
+                                    
+                                    div { class: "warning-note",
+                                        p { 
+                                            "Tip: Keep your Wynntils folder backed up regularly to avoid losing your custom settings."
+                                        }
+                                    }
+                                }
                             }
                             
-                            // Launch appropriate command based on OS
-                            #[cfg(target_os = "windows")]
-                            let result = {
-                                // Convert to a proper Windows-style path string
-                                let path_str = path.to_string_lossy().replace("/", "\\");
-                                debug!("Windows path string: {}", path_str);
+                            div { class: "modal-footer",
+                                button { 
+                                    class: "secondary-button",
+                                    onclick: {
+                                        // Use the same logic as settings tab
+                                        let installation_path_for_folder = installation_state.read().installation_path.clone();
+                                        move |_| {
+                                            let mut path = installation_path_for_folder.clone();
+                                            
+                                            debug!("Opening installation folder: {:?}", path);
+                                            debug!("Path exists: {}", path.exists());
+                                            debug!("Path is directory: {}", path.is_dir());
+                                            
+                                            // Normalize the path by converting to a canonical path
+                                            match path.canonicalize() {
+                                                Ok(canonical) => {
+                                                    debug!("Canonical path: {:?}", canonical);
+                                                    path = canonical;
+                                                },
+                                                Err(e) => {
+                                                    debug!("Failed to canonicalize path: {}", e);
+                                                    // Continue with the original path
+                                                }
+                                            }
+                                            
+                                            debug!("Final path to open: {:?}", path);
+                                            
+                                            // Check if path exists
+                                            if !path.exists() {
+                                                debug!("Installation path does not exist: {:?}", path);
+                                                return;
+                                            }
+                                            
+                                            // Launch appropriate command based on OS
+                                            #[cfg(target_os = "windows")]
+                                            let result = {
+                                                // Convert to a proper Windows-style path string
+                                                let path_str = path.to_string_lossy().replace("/", "\\");
+                                                debug!("Windows path string: {}", path_str);
+                                                
+                                                std::process::Command::new("explorer")
+                                                    .arg(&path_str)
+                                                    .spawn()
+                                            };
+                                            
+                                            #[cfg(target_os = "macos")]
+                                            let result = std::process::Command::new("open")
+                                                .arg(path)
+                                                .spawn();
+                                                
+                                            #[cfg(target_os = "linux")]
+                                            let result = std::process::Command::new("xdg-open")
+                                                .arg(path)
+                                                .spawn();
+                                                
+                                            #[cfg(not(any(target_os = "windows", target_os = "macos", target_os = "linux")))]
+                                            let result = Err(std::io::Error::new(std::io::ErrorKind::Other, "Unsupported platform"));
+                                            
+                                            // Handle command result
+                                            if let Err(e) = result {
+                                                debug!("Failed to open installation folder: {}", e);
+                                            } else {
+                                                debug!("Successfully opened folder");
+                                            }
+                                        }
+                                    },
+                                    "Open Installation Folder"
+                                }
                                 
-                                std::process::Command::new("explorer")
-                                    .arg(&path_str)
-                                    .spawn()
-                            };
-                            
-                            #[cfg(target_os = "macos")]
-                            let result = std::process::Command::new("open")
-                                .arg(path)
-                                .spawn();
+                                button { 
+                                    class: "cancel-button",
+                                    onclick: move |_| show_update_warning.set(false),
+                                    "Cancel Update"
+                                }
                                 
-                            #[cfg(target_os = "linux")]
-                            let result = std::process::Command::new("xdg-open")
-                                .arg(path)
-                                .spawn();
-                                
-                            #[cfg(not(any(target_os = "windows", target_os = "macos", target_os = "linux")))]
-                            let result = Err(std::io::Error::new(std::io::ErrorKind::Other, "Unsupported platform"));
-                            
-                            // Handle command result
-                            if let Err(e) = result {
-                                debug!("Failed to open installation folder: {}", e);
-                            } else {
-                                debug!("Successfully opened folder");
+                                button { 
+                                    class: "primary-button update-proceed-button",
+                                    onclick: move |_| {
+                                        show_update_warning.set(false);
+                                        proceed_with_update();
+                                    },
+                                    "Proceed with Update"
+                                }
                             }
                         }
-                    },
-                    "Open Installation Folder"
+                    }
                 }
-                
-                button { 
-                    class: "cancel-button",
-                    onclick: move |_| show_update_warning.set(false),
-                    "Cancel Update"
-                }
-                
-                button { 
-                    class: "primary-button update-proceed-button",
-                    onclick: move |_| {
-                        show_update_warning.set(false);
-                        proceed_with_update();
-                    },
-                    "Proceed with Update"
-                }
-            }
-        }
-    }
-}
-                
+                        
                 // Error display
                 if let Some(error) = &*installation_error.read() {
                     div { class: "error-notification",
@@ -1709,7 +1702,7 @@ if *show_update_warning.read() {
                         }
                     }
                 }
-                
+                        
                 // Main tabs and content area
                 div { class: "installation-content-container",
                     // Tab navigation
@@ -1756,38 +1749,38 @@ if *show_update_warning.read() {
                                     }
                                 }
                             },
-"performance" => {
-    rsx! {
-        PerformanceTab {
-            memory_allocation: memory_allocation,
-            java_args: java_args,
-            installation_id: installation.id.clone()
-        }
-    }
-},
+                            "performance" => {
+                                rsx! {
+                                    PerformanceTab {
+                                        memory_allocation: memory_allocation,
+                                        java_args: java_args,
+                                        installation_id: installation.id.clone()
+                                    }
+                                }
+                            },
                             "settings" => {
                                 rsx! {
-SettingsTab {
-    installation: installation.clone(),
-    installation_id: installation_id_for_delete.clone(),
-    ondelete: move |_| {
-        // Handle delete functionality - remove from installations list
-        let id_to_delete = installation_id_for_delete.clone();
-        installations.with_mut(|list| {
-            list.retain(|inst| inst.id != id_to_delete);
-        });
-        // Navigate back to home
-        onback.call(());
-    },
-    onupdate: move |updated_installation: Installation| {
-        // Update the installation data in the list
-        installations.with_mut(|list| {
-            if let Some(index) = list.iter().position(|i| i.id == updated_installation.id) {
-                list[index] = updated_installation.clone();
-            }
-        });
-    }
-}
+                                    SettingsTab {
+                                        installation: installation.clone(),
+                                        installation_id: installation_id_for_delete.clone(),
+                                        ondelete: move |_| {
+                                            // Handle delete functionality - remove from installations list
+                                            let id_to_delete = installation_id_for_delete.clone();
+                                            installations.with_mut(|list| {
+                                                list.retain(|inst| inst.id != id_to_delete);
+                                            });
+                                            // Navigate back to home
+                                            onback.call(());
+                                        },
+                                        onupdate: move |updated_installation: Installation| {
+                                            // Update the installation data in the list
+                                            installations.with_mut(|list| {
+                                                if let Some(index) = list.iter().position(|i| i.id == updated_installation.id) {
+                                                    list[index] = updated_installation.clone();
+                                                }
+                                            });
+                                        }
+                                    }
                                 }
                             },
                             _ => rsx! { div { "Unknown tab selected" } }
@@ -1798,12 +1791,12 @@ SettingsTab {
                 // Bottom action bar with install/update/modify button
                 div { class: "installation-actions",                    
                     // Install/Update/Modify button
-button {
-    class: button_class,
-    disabled: button_disabled,
-    onclick: handle_update,
-    {action_button_label}
-}
+                    button {
+                        class: button_class,
+                        disabled: button_disabled,
+                        onclick: handle_update,
+                        {action_button_label}
+                    }
                 }
             }
         }
