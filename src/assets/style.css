@@ -2177,12 +2177,14 @@ a:hover {
     color: #fce8f6;
     letter-spacing: 0.08em;
     font-family: "HEADER_FONT";
-    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7); /* Fixed shadow direction */
+    /* FIX: Correct the text shadow direction */
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.7); /* Changed from 2px 2px 4px to 0 2px 4px */
     background: linear-gradient(135deg, #fce8f6, #d8b8d0);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
-    filter: drop-shadow(2px 2px 4px rgba(0, 0, 0, 0.5)); /* Additional drop shadow */
+    /* FIX: Use drop-shadow filter instead for gradient text */
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
 }
 
 
@@ -2191,6 +2193,7 @@ a:hover {
     font-size: 1.1rem;
     color: rgba(255, 255, 255, 0.8);
     margin: 0 0 25px 0;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5); /* Correct shadow direction */
     animation: subtitle-fade 2s ease-in-out infinite alternate;
 }
 
@@ -2349,7 +2352,7 @@ a:hover {
 .progress-status {
     font-size: 1.1rem;
     margin: 15px 0 0 0;
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.6);
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6); /* Correct shadow direction */
     color: #fce8f6;
     text-align: center;
     animation: status-fade 3s ease-in-out infinite alternate;
