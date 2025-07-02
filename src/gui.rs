@@ -1217,6 +1217,11 @@ let installation_for_update_clone = installation_for_update.clone();
 
 // Define the actual update process as a separate closure first
 let mut proceed_with_update = {
+// Handle install/update with progress tracking
+let installation_for_update_clone = installation_for_update_clone.clone();
+
+// Define the actual update process as a separate closure first
+let mut proceed_with_update = {
     let installation_for_update_clone = installation_for_update_clone.clone();
     let enabled_features = enabled_features.clone();
     let memory_allocation = memory_allocation.clone();
@@ -1283,37 +1288,41 @@ let mut proceed_with_update = {
                             // Save the installation
                             if let Err(e) = installation_clone.save() {
                                 error!("Failed to save installation: {}", e);
+                                installation_error_clone.set(Some(format!("Failed to save installation: {}", e)));
                             } else {
-            if success {
-                // Update installation state
-                installation_clone.installed = true;
-                installation_clone.update_available = false;
-                installation_clone.modified = false;
-                
-                // Save and update UI
-                if let Err(e) = installation_clone.save() {
-                    error!("Failed to save installation: {}", e);
-                } else {
-                    // Update the state signal
-                    installation_state.set(installation_clone.clone());
-                    
-                    // Update the installations list
-                    installations.with_mut(|list| {
-                        if let Some(index) = list.iter().position(|i| i.id == installation_id) {
-                            list[index] = installation_clone;
+                                // Update installation state
+                                installation_state.set(installation_clone.clone());
+                                
+                                // Update the installations list
+                                installations.with_mut(|list| {
+                                    if let Some(index) = list.iter().position(|i| i.id == installation_id) {
+                                        list[index] = installation_clone;
+                                    }
+                                });
+                                
+                                // Clear modification flags
+                                has_changes_clone.set(false);
+                                features_modified_clone.set(false);
+                                performance_modified_clone.set(false);
+                                
+                                // Stop showing progress after a brief delay
+                                tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
+                            }
+                        },
+                        Err(e) => {
+                            error!("Installation failed: {}", e);
+                            installation_error_clone.set(Some(format!("Installation failed: {}", e)));
                         }
-                    });
-                    
-                    // Clear modification flags
-                    has_changes_clone.set(false);
-                    features_modified_clone.set(false);
-                    performance_modified_clone.set(false);
-                    
-                    // Stop showing progress after a brief delay
-                    tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
-                    is_installing_clone.set(false);
+                    }
+                },
+                Err(e) => {
+                    error!("Failed to load manifest: {}", e);
+                    installation_error_clone.set(Some(format!("Failed to load manifest: {}", e)));
                 }
             }
+            
+            // Always stop installing state
+            is_installing_clone.set(false);
         });
     }
 };
