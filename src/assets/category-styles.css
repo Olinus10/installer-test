@@ -98,8 +98,8 @@
 /* Category content animation */
 .category-content {
     overflow: hidden;
-    max-height: 0;
-    transition: max-height 0.5s ease;
+    max-height: 400px; /* Limit height */
+    overflow-y: auto; /* Add scroll if needed */
 }
 
 .category-content.expanded {
@@ -354,19 +354,19 @@
 }
 
 .category-content .feature-card {
-    background-color: rgba(0, 0, 0, 0.7);
-    border-radius: 8px;
-    padding: 15px;
-    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    background-color: rgba(0, 0, 0, 0.4);
+    border-radius: 6px;
+    padding: 10px 15px; /* Reduced padding */
     display: flex;
-    justify-content: space-between;
+    flex-direction: row; /* Keep as row */
     align-items: center;
-    min-height: auto;
-    max-height: none;
-    position: relative;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    justify-content: space-between;
+    min-height: 50px; /* Fixed smaller height */
+    max-height: 50px; /* Prevent expansion */
     width: 100%;
-    max-width: none; /* Remove max-width constraint */
+    margin-bottom: 8px; /* Small gap between cards */
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2); /* Smaller shadow */
+    overflow: hidden; /* Prevent content overflow */
 }
 
 /* Feature card header for full-width cards */
@@ -374,17 +374,19 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 8px;
     width: 100%;
+    margin-bottom: 0; /* Remove bottom margin */
 }
 
 .category-content .feature-card-title {
     margin: 0;
-    padding: 0;
+    font-size: 1rem; /* Smaller font */
     flex-grow: 1;
-    font-size: 1.1rem;
-    text-align: left;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
+
 .category-content .feature-card-description {
     margin-bottom: 10px;
     font-size: 0.85rem;
@@ -409,9 +411,16 @@
 }
 
 .category-content .feature-toggle-button {
-    margin: 0 0 0 10px;
-    font-size: 0.85rem;
-    padding: 6px 14px;
-    min-width: 80px;
-    text-align: center;
+    margin-left: 15px;
+    font-size: 0.8rem; /* Smaller font */
+    padding: 4px 10px; /* Smaller padding */
+    min-width: 70px; /* Smaller width */
+    flex-shrink: 0; /* Don't shrink */
+}
+
+.category-content .feature-card-description,
+.category-content .feature-dependencies,
+.category-content .feature-incompatibilities,
+.category-content .feature-authors {
+    display: none; /* Hide these in compact view */
 }
