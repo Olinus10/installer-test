@@ -1819,7 +1819,7 @@ fn ProgressView(
     let mut auto_close_timer = use_signal(|| 0);
     
     use_effect({
-        let auto_close_timer = auto_close_timer.clone();
+        let mut auto_close_timer = auto_close_timer.clone();
         move || {
             if is_complete {
                 spawn(async move {
