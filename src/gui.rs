@@ -1847,8 +1847,11 @@ fn ProgressView(
         "The installer is still working - don't close it!",
     ];
     
+    // Message index for cycling through helpful messages
+    let mut message_index = use_signal(|| 0);
+    
     // Ensure we show completion state
-    let (current_step, step_label) = if percentage >= 100 {
+    let (current_step, _step_label) = if percentage >= 100 {
         ("complete", "Complete")
     } else if percentage >= 90 {
         ("finish", "Finishing")
@@ -1883,7 +1886,6 @@ fn ProgressView(
     
     rsx! {
         div { 
-            iv { 
             class: "progress-container",
             "data-complete": if is_complete { "true" } else { "false" },
             "data-value": "{value}",
@@ -1952,15 +1954,16 @@ fn ProgressView(
                 }
                 
                 // Add completion button
-            if is_complete && *auto_close_timer.read() > 0 {
-                div { class: "completion-overlay",
-                    "Installation completed successfully!"
-                    button {
-                        onclick: move |_| {
-                            // Signal completion to parent
-                            debug!("Progress completion acknowledged");
-                        },
-                        "Continue"
+                if is_complete && *auto_close_timer.read() > 0 {
+                    div { class: "completion-overlay",
+                        "Installation completed successfully!"
+                        button {
+                            onclick: move |_| {
+                                // Signal completion to parent
+                                debug!("Progress completion acknowledged");
+                            },
+                            "Continue"
+                        }
                     }
                 }
             }
