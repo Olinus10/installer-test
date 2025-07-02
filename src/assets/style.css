@@ -2045,6 +2045,14 @@ a:hover {
     backdrop-filter: blur(15px);
 }
 
+.progress-container {
+    transition: opacity 0.3s ease;
+}
+
+.progress-container[data-complete="true"] {
+    background: linear-gradient(145deg, rgba(20, 80, 20, 0.95), rgba(10, 60, 10, 0.98));
+}
+
 .progress-container::before {
     content: '';
     position: absolute;
@@ -2362,6 +2370,36 @@ a:hover {
     0% { opacity: 0.8; }
     100% { opacity: 1; }
 }
+
+/* Completion overlay */
+.completion-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.8);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 1.2rem;
+    z-index: 1000;
+}
+
+.completion-overlay button {
+    margin-top: 20px;
+    padding: 12px 24px;
+    background: linear-gradient(135deg, #4CAF50, #45a049);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 1rem;
+}
+
+
 
 /* Stats Display */
 .stats-container {
