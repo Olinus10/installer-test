@@ -590,35 +590,17 @@ fn FloatingFooter(
     rsx! {
         footer { class: "floating-footer",
             if is_home_page {
-                // Home page footer content
+                // Home page footer - just stats or minimal content
                 div { class: "footer-home-content",
-                    a { 
-                        class: "footer-discord-link",
-                        href: "https://discord.gg/olinus-corner-778965021656743966",
-                        target: "_blank",
-                        rel: "noopener noreferrer",
-                        
-                        // Discord icon
-                        svg {
-                            width: "20",
-                            height: "20",
-                            view_box: "0 0 24 24",
-                            fill: "currentColor",
-                            
-                            path {
-                                d: "M19.54 0c1.356 0 2.46 1.104 2.46 2.472v21.528l-2.58-2.28-1.452-1.344-1.536-1.428.636 2.22h-13.608c-1.356 0-2.46-1.104-2.46-2.472v-16.224c0-1.368 1.104-2.472 2.46-2.472h16.08zm-4.632 15.672c2.652-.084 3.672-1.824 3.672-1.824 0-3.864-1.728-6.996-1.728-6.996-1.728-1.296-3.372-1.26-3.372-1.26l-.168.192c2.04.624 2.988 1.524 2.988 1.524-1.248-.684-2.472-1.02-3.612-1.152-.864-.096-1.692-.072-2.424.024l-.204.024c-.42.036-1.44.192-2.724.756-.444.204-.708.348-.708.348s.996-.948 3.156-1.572l-.12-.144s-1.644-.036-3.372 1.26c0 0-1.728 3.132-1.728 6.996 0 0 1.008 1.74 3.66 1.824 0 0 .444-.54.804-.996-1.524-.456-2.1-1.416-2.1-1.416l.336.204.048.036.047.027.014.006.047.027c.3.168.6.3.876.408.492.192 1.08.384 1.764.516.9.168 1.956.228 3.108.012.564-.096 1.14-.264 1.74-.516.42-.156.888-.384 1.38-.708 0 0-.6.984-2.172 1.428.36.456.792.972.792.972zm-5.58-5.604c-.684 0-1.224.6-1.224 1.332 0 .732.552 1.332 1.224 1.332.684 0 1.224-.6 1.224-1.332.012-.732-.54-1.332-1.224-1.332zm4.38 0c-.684 0-1.224.6-1.224 1.332 0 .732.552 1.332 1.224 1.332.684 0 1.224-.6 1.224-1.332 0-.732-.54-1.332-1.224-1.332z"
-                            }
-                        }
-                        
-                        span { "Join Discord" }
+                    // Maybe show some stats or leave mostly empty
+                    div { class: "footer-stats",
+                        span { "200+ FPS • 100+ Mods • 20K+ Downloads" }
                     }
-                    
-                    p { class: "footer-copyright", "© 2023-2025 Majestic Overhaul. CC BY-NC-SA 4.0." }
                 }
             } else if let Some(info) = installation_info {
                 // Installation page footer content
                 div { class: "footer-installation-content",
-                    // Back button
+                    // Back button (blue position in footer)
                     if let Some(back_handler) = on_back {
                         button {
                             class: "footer-back-button",
@@ -627,7 +609,7 @@ fn FloatingFooter(
                         }
                     }
                     
-                    // Installation info
+                    // Installation info in center
                     div { class: "footer-installation-info",
                         h3 { class: "footer-installation-name", "{info.name}" }
                         div { class: "footer-installation-details",
@@ -637,7 +619,7 @@ fn FloatingFooter(
                         }
                     }
                     
-                    // Install/Update button
+                    // Install/Update button on the right
                     if let Some(install_handler) = on_install {
                         button {
                             class: if info.needs_update {
@@ -661,6 +643,32 @@ fn FloatingFooter(
                     }
                 }
             }
+        }
+    }
+}
+
+// 3. Add the floating Discord button component
+#[component]
+fn FloatingDiscordButton() -> Element {
+    rsx! {
+        a { 
+            class: "floating-discord-button",
+            href: "https://discord.gg/olinus-corner-778965021656743966",
+            target: "_blank",
+            rel: "noopener noreferrer",
+            
+            svg {
+                width: "20",
+                height: "20",
+                view_box: "0 0 24 24",
+                fill: "currentColor",
+                
+                path {
+                    d: "M19.54 0c1.356 0 2.46 1.104 2.46 2.472v21.528l-2.58-2.28-1.452-1.344-1.536-1.428.636 2.22h-13.608c-1.356 0-2.46-1.104-2.46-2.472v-16.224c0-1.368 1.104-2.472 2.46-2.472h16.08zm-4.632 15.672c2.652-.084 3.672-1.824 3.672-1.824 0-3.864-1.728-6.996-1.728-6.996-1.728-1.296-3.372-1.26-3.372-1.26l-.168.192c2.04.624 2.988 1.524 2.988 1.524-1.248-.684-2.472-1.02-3.612-1.152-.864-.096-1.692-.072-2.424.024l-.204.024c-.42.036-1.44.192-2.724.756-.444.204-.708.348-.708.348s.996-.948 3.156-1.572l-.12-.144s-1.644-.036-3.372 1.26c0 0-1.728 3.132-1.728 6.996 0 0 1.008 1.74 3.66 1.824 0 0 .444-.54.804-.996-1.524-.456-2.1-1.416-2.1-1.416l.336.204.048.036.047.027.014.006.047.027c.3.168.6.3.876.408.492.192 1.08.384 1.764.516.9.168 1.956.228 3.108.012.564-.096 1.14-.264 1.74-.516.42-.156.888-.384 1.38-.708 0 0-.6.984-2.172 1.428.36.456.792.972.792.972zm-5.58-5.604c-.684 0-1.224.6-1.224 1.332 0 .732.552 1.332 1.224 1.332.684 0 1.224-.6 1.224-1.332.012-.732-.54-1.332-1.224-1.332zm4.38 0c-.684 0-1.224.6-1.224 1.332 0 .732.552 1.332 1.224 1.332.684 0 1.224-.6 1.224-1.332 0-.732-.54-1.332-1.224-1.332z"
+                }
+            }
+            
+            span { "Discord" }
         }
     }
 }
@@ -691,15 +699,52 @@ fn ModernAppLayout(
     on_launch: Option<EventHandler<()>>,
     on_back: Option<EventHandler<()>>,
     on_install: Option<EventHandler<()>>,
+    has_changes: bool,        // Add this parameter
+    is_installing: bool,      // Add this parameter
 ) -> Element {
     rsx! {
         div { class: "modern-app-layout",
-            // Always show floating logo
+            // Always show floating logo (blue square)
             FloatingLogo {
                 onclick: on_go_home
             }
             
-            // Show installation header only on installation pages
+            // Top right buttons - Discord on home page, Launch on installation page
+            div { class: "top-right-buttons",
+                if is_home_page {
+                    // Discord button on home page (yellow position)
+                    a { 
+                        class: "floating-discord-button",
+                        href: "https://discord.gg/olinus-corner-778965021656743966",
+                        target: "_blank",
+                        rel: "noopener noreferrer",
+                        
+                        svg {
+                            width: "20",
+                            height: "20",
+                            view_box: "0 0 24 24",
+                            fill: "currentColor",
+                            
+                            path {
+                                d: "M19.54 0c1.356 0 2.46 1.104 2.46 2.472v21.528l-2.58-2.28-1.452-1.344-1.536-1.428.636 2.22h-13.608c-1.356 0-2.46-1.104-2.46-2.472v-16.224c0-1.368 1.104-2.472 2.46-2.472h16.08zm-4.632 15.672c2.652-.084 3.672-1.824 3.672-1.824 0-3.864-1.728-6.996-1.728-6.996-1.728-1.296-3.372-1.26-3.372-1.26l-.168.192c2.04.624 2.988 1.524 2.988 1.524-1.248-.684-2.472-1.02-3.612-1.152-.864-.096-1.692-.072-2.424.024l-.204.024c-.42.036-1.44.192-2.724.756-.444.204-.708.348-.708.348s.996-.948 3.156-1.572l-.12-.144s-1.644-.036-3.372 1.26c0 0-1.728 3.132-1.728 6.996 0 0 1.008 1.74 3.66 1.824 0 0 .444-.54.804-.996-1.524-.456-2.1-1.416-2.1-1.416l.336.204.048.036.047.027.014.006.047.027c.3.168.6.3.876.408.492.192 1.08.384 1.764.516.9.168 1.956.228 3.108.012.564-.096 1.14-.264 1.74-.516.42-.156.888-.384 1.38-.708 0 0-.6.984-2.172 1.428.36.456.792.972.792.972zm-5.58-5.604c-.684 0-1.224.6-1.224 1.332 0 .732.552 1.332 1.224 1.332.684 0 1.224-.6 1.224-1.332.012-.732-.54-1.332-1.224-1.332zm4.38 0c-.684 0-1.224.6-1.224 1.332 0 .732.552 1.332 1.224 1.332.684 0 1.224-.6 1.224-1.332 0-.732-.54-1.332-1.224-1.332z"
+                            }
+                        }
+                        
+                        span { "Discord" }
+                    }
+                } else if let Some(installation) = &current_installation {
+                    // Launch button on installation page (yellow position)
+                    if let Some(launch_handler) = on_launch {
+                        FloatingLaunchButton {
+                            is_installed: installation.installed,
+                            is_installing: is_installing,
+                            onclick: launch_handler,
+                        }
+                    }
+                }
+            }
+            
+            // Show installation header only on installation pages (orange area)
             if let Some(installation) = &current_installation {
                 InstallationFloatingHeader {
                     installation_name: installation.name.clone(),
@@ -708,18 +753,9 @@ fn ModernAppLayout(
                     active_tab: active_tab,
                     on_tab_change: on_tab_change,
                 }
-                
-                // Show launch button only on installation pages
-                if let Some(launch_handler) = on_launch {
-                    FloatingLaunchButton {
-                        is_installed: installation.installed,
-                        is_installing: false, // You'll need to pass this state
-                        onclick: launch_handler,
-                    }
-                }
             }
             
-            // Scrollable content area
+            // Scrollable content area (pink area)
             div { 
                 class: if is_home_page {
                     "page-content-area home-page"
@@ -729,7 +765,7 @@ fn ModernAppLayout(
                 {children}
             }
             
-            // Floating footer
+            // Floating footer (green area)
             FloatingFooter {
                 is_home_page: is_home_page,
                 installation_info: current_installation.as_ref().map(|inst| InstallationFooterInfo {
@@ -740,11 +776,16 @@ fn ModernAppLayout(
                     memory_allocation: inst.memory_allocation,
                     installed: inst.installed,
                     needs_update: inst.update_available,
-                    has_changes: false, // You'll need to pass this state
-                    is_up_to_date: inst.installed && !inst.update_available,
+                    has_changes: has_changes,
+                    is_up_to_date: inst.installed && !inst.update_available && !has_changes,
                 }),
                 on_back: on_back,
                 on_install: on_install,
+            }
+            
+            // Copyright in bottom corner - always visible
+            div { class: "floating-copyright",
+                "© 2023-2025 Majestic Overhaul. CC BY-NC-SA 4.0."
             }
         }
     }
@@ -1337,17 +1378,138 @@ pub fn InstallationManagementPage(
         }
     });
     
+    // Effect to detect changes
+    use_effect({
+        let enabled_features_for_effect = enabled_features.clone();
+        let memory_for_effect = memory_allocation.clone();
+        let java_for_effect = java_args.clone();
+        let original_features = installation.enabled_features.clone();
+        let original_memory = installation.memory_allocation;
+        let original_java = installation.java_args.clone();
+        let mut has_changes_copy = has_changes.clone();
+        
+        move || {
+            let features_changed = enabled_features_for_effect.read().clone() != original_features;
+            let memory_changed = *memory_for_effect.read() != original_memory;
+            let java_changed = java_for_effect.read().clone() != original_java;
+            
+            let any_changes = features_changed || memory_changed || java_changed;
+            has_changes_copy.set(any_changes);
+        }
+    });
+    
+    // Handle install/update with progress tracking
+    let handle_install_update = {
+        let mut is_installing = is_installing.clone();
+        let mut installation_error = installation_error.clone();
+        let mut installation_progress = installation_progress.clone();
+        let mut installation_total = installation_total.clone();
+        let mut installation_status = installation_status.clone();
+        let mut has_changes = has_changes.clone();
+        let mut installations = installations.clone();
+        let mut installation_state = installation_state.clone();
+        let enabled_features = enabled_features.clone();
+        let memory_allocation = memory_allocation.clone();
+        let java_args = java_args.clone();
+        let installation_for_update = installation_for_update.clone();
+        
+        move |_: ()| {
+            is_installing.set(true);
+            let mut installation_clone = installation_for_update.clone();
+            
+            // Update settings
+            installation_clone.enabled_features = enabled_features.read().clone();
+            installation_clone.memory_allocation = *memory_allocation.read();
+            installation_clone.java_args = java_args.read().clone();
+            installation_clone.modified = true;
+            
+            let http_client = crate::CachedHttpClient::new();
+            let mut installation_error_clone = installation_error.clone();
+            let mut progress = installation_progress.clone();
+            let mut total = installation_total.clone();
+            let mut status = installation_status.clone();
+            let mut is_installing_clone = is_installing.clone();
+            let mut has_changes_clone = has_changes.clone();
+            let mut installations = installations.clone();
+            let mut installation_state = installation_state.clone();
+            let installation_id = installation_clone.id.clone();
+
+            spawn(async move {
+                // Calculate total items
+                match crate::universal::load_universal_manifest(&http_client, None).await {
+                    Ok(manifest) => {
+                        let total_items = manifest.mods.len() + manifest.shaderpacks.len() + 
+                                         manifest.resourcepacks.len() + manifest.include.len();
+                        total.set(total_items as i64);
+                        progress.set(0);
+                        status.set("Preparing installation...".to_string());
+                        
+                        // Create a progress callback
+                        let progress_callback = move || {
+                            progress.with_mut(|p| *p += 1);
+                            let current = *progress.read();
+                            let total_val = *total.read();
+                            status.set(format!("Installing... {}/{}", current, total_val));
+                        };
+                        
+                        match installation_clone.install_or_update_with_progress(&http_client, progress_callback).await {
+                            Ok(_) => {
+                                // Mark as installed
+                                installation_clone.installed = true;
+                                installation_clone.update_available = false;
+                                installation_clone.modified = false;
+                                
+                                // Save the installation
+                                if let Err(e) = installation_clone.save() {
+                                    error!("Failed to save installation: {}", e);
+                                    installation_error_clone.set(Some(format!("Failed to save installation: {}", e)));
+                                } else {
+                                    // Update installation state
+                                    installation_state.set(installation_clone.clone());
+                                    
+                                    // Update the installations list
+                                    installations.with_mut(|list| {
+                                        if let Some(index) = list.iter().position(|i| i.id == installation_id) {
+                                            list[index] = installation_clone;
+                                        }
+                                    });
+                                    
+                                    // Clear modification flags
+                                    has_changes_clone.set(false);
+                                    
+                                    // Stop showing progress after a brief delay
+                                    tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
+                                }
+                            },
+                            Err(e) => {
+                                error!("Installation failed: {}", e);
+                                installation_error_clone.set(Some(format!("Installation failed: {}", e)));
+                            }
+                        }
+                    },
+                    Err(e) => {
+                        error!("Failed to load manifest: {}", e);
+                        installation_error_clone.set(Some(format!("Failed to load manifest: {}", e)));
+                    }
+                }
+                
+                // Always stop installing state
+                is_installing_clone.set(false);
+            });
+        }
+    };
+    
     // Handle launch
     let handle_launch = {
         let mut installation_error_clone = installation_error.clone();
         let installation_id = installation_id_for_launch.clone();
         
-move |_: ()| {
-    let mut installation_error_clone = installation_error_clone.clone();
-    let installation_id = installation_id.clone();
-    
-    // Create a channel to communicate back to the main thread
-    let (error_tx, error_rx) = std::sync::mpsc::channel::<String>();
+        move |_: ()| {
+            let mut installation_error_clone = installation_error_clone.clone();
+            let installation_id = installation_id.clone();
+            
+            // Create a channel to communicate back to the main thread
+            let (error_tx, error_rx) = std::sync::mpsc::channel::<String>();
             
             // Launch the game
             std::thread::spawn(move || {
@@ -1382,68 +1544,88 @@ move |_: ()| {
                     title: format!("Installing {}", installation.name)
                 }
             } else {
-                // Error display
-                if let Some(error) = &*installation_error.read() {
-                    div { class: "error-notification",
-                        div { class: "error-message", "{error}" }
-                        button { 
-                            class: "error-close",
-                            onclick: move |_| installation_error.set(None),
-                            "×"
+                // Use the modern layout wrapper
+                ModernAppLayout {
+                    is_home_page: false,
+                    current_installation: Some(installation_state.read().clone()),
+                    active_tab: active_tab,
+                    has_changes: *has_changes.read(),
+                    is_installing: *is_installing.read(),
+                    on_go_home: EventHandler::new(move |_: ()| {
+                        onback.call(());
+                    }),
+                    on_tab_change: EventHandler::new(move |tab: String| {
+                        active_tab.set(tab);
+                    }),
+                    on_launch: Some(handle_launch),
+                    on_back: Some(EventHandler::new(move |_: ()| {
+                        onback.call(());
+                    })),
+                    on_install: Some(handle_install_update),
+                    
+                    // Error display
+                    if let Some(error) = &*installation_error.read() {
+                        div { class: "error-notification",
+                            div { class: "error-message", "{error}" }
+                            button { 
+                                class: "error-close",
+                                onclick: move |_| installation_error.set(None),
+                                "×"
+                            }
                         }
                     }
-                }
-                        
-                // Main content area based on active tab
-                div { class: "installation-main-content",
-                    match *active_tab.read() {
-                        "features" => {
-                            rsx! {
-                                FeaturesTab {
-                                    universal_manifest: universal_manifest.read().clone().flatten(),
-                                    presets: presets.read().clone().unwrap_or_default(),
-                                    enabled_features: enabled_features,
-                                    selected_preset: selected_preset,
-                                    filter_text: filter_text,
-                                    installation_id: installation.id.clone(),
-                                }
-                            }
-                        },
-                        "performance" => {
-                            rsx! {
-                                PerformanceTab {
-                                    memory_allocation: memory_allocation,
-                                    java_args: java_args,
-                                    installation_id: installation.id.clone()
-                                }
-                            }
-                        },
-                        "settings" => {
-                            rsx! {
-                                SettingsTab {
-                                    installation: installation.clone(),
-                                    installation_id: installation_id_for_delete.clone(),
-                                    ondelete: move |_| {
-                                        // Handle delete functionality - remove from installations list
-                                        let id_to_delete = installation_id_for_delete.clone();
-                                        installations.with_mut(|list| {
-                                            list.retain(|inst| inst.id != id_to_delete);
-                                        });
-                                        // Navigate back to home
-                                        onback.call(());
-                                    },
-                                    onupdate: move |updated_installation: Installation| {
-                                        // Update the installation data in the list
-                                        installations.with_mut(|list| {
-                                            if let Some(index) = list.iter().position(|i| i.id == updated_installation.id) {
-                                                list[index] = updated_installation.clone();
-                                            }
-                                        });
+                            
+                    // Main content area based on active tab
+                    div { class: "installation-main-content",
+                        match *active_tab.read() {
+                            "features" => {
+                                rsx! {
+                                    FeaturesTab {
+                                        universal_manifest: universal_manifest.read().clone().flatten(),
+                                        presets: presets.read().clone().unwrap_or_default(),
+                                        enabled_features: enabled_features,
+                                        selected_preset: selected_preset,
+                                        filter_text: filter_text,
+                                        installation_id: installation.id.clone(),
                                     }
                                 }
-                            }
-                        },
-                        _ => rsx! { div { "Unknown tab selected" } }
+                            },
+                            "performance" => {
+                                rsx! {
+                                    PerformanceTab {
+                                        memory_allocation: memory_allocation,
+                                        java_args: java_args,
+                                        installation_id: installation.id.clone()
+                                    }
+                                }
+                            },
+                            "settings" => {
+                                rsx! {
+                                    SettingsTab {
+                                        installation: installation.clone(),
+                                        installation_id: installation_id_for_delete.clone(),
+                                        ondelete: move |_| {
+                                            // Handle delete functionality - remove from installations list
+                                            let id_to_delete = installation_id_for_delete.clone();
+                                            installations.with_mut(|list| {
+                                                list.retain(|inst| inst.id != id_to_delete);
+                                            });
+                                            // Navigate back to home
+                                            onback.call(());
+                                        },
+                                        onupdate: move |updated_installation: Installation| {
+                                            // Update the installation data in the list
+                                            installations.with_mut(|list| {
+                                                if let Some(index) = list.iter().position(|i| i.id == updated_installation.id) {
+                                                    list[index] = updated_installation.clone();
+                                                }
+                                            });
+                                        }
+                                    }
+                                }
+                            },
+                            _ => rsx! { div { "Unknown tab selected" } }
+                        }
                     }
                 }
             }
@@ -1964,10 +2146,7 @@ pub fn app() -> Element {
         let config = config_clone.clone();
         let mut manifest_error = manifest_error_clone.clone();
         async move {
-            // Clone the launcher string
             let launcher_str = config.read().launcher.clone();
-            
-            // Now use the string value with get_launcher
             let launcher = match get_launcher(&launcher_str) {
                 Ok(l) => Some(l),
                 Err(_) => None,
@@ -2036,377 +2215,15 @@ pub fn app() -> Element {
         .replace("<SECONDARY_FONT>", "\"HEADER_FONT\"")
         .replace("<PRIMARY_FONT>", "\"REGULAR_FONT\"");
     
-    // Add custom category styles
+    // Add all the CSS files
     let category_styles = include_str!("assets/category-styles.css");
     let feature_styles = include_str!("assets/expanded-feature-styles.css");
     let preset_styles = include_str!("assets/preset-styles.css");
     let search_styles = include_str!("assets/search-results-styles.css");
     let modal_styles = include_str!("assets/modal-styles.css");
     
-    // Create the modern layout CSS - using the content from your modern_layout.css document
-    let modern_layout = r#"
-/* Modern Layout System - Floating Headers and Footer */
-
-/* Reset main container for new layout */
-.main-container {
-    height: 100vh;
-    overflow: hidden; /* Prevent main container scroll */
-    padding: 0;
-    margin: 0;
-    position: relative;
-}
-
-/* Logo - Always visible, top-left corner */
-.floating-logo {
-    position: fixed;
-    top: 20px;
-    left: 20px;
-    z-index: 1000;
-    cursor: pointer;
-    transition: transform 0.3s ease;
-}
-
-.floating-logo:hover {
-    transform: scale(1.1);
-}
-
-.floating-logo img {
-    width: 48px;
-    height: 48px;
-    border-radius: 12px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-}
-
-/* Installation Header - Only visible on installation pages */
-.installation-floating-header {
-    position: fixed;
-    top: 20px;
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 999;
-    background: linear-gradient(145deg, rgba(40, 40, 50, 0.95), rgba(25, 25, 35, 0.98));
-    border-radius: 16px;
-    padding: 16px 24px;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
-    backdrop-filter: blur(20px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    display: flex;
-    align-items: center;
-    gap: 24px;
-    min-width: 500px;
-}
-
-.installation-header-info {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-}
-
-.installation-header-title {
-    font-family: "HEADER_FONT";
-    font-size: 1.2rem;
-    margin: 0;
-    color: #ffffff;
-    letter-spacing: 0.5px;
-}
-
-.installation-header-subtitle {
-    font-size: 0.85rem;
-    color: rgba(255, 255, 255, 0.7);
-    margin: 0;
-}
-
-.installation-header-tabs {
-    display: flex;
-    background: rgba(0, 0, 0, 0.3);
-    border-radius: 12px;
-    padding: 4px;
-    gap: 2px;
-}
-
-.installation-tab {
-    background: transparent;
-    border: none;
-    color: rgba(255, 255, 255, 0.7);
-    padding: 8px 16px;
-    border-radius: 8px;
-    font-family: "REGULAR_FONT";
-    font-size: 0.9rem;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-}
-
-.installation-tab:hover {
-    background: rgba(255, 255, 255, 0.1);
-    color: rgba(255, 255, 255, 0.9);
-}
-
-.installation-tab.active {
-    background: linear-gradient(135deg, #4CAF50, #2E7D32);
-    color: white;
-    box-shadow: 0 2px 8px rgba(76, 175, 80, 0.3);
-}
-
-/* Launch Button - Only visible on installation pages */
-.floating-launch-button {
-    position: fixed;
-    top: 20px;
-    right: 20px;
-    z-index: 1000;
-    background: linear-gradient(135deg, #FFD700, #FFA500);
-    border: 2px solid rgba(255, 215, 0, 0.6);
-    border-radius: 14px;
-    padding: 12px 24px;
-    font-family: "HEADER_FONT";
-    font-size: 1.1rem;
-    color: #1a1a1a;
-    cursor: pointer;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    font-weight: 700;
-    box-shadow: 0 4px 16px rgba(255, 215, 0, 0.4);
-    transition: all 0.3s ease;
-    animation: golden-glow 3s ease-in-out infinite alternate;
-}
-
-.floating-launch-button:hover:not(:disabled) {
-    transform: translateY(-2px) scale(1.05);
-    box-shadow: 0 8px 24px rgba(255, 215, 0, 0.6);
-}
-
-.floating-launch-button:disabled {
-    background: linear-gradient(135deg, #404040, #2a2a2a);
-    border-color: rgba(100, 100, 100, 0.4);
-    color: #888888;
-    cursor: not-allowed;
-    animation: none;
-    opacity: 0.7;
-}
-
-/* Content Area - Scrollable region */
-.page-content-area {
-    position: fixed;
-    top: 100px; /* Space for headers */
-    left: 0;
-    right: 0;
-    bottom: 120px; /* Space for footer */
-    overflow-y: auto;
-    overflow-x: hidden;
-    padding: 20px;
-    box-sizing: border-box;
-}
-
-/* Home page content area (no top headers) */
-.page-content-area.home-page {
-    top: 20px; /* Less space when no installation headers */
-}
-
-/* Floating Footer - Always visible */
-.floating-footer {
-    position: fixed;
-    bottom: 20px;
-    left: 20px;
-    right: 20px;
-    z-index: 999;
-    background: linear-gradient(145deg, rgba(30, 30, 40, 0.95), rgba(20, 20, 30, 0.98));
-    border-radius: 16px;
-    padding: 16px 24px;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
-    backdrop-filter: blur(20px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    min-height: 60px;
-}
-
-/* Footer content for home page */
-.footer-home-content {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 100%;
-    gap: 40px;
-}
-
-.footer-discord-link {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    background: #5865F2;
-    color: white;
-    padding: 8px 16px;
-    border-radius: 8px;
-    text-decoration: none;
-    font-weight: 600;
-    transition: all 0.3s ease;
-    box-shadow: 0 2px 8px rgba(88, 101, 242, 0.3);
-}
-
-.footer-discord-link:hover {
-    background: #4752c4;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(88, 101, 242, 0.4);
-    text-decoration: none;
-}
-
-.footer-copyright {
-    font-size: 0.8rem;
-    color: rgba(255, 255, 255, 0.5);
-}
-
-/* Footer content for installation pages */
-.footer-installation-content {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    width: 100%;
-}
-
-.footer-back-button {
-    background: linear-gradient(135deg, rgba(100, 100, 110, 0.8), rgba(80, 80, 90, 0.9));
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    color: white;
-    border-radius: 10px;
-    padding: 10px 16px;
-    font-family: "REGULAR_FONT";
-    cursor: pointer;
-    transition: all 0.3s ease;
-    font-size: 0.9rem;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.footer-back-button:hover {
-    background: linear-gradient(135deg, rgba(120, 120, 130, 0.9), rgba(100, 100, 110, 1));
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-}
-
-.footer-installation-info {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 4px;
-}
-
-.footer-installation-name {
-    font-family: "HEADER_FONT";
-    font-size: 1.1rem;
-    color: #ffffff;
-    margin: 0;
-}
-
-.footer-installation-details {
-    display: flex;
-    gap: 12px;
-    font-size: 0.85rem;
-    color: rgba(255, 255, 255, 0.7);
-}
-
-.footer-install-button {
-    background: linear-gradient(135deg, #4CAF50, #2E7D32);
-    border: none;
-    color: white;
-    border-radius: 10px;
-    padding: 12px 24px;
-    font-family: "HEADER_FONT";
-    font-size: 1rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    box-shadow: 0 2px 8px rgba(76, 175, 80, 0.3);
-}
-
-.footer-install-button:hover:not(:disabled) {
-    background: linear-gradient(135deg, #66BB6A, #4CAF50);
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(76, 175, 80, 0.4);
-}
-
-.footer-install-button:disabled {
-    background: linear-gradient(135deg, #6a6a6a, #4a4a4a);
-    color: #cccccc;
-    cursor: not-allowed;
-    opacity: 0.6;
-}
-
-.footer-install-button.update-button {
-    background: linear-gradient(135deg, #FF9800, #F57C00);
-    box-shadow: 0 2px 8px rgba(255, 152, 0, 0.3);
-}
-
-.footer-install-button.update-button:hover:not(:disabled) {
-    background: linear-gradient(135deg, #FFB74D, #FF9800);
-    box-shadow: 0 4px 12px rgba(255, 152, 0, 0.4);
-}
-
-/* Responsive Design */
-@media (max-width: 768px) {
-    .installation-floating-header {
-        min-width: auto;
-        max-width: calc(100vw - 160px);
-        flex-direction: column;
-        gap: 12px;
-        padding: 12px 16px;
-    }
-    
-    .installation-header-tabs {
-        width: 100%;
-        justify-content: center;
-    }
-    
-    .floating-footer {
-        left: 10px;
-        right: 10px;
-        bottom: 10px;
-        padding: 12px 16px;
-    }
-    
-    .footer-installation-content {
-        flex-direction: column;
-        gap: 12px;
-    }
-    
-    .footer-home-content {
-        flex-direction: column;
-        gap: 20px;
-    }
-    
-    .page-content-area {
-        top: 140px;
-        bottom: 140px;
-        padding: 15px;
-    }
-    
-    .page-content-area.home-page {
-        top: 20px;
-        bottom: 100px;
-    }
-}
-
-/* Modern app layout wrapper */
-.modern-app-layout {
-    position: relative;
-    width: 100%;
-    height: 100vh;
-    overflow: hidden;
-}
-
-@keyframes golden-glow {
-    0% {
-        box-shadow: 0 4px 16px rgba(255, 215, 0, 0.4);
-    }
-    100% {
-        box-shadow: 0 8px 24px rgba(255, 215, 0, 0.6);
-    }
-}
-"#;
+    // Use the updated modern layout CSS from the artifact above
+    let modern_layout = include_str!("assets/modern_layout.css"); // You'll need to put the CSS from the artifact into this file
 
     // Combine all CSS files
     let complete_css = format!("{}\n{}\n{}\n{}\n{}\n{}\n{}", 
@@ -2427,6 +2244,7 @@ pub fn app() -> Element {
         None
     };
 
+    // Event handlers
     let go_home_handler = EventHandler::new(move |_: ()| {
         current_installation_id.set(None);
     });
@@ -2435,22 +2253,8 @@ pub fn app() -> Element {
         active_tab.set(tab);
     });
 
-    let launch_handler = if let Some(installation) = &current_installation {
-        let installation_id = installation.id.clone();
-        Some(EventHandler::new(move |_: ()| {
-            handle_play_click(installation_id.clone(), &error_signal);
-        }))
-    } else {
-        None
-    };
-
-    let back_handler = if !is_home_page {
-        Some(EventHandler::new(move |_: ()| {
-            current_installation_id.set(None);
-        }))
-    } else {
-        None
-    };
+    // Determine if we're on a settings or launcher screen
+    let is_special_screen = settings() || config.read().first_launch.unwrap_or(true) || !has_launcher;
 
     // Determine main content
     let main_content = if settings() {
@@ -2481,11 +2285,24 @@ pub fn app() -> Element {
         }
     } else if is_home_page {
         rsx! {
-            HomePage {
-                installations,
-                error_signal: error_signal.clone(),
-                changelog: changelog_signal,
-                current_installation_id: current_installation_id.clone(),
+            ModernAppLayout {
+                is_home_page: true,
+                current_installation: None,
+                active_tab: active_tab,
+                has_changes: false,
+                is_installing: false,
+                on_go_home: go_home_handler,
+                on_tab_change: tab_change_handler,
+                on_launch: None,
+                on_back: None,
+                on_install: None,
+                
+                HomePage {
+                    installations,
+                    error_signal: error_signal.clone(),
+                    changelog: changelog_signal,
+                    current_installation_id: current_installation_id.clone(),
+                }
             }
         }
     } else if current_installation_id.read().as_ref().map_or(false, |id| id == "new") {
@@ -2503,7 +2320,7 @@ pub fn app() -> Element {
             }
         }
     } else {
-        // Installation management content
+        // Installation management content - this will use ModernAppLayout internally
         let id = current_installation_id.read().as_ref().unwrap().clone();
         let back_handler_for_mgmt = EventHandler::new(move |_: ()| {
             current_installation_id.set(None);
@@ -2518,25 +2335,20 @@ pub fn app() -> Element {
         }
     };
 
-    // Final render with modern layout
+    // Final render
     rsx! {
         div {
             style { {complete_css} }
             Modal {}
             BackgroundParticles {}
             
-            // Use the modern layout wrapper
-            ModernAppLayout {
-                is_home_page: is_home_page,
-                current_installation: current_installation,
-                active_tab: active_tab,
-                on_go_home: go_home_handler,
-                on_tab_change: tab_change_handler,
-                on_launch: launch_handler,
-                on_back: back_handler,
-                on_install: None, // You can implement this based on your needs
-                
-                // Main content goes here
+            // For special screens (settings, launcher selection), use simple container
+            if is_special_screen {
+                div { class: "main-container",
+                    {main_content}
+                }
+            } else {
+                // For normal operation, content handles its own layout
                 {main_content}
             }
             
