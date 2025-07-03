@@ -38,8 +38,8 @@
     align-items: center;
     text-align: center;
     flex-grow: 1;
-    padding-bottom: 50px;
-    padding: 20px; /* Space for badges and button */
+    padding: 15px; /* Reduced from 20px */
+    padding-bottom: 50px; /* Keep space for button */
 }
 
 /* Select button at bottom */
@@ -95,7 +95,7 @@
 /* Card title styling */
 .preset-card h4 {
     font-size: 1.3rem;
-    margin: 0 0 12px 0;
+    margin: 0 0 8px 0; /* Reduced from 12px to 8px */
     color: #ffffff;
     font-weight: 600;
     letter-spacing: 0.5px;
@@ -104,24 +104,25 @@
 .preset-card p {
     color: rgba(255, 255, 255, 0.8);
     font-size: 0.95rem;
-    line-height: 1.5;
+    line-height: 1.4; /* Slightly tighter line height */
     max-width: 90%;
     overflow: hidden;
     display: -webkit-box;
     -webkit-line-clamp: 3;
     -webkit-box-orient: vertical;
+    margin: 0; /* Remove any default margins */
 }
 
 /* Feature count badge in top corner */
 .preset-features-count {
     position: absolute;
-    top: 15px;
-    right: 15px;
+    top: 12px; /* Slightly closer to top */
+    right: 12px; /* Slightly closer to edge */
     background-color: rgba(0, 0, 0, 0.6);
     color: rgba(255, 255, 255, 0.9);
-    padding: 5px 10px;
-    border-radius: 20px;
-    font-size: 0.8rem;
+    padding: 4px 8px; /* Slightly smaller padding */
+    border-radius: 15px; /* More rounded */
+    font-size: 0.75rem; /* Slightly smaller font */
     border: 1px solid rgba(255, 255, 255, 0.1);
     font-family: "REGULAR_FONT";
     z-index: 5;
@@ -130,14 +131,14 @@
 /* Trending badge in opposite corner */
 .trending-badge {
     position: absolute;
-    top: 15px;
-    left: 15px;
+    top: 12px; /* Match the features count positioning */
+    left: 12px;
     background: linear-gradient(135deg, #ffb302, #ff7730);
     color: #000;
     font-weight: bold;
-    font-size: 0.8rem;
-    padding: 5px 10px;
-    border-radius: 20px;
+    font-size: 0.75rem; /* Match features count size */
+    padding: 4px 8px; /* Match features count padding */
+    border-radius: 15px; /* Match features count radius */
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
     z-index: 5;
 }
