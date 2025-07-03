@@ -1296,7 +1296,7 @@ pub fn InstallationManagementPage(
     installations: Signal<Vec<Installation>>,
 ) -> Element {
     // State for the current tab
-    let mut active_tab = use_signal(|| "features");
+    let mut active_tab = use_signal(|| "features".to_string());
 
     // Load the installation data
     let installation_result = use_memo(move || {
@@ -1399,7 +1399,7 @@ pub fn InstallationManagementPage(
     });
     
     // Handle install/update with progress tracking
-    let handle_install_update = {
+    let handle_install_update = EventHandler::new({
         let mut is_installing = is_installing.clone();
         let mut installation_error = installation_error.clone();
         let mut installation_progress = installation_progress.clone();
@@ -1497,10 +1497,10 @@ pub fn InstallationManagementPage(
                 is_installing_clone.set(false);
             });
         }
-    };
+    });
     
     // Handle launch
-    let handle_launch = {
+    let handle_launch = EventHandler::new({
         let mut installation_error_clone = installation_error.clone();
         let installation_id = installation_id_for_launch.clone();
         
@@ -1531,7 +1531,7 @@ pub fn InstallationManagementPage(
                 }
             });
         }
-    };
+    });
 
     rsx! {
         div { class: "installation-management-container",
@@ -1555,7 +1555,7 @@ pub fn InstallationManagementPage(
                         onback.call(());
                     }),
                     on_tab_change: EventHandler::new(move |tab: String| {
-                        active_tab.set(tab);
+                    active_tab.set(tab);  // No borrowing needed
                     }),
                     on_launch: Some(handle_launch),
                     on_back: Some(EventHandler::new(move |_: ()| {
