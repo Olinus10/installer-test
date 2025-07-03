@@ -1111,7 +1111,6 @@ pub fn InstallationManagementPage(
     let installation_id_for_launch = installation.id.clone();
     let installation_for_update = installation.clone();
     let installation_for_preset_update = installation.clone();
-    let installation_for_features = installation.clone();
     
     // State for modification tracking
     let mut has_changes = use_signal(|| false);
@@ -1132,38 +1131,6 @@ pub fn InstallationManagementPage(
     
     // Preset update message signal
     let mut preset_update_msg = use_signal(|| Option::<String>::None);
-
-    // Function to refresh installation data
-    let _refresh_installation = move |updated_installation: Installation| {
-        // Update the current installation data
-        installations.with_mut(|list| {
-            if let Some(index) = list.iter().position(|i| i.id == updated_installation.id) {
-                list[index] = updated_installation.clone();
-            }
-        });
-    };
-    
-    // Function to update installation
-    let _update_installation = move |updated: Installation| {
-        // Update in the installations list
-        installations.with_mut(|list| {
-            if let Some(index) = list.iter().position(|i| i.id == updated.id) {
-                list[index] = updated.clone();
-            }
-        });
-        
-        // Reload the current view
-        spawn(async move {
-            match installation::load_installation(&updated.id) {
-                Ok(_refreshed) => {
-                    // The list has already been updated
-                },
-                Err(e) => {
-                    debug!("Failed to reload installation: {}", e);
-                }
-            }
-        });
-    };
     
     // Load universal manifest for features information
     let universal_manifest = use_resource(move || async {
@@ -1177,7 +1144,8 @@ pub fn InstallationManagementPage(
                 None
             }
         }
-    });
+    }
+});
     
     // Load presets
     let presets = use_resource(move || async {
@@ -1350,46 +1318,18 @@ pub fn InstallationManagementPage(
                installed, update_available, has_changes, is_installing);
         
         if is_installing {
-            ("INSTALLING...", "action-button installing", true)
+            ("INSTALLING...", "features-action-button installing", true)
         } else if !installed {
-            ("INSTALL", "action-button install-button", false)
+            ("INSTALL", "features-action-button install-button", false)
         } else if update_available {
-            ("UPDATE", "action-button update-button", false)
+            ("UPDATE", "features-action-button update-button", false)
         } else if has_changes {
-            ("UPDATE", "action-button modify-button", false)
+            ("UPDATE", "features-action-button modify-button", false)
         } else {
-            ("INSTALLED", "action-button up-to-date", true)
+            ("INSTALLED", "features-action-button up-to-date", true)
         }
     };
 
-    // Also add this effect to refresh installation state periodically:
-    use_effect({
-        let installation_id = installation.id.clone();
-        let mut installations = installations.clone();
-        
-        move || {
-            let installation_id = installation_id.clone();
-            let mut installations = installations.clone();
-            
-            spawn(async move {
-                // Reload installation state after any changes
-                if let Ok(updated_inst) = crate::installation::load_installation(&installation_id) {
-                    installations.with_mut(|list| {
-                        if let Some(index) = list.iter().position(|i| i.id == updated_inst.id) {
-                            list[index] = updated_inst;
-                        }
-                    });
-                }
-            });
-        }
-    });
-        
-    // Button disable logic
-    let action_button_disabled = *is_installing.read() || 
-                                (installation.installed && 
-                                 !installation.update_available && 
-                                 !*has_changes.read());
-        
     // Handle launch
     let handle_launch = {
         let mut installation_error_clone = installation_error.clone();
@@ -1424,76 +1364,6 @@ pub fn InstallationManagementPage(
         }
     };
 
-    use_effect({
-        let installation_id = installation.id.clone();
-        let mut installations = installations.clone();
-        
-        move || {
-            // Set up a timer to periodically check installation state
-            let installation_id = installation_id.clone();
-            let mut installations = installations.clone();
-            
-            spawn(async move {
-                loop {
-                    tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
-                    
-                    if let Ok(updated_inst) = crate::installation::load_installation(&installation_id) {
-                        installations.with_mut(|list| {
-                            if let Some(index) = list.iter().position(|i| i.id == installation_id) {
-                                if list[index].installed != updated_inst.installed || 
-                                   list[index].update_available != updated_inst.update_available {
-                                    list[index] = updated_inst;
-                                }
-                            }
-                        });
-                    }
-                }
-            });
-        }
-    });
-
-    use_effect({
-        let installation_id = installation.id.clone();
-        let mut installation_state = installation_state.clone();
-        
-        move || {
-            let installation_id = installation_id.clone();
-            let mut installation_state = installation_state.clone();
-            
-            spawn(async move {
-                loop {
-                    tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
-                    
-                    if let Ok(updated_inst) = crate::installation::load_installation(&installation_id) {
-                        installation_state.set(updated_inst);
-                    }
-                }
-            });
-        }
-    });
-
-    use_effect({
-        let installation = installation.clone();
-        let presets_resource = presets.clone();
-        let mut preset_update_msg = preset_update_msg.clone();
-        
-        move || {
-            // Clone the presets data if available
-            if let Some(presets_data) = presets_resource.read().as_ref() {
-                let presets_vec = presets_data.clone(); // Clone the data
-                let installation_clone = installation.clone();
-                
-                spawn(async move {
-                    if let Some(msg) = installation_clone.check_preset_updates(&presets_vec).await {
-                        preset_update_msg.set(Some(msg));
-                    }
-                });
-            }
-        }
-    });
-
-    let handle_launch_header = handle_launch.clone();
-    
     rsx! {
         div { class: "installation-management-container",
             // Show progress view if installing
@@ -1505,8 +1375,8 @@ pub fn InstallationManagementPage(
                     title: format!("Installing {}", installation.name)
                 }
             } else {
-                // NEW: Integrated header with all controls
-                div { class: "installation-integrated-header",
+                // NEW: Installation Page Header (replaces the old integrated header)
+                div { class: "installation-page-header",
                     div { class: "header-left-section",
                         // Back button
                         button { 
@@ -1531,9 +1401,9 @@ pub fn InstallationManagementPage(
                     
                     div { class: "header-center-section",
                         // Tab navigation in header
-                        div { class: "header-tabs",
+                        div { class: "header-navigation-tabs",
                             button { 
-                                class: if *active_tab.read() == "features" { "header-tab active" } else { "header-tab" },
+                                class: if *active_tab.read() == "features" { "header-nav-tab active" } else { "header-nav-tab" },
                                 onclick: move |_| active_tab.set("features"),
                                 "Features"
                                 
@@ -1543,7 +1413,7 @@ pub fn InstallationManagementPage(
                                 }
                             }
                             button { 
-                                class: if *active_tab.read() == "performance" { "header-tab active" } else { "header-tab" },
+                                class: if *active_tab.read() == "performance" { "header-nav-tab active" } else { "header-nav-tab" },
                                 onclick: move |_| active_tab.set("performance"),
                                 "Performance"
                                 
@@ -1553,7 +1423,7 @@ pub fn InstallationManagementPage(
                                 }
                             }
                             button { 
-                                class: if *active_tab.read() == "settings" { "header-tab active" } else { "header-tab" },
+                                class: if *active_tab.read() == "settings" { "header-nav-tab active" } else { "header-nav-tab" },
                                 onclick: move |_| active_tab.set("settings"),
                                 "Settings"
                             }
@@ -1565,7 +1435,7 @@ pub fn InstallationManagementPage(
                         button {
                             class: "header-launch-button",
                             disabled: !installation_state.read().installed || *is_installing.read(),
-                            onclick: handle_launch_header,
+                            onclick: handle_launch.clone(),
                             if installation_state.read().installed {
                                 "LAUNCH"
                             } else {
@@ -1575,7 +1445,7 @@ pub fn InstallationManagementPage(
                         
                         // Launcher settings button
                         button { 
-                            class: "header-settings-button",
+                            class: "header-launcher-button",
                             onclick: move |_| {
                                 // Handle launcher settings - you can implement this
                                 debug!("Launcher settings clicked");
@@ -1619,25 +1489,27 @@ pub fn InstallationManagementPage(
 
                 // Update warning dialog (keep existing)
                 if *show_update_warning.read() {
-                    // [Keep existing update warning dialog code]
+                    // [Keep existing update warning dialog code if you have it]
                 }
                         
-                // Main content area - simplified, no tabs here
-                div { class: "installation-main-content",
+                // NEW: Installation Page Content - No dark container, page-like layout
+                div { class: "installation-page-content",
                     match *active_tab.read() {
                         "features" => {
                             rsx! {
-                                div { class: "features-tab-with-actions",
-                                    FeaturesTab {
-                                        universal_manifest: universal_manifest.read().clone().flatten(),
-                                        presets: presets.read().clone().unwrap_or_default(),
-                                        enabled_features: enabled_features,
-                                        selected_preset: selected_preset,
-                                        filter_text: filter_text,
-                                        installation_id: installation.id.clone(),
+                                div { class: "features-tab-container",
+                                    div { class: "features-tab-content",
+                                        FeaturesTab {
+                                            universal_manifest: universal_manifest.read().clone().flatten(),
+                                            presets: presets.read().clone().unwrap_or_default(),
+                                            enabled_features: enabled_features,
+                                            selected_preset: selected_preset,
+                                            filter_text: filter_text,
+                                            installation_id: installation.id.clone(),
+                                        }
                                     }
                                     
-                                    // Install/Update button moved here
+                                    // Install/Update button moved to bottom of features tab
                                     div { class: "features-tab-actions",                    
                                         button {
                                             class: button_class,
@@ -1690,7 +1562,6 @@ pub fn InstallationManagementPage(
         }
     }
 }
-
 #[component]
 fn ProgressView(
     value: i64,
@@ -3104,29 +2975,29 @@ pub fn app() -> Element {
                 None
             }
         }
-    } // <- Make sure this closing brace exists
-}); // <- And this closing parenthesis and semicolon
-    
-    // Load changelog
-let changelog = use_resource(move || async {
-    match crate::changelog::fetch_changelog("Olinus10/installer-test/master", &CachedHttpClient::new()).await {
-        Ok(changelog) => {
-            debug!("Successfully loaded changelog with {} entries", changelog.entries.len());
-            Some(changelog)
-        },
-        Err(e) => {
-            error!("Failed to load changelog: {}", e);
-            None
-        }
     }
 });
+    
+    // Load changelog
+    let changelog = use_resource(move || async {
+        match crate::changelog::fetch_changelog("Olinus10/installer-test/master", &CachedHttpClient::new()).await {
+            Ok(changelog) => {
+                debug!("Successfully loaded changelog with {} entries", changelog.entries.len());
+                Some(changelog)
+            },
+            Err(e) => {
+                error!("Failed to load changelog: {}", e);
+                None
+            }
+        }
+    });
 
     let mut changelog_signal = use_signal(|| None::<ChangelogData>);
     use_effect(move || {
-    if let Some(Some(changelog_data)) = changelog.read().as_ref() {
-        changelog_signal.set(Some(changelog_data.clone()));
-    }
-});
+        if let Some(Some(changelog_data)) = changelog.read().as_ref() {
+            changelog_signal.set(Some(changelog_data.clone()));
+        }
+    });
 
     // Modal context for popups
     let mut modal_context = use_context_provider(ModalContext::default);
@@ -3141,56 +3012,88 @@ let changelog = use_resource(move || async {
         }, false, Some(move |_| error_signal.set(None)));
     }
 
-    // Build CSS content
+    // Build CSS content - include the new installation header styles
     let css_content = css
         .replace("<BG_COLOR>", "#320625")
         .replace("<BG_IMAGE>", "https://raw.githubusercontent.com/Wynncraft-Overhaul/installer/master/src/assets/background_installer.png")
         .replace("<SECONDARY_FONT>", "\"HEADER_FONT\"")
         .replace("<PRIMARY_FONT>", "\"REGULAR_FONT\"");
     
-// Add custom category styles
-let category_styles = include_str!("assets/category-styles.css");
-let feature_styles = include_str!("assets/expanded-feature-styles.css");
-let preset_styles = include_str!("assets/preset-styles.css");
-let search_styles = include_str!("assets/search-results-styles.css");
-let modal_styles = include_str!("assets/modal-styles.css");
-
-// Combine all CSS files
-let complete_css = format!("{}\n{}\n{}\n{}\n{}\n{}", 
-    css_content, 
-    category_styles, 
-    feature_styles, 
-    preset_styles, 
-    search_styles,
-    modal_styles
-);
-
-    let mut modal_context = use_context_provider(ModalContext::default);
+    // Add custom category styles
+    let category_styles = include_str!("assets/category-styles.css");
+    let feature_styles = include_str!("assets/expanded-feature-styles.css");
+    let preset_styles = include_str!("assets/preset-styles.css");
+    let search_styles = include_str!("assets/search-results-styles.css");
+    let modal_styles = include_str!("assets/modal-styles.css");
     
-    // Show error modal if error exists
-    if let Some(e) = error_signal() {
-        modal_context.open("Error", rsx! {
-            p {
-                "The installer encountered an error. If the problem persists, please report it in #📂modpack-issues on Discord."
-            }
-            textarea { class: "error-area", readonly: true, "{e}" }
-        }, false, Some(move |_| error_signal.set(None)));
+    // NEW: Include the installation header styles
+    let installation_header_styles = r#"
+    /* Installation Page Header - Greyish with rounded edges */
+    .installation-page-header {
+        background: linear-gradient(145deg, rgba(80, 80, 90, 0.95), rgba(65, 65, 75, 0.98));
+        border-radius: 16px 16px 0 0;
+        padding: 20px 30px;
+        margin: 20px 20px 0 20px;
+        box-shadow: 
+            0 4px 20px rgba(0, 0, 0, 0.3),
+            0 0 0 1px rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        
+        display: grid;
+        grid-template-columns: auto 1fr auto;
+        align-items: center;
+        gap: 30px;
+        min-height: 80px;
+        position: relative;
+        z-index: 10;
     }
 
-    // [Keep existing CSS building code...]
+    /* Override main container styles for installation pages */
+    .main-container.installation-page {
+        padding: 0;
+        margin: 0;
+        background: transparent;
+        height: 100vh;
+        overflow-y: auto;
+    }
 
-    // NEW: Determine if we should show the header and what type
-    let show_header = !config.read().first_launch.unwrap_or(true) && has_launcher && !settings();
+    /* Installation Page Content - No dark container */
+    .installation-page-content {
+        margin: 0 20px 20px 20px;
+        background: transparent;
+        border-radius: 0 0 16px 16px;
+        padding: 30px;
+        min-height: calc(100vh - 200px);
+        position: relative;
+    }
+    "#;
+
+    // Combine all CSS files
+    let complete_css = format!("{}\n{}\n{}\n{}\n{}\n{}\n{}", 
+        css_content, 
+        category_styles, 
+        feature_styles, 
+        preset_styles, 
+        search_styles,
+        modal_styles,
+        installation_header_styles
+    );
+
+    // NEW: Determine current page type
     let is_on_installation_page = current_installation_id.read().is_some() && 
                                  current_installation_id.read().as_ref().map_or(false, |id| id != "new");
 
-    // Create header component based on current page
-    let header_component = if show_header {
+    // Create header component ONLY for non-installation pages
+    let header_component = if !config.read().first_launch.unwrap_or(true) && 
+                             has_launcher && 
+                             !settings() && 
+                             !is_on_installation_page {
         Some(rsx! {
             AppHeader {
                 installations: installations.clone(),
                 current_installation_id: current_installation_id.clone(),
-                show_installation_tabs: false, // NEW: Never show installation tabs in main header
+                show_installation_tabs: false,
                 on_select_installation: move |id: String| {
                     if id == "new" {
                         current_installation_id.set(Some(id));
@@ -3270,7 +3173,7 @@ let complete_css = format!("{}\n{}\n{}\n{}\n{}\n{}",
                 }
             }
         } else {
-            // Specific installation management page - NO REGULAR HEADER HERE
+            // NEW: Installation management page - with its own header, no regular header
             let back_handler = EventHandler::new(move |_| {
                 current_installation_id.set(None);
             });
@@ -3296,9 +3199,7 @@ let complete_css = format!("{}\n{}\n{}\n{}\n{}\n{}",
             
             // Show header ONLY when NOT on installation page
             if let Some(header) = header_component {
-                if !is_on_installation_page {
-                    {header}
-                }
+                {header}
             }
 
             div { 
@@ -3310,9 +3211,12 @@ let complete_css = format!("{}\n{}\n{}\n{}\n{}\n{}",
                 {main_content}
             }
             
-            // Only show footer on home page (not installation pages)
-            if !settings() && current_installation_id.read().is_none() && 
-               !config.read().first_launch.unwrap_or(true) && has_launcher {
+            // Only show footer on home page (not installation pages or settings)
+            if !settings() && 
+               current_installation_id.read().is_none() && 
+               !config.read().first_launch.unwrap_or(true) && 
+               has_launcher &&
+               !is_on_installation_page {
                 Footer {}
             }
             
