@@ -845,9 +845,9 @@ fn HomePage(
                     
                     button {
                         class: "main-install-button",
-                        onclick: move |_: MouseEvent| {
-                            show_creation_dialog.set(true);
-                        },
+onclick: move |_: MouseEvent| {
+    show_creation_dialog.set(true);
+},
                         "Get Started"
                     }
                 }
