@@ -37,7 +37,6 @@ use crate::preset::find_preset_by_id;
 
 mod modal;
 
-
 // Font constants
 const HEADER_FONT: &str = "\"HEADER_FONT\"";
 const REGULAR_FONT: &str = "\"REGULAR_FONT\"";
@@ -102,7 +101,6 @@ pub fn handle_play_click(uuid: String, error_signal: &Signal<Option<String>>) {
         }
     });
 }
-
 
 #[component]
 fn BackgroundParticles() -> Element {
@@ -483,10 +481,10 @@ fn ChangelogSection(changelog: Option<ChangelogData>) -> Element {
                             div { class: "view-all-changes",
                                 button { 
                                     class: "view-all-button",
-onclick: move |_| {
-    let current_state = *show_all.read();
-    show_all.set(!current_state);
-},
+                                    onclick: move |_| {
+                                        let current_state = *show_all.read();
+                                        show_all.set(!current_state);
+                                    },
                                     if *show_all.read() {
                                         "Show Less"
                                     } else {
@@ -504,6 +502,7 @@ onclick: move |_| {
         }
     }
 }
+
 #[component]
 fn FloatingLogo(onclick: EventHandler<()>) -> Element {
     let icon_base64 = {
@@ -667,7 +666,7 @@ fn FloatingFooter(
 }
 
 // Helper struct for footer information
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct InstallationFooterInfo {
     pub name: String,
     pub minecraft_version: String,
@@ -856,9 +855,6 @@ fn HomePage(
             
             // Recent changes section
              ChangelogSection { changelog: changelog() } // Note the () to read the signal
-            
-            // Footer with Discord button and other info
-            Footer {}
             
             // Installation creation dialog
             if *show_creation_dialog.read() {
@@ -1251,13 +1247,12 @@ let installation = Installation::new_custom(
     }
 }
 
-// Installation management page
+// Installation management page - SIMPLIFIED VERSION WITHOUT COMPLEX HEADER
 #[component]
 pub fn InstallationManagementPage(
     installation_id: String,
     onback: EventHandler<()>,
     installations: Signal<Vec<Installation>>,
-    active_tab: Signal<String>, // Add this parameter
 ) -> Element {
     // State for the current tab
     let mut active_tab = use_signal(|| "features");
@@ -1303,8 +1298,6 @@ pub fn InstallationManagementPage(
     let installation_id_for_delete = installation.id.clone();
     let installation_id_for_launch = installation.id.clone();
     let installation_for_update = installation.clone();
-    let installation_for_preset_update = installation.clone();
-    let installation_for_features = installation.clone();
     
     // State for modification tracking
     let mut has_changes = use_signal(|| false);
@@ -1313,50 +1306,8 @@ pub fn InstallationManagementPage(
     let java_args = use_signal(|| installation.java_args.clone());
     let selected_preset = use_signal(|| Option::<String>::None);
     
-    // State for tracking modifications in different areas 
-    let mut features_modified = use_signal(|| false);
-    let mut performance_modified = use_signal(|| false);
-    
     // Filter text for feature search
     let filter_text = use_signal(|| String::new());
-
-    // Add this with other state declarations
-    let mut show_update_warning = use_signal(|| false);
-    
-    // Preset update message signal
-    let mut preset_update_msg = use_signal(|| Option::<String>::None);
-
-    // Function to refresh installation data
-    let _refresh_installation = move |updated_installation: Installation| {
-        // Update the current installation data
-        installations.with_mut(|list| {
-            if let Some(index) = list.iter().position(|i| i.id == updated_installation.id) {
-                list[index] = updated_installation.clone();
-            }
-        });
-    };
-    
-    // Function to update installation
-    let _update_installation = move |updated: Installation| {
-        // Update in the installations list
-        installations.with_mut(|list| {
-            if let Some(index) = list.iter().position(|i| i.id == updated.id) {
-                list[index] = updated.clone();
-            }
-        });
-        
-        // Reload the current view
-        spawn(async move {
-            match installation::load_installation(&updated.id) {
-                Ok(_refreshed) => {
-                    // The list has already been updated
-                },
-                Err(e) => {
-                    debug!("Failed to reload installation: {}", e);
-                }
-            }
-        });
-    };
     
     // Load universal manifest for features information
     let universal_manifest = use_resource(move || async {
@@ -1386,203 +1337,6 @@ pub fn InstallationManagementPage(
         }
     });
     
-    // Effect to detect changes
-    use_effect({
-        let enabled_features_for_effect = enabled_features.clone();
-        let original_features = installation.enabled_features.clone();
-        let mut features_modified_copy = features_modified.clone();
-        
-        move || {
-            let features_changed = enabled_features_for_effect.read().clone() != original_features;
-            
-            // Update specific modification flags
-            features_modified_copy.set(features_changed);
-            
-            // Only set has_changes for feature changes, not memory changes
-            has_changes.set(features_changed);
-        }
-    });
-    
-    // Handle install/update with progress tracking
-    let installation_for_update_clone = installation_for_update.clone();
-
-    // Define the actual update process as a separate closure first
-    let mut proceed_with_update = {
-        let installation_for_update_clone = installation_for_update_clone.clone();
-        let enabled_features = enabled_features.clone();
-        let memory_allocation = memory_allocation.clone();
-        let java_args = java_args.clone();
-        let mut is_installing = is_installing.clone();
-        let installation_error = installation_error.clone();
-        let installation_progress = installation_progress.clone();
-        let installation_total = installation_total.clone();
-        let installation_status = installation_status.clone();
-        let has_changes = has_changes.clone();
-        let features_modified = features_modified.clone();
-        let performance_modified = performance_modified.clone();
-        let installations = installations.clone();
-        let installation_state = installation_state.clone();
-        
-        move || {
-            is_installing.set(true);
-            let mut installation_clone = installation_for_update_clone.clone();
-            
-            // Update settings
-            installation_clone.enabled_features = enabled_features.read().clone();
-            installation_clone.memory_allocation = *memory_allocation.read();
-            installation_clone.java_args = java_args.read().clone();
-            installation_clone.modified = true;
-            
-            let http_client = crate::CachedHttpClient::new();
-            let mut installation_error_clone = installation_error.clone();
-            let mut progress = installation_progress.clone();
-            let mut total = installation_total.clone();
-            let mut status = installation_status.clone();
-            let mut is_installing_clone = is_installing.clone();
-            let mut has_changes_clone = has_changes.clone();
-            let mut features_modified_clone = features_modified.clone();
-            let mut performance_modified_clone = performance_modified.clone();
-            let mut installations = installations.clone();
-            let mut installation_state = installation_state.clone();
-            let installation_id = installation_clone.id.clone();
-
-            spawn(async move {
-                // Calculate total items
-                match crate::universal::load_universal_manifest(&http_client, None).await {
-                    Ok(manifest) => {
-                        let total_items = manifest.mods.len() + manifest.shaderpacks.len() + 
-                                         manifest.resourcepacks.len() + manifest.include.len();
-                        total.set(total_items as i64);
-                        progress.set(0);
-                        status.set("Preparing installation...".to_string());
-                        
-                        // Create a progress callback
-                        let progress_callback = move || {
-                            progress.with_mut(|p| *p += 1);
-                            let current = *progress.read();
-                            let total_val = *total.read();
-                            status.set(format!("Installing... {}/{}", current, total_val));
-                        };
-                        
-                        match installation_clone.install_or_update_with_progress(&http_client, progress_callback).await {
-                            Ok(_) => {
-                                // Mark as installed
-                                installation_clone.installed = true;
-                                installation_clone.update_available = false;
-                                installation_clone.modified = false;
-                                
-                                // Save the installation
-                                if let Err(e) = installation_clone.save() {
-                                    error!("Failed to save installation: {}", e);
-                                    installation_error_clone.set(Some(format!("Failed to save installation: {}", e)));
-                                } else {
-                                    // Update installation state
-                                    installation_state.set(installation_clone.clone());
-                                    
-                                    // Update the installations list
-                                    installations.with_mut(|list| {
-                                        if let Some(index) = list.iter().position(|i| i.id == installation_id) {
-                                            list[index] = installation_clone;
-                                        }
-                                    });
-                                    
-                                    // Clear modification flags
-                                    has_changes_clone.set(false);
-                                    features_modified_clone.set(false);
-                                    performance_modified_clone.set(false);
-                                    
-                                    // Stop showing progress after a brief delay
-                                    tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
-                                }
-                            },
-                            Err(e) => {
-                                error!("Installation failed: {}", e);
-                                installation_error_clone.set(Some(format!("Installation failed: {}", e)));
-                            }
-                        }
-                    },
-                    Err(e) => {
-                        error!("Failed to load manifest: {}", e);
-                        installation_error_clone.set(Some(format!("Failed to load manifest: {}", e)));
-                    }
-                }
-                
-                // Always stop installing state
-                is_installing_clone.set(false);
-            });
-        }
-    };
-
-    // Now define the handle_update function that uses proceed_with_update
-    let handle_update = {
-        let mut proceed_with_update = proceed_with_update.clone();
-        let installation_state = installation_state.clone();
-        let mut show_update_warning = show_update_warning.clone();
-        
-        move |_| {
-            // Check if this is an update (not first install)
-            if installation_state.read().installed {
-                // Show the update warning dialog
-                show_update_warning.set(true);
-            } else {
-                // First install - proceed directly
-                proceed_with_update();
-            }
-        }
-    };
-        
-    // Button label based on state
-    let (action_button_label, button_class, button_disabled) = {
-        let current_installation = installation_state.read();
-        let installed = current_installation.installed;
-        let update_available = current_installation.update_available;
-        let has_changes = *has_changes.read();
-        let is_installing = *is_installing.read();
-        
-        debug!("Button state check: installed={}, update_available={}, has_changes={}, is_installing={}", 
-               installed, update_available, has_changes, is_installing);
-        
-        if is_installing {
-            ("INSTALLING...", "action-button installing", true)
-        } else if !installed {
-            ("INSTALL", "action-button install-button", false)
-        } else if update_available {
-            ("UPDATE", "action-button update-button", false)
-        } else if has_changes {
-            ("UPDATE", "action-button modify-button", false)
-        } else {
-            ("INSTALLED", "action-button up-to-date", true)
-        }
-    };
-
-    // Also add this effect to refresh installation state periodically:
-    use_effect({
-        let installation_id = installation.id.clone();
-        let mut installations = installations.clone();
-        
-        move || {
-            let installation_id = installation_id.clone();
-            let mut installations = installations.clone();
-            
-            spawn(async move {
-                // Reload installation state after any changes
-                if let Ok(updated_inst) = crate::installation::load_installation(&installation_id) {
-                    installations.with_mut(|list| {
-                        if let Some(index) = list.iter().position(|i| i.id == updated_inst.id) {
-                            list[index] = updated_inst;
-                        }
-                    });
-                }
-            });
-        }
-    });
-        
-    // Button disable logic
-    let action_button_disabled = *is_installing.read() || 
-                                (installation.installed && 
-                                 !installation.update_available && 
-                                 !*has_changes.read());
-        
     // Handle launch
     let handle_launch = {
         let mut installation_error_clone = installation_error.clone();
@@ -1617,76 +1371,6 @@ pub fn InstallationManagementPage(
         }
     };
 
-    use_effect({
-        let installation_id = installation.id.clone();
-        let mut installations = installations.clone();
-        
-        move || {
-            // Set up a timer to periodically check installation state
-            let installation_id = installation_id.clone();
-            let mut installations = installations.clone();
-            
-            spawn(async move {
-                loop {
-                    tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
-                    
-                    if let Ok(updated_inst) = crate::installation::load_installation(&installation_id) {
-                        installations.with_mut(|list| {
-                            if let Some(index) = list.iter().position(|i| i.id == installation_id) {
-                                if list[index].installed != updated_inst.installed || 
-                                   list[index].update_available != updated_inst.update_available {
-                                    list[index] = updated_inst;
-                                }
-                            }
-                        });
-                    }
-                }
-            });
-        }
-    });
-
-    use_effect({
-        let installation_id = installation.id.clone();
-        let mut installation_state = installation_state.clone();
-        
-        move || {
-            let installation_id = installation_id.clone();
-            let mut installation_state = installation_state.clone();
-            
-            spawn(async move {
-                loop {
-                    tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
-                    
-                    if let Ok(updated_inst) = crate::installation::load_installation(&installation_id) {
-                        installation_state.set(updated_inst);
-                    }
-                }
-            });
-        }
-    });
-
-    use_effect({
-        let installation = installation.clone();
-        let presets_resource = presets.clone();
-        let mut preset_update_msg = preset_update_msg.clone();
-        
-        move || {
-            // Clone the presets data if available
-            if let Some(presets_data) = presets_resource.read().as_ref() {
-                let presets_vec = presets_data.clone(); // Clone the data
-                let installation_clone = installation.clone();
-                
-                spawn(async move {
-                    if let Some(msg) = installation_clone.check_preset_updates(&presets_vec).await {
-                        preset_update_msg.set(Some(msg));
-                    }
-                });
-            }
-        }
-    });
-
-    let handle_launch_header = handle_launch.clone();
-    
     rsx! {
         div { class: "installation-management-container",
             // Show progress view if installing
@@ -1698,86 +1382,6 @@ pub fn InstallationManagementPage(
                     title: format!("Installing {}", installation.name)
                 }
             } else {
-                // NEW: Integrated header with all controls
-                div { class: "installation-integrated-header",
-                    div { class: "header-left-section",
-                        // Back button
-                        button { 
-                            class: "header-back-button",
-                            onclick: move |_| onback.call(()),
-                            "← Back"
-                        }
-                        
-                        // Installation info section
-                        div { class: "header-installation-info",
-                            h1 { class: "header-installation-title", "{installation.name}" }
-                            div { class: "header-installation-meta",
-                                span { class: "meta-chip", "Minecraft {installation.minecraft_version}" }
-                                span { class: "meta-chip", "{installation.loader_type} {installation.loader_version}" }
-                                
-                                if installation.update_available {
-                                    span { class: "meta-chip update-chip", "Update Available" }
-                                }
-                            }
-                        }
-                    }
-                    
-                    div { class: "header-center-section",
-                        // Tab navigation in header
-                        div { class: "header-tabs",
-                            button { 
-                                class: if *active_tab.read() == "features" { "header-tab active" } else { "header-tab" },
-                                onclick: move |_| active_tab.set("features"),
-                                "Features"
-                                
-                                // Show indicator if features modified
-                                if *features_modified.read() {
-                                    span { class: "tab-modified-indicator" }
-                                }
-                            }
-                            button { 
-                                class: if *active_tab.read() == "performance" { "header-tab active" } else { "header-tab" },
-                                onclick: move |_| active_tab.set("performance"),
-                                "Performance"
-                                
-                                // Show indicator if performance settings modified
-                                if *performance_modified.read() {
-                                    span { class: "tab-modified-indicator" }
-                                }
-                            }
-                            button { 
-                                class: if *active_tab.read() == "settings" { "header-tab active" } else { "header-tab" },
-                                onclick: move |_| active_tab.set("settings"),
-                                "Settings"
-                            }
-                        }
-                    }
-                    
-                    div { class: "header-right-section",
-                        // Launch button in header
-                        button {
-                            class: "header-launch-button",
-                            disabled: !installation_state.read().installed || *is_installing.read(),
-                            onclick: handle_launch_header,
-                            if installation_state.read().installed {
-                                "LAUNCH"
-                            } else {
-                                "INSTALL FIRST"
-                            }
-                        }
-                        
-                        // Launcher settings button
-                        button { 
-                            class: "header-settings-button",
-                            onclick: move |_| {
-                                // Handle launcher settings - you can implement this
-                                debug!("Launcher settings clicked");
-                            },
-                            "Launcher"
-                        }
-                    }
-                }
-
                 // Error display
                 if let Some(error) = &*installation_error.read() {
                     div { class: "error-notification",
@@ -1789,56 +1393,19 @@ pub fn InstallationManagementPage(
                         }
                     }
                 }
-
-                // Preset update notification
-                if let Some(update_msg) = preset_update_msg.read().clone() {
-                    div { class: "preset-update-notification",
-                        "{update_msg}"
-                        button {
-                            onclick: move |_| {
-                                let presets_vec = presets.read().clone().unwrap_or_default();
-                                if let Some(base_id) = &installation_for_preset_update.base_preset_id {
-                                    if let Some(preset) = find_preset_by_id(&presets_vec, base_id) {
-                                        let mut installation_clone = installation_for_preset_update.clone();
-                                        installation_clone.apply_preset_update(&preset);
-                                        let _ = installation_clone.save();
-                                    }
-                                }
-                            },
-                            "Apply Preset Update"
-                        }
-                    }
-                }
-
-                // Update warning dialog (keep existing)
-                if *show_update_warning.read() {
-                    // [Keep existing update warning dialog code]
-                }
                         
-                // Main content area - simplified, no tabs here
+                // Main content area based on active tab
                 div { class: "installation-main-content",
                     match *active_tab.read() {
                         "features" => {
                             rsx! {
-                                div { class: "features-tab-with-actions",
-                                    FeaturesTab {
-                                        universal_manifest: universal_manifest.read().clone().flatten(),
-                                        presets: presets.read().clone().unwrap_or_default(),
-                                        enabled_features: enabled_features,
-                                        selected_preset: selected_preset,
-                                        filter_text: filter_text,
-                                        installation_id: installation.id.clone(),
-                                    }
-                                    
-                                    // Install/Update button moved here
-                                    div { class: "features-tab-actions",                    
-                                        button {
-                                            class: button_class,
-                                            disabled: button_disabled,
-                                            onclick: handle_update,
-                                            {action_button_label}
-                                        }
-                                    }
+                                FeaturesTab {
+                                    universal_manifest: universal_manifest.read().clone().flatten(),
+                                    presets: presets.read().clone().unwrap_or_default(),
+                                    enabled_features: enabled_features,
+                                    selected_preset: selected_preset,
+                                    filter_text: filter_text,
+                                    installation_id: installation.id.clone(),
                                 }
                             }
                         },
@@ -2045,159 +1612,10 @@ fn ProgressView(
     }
 }
 
-#[derive(PartialEq, Props, Clone)]
-struct CreditsProps {
-    manifest: super::Manifest,
-    enabled: Vec<String>,
-    credits: Signal<bool>,
-}
-
-#[component]
-fn Credits(mut props: CreditsProps) -> Element {
-    rsx! {
-        div { class: "credits-container",
-            div { class: "credits-header",
-                h1 { "{props.manifest.subtitle}" }
-                button {
-                    class: "close-button",
-                    onclick: move |evt| {
-                        props.credits.set(false);
-                        evt.stop_propagation();
-                    },
-                    "Close"
-                }
-            }
-            div { class: "credits-content",
-                div { class: "credits-list",
-                    ul {
-                        for r#mod in props.manifest.mods {
-                            if props.enabled.contains(&r#mod.id) {
-                                li { class: "credit-item",
-                                    div { class: "credit-name", "{r#mod.name}" }
-                                    div { class: "credit-authors",
-                                        "by "
-                                        for author in &r#mod.authors {
-                                            // FIXED: Proper handling of href and author name with comma
-                                            {
-                                                let is_last = author == r#mod.authors.last().unwrap();
-                                                rsx! {
-                                                    a { 
-                                                        href: author.link.clone(), 
-                                                        class: "credit-author",
-                                                        target: "_blank",
-                                                        rel: "noopener noreferrer",
-                                                        {format!("{}{}", author.name, if !is_last { ", " } else { "" })}
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                        for shaderpack in props.manifest.shaderpacks {
-                            if props.enabled.contains(&shaderpack.id) {
-                                li { class: "credit-item",
-                                    div { class: "credit-name", "{shaderpack.name}" }
-                                    div { class: "credit-authors",
-                                        "by "
-                                        for author in &shaderpack.authors {
-                                            // FIXED: Proper handling of href and author name with comma
-                                            {
-                                                let is_last = author == shaderpack.authors.last().unwrap();
-                                                rsx! {
-                                                    a { 
-                                                        href: author.link.clone(), 
-                                                        class: "credit-author",
-                                                        target: "_blank",
-                                                        rel: "noopener noreferrer",
-                                                        {format!("{}{}", author.name, if !is_last { ", " } else { "" })}
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                        for resourcepack in props.manifest.resourcepacks {
-                            if props.enabled.contains(&resourcepack.id) {
-                                li { class: "credit-item",
-                                    div { class: "credit-name", "{resourcepack.name}" }
-                                    div { class: "credit-authors",
-                                        "by "
-                                        for author in &resourcepack.authors {
-                                            // FIXED: Proper handling of href and author name with comma
-                                            {
-                                                let is_last = author == resourcepack.authors.last().unwrap();
-                                                rsx! {
-                                                    a { 
-                                                        href: author.link.clone(), 
-                                                        class: "credit-author",
-                                                        target: "_blank",
-                                                        rel: "noopener noreferrer",
-                                                        {format!("{}{}", author.name, if !is_last { ", " } else { "" })}
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                        for include in props.manifest.include {
-                            if props.enabled.contains(&include.id) && include.authors.is_some() 
-                               && include.name.is_some() {
-                                li { class: "credit-item",
-                                    div { class: "credit-name", "{include.name.as_ref().unwrap()}" }
-                                    div { class: "credit-authors",
-                                        "by "
-                                        for author in &include.authors.as_ref().unwrap() {
-                                            // FIXED: Proper handling of href and author name with comma
-                                            {
-                                                let is_last = author == include.authors.as_ref().unwrap().last().unwrap();
-                                                rsx! {
-                                                    a { 
-                                                        href: author.link.clone(), 
-                                                        class: "credit-author",
-                                                        target: "_blank",
-                                                        rel: "noopener noreferrer",
-                                                        {format!("{}{}", author.name, if !is_last { ", " } else { "" })}
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-#[component]
-fn PackUninstallButton(launcher: Launcher, pack: PackName) -> Element {
-    let mut hidden = use_signal(|| false);
-    rsx!(
-        li { hidden,
-            button {
-                class: "uninstall-list-item",
-                onclick: move |_| {
-                    uninstall(&launcher, &pack.uuid).unwrap();
-                    *hidden.write() = true;
-                },
-                "{pack.name}"
-            }
-        }
-    )
-}
-
+// Additional components for compatibility
 #[derive(PartialEq, Props, Clone)]
 struct SettingsProps {
-    config: Signal<super::Config>,
+    config: Signal<crate::Config>,
     settings: Signal<bool>,
     config_path: PathBuf,
     error: Signal<Option<String>>,
@@ -2224,7 +1642,7 @@ fn Settings(mut props: SettingsProps) -> Element {
 
     rsx! {
         div { class: "settings-container",
-            h1 { class: "settings-title", "Launcher Settings" }  // Updated title
+            h1 { class: "settings-title", "Launcher Settings" }
             form {
                 id: "settings",
                 class: "settings-form",
@@ -2249,13 +1667,13 @@ fn Settings(mut props: SettingsProps) -> Element {
                         id: "launcher-select",
                         form: "settings",
                         class: "setting-select",
-                        if super::get_minecraft_folder().is_dir() {
+                        if crate::get_minecraft_folder().is_dir() {
                             option { value: "vanilla", selected: vanilla, "Vanilla Launcher" }
                         }
-                        if super::get_multimc_folder("MultiMC").is_ok() {
+                        if crate::get_multimc_folder("MultiMC").is_ok() {
                             option { value: "multimc-MultiMC", selected: multimc, "MultiMC" }
                         }
-                        if super::get_multimc_folder("PrismLauncher").is_ok() {
+                        if crate::get_multimc_folder("PrismLauncher").is_ok() {
                             option {
                                 value: "multimc-PrismLauncher",
                                 selected: prism,
@@ -2294,38 +1712,10 @@ fn Settings(mut props: SettingsProps) -> Element {
 
 #[derive(PartialEq, Props, Clone)]
 struct LauncherProps {
-    config: Signal<super::Config>,
+    config: Signal<crate::Config>,
     config_path: PathBuf,
     error: Signal<Option<String>>,
     b64_id: String,
-}
-
-#[component]
-fn InstallButton(
-    label: String,
-    disabled: bool,
-    onclick: EventHandler<MouseEvent>,
-    state: Option<String>  // "ready", "processing", "success", "updating", "modified"
-) -> Element {
-    let button_state = state.unwrap_or_else(|| "ready".to_string());
-    
-    rsx! {
-        div { class: "install-button-container",
-            div { 
-                class: "button-scale-wrapper",
-                style: "animation: button-scale-pulse 3s infinite alternate, button-breathe 4s infinite ease-in-out;",
-                button {
-                    class: "main-install-button",
-                    disabled: disabled,
-                    "data-state": "{button_state}",
-                    onclick: move |evt| onclick.call(evt),
-                    
-                    span { class: "button-text", "{label}" }
-                    div { class: "button-progress" }
-                }
-            }
-        }
-    }
 }
 
 #[component]
@@ -2339,9 +1729,9 @@ fn Launcher(mut props: LauncherProps) -> Element {
         "multimc-PrismLauncher" => prism = Some("true"),
         _ => {}
     }
-    let has_supported_launcher = super::get_minecraft_folder().is_dir()
-        || super::get_multimc_folder("MultiMC").is_ok()
-        || super::get_multimc_folder("PrismLauncher").is_ok();
+    let has_supported_launcher = crate::get_minecraft_folder().is_dir()
+        || crate::get_multimc_folder("MultiMC").is_ok()
+        || crate::get_multimc_folder("PrismLauncher").is_ok();
         
     if !has_supported_launcher {
         rsx!(NoLauncherFound {
@@ -2378,17 +1768,17 @@ fn Launcher(mut props: LauncherProps) -> Element {
                             id: "launcher-select",
                             form: "launcher-form",
                             class: "setting-select",
-                            if super::get_minecraft_folder().is_dir() {
+                            if crate::get_minecraft_folder().is_dir() {
                                 option { value: "vanilla", selected: vanilla, "Vanilla" }
                             }
-                            if super::get_multimc_folder("MultiMC").is_ok() {
+                            if crate::get_multimc_folder("MultiMC").is_ok() {
                                 option {
                                     value: "multimc-MultiMC",
                                     selected: multimc,
                                     "MultiMC"
                                 }
                             }
-                            if super::get_multimc_folder("PrismLauncher").is_ok() {
+                            if crate::get_multimc_folder("PrismLauncher").is_ok() {
                                 option {
                                     value: "multimc-PrismLauncher",
                                     selected: prism,
@@ -2480,836 +1870,6 @@ fn NoLauncherFound(props: LauncherProps) -> Element {
     }
 }
 
-fn feature_change(
-    local_features: Signal<Option<Vec<String>>>,
-    mut modify: Signal<bool>,
-    evt: FormEvent,
-    feat: &super::Feature,
-    mut modify_count: Signal<i32>,
-    mut enabled_features: Signal<Vec<String>>,
-) {
-    // Extract values first
-    let enabled = match &*evt.data.value() {
-        "true" => true,
-        "false" => false,
-        _ => panic!("Invalid bool from feature"),
-    };
-    
-    debug!("Feature toggle changed: {} -> {}", feat.id, enabled);
-    
-    // Copy values we need for comparison
-    let current_features = enabled_features.read().clone();
-    let contains_feature = current_features.contains(&feat.id);
-    let current_count = *modify_count.read();
-    
-    // Only update if necessary
-    if enabled != contains_feature {
-        debug!("Updating feature state for {}: {} -> {}", feat.id, contains_feature, enabled);
-        enabled_features.with_mut(|x| {
-            if enabled && !x.contains(&feat.id) {
-                x.push(feat.id.clone());
-            } else if !enabled {
-                x.retain(|item| item != &feat.id);
-            }
-        });
-    }
-    
-    // Handle modify signals in a separate step
-    if let Some(local_feat) = local_features.read().as_ref() {
-        let modify_res = local_feat.contains(&feat.id) != enabled;
-        
-        // Schedule these operations separately to avoid infinite loop warnings
-        if current_count <= 1 {
-            modify.set(modify_res);
-        }
-        
-        if modify_res {
-            modify_count.with_mut(|x| *x += 1);
-        } else {
-            modify_count.with_mut(|x| *x -= 1);
-        }
-    }
-}
-
-// Update the init_branch function
-async fn init_branch(source: String, branch: String, launcher: Launcher, mut pages: Signal<BTreeMap<usize, TabInfo>>) -> Result<(), String> {
-    debug!("Initializing modpack from source: {}, branch: {}", source, branch);
-    let profile = crate::init(source.to_owned(), branch.to_owned(), launcher).await?;
-
-    // Process manifest data for tab information
-    debug!("Processing manifest tab information:");
-    debug!("  subtitle: {}", profile.manifest.subtitle);
-    debug!("  description length: {}", profile.manifest.description.len());
-
-    let tab_group = if let Some(tab_group) = profile.manifest.tab_group {
-        debug!("  tab_group: {}", tab_group);
-        tab_group
-    } else {
-        debug!("  tab_group: None, defaulting to 0");
-        0
-    };
-
-    // Check if this profile already exists in the tab group
-    let profile_exists = pages.read().get(&tab_group)
-        .map_or(false, |tab_info| tab_info.modpacks.iter()
-            .any(|p| p.modpack_branch == profile.modpack_branch && p.modpack_source == profile.modpack_source));
-            
-    if profile_exists {
-        debug!("Profile already exists in tab_group {}, skipping", tab_group);
-        return Ok(());
-    }
-
-    let tab_created = pages.read().contains_key(&tab_group);
-    
-    // Create the tab if it doesn't exist
-    if !tab_created {
-        let tab_title = if let Some(ref tab_title) = profile.manifest.tab_title {
-            debug!("  tab_title: {}", tab_title);
-            tab_title.clone()
-        } else {
-            debug!("  tab_title: None, using subtitle");
-            profile.manifest.subtitle.clone()
-        };
-
-        let tab_color = if let Some(ref tab_color) = profile.manifest.tab_color {
-            debug!("  tab_color: {}", tab_color);
-            tab_color.clone()
-        } else {
-            debug!("  tab_color: None, defaulting to '#320625'");
-            String::from("#320625")
-        };
-
-        let tab_background = if let Some(ref tab_background) = profile.manifest.tab_background {
-            debug!("  tab_background: {}", tab_background);
-            tab_background.clone()
-        } else {
-            let default_bg = "https://raw.githubusercontent.com/Wynncraft-Overhaul/installer/master/src/assets/background_installer.png";
-            debug!("  tab_background: None, defaulting to '{}'", default_bg);
-            String::from(default_bg)
-        };
-
-        // Use a consistent background for settings - home background
-        let settings_background = "https://raw.githubusercontent.com/Wynncraft-Overhaul/installer/master/src/assets/background_installer.png".to_string();
-
-        // No longer storing font variables in TabInfo
-        let tab_info = TabInfo {
-            color: tab_color,
-            title: tab_title,
-            background: tab_background,
-            settings_background,
-            modpacks: vec![profile.clone()], // Add the profile immediately
-        };
-        
-        pages.write().insert(tab_group, tab_info);
-        debug!("Created tab_group {} with profile {}", tab_group, branch);
-    } else {
-        // Add the profile to an existing tab
-        pages.write().entry(tab_group).and_modify(|tab_info| {
-            tab_info.modpacks.push(profile.clone());
-            debug!("Added profile {} to existing tab_group {}", branch, tab_group);
-        });
-    }
-
-    Ok(())
-}
-
-#[derive(PartialEq, Props, Clone)]
-struct VersionProps {
-    installer_profile: InstallerProfile,
-    error: Signal<Option<String>>,
-    current_page: usize,
-    tab_group: usize,
-}
-
-#[component]
-fn Version(mut props: VersionProps) -> Element {
-    let installer_profile = props.installer_profile.clone();
-    
-    // Add explicit debugging for initial state
-    debug!("INITIAL STATE: installed={}, update_available={}", 
-           installer_profile.installed, installer_profile.update_available);
-    
-    // Force reactivity with explicit signal declarations and consistent usage
-    let mut installing = use_signal(|| false);
-    let mut progress_status = use_signal(|| "".to_string());
-    let mut install_progress = use_signal(|| 0);
-    let mut modify = use_signal(|| false);
-    let mut modify_count = use_signal(|| 0);
-    let mut credits = use_signal(|| false);
-    let mut expanded_features = use_signal(|| false);
-    
-    // Convert these to mutable signals to ensure their changes trigger rerendering
-    let mut installed = use_signal(|| installer_profile.installed);
-    let mut update_available = use_signal(|| installer_profile.update_available);
-    let mut install_item_amount = use_signal(|| 0);
-
-    // Debug counter to force refreshes
-    let mut debug_counter = use_signal(|| 0);
-    
-    // IMPORTANT: Store the features collection in a signal to solve lifetime issues
-    let features = use_signal(|| installer_profile.manifest.features.clone());
-    
-    // Clone the UUID right away to avoid ownership issues
-    let uuid = installer_profile.manifest.uuid.clone();
-    
-    // Add debugging to watch for signal changes
-    use_effect(move || {
-        debug!("SIGNAL UPDATE: installed={}, update_available={}, modify={}, credits={}, debug_counter={}",
-               *installed.read(), *update_available.read(), *modify.read(), *credits.read(), *debug_counter.read());
-    });
-
-    // Use signal for enabled_features with cleaner initialization
-    let mut enabled_features = use_signal(|| {
-        let mut feature_list = vec!["default".to_string()];
-        
-        if installer_profile.installed && installer_profile.local_manifest.is_some() {
-            feature_list = installer_profile.local_manifest.as_ref().unwrap().enabled_features.clone();
-        } else {
-            // Add default features
-            for feat in &installer_profile.manifest.features {
-                if feat.default {
-                    feature_list.push(feat.id.clone());
-                }
-            }
-        }
-
-        debug!("Initialized enabled_features: {:?}", feature_list);
-        feature_list
-    });
-    
-    // Clone local_manifest to prevent ownership issues
-    let mut local_features = use_signal(|| {
-        if let Some(ref manifest) = installer_profile.local_manifest {
-            Some(manifest.enabled_features.clone())
-        } else {
-            None
-        }
-    });
-    
-    // Calculate how many features to show in first row - default to 3
-    let first_row_count = 3;
-    
-    // Feature toggle handler function
-    let mut handle_feature_toggle = move |feat: super::Feature, evt: FormEvent| {
-        // Extract form value
-        let enabled = match &*evt.data.value() {
-            "true" => true,
-            "false" => false,
-            _ => panic!("Invalid bool from feature"),
-        };
-        
-        debug!("Feature toggle changed: {} -> {}", feat.id, enabled);
-        
-        // Update enabled_features
-        enabled_features.with_mut(|feature_list| {
-            if enabled {
-                if !feature_list.contains(&feat.id) {
-                    feature_list.push(feat.id.clone());
-                    debug!("Added feature: {}", feat.id);
-                }
-            } else {
-                feature_list.retain(|id| id != &feat.id);
-                debug!("Removed feature: {}", feat.id);
-            }
-        });
-        
-        // Handle modify flag
-        if let Some(local_feat) = local_features.read().as_ref() {
-            let was_enabled = local_feat.contains(&feat.id);
-            let is_modified = was_enabled != enabled;
-            
-            debug!("Feature modified check: was_enabled={}, new_state={}, is_modified={}", 
-                   was_enabled, enabled, is_modified);
-            
-            if is_modified {
-                modify_count.with_mut(|x| *x += 1);
-                if *modify_count.read() > 0 {
-                    modify.set(true);
-                    debug!("SET MODIFY FLAG: true");
-                }
-            } else {
-                modify_count.with_mut(|x| *x -= 1);
-                if *modify_count.read() <= 0 {
-                    modify.set(false);
-                    debug!("SET MODIFY FLAG: false");
-                }
-            }
-        }
-        
-        // Force refresh
-        debug_counter.with_mut(|x| *x += 1);
-    };
-    
-    // Installation/update submit handler
-    let movable_profile = installer_profile.clone();
-    let on_submit = move |_| {
-        // Calculate total items to process for progress tracking
-        *install_item_amount.write() = movable_profile.manifest.mods.len()
-            + movable_profile.manifest.resourcepacks.len()
-            + movable_profile.manifest.shaderpacks.len()
-            + movable_profile.manifest.include.len();
-        
-        let movable_profile = movable_profile.clone();
-        let movable_profile2 = movable_profile.clone();
-        
-        async move {
-            let install = move |canceled| {
-                let mut installer_profile = movable_profile.clone();
-                spawn(async move {
-                    if canceled {
-                        return;
-                    }
-                    installing.set(true);
-                    installer_profile.enabled_features = enabled_features.read().clone();
-                    installer_profile.manifest.enabled_features = enabled_features.read().clone();
-                    local_features.set(Some(enabled_features.read().clone()));
-
-                    if !*installed.read() {
-                        progress_status.set("Installing".to_string());
-                        match crate::install(&installer_profile, move || {
-                            install_progress.with_mut(|x| *x += 1);
-                        })
-                        .await
-                        {
-                            Ok(_) => {
-                                installed.set(true);
-                                debug!("SET INSTALLED: true");
-                                
-                                let _ = isahc::post(
-                                    "https://tracking.commander07.workers.dev/track",
-                                    format!(
-                                        "{{
-                                    \"projectId\": \"55db8403a4f24f3aa5afd33fd1962888\",
-                                    \"dataSourceId\": \"{}\",
-                                    \"userAction\": \"update\",
-                                    \"additionalData\": {{
-                                        \"old_version\": \"{}\",
-                                        \"new_version\": \"{}\"
-                                    }}
-                                }}",
-                                        installer_profile.manifest.uuid,
-                                        installer_profile.local_manifest.unwrap().modpack_version,
-                                        installer_profile.manifest.modpack_version
-                                    ),
-                                );
-                            }
-                            Err(e) => {
-                                props.error.set(Some(
-                                    format!("{:#?}", e) + " (Failed to update modpack!)",
-                                ));
-                                installing.set(false);
-                                return;
-                            }
-                        }
-                        update_available.set(false);
-                        debug!("SET UPDATE_AVAILABLE: false");
-                    } else if *modify.read() {
-                        progress_status.set("Modifying".to_string());
-                        match super::update(&installer_profile, move || {
-                            install_progress.with_mut(|x| *x += 1);
-                        })
-                        .await
-                        {
-                            Ok(_) => {
-                                let _ = isahc::post(
-                                    "https://tracking.commander07.workers.dev/track",
-                                    format!(
-                                        "{{
-                                    \"projectId\": \"55db8403a4f24f3aa5afd33fd1962888\",
-                                    \"dataSourceId\": \"{}\",
-                                    \"userAction\": \"modify\",
-                                    \"additionalData\": {{
-                                        \"features\": {:?}
-                                    }}
-                                }}",
-                                        installer_profile.manifest.uuid,
-                                        installer_profile.manifest.enabled_features
-                                    ),
-                                );
-                            }
-                            Err(e) => {
-                                props.error.set(Some(
-                                    format!("{:#?}", e) + " (Failed to modify modpack!)",
-                                ));
-                                installing.set(false);
-                                return;
-                            }
-                        }
-                        modify.set(false);
-                        debug!("RESET MODIFY: false");
-                        modify_count.set(0);
-                        update_available.set(false);
-                        debug!("SET UPDATE_AVAILABLE: false");
-                    }
-                    installing.set(false);
-                    
-                    // Force refresh
-                    debug_counter.with_mut(|x| *x += 1);
-                });
-            };
-
-            if let Some(contents) = movable_profile2.manifest.popup_contents {
-                use_context::<ModalContext>().open(
-                    movable_profile2.manifest.popup_title.unwrap_or_default(),
-                    rsx!(div {
-                        dangerous_inner_html: "{contents}",
-                    }),
-                    true,
-                    Some(install),
-                )
-            } else {
-                install(false);
-            }
-        }
-    };
-
-    // Button label based on state
-    let button_label = if !*installed.read() {
-        debug!("Button state: Install");
-        "Install"
-    } else if *update_available.read() {
-        debug!("Button state: Update");
-        "Update"
-    } else if *modify.read() {
-        debug!("Button state: Modify");
-        "Modify"
-    } else {
-        debug!("Button state: Modify (default)");
-        "Modify"
-    };
-    
-    // Button disable logic
-    let install_disable = *installed.read() && !*update_available.read() && !*modify.read();
-    debug!("Button disabled: {}", install_disable);
-    
-    // Pre-build feature cards to avoid nested RSX macros
-    let feature_cards_content = {
-        // Filter features
-        let features_list = features.read();
-        let visible_features: Vec<_> = features_list.iter()
-            .filter(|f| !f.hidden)
-            .collect();
-        
-        // Calculate whether to show expand button
-        let show_expand_button = visible_features.len() > first_row_count;
-        
-        let first_row_cards = visible_features.iter().take(first_row_count).map(|feat| {
-            let is_enabled = enabled_features.read().contains(&feat.id);
-            let feat_clone = (*feat).clone();
-            
-            rsx! {
-                div { 
-                    class: if is_enabled { "feature-card feature-enabled" } else { "feature-card feature-disabled" },
-                    div { class: "feature-card-header",
-                        h3 { class: "feature-card-title", "{feat.name}" }
-                    }
-                    
-                    if let Some(description) = &feat.description {
-                        div { class: "feature-card-description", "{description}" }
-                    }
-                    
-                    label {
-                        class: if is_enabled { "feature-toggle-button enabled" } else { "feature-toggle-button disabled" },
-                        input {
-                            r#type: "checkbox",
-                            name: "{feat.id}",
-                            checked: if is_enabled { Some("true") } else { None },
-                            onchange: move |evt| handle_feature_toggle(feat_clone.clone(), evt),
-                            style: "display: none;"
-                        }
-                        if is_enabled { "Enabled" } else { "Disabled" }
-                    }
-                }
-            }
-        }).collect::<Vec<_>>();
-        
-        // Additional features (shown only when expanded)
-        let additional_cards = if *expanded_features.read() {
-            visible_features.iter().skip(first_row_count).map(|feat| {
-                let is_enabled = enabled_features.read().contains(&feat.id);
-                let feat_clone = (*feat).clone();
-                
-                rsx! {
-                    div { 
-                        class: if is_enabled { "feature-card feature-enabled" } else { "feature-card feature-disabled" },
-                        div { class: "feature-card-header",
-                            h3 { class: "feature-card-title", "{feat.name}" }
-                        }
-                        
-                        if let Some(description) = &feat.description {
-                            div { class: "feature-card-description", "{description}" }
-                        }
-                        
-                        label {
-                            class: if is_enabled { "feature-toggle-button enabled" } else { "feature-toggle-button disabled" },
-                            input {
-                                r#type: "checkbox",
-                                name: "{feat.id}",
-                                checked: if is_enabled { Some("true") } else { None },
-                                onchange: move |evt| handle_feature_toggle(feat_clone.clone(), evt),
-                                style: "display: none;"
-                            }
-                            if is_enabled { "Enabled" } else { "Disabled" }
-                        }
-                    }
-                }
-            }).collect::<Vec<_>>()
-        } else {
-            Vec::new()
-        };
-        
-        // Expand button
-        let expand_button = if show_expand_button {
-            vec![rsx! {
-                div { class: "features-expand-container",
-                    button {
-                        class: "features-expand-button",
-                        onclick: move |_| {
-                            let current_state = *expanded_features.read();
-                            expanded_features.set(!current_state);
-                            debug!("Toggled expanded features: {}", !current_state);
-                        },
-                        if *expanded_features.read() {
-                            "Collapse Features"
-                        } else {
-                            {format!("Show {} More Features", visible_features.len() - first_row_count)}
-                        }
-                    }
-                }
-            }]
-        } else {
-            Vec::new()
-        };
-        
-        // Combine all components
-        let mut all_components = Vec::new();
-        all_components.extend(first_row_cards);
-        all_components.extend(additional_cards);
-        all_components.extend(expand_button);
-        
-        all_components
-    };
-    
-    rsx! {
-        if *installing.read() {
-            ProgressView {
-                value: *install_progress.read(),
-                max: *install_item_amount.read() as i64,
-                title: installer_profile.manifest.subtitle.clone(),
-                status: progress_status.read().clone()
-            }
-        } else if *credits.read() {
-            Credits {
-                manifest: installer_profile.manifest.clone(),
-                enabled: enabled_features.read().clone(),
-                credits
-            }
-        } else {
-            div { class: "version-container",
-                "<!-- debug counter: {*debug_counter.read()} -->",
-                
-                form { onsubmit: on_submit,
-                    // Header section with title and subtitle
-                    div { class: "content-header",
-                        h1 { "{installer_profile.manifest.subtitle}" }
-                    }
-                    
-                    // Description section
-                    div { class: "content-description",
-                        dangerous_inner_html: "{installer_profile.manifest.description}",
-                        
-                        // Credits link
-                        div { class: "credits-link-container", style: "text-align: center; margin: 15px 0;",
-                            a {
-                                class: "credits-button",
-                                onclick: move |evt| {
-                                    debug!("Credits clicked");
-                                    credits.set(true);
-                                    debug!("SET CREDITS: true");
-                                    evt.stop_propagation();
-                                },
-                                "VIEW CREDITS"
-                            }
-                        }
-                    }
-                    
-                    // Expandable Features Section
-                    div { class: "features-section",
-                        h2 { class: "features-heading", "OPTIONAL FEATURES" }
-                        
-                        // Feature cards container - using pre-built content instead of nested RSX
-                        div { class: "feature-cards-container",
-                            {feature_cards_content.into_iter()}
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-#[component]
-pub fn ModernAppWithState() -> Element {
-    // Core application state
-    let mut installations = use_signal(|| Vec::<Installation>::new());
-    let mut current_installation_id = use_signal(|| Option::<String>::None);
-    let mut active_tab = use_signal(|| "features".to_string());
-    let mut error_signal = use_signal(|| Option::<String>::None);
-    let mut is_installing = use_signal(|| false);
-    
-    // Feature state for installations
-    let mut installation_states = use_signal(|| HashMap::<String, InstallationState>::new());
-    
-    // Derived state
-    let is_home_page = current_installation_id.read().is_none();
-    let current_installation = current_installation_id.read().as_ref()
-        .and_then(|id| installations.read().iter().find(|inst| &inst.id == id).cloned());
-    
-    // Get current installation state
-    let current_state = current_installation_id.read().as_ref()
-        .and_then(|id| installation_states.read().get(id).cloned())
-        .unwrap_or_default();
-
-    // Event handlers
-    let go_home = EventHandler::new(move |_| {
-        current_installation_id.set(None);
-        active_tab.set("features".to_string());
-    });
-
-    let select_installation = EventHandler::new(move |id: String| {
-        current_installation_id.set(Some(id.clone()));
-        active_tab.set("features".to_string());
-        
-        // Initialize state for this installation if not exists
-        installation_states.with_mut(|states| {
-            if !states.contains_key(&id) {
-                if let Some(installation) = installations.read().iter().find(|inst| inst.id == id) {
-                    states.insert(id.clone(), InstallationState::from_installation(installation));
-                }
-            }
-        });
-    });
-
-    let change_tab = EventHandler::new(move |tab: String| {
-        active_tab.set(tab);
-    });
-
-    let launch_game = if let Some(installation) = &current_installation {
-        let installation_id = installation.id.clone();
-        let mut error_signal = error_signal.clone();
-        
-        Some(EventHandler::new(move |_| {
-            let installation_id = installation_id.clone();
-            let mut error_signal = error_signal.clone();
-            
-            spawn(async move {
-                match crate::launch_modpack(&installation_id) {
-                    Ok(_) => {
-                        debug!("Successfully launched modpack: {}", installation_id);
-                    },
-                    Err(e) => {
-                        error!("Failed to launch modpack: {}", e);
-                        error_signal.set(Some(format!("Failed to launch: {}", e)));
-                    }
-                }
-            });
-        }))
-    } else {
-        None
-    };
-
-    let back_to_home = EventHandler::new(move |_| {
-        current_installation_id.set(None);
-        active_tab.set("features".to_string());
-    });
-
-    let install_or_update = if let Some(installation) = &current_installation {
-        let installation_id = installation.id.clone();
-        let mut installations = installations.clone();
-        let mut is_installing = is_installing.clone();
-        let mut error_signal = error_signal.clone();
-        let mut installation_states = installation_states.clone();
-        
-        Some(EventHandler::new(move |_| {
-            let installation_id = installation_id.clone();
-            let mut installations = installations.clone();
-            let mut is_installing = is_installing.clone();
-            let mut error_signal = error_signal.clone();
-            let mut installation_states = installation_states.clone();
-            
-            spawn(async move {
-                is_installing.set(true);
-                
-                // Get current state for this installation
-                let current_state = installation_states.read()
-                    .get(&installation_id)
-                    .cloned()
-                    .unwrap_or_default();
-                
-                // Create installation profile with current settings
-                let mut installation = installations.read()
-                    .iter()
-                    .find(|inst| inst.id == installation_id)
-                    .cloned()
-                    .unwrap();
-                
-                // Apply current state
-                installation.enabled_features = current_state.enabled_features;
-                installation.memory_allocation = current_state.memory_allocation;
-                installation.java_args = current_state.java_args;
-                
-                match installation.install_or_update().await {
-                    Ok(_) => {
-                        // Update installation status
-                        installation.installed = true;
-                        installation.update_available = false;
-                        
-                        // Save the installation
-                        let _ = installation.save();
-                        
-                        // Update installations list
-                        installations.with_mut(|list| {
-                            if let Some(index) = list.iter().position(|i| i.id == installation_id) {
-                                list[index] = installation;
-                            }
-                        });
-                        
-                        // Reset state flags
-                        installation_states.with_mut(|states| {
-                            if let Some(state) = states.get_mut(&installation_id) {
-                                state.has_changes = false;
-                            }
-                        });
-                    },
-                    Err(e) => {
-                        error_signal.set(Some(format!("Installation failed: {}", e)));
-                    }
-                }
-                
-                is_installing.set(false);
-            });
-        }))
-    } else {
-        None
-    };
-
-    // Update installation state when features change
-    let update_features = EventHandler::new(move |features: Vec<String>| {
-        if let Some(id) = current_installation_id.read().as_ref() {
-            installation_states.with_mut(|states| {
-                if let Some(state) = states.get_mut(id) {
-                    let original_features = &state.original_features;
-                    state.enabled_features = features;
-                    state.has_changes = &state.enabled_features != original_features ||
-                                       state.memory_allocation != state.original_memory ||
-                                       state.java_args != state.original_java_args;
-                }
-            });
-        }
-    });
-
-    // Update memory allocation
-    let update_memory = EventHandler::new(move |memory: i32| {
-        if let Some(id) = current_installation_id.read().as_ref() {
-            installation_states.with_mut(|states| {
-                if let Some(state) = states.get_mut(id) {
-                    state.memory_allocation = memory;
-                    state.has_changes = &state.enabled_features != &state.original_features ||
-                                       state.memory_allocation != state.original_memory ||
-                                       state.java_args != state.original_java_args;
-                }
-            });
-        }
-    });
-
-    // Render content based on current page
-    let main_content = if is_home_page {
-        rsx! {
-            HomePage {
-                installations: installations,
-                on_select_installation: select_installation,
-                error_signal: error_signal,
-            }
-        }
-    } else if let Some(installation) = current_installation {
-        match active_tab.read().as_str() {
-            "features" => rsx! {
-                FeaturesTab {
-                    installation: installation.clone(),
-                    enabled_features: use_signal(|| current_state.enabled_features.clone()),
-                    on_features_change: update_features,
-                }
-            },
-            "performance" => rsx! {
-                PerformanceTab {
-                    installation: installation.clone(),
-                    memory_allocation: use_signal(|| current_state.memory_allocation),
-                    java_args: use_signal(|| current_state.java_args.clone()),
-                    on_memory_change: update_memory,
-                }
-            },
-            "settings" => rsx! {
-                SettingsTab {
-                    installation: installation.clone(),
-                    on_installation_update: move |updated: Installation| {
-                        installations.with_mut(|list| {
-                            if let Some(index) = list.iter().position(|i| i.id == updated.id) {
-                                list[index] = updated;
-                            }
-                        });
-                    },
-                    on_delete: back_to_home.clone(),
-                }
-            },
-            _ => rsx! { div { "Unknown tab" } }
-        }
-    } else {
-        rsx! { div { "Loading..." } }
-    };
-
-    // Create footer info
-    let footer_info = current_installation.as_ref().map(|installation| {
-        InstallationFooterInfo {
-            name: installation.name.clone(),
-            minecraft_version: installation.minecraft_version.clone(),
-            loader_type: installation.loader_type.clone(),
-            loader_version: installation.loader_version.clone(),
-            memory_allocation: current_state.memory_allocation,
-            installed: installation.installed,
-            needs_update: installation.update_available,
-            has_changes: current_state.has_changes,
-            is_up_to_date: installation.installed && !installation.update_available && !current_state.has_changes,
-        }
-    });
-
-    rsx! {
-        ModernAppLayout {
-            is_home_page: is_home_page,
-            current_installation: current_installation,
-            active_tab: active_tab,
-            on_go_home: go_home,
-            on_tab_change: change_tab,
-            on_launch: launch_game,
-            on_back: if !is_home_page { Some(back_to_home) } else { None },
-            on_install: install_or_update,
-            
-            {main_content}
-        }
-        
-        // Error display
-        if let Some(error) = error_signal() {
-            div { class: "error-notification",
-                div { class: "error-message", "{error}" }
-                button { 
-                    class: "error-close",
-                    onclick: move |_| error_signal.set(None),
-                    "×"
-                }
-            }
-        }
-    }
-}
-
 // State management structure for installations
 #[derive(Clone, Debug, Default)]
 pub struct InstallationState {
@@ -3362,194 +1922,16 @@ impl InstallationState {
     }
 }
 
-/// New header component with tabs - updated to display tab groups 1-3 in main row
-#[component]
-fn AppHeader(
-    installations: Signal<Vec<Installation>>,
-    current_installation_id: Signal<Option<String>>,
-    on_select_installation: EventHandler<String>,
-    on_go_home: EventHandler<()>,
-    on_open_settings: EventHandler<()>,
-    show_installation_tabs: bool, // NEW: Control whether to show installation tabs
-) -> Element {
-    let icon_base64 = {
-        use base64::{Engine, engine::general_purpose::STANDARD};
-        STANDARD.encode(include_bytes!("assets/icon.png"))
-    };
-    
-    // Only show installation management tabs if we're on an installation page
-    if !show_installation_tabs {
-        // Simple header with just logo and basic navigation
-        return rsx! {
-            header { class: "app-header simple-header",
-                // Logo and title - clickable to go home
-                div { 
-                    class: "app-header-left", 
-                    onclick: move |_| on_go_home.call(()),
-                    
-                    img { 
-                        class: "app-logo", 
-                        src: "data:image/png;base64,{icon_base64}",
-                        alt: "Wynncraft Overhaul Logo"
-                    }
-                    h1 { class: "app-title", "MAJESTIC OVERHAUL" }
-                }
-                
-                // Just the launcher settings button on the right
-                div { class: "app-header-right",
-                    button { 
-                        class: "settings-button",
-                        onclick: move |_| on_open_settings.call(()),
-                        "Launcher"
-                    }
-                }
-            }
-        };
-    }
-    
-    // Full header with installation tabs (for when managing installations from home page)
-    // This is now only used if you want to show installation tabs in the main header
-    // (which based on your new design, you probably don't need)
-    
-    // Number of installation tabs to show directly
-    let MAX_INSTALLATION_TABS = 2;
-    
-    // Prepare installation tabs
-    let all_installations = installations();
-    let direct_installations = all_installations.iter().take(MAX_INSTALLATION_TABS).cloned().collect::<Vec<_>>();
-    let dropdown_installations = all_installations.iter().skip(MAX_INSTALLATION_TABS).cloned().collect::<Vec<_>>();
-
-    // Current ID for active state
-    let current_id = current_installation_id();
-    
-    // Pre-build direct tabs
-    let direct_tabs_content = {
-        let mut tabs = Vec::new();
-        for installation in &direct_installations {
-            let id = installation.id.clone();
-            let name = installation.name.clone();
-            let is_active = current_id.as_ref().map_or(false, |current_id| current_id == &id);
-            let on_select = on_select_installation.clone();
-            
-            tabs.push(
-                rsx! {
-                    button {
-                        class: {
-                            if is_active { 
-                                "header-tab-button active" 
-                            } else { 
-                                "header-tab-button" 
-                            }
-                        },
-                        onclick: move |_| on_select.call(id.clone()),
-                        "{name}"
-                    }
-                }
-            );
-        }
-        tabs.into_iter()
-    };
-    
-    // Pre-build dropdown menu
-    let dropdown_menu = if !dropdown_installations.is_empty() {
-        let dropdown_items = dropdown_installations.iter().map(|installation| {
-            let id = installation.id.clone();
-            let name = installation.name.clone();
-            let is_active = current_id.as_ref().map_or(false, |current_id| current_id == &id);
-            let on_select = on_select_installation.clone();
-            
-            rsx! {
-                button {
-                    class: {
-                        if is_active { 
-                            "dropdown-item active" 
-                        } else { 
-                            "dropdown-item" 
-                        }
-                    },
-                    onclick: move |_| on_select.call(id.clone()),
-                    "{name}"
-                }
-            }
-        }).collect::<Vec<_>>();
-        
-        rsx! {
-            div { class: "dropdown",
-                button { class: "header-tab-button", "More ▼" }
-                div { class: "dropdown-content",
-                    {dropdown_items.into_iter()}
-                }
-            }
-        }
-    } else {
-        rsx! { Fragment {} }
-    };
-    
-    // Main render for full header
-    rsx! {
-        header { class: "app-header",
-            // Logo and title
-            div { 
-                class: "app-header-left", 
-                onclick: move |_| on_go_home.call(()),
-                
-                img { 
-                    class: "app-logo", 
-                    src: "data:image/png;base64,{icon_base64}",
-                    alt: "Wynncraft Overhaul Logo"
-                }
-                h1 { class: "app-title", "MAJESTIC OVERHAUL" }
-            }
-            
-            // Tabs
-            div { class: "header-tabs",
-                // Home tab
-                button { 
-                    class: {
-                        if current_id.is_none() { 
-                            "header-tab-button active" 
-                        } else { 
-                            "header-tab-button" 
-                        }
-                    },
-                    onclick: move |_| on_go_home.call(()),
-                    "Home"
-                }
-                
-                // Direct installation tabs
-                {direct_tabs_content}
-                
-                // Dropdown menu
-                {dropdown_menu}
-                
-                // Create new installation tab
-                button { 
-                    class: "header-tab-button new-installation-tab",
-                    onclick: move |_| on_select_installation.call("new".to_string()),
-                    "+"
-                }
-            }
-            
-            // Settings button
-            button { 
-                class: "settings-button",
-                onclick: move |_| on_open_settings.call(()),
-                "Launcher"
-            }
-        }
-    }
-}
-
 #[derive(Debug, Clone)]
 pub struct AppProps {
-    pub branches: Vec<super::GithubBranch>,
+    pub branches: Vec<GithubBranch>,
     pub modpack_source: String,
-    pub config: super::Config,
+    pub config: crate::Config,
     pub config_path: PathBuf,
     pub installations: Vec<Installation>,
 }
 
-// Fixed app function
+// Fixed app function with modern layout
 pub fn app() -> Element {
     let props = use_context::<AppProps>();
     let css = include_str!("assets/style.css");
@@ -3563,6 +1945,7 @@ pub fn app() -> Element {
     // Installation handling
     let mut current_installation_id = use_signal(|| Option::<String>::None);
     let mut installations = use_signal(|| props.installations.clone());
+    let mut active_tab = use_signal(|| "features".to_string());
 
     // Get launcher configuration
     let launcher = match get_launcher(&config.read().launcher) {
@@ -3575,8 +1958,6 @@ pub fn app() -> Element {
     let has_launcher = launcher.is_some();
 
     // Load universal manifest with error handling
-    let has_launcher_copy = has_launcher;
-
     let config_clone = config.clone();
     let manifest_error_clone = manifest_error.clone();
     let universal_manifest = use_resource(move || {
@@ -3598,42 +1979,42 @@ pub fn app() -> Element {
             }
             
             debug!("Loading universal manifest...");
-        match crate::universal::load_universal_manifest(&CachedHttpClient::new(), None).await {
-            Ok(manifest) => {
-                debug!("Successfully loaded universal manifest: {}", manifest.name);
-                Some(manifest)
+            match crate::universal::load_universal_manifest(&CachedHttpClient::new(), None).await {
+                Ok(manifest) => {
+                    debug!("Successfully loaded universal manifest: {}", manifest.name);
+                    Some(manifest)
+                },
+                Err(e) => {
+                    error!("Failed to load universal manifest: {}", e);
+                    spawn(async move {
+                        manifest_error.set(Some(e.clone()));
+                    });
+                    None
+                }
+            }
+        }
+    });
+    
+    // Load changelog
+    let changelog = use_resource(move || async {
+        match crate::changelog::fetch_changelog("Olinus10/installer-test/master", &CachedHttpClient::new()).await {
+            Ok(changelog) => {
+                debug!("Successfully loaded changelog with {} entries", changelog.entries.len());
+                Some(changelog)
             },
             Err(e) => {
-                error!("Failed to load universal manifest: {}", e);
-                spawn(async move {
-                    manifest_error.set(Some(e.clone()));
-                });
+                error!("Failed to load changelog: {}", e);
                 None
             }
         }
-    } // <- Make sure this closing brace exists
-}); // <- And this closing parenthesis and semicolon
-    
-    // Load changelog
-let changelog = use_resource(move || async {
-    match crate::changelog::fetch_changelog("Olinus10/installer-test/master", &CachedHttpClient::new()).await {
-        Ok(changelog) => {
-            debug!("Successfully loaded changelog with {} entries", changelog.entries.len());
-            Some(changelog)
-        },
-        Err(e) => {
-            error!("Failed to load changelog: {}", e);
-            None
-        }
-    }
-});
+    });
 
     let mut changelog_signal = use_signal(|| None::<ChangelogData>);
     use_effect(move || {
-    if let Some(Some(changelog_data)) = changelog.read().as_ref() {
-        changelog_signal.set(Some(changelog_data.clone()));
-    }
-});
+        if let Some(Some(changelog_data)) = changelog.read().as_ref() {
+            changelog_signal.set(Some(changelog_data.clone()));
+        }
+    });
 
     // Modal context for popups
     let mut modal_context = use_context_provider(ModalContext::default);
@@ -3655,40 +2036,28 @@ let changelog = use_resource(move || async {
         .replace("<SECONDARY_FONT>", "\"HEADER_FONT\"")
         .replace("<PRIMARY_FONT>", "\"REGULAR_FONT\"");
     
-// Add custom category styles
-let category_styles = include_str!("assets/category-styles.css");
-let feature_styles = include_str!("assets/expanded-feature-styles.css");
-let preset_styles = include_str!("assets/preset-styles.css");
-let search_styles = include_str!("assets/search-results-styles.css");
-let modal_styles = include_str!("assets/modal-styles.css");
-let modern_layout = include_str!("assets/modern-layout.css");
-
-// Combine all CSS files
-let complete_css = format!("{}\n{}\n{}\n{}\n{}\n{}\n{}", 
-    css_content, 
-    category_styles, 
-    feature_styles, 
-    preset_styles, 
-    search_styles,
-    modal_styles,
-    modern_layout
-);
-
-    let mut modal_context = use_context_provider(ModalContext::default);
+    // Add custom category styles
+    let category_styles = include_str!("assets/category-styles.css");
+    let feature_styles = include_str!("assets/expanded-feature-styles.css");
+    let preset_styles = include_str!("assets/preset-styles.css");
+    let search_styles = include_str!("assets/search-results-styles.css");
+    let modal_styles = include_str!("assets/modal-styles.css");
     
-    // Show error modal if error exists
-    if let Some(e) = error_signal() {
-        modal_context.open("Error", rsx! {
-            p {
-                "The installer encountered an error. If the problem persists, please report it in #📂modpack-issues on Discord."
-            }
-            textarea { class: "error-area", readonly: true, "{e}" }
-        }, false, Some(move |_| error_signal.set(None)));
-    }
+    // Create the modern layout CSS
+    let modern_layout = include_str!("assets/modern-layout.css");
 
-    // [Keep existing CSS building code...]
+    // Combine all CSS files
+    let complete_css = format!("{}\n{}\n{}\n{}\n{}\n{}\n{}", 
+        css_content, 
+        category_styles, 
+        feature_styles, 
+        preset_styles, 
+        search_styles,
+        modal_styles,
+        modern_layout
+    );
 
-    let mut active_tab = use_signal(|| "features".to_string());
+    // Determine current state
     let is_home_page = current_installation_id.read().is_none();
     let current_installation = if let Some(id) = current_installation_id.read().as_ref() {
         installations.read().iter().find(|inst| &inst.id == id).cloned()
@@ -3773,47 +2142,18 @@ let complete_css = format!("{}\n{}\n{}\n{}\n{}\n{}\n{}",
             }
         }
     } else {
-        // Installation management content based on active tab
+        // Installation management content
         let id = current_installation_id.read().as_ref().unwrap().clone();
+        let back_handler_for_mgmt = EventHandler::new(move |_| {
+            current_installation_id.set(None);
+        });
         
-        match active_tab.read().as_str() {
-            "features" => rsx! {
-                FeaturesTab {
-                    universal_manifest: universal_manifest.read().clone().flatten(),
-                    presets: Vec::new(), // Load presets here
-                    enabled_features: use_signal(|| Vec::new()), // Manage enabled features
-                    selected_preset: use_signal(|| None),
-                    filter_text: use_signal(|| String::new()),
-                    installation_id: id,
-                }
-            },
-            "performance" => rsx! {
-                PerformanceTab {
-                    memory_allocation: use_signal(|| 4096),
-                    java_args: use_signal(|| String::new()),
-                    installation_id: id,
-                }
-            },
-            "settings" => rsx! {
-                SettingsTab {
-                    installation: current_installation.clone().unwrap(),
-                    installation_id: id.clone(),
-                    ondelete: move |_| {
-                        installations.with_mut(|list| {
-                            list.retain(|inst| inst.id != id);
-                        });
-                        current_installation_id.set(None);
-                    },
-                    onupdate: move |updated_installation: Installation| {
-                        installations.with_mut(|list| {
-                            if let Some(index) = list.iter().position(|i| i.id == updated_installation.id) {
-                                list[index] = updated_installation.clone();
-                            }
-                        });
-                    }
-                }
-            },
-            _ => rsx! { div { "Unknown tab" } }
+        rsx! {
+            InstallationManagementPage {
+                installation_id: id,
+                onback: back_handler_for_mgmt,
+                installations: installations.clone()
+            }
         }
     };
 
@@ -3833,7 +2173,7 @@ let complete_css = format!("{}\n{}\n{}\n{}\n{}\n{}\n{}",
                 on_tab_change: tab_change_handler,
                 on_launch: launch_handler,
                 on_back: back_handler,
-                on_install: None, // Implement install handler based on your needs
+                on_install: None, // You can implement this based on your needs
                 
                 // Main content goes here
                 {main_content}
