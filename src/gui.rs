@@ -783,7 +783,7 @@ fn HomePage(
             "Update available for {installation.name}!"
             button {
                 class: "update-button",
-                onclick: move |_| {
+                onclick: move |_: MouseEvent| {
                     current_installation_id.set(Some(installation.id.clone()));
                 },
                 "Update Now"
@@ -825,7 +825,7 @@ fn HomePage(
                     // Create new installation card
                     div { 
                         class: "installation-card new-installation",
-                        onclick: move |_| show_creation_dialog.set(true),
+                        onclick: move |_: MouseEvent| show_creation_dialog.set(true),
                         
                         div { class: "installation-card-content", 
                             div { class: "installation-card-icon", "+" }
@@ -845,7 +845,7 @@ fn HomePage(
                     
                     button {
                         class: "main-install-button",
-                        onclick: move |_| {
+                        onclick: move |_: MouseEvent| {
                             show_creation_dialog.set(true);
                         },
                         "Get Started"
