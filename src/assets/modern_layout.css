@@ -1,0 +1,344 @@
+/* Modern Layout System - Floating Headers and Footer */
+
+/* Reset main container for new layout */
+.main-container {
+    height: 100vh;
+    overflow: hidden; /* Prevent main container scroll */
+    padding: 0;
+    margin: 0;
+    position: relative;
+}
+
+/* Logo - Always visible, top-left corner */
+.floating-logo {
+    position: fixed;
+    top: 20px;
+    left: 20px;
+    z-index: 1000;
+    cursor: pointer;
+    transition: transform 0.3s ease;
+}
+
+.floating-logo:hover {
+    transform: scale(1.1);
+}
+
+.floating-logo img {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+/* Installation Header - Only visible on installation pages */
+.installation-floating-header {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 999;
+    background: linear-gradient(145deg, rgba(40, 40, 50, 0.95), rgba(25, 25, 35, 0.98));
+    border-radius: 16px;
+    padding: 16px 24px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    min-width: 500px;
+}
+
+.installation-header-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.installation-header-title {
+    font-family: "HEADER_FONT";
+    font-size: 1.2rem;
+    margin: 0;
+    color: #ffffff;
+    letter-spacing: 0.5px;
+}
+
+.installation-header-subtitle {
+    font-size: 0.85rem;
+    color: rgba(255, 255, 255, 0.7);
+    margin: 0;
+}
+
+.installation-header-tabs {
+    display: flex;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 12px;
+    padding: 4px;
+    gap: 2px;
+}
+
+.installation-tab {
+    background: transparent;
+    border: none;
+    color: rgba(255, 255, 255, 0.7);
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-family: "REGULAR_FONT";
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.installation-tab:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.installation-tab.active {
+    background: linear-gradient(135deg, #4CAF50, #2E7D32);
+    color: white;
+    box-shadow: 0 2px 8px rgba(76, 175, 80, 0.3);
+}
+
+/* Launch Button - Only visible on installation pages */
+.floating-launch-button {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 1000;
+    background: linear-gradient(135deg, #FFD700, #FFA500);
+    border: 2px solid rgba(255, 215, 0, 0.6);
+    border-radius: 14px;
+    padding: 12px 24px;
+    font-family: "HEADER_FONT";
+    font-size: 1.1rem;
+    color: #1a1a1a;
+    cursor: pointer;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-weight: 700;
+    box-shadow: 0 4px 16px rgba(255, 215, 0, 0.4);
+    transition: all 0.3s ease;
+    animation: golden-glow 3s ease-in-out infinite alternate;
+}
+
+.floating-launch-button:hover:not(:disabled) {
+    transform: translateY(-2px) scale(1.05);
+    box-shadow: 0 8px 24px rgba(255, 215, 0, 0.6);
+}
+
+.floating-launch-button:disabled {
+    background: linear-gradient(135deg, #404040, #2a2a2a);
+    border-color: rgba(100, 100, 100, 0.4);
+    color: #888888;
+    cursor: not-allowed;
+    animation: none;
+    opacity: 0.7;
+}
+
+/* Content Area - Scrollable region */
+.page-content-area {
+    position: fixed;
+    top: 100px; /* Space for headers */
+    left: 0;
+    right: 0;
+    bottom: 120px; /* Space for footer */
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 20px;
+    box-sizing: border-box;
+}
+
+/* Home page content area (no top headers) */
+.page-content-area.home-page {
+    top: 20px; /* Less space when no installation headers */
+}
+
+/* Floating Footer - Always visible */
+.floating-footer {
+    position: fixed;
+    bottom: 20px;
+    left: 20px;
+    right: 20px;
+    z-index: 999;
+    background: linear-gradient(145deg, rgba(30, 30, 40, 0.95), rgba(20, 20, 30, 0.98));
+    border-radius: 16px;
+    padding: 16px 24px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-height: 60px;
+}
+
+/* Footer content for home page */
+.footer-home-content {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    gap: 40px;
+}
+
+.footer-discord-link {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: #5865F2;
+    color: white;
+    padding: 8px 16px;
+    border-radius: 8px;
+    text-decoration: none;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(88, 101, 242, 0.3);
+}
+
+.footer-discord-link:hover {
+    background: #4752c4;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(88, 101, 242, 0.4);
+    text-decoration: none;
+}
+
+.footer-copyright {
+    font-size: 0.8rem;
+    color: rgba(255, 255, 255, 0.5);
+}
+
+/* Footer content for installation pages */
+.footer-installation-content {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+}
+
+.footer-back-button {
+    background: linear-gradient(135deg, rgba(100, 100, 110, 0.8), rgba(80, 80, 90, 0.9));
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: white;
+    border-radius: 10px;
+    padding: 10px 16px;
+    font-family: "REGULAR_FONT";
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.footer-back-button:hover {
+    background: linear-gradient(135deg, rgba(120, 120, 130, 0.9), rgba(100, 100, 110, 1));
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.footer-installation-info {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+}
+
+.footer-installation-name {
+    font-family: "HEADER_FONT";
+    font-size: 1.1rem;
+    color: #ffffff;
+    margin: 0;
+}
+
+.footer-installation-details {
+    display: flex;
+    gap: 12px;
+    font-size: 0.85rem;
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.footer-install-button {
+    background: linear-gradient(135deg, #4CAF50, #2E7D32);
+    border: none;
+    color: white;
+    border-radius: 10px;
+    padding: 12px 24px;
+    font-family: "HEADER_FONT";
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    box-shadow: 0 2px 8px rgba(76, 175, 80, 0.3);
+}
+
+.footer-install-button:hover:not(:disabled) {
+    background: linear-gradient(135deg, #66BB6A, #4CAF50);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(76, 175, 80, 0.4);
+}
+
+.footer-install-button:disabled {
+    background: linear-gradient(135deg, #6a6a6a, #4a4a4a);
+    color: #cccccc;
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+.footer-install-button.update-button {
+    background: linear-gradient(135deg, #FF9800, #F57C00);
+    box-shadow: 0 2px 8px rgba(255, 152, 0, 0.3);
+}
+
+.footer-install-button.update-button:hover:not(:disabled) {
+    background: linear-gradient(135deg, #FFB74D, #FF9800);
+    box-shadow: 0 4px 12px rgba(255, 152, 0, 0.4);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .installation-floating-header {
+        min-width: auto;
+        max-width: calc(100vw - 160px); /* Account for logo and launch button */
+        flex-direction: column;
+        gap: 12px;
+        padding: 12px 16px;
+    }
+    
+    .installation-header-tabs {
+        width: 100%;
+        justify-content: center;
+    }
+    
+    .floating-footer {
+        left: 10px;
+        right: 10px;
+        bottom: 10px;
+        padding: 12px 16px;
+    }
+    
+    .footer-installation-content {
+        flex-direction: column;
+        gap: 12px;
+    }
+    
+    .footer-home-content {
+        flex-direction: column;
+        gap: 20px;
+    }
+    
+    .page-content-area {
+        top: 140px; /* More space on mobile for stacked headers */
+        bottom: 140px; /* More space for larger footer */
+        padding: 15px;
+    }
+    
+    .page-content-area.home-page {
+        top: 20px;
+        bottom: 100px;
+    }
+}
