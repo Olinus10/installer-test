@@ -4,10 +4,11 @@
     border-radius: 10px;
     margin-bottom: 15px;
     border-left: 3px solid rgba(7, 60, 23, 0.8);
-    overflow: visible; /* Change from hidden to visible */
+    overflow: hidden; /* Keep hidden to maintain proper boundaries */
     transition: all 0.3s ease;
     box-shadow: 0 3px 8px rgba(0, 0, 0, 0.2);
 }
+
 
 .feature-category:hover {
     box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
@@ -139,14 +140,14 @@
 
 /* Category content animation */
 .category-content {
-    overflow: visible; /* Change from hidden to visible */
+    overflow: hidden;
     max-height: 0;
     transition: max-height 0.5s ease;
 }
 
 .category-content.expanded {
-    max-height: none; /* Remove height constraint when expanded */
-    overflow: visible; /* Ensure content is fully visible */
+    max-height: 6000px; /* Large finite height instead of none */
+    overflow: hidden; /* Keep hidden to prevent overlap with other categories */
 }
 
 /* Main features section with expandable wrapper */
