@@ -1577,7 +1577,7 @@ pub fn InstallationManagementPage(
                             
                     // Main content area based on active tab
                     div { class: "installation-main-content",
-                        match *active_tab.read() {
+                        match active_tab.read().as_str() {
                             "features" => {
                                 rsx! {
                                     FeaturesTab {
