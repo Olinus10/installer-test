@@ -4,7 +4,7 @@
     border-radius: 10px;
     margin-bottom: 15px;
     border-left: 3px solid rgba(7, 60, 23, 0.8);
-    overflow: hidden;
+    overflow: visible; /* Change from hidden to visible */
     transition: all 0.3s ease;
     box-shadow: 0 3px 8px rgba(0, 0, 0, 0.2);
 }
@@ -139,13 +139,14 @@
 
 /* Category content animation */
 .category-content {
-    overflow: hidden;
+    overflow: visible; /* Change from hidden to visible */
     max-height: 0;
     transition: max-height 0.5s ease;
 }
 
 .category-content.expanded {
-    max-height: 4000px;
+    max-height: none; /* Remove height constraint when expanded */
+    overflow: visible; /* Ensure content is fully visible */
 }
 
 /* Main features section with expandable wrapper */
