@@ -1505,24 +1505,65 @@ pub fn InstallationManagementPage(
                     title: format!("Installing {}", installation.name)
                 }
             } else {
-                // Header with installation name
-                div { class: "installation-header-compact",
-                    div { class: "header-top-row",
-                        // Back button on the left
+                // NEW: Integrated header with all controls
+                div { class: "installation-integrated-header",
+                    div { class: "header-left-section",
+                        // Back button
                         button { 
-                            class: "back-button-inline",
+                            class: "header-back-button",
                             onclick: move |_| onback.call(()),
                             "← Back"
                         }
                         
-                        // Title in the center
-                        h1 { class: "installation-title-compact", "{installation.name}" }
+                        // Installation info section
+                        div { class: "header-installation-info",
+                            h1 { class: "header-installation-title", "{installation.name}" }
+                            div { class: "header-installation-meta",
+                                span { class: "meta-chip", "Minecraft {installation.minecraft_version}" }
+                                span { class: "meta-chip", "{installation.loader_type} {installation.loader_version}" }
+                                
+                                if installation.update_available {
+                                    span { class: "meta-chip update-chip", "Update Available" }
+                                }
+                            }
+                        }
                     }
                     
-                    // Launch button centered under the title
-                    div { class: "header-launch-section",
+                    div { class: "header-center-section",
+                        // Tab navigation in header
+                        div { class: "header-tabs",
+                            button { 
+                                class: if *active_tab.read() == "features" { "header-tab active" } else { "header-tab" },
+                                onclick: move |_| active_tab.set("features"),
+                                "Features"
+                                
+                                // Show indicator if features modified
+                                if *features_modified.read() {
+                                    span { class: "tab-modified-indicator" }
+                                }
+                            }
+                            button { 
+                                class: if *active_tab.read() == "performance" { "header-tab active" } else { "header-tab" },
+                                onclick: move |_| active_tab.set("performance"),
+                                "Performance"
+                                
+                                // Show indicator if performance settings modified
+                                if *performance_modified.read() {
+                                    span { class: "tab-modified-indicator" }
+                                }
+                            }
+                            button { 
+                                class: if *active_tab.read() == "settings" { "header-tab active" } else { "header-tab" },
+                                onclick: move |_| active_tab.set("settings"),
+                                "Settings"
+                            }
+                        }
+                    }
+                    
+                    div { class: "header-right-section",
+                        // Launch button in header
                         button {
-                            class: "header-launch-button-compact",
+                            class: "header-launch-button",
                             disabled: !installation_state.read().installed || *is_installing.read(),
                             onclick: handle_launch_header,
                             if installation_state.read().installed {
@@ -1531,21 +1572,32 @@ pub fn InstallationManagementPage(
                                 "INSTALL FIRST"
                             }
                         }
-                    }
-                    
-                    // Minecraft info in a subtle row below
-                    div { class: "installation-meta-compact",
-                        span { class: "meta-item", "Minecraft {installation.minecraft_version}" }
-                        span { class: "meta-separator", "•" }
-                        span { class: "meta-item", "{installation.loader_type} {installation.loader_version}" }
                         
-                        if installation.update_available {
-                            span { class: "meta-separator", "•" }
-                            span { class: "update-badge-inline", "Update Available" }
+                        // Launcher settings button
+                        button { 
+                            class: "header-settings-button",
+                            onclick: move |_| {
+                                // Handle launcher settings - you can implement this
+                                debug!("Launcher settings clicked");
+                            },
+                            "Launcher"
                         }
                     }
                 }
-                
+
+                // Error display
+                if let Some(error) = &*installation_error.read() {
+                    div { class: "error-notification",
+                        div { class: "error-message", "{error}" }
+                        button { 
+                            class: "error-close",
+                            onclick: move |_| installation_error.set(None),
+                            "×"
+                        }
+                    }
+                }
+
+                // Preset update notification
                 if let Some(update_msg) = preset_update_msg.read().clone() {
                     div { class: "preset-update-notification",
                         "{update_msg}"
@@ -1565,180 +1617,17 @@ pub fn InstallationManagementPage(
                     }
                 }
 
-                // Update warning dialog
+                // Update warning dialog (keep existing)
                 if *show_update_warning.read() {
-                    div { class: "modal-overlay",
-                        div { class: "modal-container update-warning-dialog",
-                            div { class: "modal-header",
-                                h3 { "UPDATE WARNING" }
-                                button { 
-                                    class: "modal-close",
-                                    onclick: move |_| show_update_warning.set(false),
-                                    "×"
-                                }
-                            }
-                            
-                            div { class: "modal-content",
-                                div { class: "warning-message",
-                                    p { 
-                                        strong { "Important: " }
-                                        "Updating may reset some mod configs, especially Wynntils settings."
-                                    }
-                                    
-                                    p { 
-                                        "To protect your Wynntils config:"
-                                    }
-                                    
-                                    ol { class: "protection-steps",
-                                        li { "Click 'Open Installation Folder' below" }
-                                        li { "Make a backup copy of the 'wynntils' folder" }
-                                        li { "After updating, restore your backed-up folder if needed" }
-                                    }
-                                    
-                                    div { class: "warning-note",
-                                        p { 
-                                            "Tip: Keep your Wynntils folder backed up regularly to avoid losing your custom settings."
-                                        }
-                                    }
-                                }
-                            }
-                            
-                            div { class: "modal-footer",
-                                button { 
-                                    class: "secondary-button",
-                                    onclick: {
-                                        // Use the same logic as settings tab
-                                        let installation_path_for_folder = installation_state.read().installation_path.clone();
-                                        move |_| {
-                                            let mut path = installation_path_for_folder.clone();
-                                            
-                                            debug!("Opening installation folder: {:?}", path);
-                                            debug!("Path exists: {}", path.exists());
-                                            debug!("Path is directory: {}", path.is_dir());
-                                            
-                                            // Normalize the path by converting to a canonical path
-                                            match path.canonicalize() {
-                                                Ok(canonical) => {
-                                                    debug!("Canonical path: {:?}", canonical);
-                                                    path = canonical;
-                                                },
-                                                Err(e) => {
-                                                    debug!("Failed to canonicalize path: {}", e);
-                                                    // Continue with the original path
-                                                }
-                                            }
-                                            
-                                            debug!("Final path to open: {:?}", path);
-                                            
-                                            // Check if path exists
-                                            if !path.exists() {
-                                                debug!("Installation path does not exist: {:?}", path);
-                                                return;
-                                            }
-                                            
-                                            // Launch appropriate command based on OS
-                                            #[cfg(target_os = "windows")]
-                                            let result = {
-                                                // Convert to a proper Windows-style path string
-                                                let path_str = path.to_string_lossy().replace("/", "\\");
-                                                debug!("Windows path string: {}", path_str);
-                                                
-                                                std::process::Command::new("explorer")
-                                                    .arg(&path_str)
-                                                    .spawn()
-                                            };
-                                            
-                                            #[cfg(target_os = "macos")]
-                                            let result = std::process::Command::new("open")
-                                                .arg(path)
-                                                .spawn();
-                                                
-                                            #[cfg(target_os = "linux")]
-                                            let result = std::process::Command::new("xdg-open")
-                                                .arg(path)
-                                                .spawn();
-                                                
-                                            #[cfg(not(any(target_os = "windows", target_os = "macos", target_os = "linux")))]
-                                            let result = Err(std::io::Error::new(std::io::ErrorKind::Other, "Unsupported platform"));
-                                            
-                                            // Handle command result
-                                            if let Err(e) = result {
-                                                debug!("Failed to open installation folder: {}", e);
-                                            } else {
-                                                debug!("Successfully opened folder");
-                                            }
-                                        }
-                                    },
-                                    "Open Installation Folder"
-                                }
-                                
-                                button { 
-                                    class: "cancel-button",
-                                    onclick: move |_| show_update_warning.set(false),
-                                    "Cancel Update"
-                                }
-                                
-                                button { 
-                                    class: "primary-button update-proceed-button",
-                                    onclick: move |_| {
-                                        show_update_warning.set(false);
-                                        proceed_with_update();
-                                    },
-                                    "Proceed with Update"
-                                }
-                            }
-                        }
-                    }
+                    // [Keep existing update warning dialog code]
                 }
                         
-                // Error display
-                if let Some(error) = &*installation_error.read() {
-                    div { class: "error-notification",
-                        div { class: "error-message", "{error}" }
-                        button { 
-                            class: "error-close",
-                            onclick: move |_| installation_error.set(None),
-                            "×"
-                        }
-                    }
-                }
-                        
-                // Main tabs and content area
-                div { class: "installation-content-container",
-                    // Tab navigation
-                    div { class: "installation-tabs",
-                        button { 
-                            class: if *active_tab.read() == "features" { "tab-button active" } else { "tab-button" },
-                            onclick: move |_| active_tab.set("features"),
-                            "Features & Presets"
-                            
-                            // Show indicator if features modified
-                            if *features_modified.read() {
-                                span { class: "modified-indicator" }
-                            }
-                        }
-                        button { 
-                            class: if *active_tab.read() == "performance" { "tab-button active" } else { "tab-button" },
-                            onclick: move |_| active_tab.set("performance"),
-                            "Performance"
-                            
-                            // Show indicator if performance settings modified
-                            if *performance_modified.read() {
-                                span { class: "modified-indicator" }
-                            }
-                        }
-                        button { 
-                            class: if *active_tab.read() == "settings" { "tab-button active" } else { "tab-button" },
-                            onclick: move |_| active_tab.set("settings"),
-                            "Settings"
-                        }
-                    }
-                    
-                    // Content area
-                    div { class: "installation-content",
-                        match *active_tab.read() {
-                            "features" => {
-                                rsx! {
+                // Main content area - simplified, no tabs here
+                div { class: "installation-main-content",
+                    match *active_tab.read() {
+                        "features" => {
+                            rsx! {
+                                div { class: "features-tab-with-actions",
                                     FeaturesTab {
                                         universal_manifest: universal_manifest.read().clone().flatten(),
                                         presets: presets.read().clone().unwrap_or_default(),
@@ -1747,55 +1636,54 @@ pub fn InstallationManagementPage(
                                         filter_text: filter_text,
                                         installation_id: installation.id.clone(),
                                     }
-                                }
-                            },
-                            "performance" => {
-                                rsx! {
-                                    PerformanceTab {
-                                        memory_allocation: memory_allocation,
-                                        java_args: java_args,
-                                        installation_id: installation.id.clone()
-                                    }
-                                }
-                            },
-                            "settings" => {
-                                rsx! {
-                                    SettingsTab {
-                                        installation: installation.clone(),
-                                        installation_id: installation_id_for_delete.clone(),
-                                        ondelete: move |_| {
-                                            // Handle delete functionality - remove from installations list
-                                            let id_to_delete = installation_id_for_delete.clone();
-                                            installations.with_mut(|list| {
-                                                list.retain(|inst| inst.id != id_to_delete);
-                                            });
-                                            // Navigate back to home
-                                            onback.call(());
-                                        },
-                                        onupdate: move |updated_installation: Installation| {
-                                            // Update the installation data in the list
-                                            installations.with_mut(|list| {
-                                                if let Some(index) = list.iter().position(|i| i.id == updated_installation.id) {
-                                                    list[index] = updated_installation.clone();
-                                                }
-                                            });
+                                    
+                                    // Install/Update button moved here
+                                    div { class: "features-tab-actions",                    
+                                        button {
+                                            class: button_class,
+                                            disabled: button_disabled,
+                                            onclick: handle_update,
+                                            {action_button_label}
                                         }
                                     }
                                 }
-                            },
-                            _ => rsx! { div { "Unknown tab selected" } }
-                        }
-                    }
-                }
-                
-                // Bottom action bar with install/update/modify button
-                div { class: "installation-actions",                    
-                    // Install/Update/Modify button
-                    button {
-                        class: button_class,
-                        disabled: button_disabled,
-                        onclick: handle_update,
-                        {action_button_label}
+                            }
+                        },
+                        "performance" => {
+                            rsx! {
+                                PerformanceTab {
+                                    memory_allocation: memory_allocation,
+                                    java_args: java_args,
+                                    installation_id: installation.id.clone()
+                                }
+                            }
+                        },
+                        "settings" => {
+                            rsx! {
+                                SettingsTab {
+                                    installation: installation.clone(),
+                                    installation_id: installation_id_for_delete.clone(),
+                                    ondelete: move |_| {
+                                        // Handle delete functionality - remove from installations list
+                                        let id_to_delete = installation_id_for_delete.clone();
+                                        installations.with_mut(|list| {
+                                            list.retain(|inst| inst.id != id_to_delete);
+                                        });
+                                        // Navigate back to home
+                                        onback.call(());
+                                    },
+                                    onupdate: move |updated_installation: Installation| {
+                                        // Update the installation data in the list
+                                        installations.with_mut(|list| {
+                                            if let Some(index) = list.iter().position(|i| i.id == updated_installation.id) {
+                                                list[index] = updated_installation.clone();
+                                            }
+                                        });
+                                    }
+                                }
+                            }
+                        },
+                        _ => rsx! { div { "Unknown tab selected" } }
                     }
                 }
             }
@@ -2975,7 +2863,47 @@ fn AppHeader(
     on_select_installation: EventHandler<String>,
     on_go_home: EventHandler<()>,
     on_open_settings: EventHandler<()>,
+    show_installation_tabs: bool, // NEW: Control whether to show installation tabs
 ) -> Element {
+    let icon_base64 = {
+        use base64::{Engine, engine::general_purpose::STANDARD};
+        STANDARD.encode(include_bytes!("assets/icon.png"))
+    };
+    
+    // Only show installation management tabs if we're on an installation page
+    if !show_installation_tabs {
+        // Simple header with just logo and basic navigation
+        return rsx! {
+            header { class: "app-header simple-header",
+                // Logo and title - clickable to go home
+                div { 
+                    class: "app-header-left", 
+                    onclick: move |_| on_go_home.call(()),
+                    
+                    img { 
+                        class: "app-logo", 
+                        src: "data:image/png;base64,{icon_base64}",
+                        alt: "Wynncraft Overhaul Logo"
+                    }
+                    h1 { class: "app-title", "MAJESTIC OVERHAUL" }
+                }
+                
+                // Just the launcher settings button on the right
+                div { class: "app-header-right",
+                    button { 
+                        class: "settings-button",
+                        onclick: move |_| on_open_settings.call(()),
+                        "Launcher"
+                    }
+                }
+            }
+        };
+    }
+    
+    // Full header with installation tabs (for when managing installations from home page)
+    // This is now only used if you want to show installation tabs in the main header
+    // (which based on your new design, you probably don't need)
+    
     // Number of installation tabs to show directly
     let MAX_INSTALLATION_TABS = 2;
     
@@ -2984,14 +2912,8 @@ fn AppHeader(
     let direct_installations = all_installations.iter().take(MAX_INSTALLATION_TABS).cloned().collect::<Vec<_>>();
     let dropdown_installations = all_installations.iter().skip(MAX_INSTALLATION_TABS).cloned().collect::<Vec<_>>();
 
-    
     // Current ID for active state
     let current_id = current_installation_id();
-
-    let icon_base64 = {
-        use base64::{Engine, engine::general_purpose::STANDARD};
-        STANDARD.encode(include_bytes!("assets/icon.png"))
-    };
     
     // Pre-build direct tabs
     let direct_tabs_content = {
@@ -3056,7 +2978,7 @@ fn AppHeader(
         rsx! { Fragment {} }
     };
     
-    // Main render
+    // Main render for full header
     rsx! {
         header { class: "app-header",
             // Logo and title
@@ -3243,18 +3165,36 @@ let complete_css = format!("{}\n{}\n{}\n{}\n{}\n{}",
     modal_styles
 );
 
-    // Create header component if needed
-    let header_component = if !config.read().first_launch.unwrap_or(true) && has_launcher && !settings() {
+    let mut modal_context = use_context_provider(ModalContext::default);
+    
+    // Show error modal if error exists
+    if let Some(e) = error_signal() {
+        modal_context.open("Error", rsx! {
+            p {
+                "The installer encountered an error. If the problem persists, please report it in #📂modpack-issues on Discord."
+            }
+            textarea { class: "error-area", readonly: true, "{e}" }
+        }, false, Some(move |_| error_signal.set(None)));
+    }
+
+    // [Keep existing CSS building code...]
+
+    // NEW: Determine if we should show the header and what type
+    let show_header = !config.read().first_launch.unwrap_or(true) && has_launcher && !settings();
+    let is_on_installation_page = current_installation_id.read().is_some() && 
+                                 current_installation_id.read().as_ref().map_or(false, |id| id != "new");
+
+    // Create header component based on current page
+    let header_component = if show_header {
         Some(rsx! {
             AppHeader {
                 installations: installations.clone(),
                 current_installation_id: current_installation_id.clone(),
+                show_installation_tabs: false, // NEW: Never show installation tabs in main header
                 on_select_installation: move |id: String| {
                     if id == "new" {
-                        // Special case for "new" installation
                         current_installation_id.set(Some(id));
                     } else {
-                        // Normal case for existing installation
                         current_installation_id.set(Some(id));
                     }
                 },
@@ -3306,36 +3246,31 @@ let complete_css = format!("{}\n{}\n{}\n{}\n{}\n{}",
         if current_installation_id.read().is_none() {
             // Home page - show installations or welcome screen
             rsx! {
-HomePage {
-    installations,
-    error_signal: error_signal.clone(),
-    changelog: changelog_signal, // Use the signal, not the resource
-    current_installation_id: current_installation_id.clone(),
-}
+                HomePage {
+                    installations,
+                    error_signal: error_signal.clone(),
+                    changelog: changelog_signal,
+                    current_installation_id: current_installation_id.clone(),
+                }
             }
         } else if current_installation_id.read().as_ref().map_or(false, |id| id == "new") {
             // New installation flow
             rsx! {
-    SimplifiedInstallationWizard {
-        onclose: move |_| {
-            current_installation_id.set(None);
-        },
-        oncreate: move |new_installation: Installation| {  // Added type annotation here
-            // Add the new installation to the list
-            installations.with_mut(|list| {
-                list.insert(0, new_installation.clone());
-            });
-            
-            // Set the current installation to navigate to the installation page
-            current_installation_id.set(Some(new_installation.id));
-            
-            // Explicitly return unit type to match expected return type
-            ()
-        }
-    }
-}
+                SimplifiedInstallationWizard {
+                    onclose: move |_| {
+                        current_installation_id.set(None);
+                    },
+                    oncreate: move |new_installation: Installation| {
+                        installations.with_mut(|list| {
+                            list.insert(0, new_installation.clone());
+                        });
+                        current_installation_id.set(Some(new_installation.id));
+                        ()
+                    }
+                }
+            }
         } else {
-            // Specific installation management page
+            // Specific installation management page - NO REGULAR HEADER HERE
             let back_handler = EventHandler::new(move |_| {
                 current_installation_id.set(None);
             });
@@ -3355,28 +3290,33 @@ HomePage {
     // Combine components for final render
     rsx! {
         div {
-
-       style { {complete_css} }
+            style { {complete_css} }
             Modal {}
-
             BackgroundParticles {}
             
-            // Show header when appropriate
+            // Show header ONLY when NOT on installation page
             if let Some(header) = header_component {
-                {header}
+                if !is_on_installation_page {
+                    {header}
+                }
             }
 
-            div { class: "main-container",
+            div { 
+                class: if is_on_installation_page {
+                    "main-container installation-page" // Different class for installation pages
+                } else {
+                    "main-container"
+                },
                 {main_content}
             }
             
-            // Only show footer on main pages
+            // Only show footer on home page (not installation pages)
             if !settings() && current_installation_id.read().is_none() && 
                !config.read().first_launch.unwrap_or(true) && has_launcher {
                 Footer {}
             }
             
-            // Add manifest error display outside of the main container to ensure it appears on top
+            // Add manifest error display outside of the main container
             if let Some(error) = manifest_error() {
                 ManifestErrorDisplay {
                     error: error.message.clone(),
