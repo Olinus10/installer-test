@@ -4199,3 +4199,46 @@ a:hover {
             0 0 40px rgba(255, 215, 0, 0.5);
     }
 }
+
+/* Override old header and footer styles */
+.app-header {
+    display: none !important; /* Hide old header */
+}
+
+.app-footer {
+    display: none !important; /* Hide old footer */
+}
+
+.installation-page-header {
+    display: none !important; /* Hide old installation header */
+}
+
+.main-container {
+    height: 100vh !important;
+    overflow: hidden !important;
+    padding: 0 !important;
+    margin: 0 !important;
+}
+
+.main-container.installation-page {
+    height: 100vh !important;
+    overflow: hidden !important;
+    padding: 0 !important;
+    margin: 0 !important;
+}
+
+// 5. Optional: Add smooth transitions between tabs
+.page-content-area > * {
+    animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
