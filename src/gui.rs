@@ -1342,12 +1342,12 @@ pub fn InstallationManagementPage(
         let mut installation_error_clone = installation_error.clone();
         let installation_id = installation_id_for_launch.clone();
         
-        move |_| {
-            let mut installation_error_clone = installation_error_clone.clone();
-            let installation_id = installation_id.clone();
-            
-            // Create a channel to communicate back to the main thread
-            let (error_tx, error_rx) = std::sync::mpsc::channel::<String>();
+move |_: ()| {
+    let mut installation_error_clone = installation_error_clone.clone();
+    let installation_id = installation_id.clone();
+    
+    // Create a channel to communicate back to the main thread
+    let (error_tx, error_rx) = std::sync::mpsc::channel::<String>();
             
             // Launch the game
             std::thread::spawn(move || {
