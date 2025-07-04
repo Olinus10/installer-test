@@ -426,3 +426,30 @@
         padding: 15px;
     }
 }
+
+/* Simple scroll indicator that shows for a few seconds */
+.scroll-indicator {
+    position: fixed;
+    bottom: 100px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 998;
+    background: rgba(0, 0, 0, 0.7);
+    color: white;
+    border-radius: 20px;
+    padding: 8px 16px;
+    font-family: "REGULAR_FONT";
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    opacity: 1;
+    animation: fade-out-after-delay 8s ease forwards;
+    pointer-events: none;
+    backdrop-filter: blur(10px);
+}
+
+@keyframes fade-out-after-delay {
+    0%, 75% { opacity: 1; }
+    100% { opacity: 0; }
+}
