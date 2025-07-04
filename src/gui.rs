@@ -852,7 +852,7 @@ fn ModernAppLayout(
 fn HomePage(
     installations: Signal<Vec<Installation>>,
     error_signal: Signal<Option<String>>,
-    changelog: Signal<Option<ChangelogData>>, // Keep as Signal
+    changelog: Signal<Option<ChangelogData>>,
     current_installation_id: Signal<Option<String>>,
 ) -> Element {
     // State for the installation creation dialog
@@ -863,113 +863,137 @@ fn HomePage(
     let latest_installation = installations().first().cloned();
     
     rsx! {
-        div { class: "home-container",
-            // Error notification if any
-            if let Some(error) = error_signal() {
-                ErrorNotification {
-                    message: error,
-                    on_close: move |_| {
-                        error_signal.set(None);
+        ModernAppLayout {
+            is_home_page: true,
+            current_installation: None,
+            active_tab: use_signal(|| "home".to_string()), // Dummy tab signal for home page
+            has_changes: false,
+            is_installing: false,
+            install_button_text: "".to_string(), // Not used on home page
+            install_button_class: "".to_string(), // Not used on home page
+            install_button_disabled: true, // Not used on home page
+            on_go_home: EventHandler::new(move |_: ()| {
+                // Already on home, do nothing
+            }),
+            on_tab_change: EventHandler::new(move |_tab: String| {
+                // No tab changes on home page
+            }),
+            on_launch: None, // No launch button on home page
+            on_back: None, // No back button on home page
+            on_install: None, // No install button on home page
+            
+            // Home page content
+            div { class: "home-container",
+                // Error notification if any
+                if let Some(error) = error_signal() {
+                    ErrorNotification {
+                        message: error,
+                        on_close: move |_| {
+                            error_signal.set(None);
+                        }
                     }
                 }
-            }
 
-             if let Some(installation) = latest_installation {
-    if installation.update_available {
-        div { class: "update-notification",
-            "Update available for {installation.name}!"
-            button {
-                class: "update-button",
-                onclick: move |_: MouseEvent| {
-                    current_installation_id.set(Some(installation.id.clone()));
-                },
-                "Update Now"
-            }
-        }
-    }
-}
-            
-            if has_installations {
-                // Regular home page with installations
-
-                
-                // Statistics display
-                StatisticsDisplay {}
-                
-                // Section divider for installations
-                div { class: "section-divider with-title", 
-                    span { class: "divider-title", "YOUR INSTALLATIONS" }
+                // Update notification if available
+                if let Some(installation) = latest_installation {
+                    if installation.update_available {
+                        div { class: "update-notification",
+                            "Update available for {installation.name}!"
+                            button {
+                                class: "update-button",
+                                onclick: move |_| {
+                                    current_installation_id.set(Some(installation.id.clone()));
+                                },
+                                "Update Now"
+                            }
+                        }
+                    }
                 }
                 
-                // Grid of installation cards
-                div { class: "installations-grid",
-                    // Existing installation cards
-                    for installation in installations() {
-                        {
-                            let installation_id = installation.id.clone();
-                            rsx! {
-                                InstallationCard { 
-                                    installation: installation.clone(),
-                                    onclick: move |_| {
-                                        debug!("Clicked installation: {}", installation_id);
-                                        current_installation_id.set(Some(installation_id.clone()));
+                if has_installations {
+                    // Regular home page with installations
+                    
+                    // Statistics display
+                    StatisticsDisplay {}
+                    
+                    // Section divider for installations
+                    div { class: "section-divider with-title", 
+                        span { class: "divider-title", "YOUR INSTALLATIONS" }
+                    }
+                    
+                    // Grid of installation cards
+                    div { class: "installations-grid",
+                        // Existing installation cards
+                        for installation in installations() {
+                            {
+                                let installation_id = installation.id.clone();
+                                rsx! {
+                                    InstallationCard { 
+                                        installation: installation.clone(),
+                                        onclick: move |_| {
+                                            debug!("Clicked installation: {}", installation_id);
+                                            current_installation_id.set(Some(installation_id.clone()));
+                                        }
                                     }
                                 }
                             }
                         }
-                    }
-                    
-                    // Create new installation card
-                    div { 
-                        class: "installation-card new-installation",
-                        onclick: move |_: MouseEvent| show_creation_dialog.set(true),
                         
-                        div { class: "installation-card-content", 
-                            div { class: "installation-card-icon", "+" }
-                            h3 { "Create New Installation" }
-                            p { "Set up a new Wynncraft experience" }
+                        // Create new installation card
+                        div { 
+                            class: "installation-card new-installation",
+                            onclick: move |_| show_creation_dialog.set(true),
+                            
+                            div { class: "installation-card-content", 
+                                div { class: "installation-card-icon", "+" }
+                                h3 { "Create New Installation" }
+                                p { "Set up a new Wynncraft experience" }
+                            }
+                        }
+                    }
+                } else {
+                    // First-time user experience
+                    div { class: "welcome-container first-time",
+                        h1 { "Welcome to the MAJESTIC OVERHAUL" }
+                        p { "Enhance your Wynncraft experience with optimized performance and improved visuals." }
+                        
+                        // Statistics for first-time users too
+                        StatisticsDisplay {}
+                        
+                        button {
+                            class: "main-install-button",
+                            onclick: move |_| {
+                                show_creation_dialog.set(true);
+                            },
+                            "Get Started"
                         }
                     }
                 }
-            } else {
-                // First-time user experience
-                div { class: "welcome-container first-time",
-                    h1 { "Welcome to the MAJESTIC OVERHAUL" }
-                    p { "Enhance your Wynncraft experience with optimized performance and improved visuals." }
-                    
-                    // Statistics for first-time users too
-                    StatisticsDisplay {}
-                    
-                    button {
-                        class: "main-install-button",
-onclick: move |_: MouseEvent| {
-    show_creation_dialog.set(true);
-},
-                        "Get Started"
-                    }
-                }
-            }
-            
-            // Recent changes section
-             ChangelogSection { changelog: changelog() } // Note the () to read the signal
-            
-            // Installation creation dialog
-            if *show_creation_dialog.read() {
-    SimplifiedInstallationWizard {
-        onclose: move |_| {
-            show_creation_dialog.set(false);
-        },
-        oncreate: move |new_installation: Installation| {  // Added type annotation here
-            // Add the new installation to the list
-            installations.with_mut(|list| {
-                list.insert(0, new_installation.clone());
-            });
-            
-            // Close the dialog
-            show_creation_dialog.set(false);
-            
-            // Set the current installation to navigate to the installation page
-            current_installation_id.set(Some(new_installation.id));
+                
+                // Recent changes section
+                ChangelogSection { changelog: changelog() }
+                
+                // Footer with Discord button and other info
+                Footer {}
+                
+                // Installation creation dialog
+                if *show_creation_dialog.read() {
+                    SimplifiedInstallationWizard {
+                        onclose: move |_| {
+                            show_creation_dialog.set(false);
+                        },
+                        oncreate: move |new_installation: Installation| {
+                            // Add the new installation to the list
+                            installations.with_mut(|list| {
+                                list.insert(0, new_installation.clone());
+                            });
+                            
+                            // Close the dialog
+                            show_creation_dialog.set(false);
+                            
+                            // Set the current installation to navigate to the installation page
+                            current_installation_id.set(Some(new_installation.id));
+                        }
                     }
                 }
             }
@@ -2204,7 +2228,7 @@ pub fn app() -> Element {
     let props = use_context::<AppProps>();
     let css = include_str!("assets/style.css");
     
-    // State management (keep your existing state)
+    // State management
     let config = use_signal(|| props.config);
     let mut settings = use_signal(|| false);
     let mut error_signal = use_signal(|| Option::<String>::None);
@@ -2213,28 +2237,116 @@ pub fn app() -> Element {
     // Installation handling
     let mut current_installation_id = use_signal(|| Option::<String>::None);
     let mut installations = use_signal(|| props.installations.clone());
-    let mut active_tab = use_signal(|| "features".to_string());
 
-    // ... keep your existing logic for launcher, manifest loading, etc. ...
+    // Get launcher configuration
+    let launcher = match get_launcher(&config.read().launcher) {
+        Ok(l) => Some(l),
+        Err(e) => {
+            error!("Failed to load launcher: {} - {}", config.read().launcher, e);
+            None
+        },
+    };
+    let has_launcher = launcher.is_some();
+
+    // Load universal manifest with error handling
+    let config_clone = config.clone();
+    let manifest_error_clone = manifest_error.clone();
+    let universal_manifest = use_resource(move || {
+        let config = config_clone.clone();
+        let mut manifest_error = manifest_error_clone.clone();
+        async move {
+            let launcher_str = config.read().launcher.clone();
+            let launcher = match get_launcher(&launcher_str) {
+                Ok(l) => Some(l),
+                Err(_) => None,
+            };
+            
+            let launcher_available = launcher.is_some();
+            if !launcher_available {
+                return None;
+            }
+            
+            debug!("Loading universal manifest...");
+            match crate::universal::load_universal_manifest(&CachedHttpClient::new(), None).await {
+                Ok(manifest) => {
+                    debug!("Successfully loaded universal manifest: {}", manifest.name);
+                    Some(manifest)
+                },
+                Err(e) => {
+                    error!("Failed to load universal manifest: {}", e);
+                    spawn(async move {
+                        manifest_error.set(Some(e.clone()));
+                    });
+                    None
+                }
+            }
+        }
+    });
+    
+    // Load changelog
+    let changelog = use_resource(move || async {
+        match crate::changelog::fetch_changelog("Olinus10/installer-test/master", &CachedHttpClient::new()).await {
+            Ok(changelog) => {
+                debug!("Successfully loaded changelog with {} entries", changelog.entries.len());
+                Some(changelog)
+            },
+            Err(e) => {
+                error!("Failed to load changelog: {}", e);
+                None
+            }
+        }
+    });
+
+    let mut changelog_signal = use_signal(|| None::<ChangelogData>);
+    use_effect(move || {
+        if let Some(Some(changelog_data)) = changelog.read().as_ref() {
+            changelog_signal.set(Some(changelog_data.clone()));
+        }
+    });
+
+    // Modal context for popups
+    let mut modal_context = use_context_provider(ModalContext::default);
+    
+    // Show error modal if error exists
+    if let Some(e) = error_signal() {
+        modal_context.open("Error", rsx! {
+            p {
+                "The installer encountered an error. If the problem persists, please report it in #📂modpack-issues on Discord."
+            }
+            textarea { class: "error-area", readonly: true, "{e}" }
+        }, false, Some(move |_| error_signal.set(None)));
+    }
+
+    // Build CSS content
+    let css_content = css
+        .replace("<BG_COLOR>", "#320625")
+        .replace("<BG_IMAGE>", "https://raw.githubusercontent.com/Wynncraft-Overhaul/installer/master/src/assets/background_installer.png")
+        .replace("<SECONDARY_FONT>", "\"HEADER_FONT\"")
+        .replace("<PRIMARY_FONT>", "\"REGULAR_FONT\"");
+    
+    // Add all the CSS files including the new modern layout
+    let category_styles = include_str!("assets/category-styles.css");
+    let feature_styles = include_str!("assets/expanded-feature-styles.css");
+    let preset_styles = include_str!("assets/preset-styles.css");
+    let search_styles = include_str!("assets/search-results-styles.css");
+    let modal_styles = include_str!("assets/modal-styles.css");
+    let modern_layout = include_str!("assets/modern_layout.css"); // NEW: Your modern layout CSS
+    
+    // Combine all CSS files
+    let complete_css = format!("{}\n{}\n{}\n{}\n{}\n{}\n{}", 
+        css_content, 
+        category_styles, 
+        feature_styles, 
+        preset_styles, 
+        search_styles,
+        modal_styles,
+        modern_layout
+    );
 
     // Determine current state
     let is_home_page = current_installation_id.read().is_none();
-    let current_installation = if let Some(id) = current_installation_id.read().as_ref() {
-        installations.read().iter().find(|inst| &inst.id == id).cloned()
-    } else {
-        None
-    };
 
-    // Event handlers
-    let go_home_handler = EventHandler::new(move |_: ()| {
-        current_installation_id.set(None);
-    });
-
-    let tab_change_handler = EventHandler::new(move |tab: String| {
-        active_tab.set(tab);
-    });
-
-    // Main content determination
+    // Determine main content
     let main_content = if settings() {
         rsx! {
             Settings {
@@ -2285,7 +2397,7 @@ pub fn app() -> Element {
             }
         }
     } else {
-        // Installation management content using ModernAppLayout
+        // Installation management content using the new layout
         let id = current_installation_id.read().as_ref().unwrap().clone();
         let back_handler_for_mgmt = EventHandler::new(move |_: ()| {
             current_installation_id.set(None);
@@ -2300,31 +2412,7 @@ pub fn app() -> Element {
         }
     };
 
-    // Include the new modern layout CSS with your existing CSS
-    let category_styles = include_str!("assets/category-styles.css");
-    let feature_styles = include_str!("assets/expanded-feature-styles.css");
-    let preset_styles = include_str!("assets/preset-styles.css");
-    let search_styles = include_str!("assets/search-results-styles.css");
-    let modal_styles = include_str!("assets/modal-styles.css");
-    let modern_layout = include_str!("assets/modern_layout.css"); // Your new CSS file
-    
-    let css_content = css
-        .replace("<BG_COLOR>", "#320625")
-        .replace("<BG_IMAGE>", "https://raw.githubusercontent.com/Wynncraft-Overhaul/installer/master/src/assets/background_installer.png")
-        .replace("<SECONDARY_FONT>", "\"HEADER_FONT\"")
-        .replace("<PRIMARY_FONT>", "\"REGULAR_FONT\"");
-
-    let complete_css = format!("{}\n{}\n{}\n{}\n{}\n{}\n{}", 
-        css_content, 
-        category_styles, 
-        feature_styles, 
-        preset_styles, 
-        search_styles,
-        modal_styles,
-        modern_layout
-    );
-
-    // Final render with new layout system
+    // Final render
     rsx! {
         div {
             style { {complete_css} }
@@ -2367,37 +2455,34 @@ pub fn app() -> Element {
                 } else {
                     initScrollDetection();
                 }
+                
+                // Re-initialize when content changes
+                const observer = new MutationObserver(function(mutations) {
+                    mutations.forEach(function(mutation) {
+                        if (mutation.type === 'childList') {
+                            setTimeout(initScrollDetection, 100);
+                        }
+                    });
+                });
+                
+                const mainContent = document.querySelector('.page-content-area');
+                if (mainContent) {
+                    observer.observe(mainContent, { childList: true, subtree: true });
+                }
                 "#
             }
             
             Modal {}
             BackgroundParticles {}
             
-            // Use ModernAppLayout for all content
+            // Show special screens (settings, launcher) without modern layout
             if settings() || config.read().first_launch.unwrap_or(true) || !has_launcher {
-                // Special screens without modern layout
                 div { class: "main-container",
                     {main_content}
                 }
             } else {
-                // Use the new modern layout system
-                ModernAppLayout {
-                    is_home_page: is_home_page,
-                    current_installation: current_installation.clone(),
-                    active_tab: active_tab,
-                    has_changes: false, // You'll need to pass this from your installation management
-                    is_installing: false, // You'll need to pass this from your installation management
-                    install_button_text: "INSTALL".to_string(), // Dynamic based on state
-                    install_button_class: "".to_string(), // Dynamic based on state
-                    install_button_disabled: false, // Dynamic based on state
-                    on_go_home: go_home_handler,
-                    on_tab_change: tab_change_handler,
-                    on_launch: None, // You'll need to pass this from installation management
-                    on_back: None, // You'll need to pass this from installation management
-                    on_install: None, // You'll need to pass this from installation management
-                    
-                    {main_content}
-                }
+                // Use the new modern layout for normal operation
+                {main_content}
             }
             
             // Keep manifest error display
