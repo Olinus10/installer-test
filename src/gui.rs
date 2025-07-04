@@ -524,6 +524,15 @@ fn FloatingLogo(onclick: EventHandler<()>) -> Element {
 }
 
 #[component]
+fn HomeFloatingHeader() -> Element {
+    rsx! {
+        div { class: "home-floating-header",
+            h1 { class: "home-header-title", "Majestic Overhaul" }
+        }
+    }
+}
+
+#[component]
 fn InstallationFloatingHeader(
     installation_name: String,
     minecraft_version: String,
@@ -577,6 +586,48 @@ fn FloatingLaunchButton(
                 "INSTALL FIRST"
             }
         }
+    }
+}
+
+#[component]
+fn FloatingBackButton(onclick: EventHandler<()>) -> Element {
+    rsx! {
+        button {
+            class: "floating-back-button",
+            onclick: move |_| onclick.call(()),
+            "←"
+        }
+    }
+}
+
+#[component]
+fn FloatingInstallButton(
+    button_text: String,
+    button_class: String,
+    disabled: bool,
+    onclick: EventHandler<()>,
+) -> Element {
+    rsx! {
+        button {
+            class: "floating-install-button {button_class}",
+            disabled: disabled,
+            onclick: move |_| onclick.call(()),
+            "{button_text}"
+        }
+    }
+}
+
+#[component]
+fn ScrollIndicator(visible: bool) -> Element {
+    if visible {
+        rsx! {
+            div { class: "scroll-indicator visible",
+                span { "Scroll down for more info" }
+                span { class: "scroll-indicator-arrow", "↓" }
+            }
+        }
+    } else {
+        rsx! { Fragment {} }
     }
 }
 
@@ -658,8 +709,8 @@ fn FloatingDiscordButton() -> Element {
             rel: "noopener noreferrer",
             
             svg {
-                width: "20",
-                height: "20",
+                width: "24",
+                height: "24",
                 view_box: "0 0 24 24",
                 fill: "currentColor",
                 
@@ -699,53 +750,40 @@ fn ModernAppLayout(
     on_launch: Option<EventHandler<()>>,
     on_back: Option<EventHandler<()>>,
     on_install: Option<EventHandler<()>>,
-    has_changes: bool,        // Add this parameter
-    is_installing: bool,      // Add this parameter
+    has_changes: bool,
+    is_installing: bool,
+    install_button_text: String,
+    install_button_class: String,
+    install_button_disabled: bool,
 ) -> Element {
+    // State for scroll indicator
+    let mut show_scroll_indicator = use_signal(|| false);
+    
+    // Effect to check if content is scrollable
+    use_effect(move || {
+        // This would need to be implemented with JavaScript to check scroll height
+        // For now, we'll show it by default and hide after user scrolls
+        show_scroll_indicator.set(true);
+        
+        // Auto-hide after 5 seconds
+        spawn(async move {
+            tokio::time::sleep(tokio::time::Duration::from_secs(5)).await;
+            show_scroll_indicator.set(false);
+        });
+    });
+    
     rsx! {
         div { class: "modern-app-layout",
-            // Always show floating logo (blue square)
+            // Always show floating logo
             FloatingLogo {
                 onclick: on_go_home
             }
             
-            // Top right buttons - Discord on home page, Launch on installation page
-            div { class: "top-right-buttons",
-                if is_home_page {
-                    // Discord button on home page (yellow position)
-                    a { 
-                        class: "floating-discord-button",
-                        href: "https://discord.gg/olinus-corner-778965021656743966",
-                        target: "_blank",
-                        rel: "noopener noreferrer",
-                        
-                        svg {
-                            width: "20",
-                            height: "20",
-                            view_box: "0 0 24 24",
-                            fill: "currentColor",
-                            
-                            path {
-                                d: "M19.54 0c1.356 0 2.46 1.104 2.46 2.472v21.528l-2.58-2.28-1.452-1.344-1.536-1.428.636 2.22h-13.608c-1.356 0-2.46-1.104-2.46-2.472v-16.224c0-1.368 1.104-2.472 2.46-2.472h16.08zm-4.632 15.672c2.652-.084 3.672-1.824 3.672-1.824 0-3.864-1.728-6.996-1.728-6.996-1.728-1.296-3.372-1.26-3.372-1.26l-.168.192c2.04.624 2.988 1.524 2.988 1.524-1.248-.684-2.472-1.02-3.612-1.152-.864-.096-1.692-.072-2.424.024l-.204.024c-.42.036-1.44.192-2.724.756-.444.204-.708.348-.708.348s.996-.948 3.156-1.572l-.12-.144s-1.644-.036-3.372 1.26c0 0-1.728 3.132-1.728 6.996 0 0 1.008 1.74 3.66 1.824 0 0 .444-.54.804-.996-1.524-.456-2.1-1.416-2.1-1.416l.336.204.048.036.047.027.014.006.047.027c.3.168.6.3.876.408.492.192 1.08.384 1.764.516.9.168 1.956.228 3.108.012.564-.096 1.14-.264 1.74-.516.42-.156.888-.384 1.38-.708 0 0-.6.984-2.172 1.428.36.456.792.972.792.972zm-5.58-5.604c-.684 0-1.224.6-1.224 1.332 0 .732.552 1.332 1.224 1.332.684 0 1.224-.6 1.224-1.332.012-.732-.54-1.332-1.224-1.332zm4.38 0c-.684 0-1.224.6-1.224 1.332 0 .732.552 1.332 1.224 1.332.684 0 1.224-.6 1.224-1.332 0-.732-.54-1.332-1.224-1.332z"
-                            }
-                        }
-                        
-                        span { "Discord" }
-                    }
-                } else if let Some(installation) = &current_installation {
-                    // Launch button on installation page (yellow position)
-                    if let Some(launch_handler) = on_launch {
-                        FloatingLaunchButton {
-                            is_installed: installation.installed,
-                            is_installing: is_installing,
-                            onclick: launch_handler,
-                        }
-                    }
-                }
-            }
-            
-            // Show installation header only on installation pages (orange area)
-            if let Some(installation) = &current_installation {
+            // Show appropriate header
+            if is_home_page {
+                HomeFloatingHeader {}
+                FloatingDiscordButton {}
+            } else if let Some(installation) = &current_installation {
                 InstallationFloatingHeader {
                     installation_name: installation.name.clone(),
                     minecraft_version: installation.minecraft_version.clone(),
@@ -753,34 +791,52 @@ fn ModernAppLayout(
                     active_tab: active_tab,
                     on_tab_change: on_tab_change,
                 }
+                
+                if let Some(launch_handler) = on_launch {
+                    FloatingLaunchButton {
+                        is_installed: installation.installed,
+                        is_installing: is_installing,
+                        onclick: launch_handler,
+                    }
+                }
             }
             
-            // Scrollable content area (pink area)
+            // Scrollable content area
             div { 
                 class: if is_home_page {
                     "page-content-area home-page"
                 } else {
                     "page-content-area"
                 },
+                onscroll: move |_| {
+                    // Hide scroll indicator when user starts scrolling
+                    show_scroll_indicator.set(false);
+                },
                 {children}
             }
             
-            // Floating footer (green area)
-            FloatingFooter {
-                is_home_page: is_home_page,
-                installation_info: current_installation.as_ref().map(|inst| InstallationFooterInfo {
-                    name: inst.name.clone(),
-                    minecraft_version: inst.minecraft_version.clone(),
-                    loader_type: inst.loader_type.clone(),
-                    loader_version: inst.loader_version.clone(),
-                    memory_allocation: inst.memory_allocation,
-                    installed: inst.installed,
-                    needs_update: inst.update_available,
-                    has_changes: has_changes,
-                    is_up_to_date: inst.installed && !inst.update_available && !has_changes,
-                }),
-                on_back: on_back,
-                on_install: on_install,
+            // Show scroll indicator if there's more content
+            ScrollIndicator {
+                visible: *show_scroll_indicator.read() && !is_home_page
+            }
+            
+            // Floating back button (only on installation pages)
+            if !is_home_page {
+                if let Some(back_handler) = on_back {
+                    FloatingBackButton {
+                        onclick: back_handler
+                    }
+                }
+                
+                // Floating install button (only on installation pages)
+                if let Some(install_handler) = on_install {
+                    FloatingInstallButton {
+                        button_text: install_button_text,
+                        button_class: install_button_class,
+                        disabled: install_button_disabled,
+                        onclick: install_handler,
+                    }
+                }
             }
             
             // Copyright in bottom corner - always visible
@@ -1289,8 +1345,11 @@ let installation = Installation::new_custom(
 }
 
 // Installation management page - SIMPLIFIED VERSION WITHOUT COMPLEX HEADER
+// Complete InstallationManagementPageWithLayout component
+// Replace your existing InstallationManagementPage with this
+
 #[component]
-pub fn InstallationManagementPage(
+pub fn InstallationManagementPageWithLayout(
     installation_id: String,
     onback: EventHandler<()>,
     installations: Signal<Vec<Installation>>,
@@ -1533,99 +1592,126 @@ pub fn InstallationManagementPage(
         }
     });
 
+    // Button state logic
+    let (button_text, button_class, button_disabled) = {
+        let current_installation = installation_state.read();
+        let installed = current_installation.installed;
+        let update_available = current_installation.update_available;
+        let has_changes_val = *has_changes.read();
+        let is_installing_val = *is_installing.read();
+        
+        debug!("Button state check: installed={}, update_available={}, has_changes={}, is_installing={}", 
+               installed, update_available, has_changes_val, is_installing_val);
+        
+        if is_installing_val {
+            ("INSTALLING...".to_string(), "installing".to_string(), true)
+        } else if !installed {
+            ("INSTALL".to_string(), "".to_string(), false)
+        } else if update_available {
+            ("UPDATE".to_string(), "update-button".to_string(), false)
+        } else if has_changes_val {
+            ("MODIFY".to_string(), "".to_string(), false)
+        } else {
+            ("UPDATED".to_string(), "up-to-date".to_string(), true)
+        }
+    };
+
+    // Show progress view if installing
+    if *is_installing.read() {
+        return rsx! {
+            ProgressView {
+                value: *installation_progress.read(),
+                max: *installation_total.read(),
+                status: installation_status.read().clone(),
+                title: format!("Installing {}", installation.name)
+            }
+        };
+    }
+
+    // Main render with ModernAppLayout
     rsx! {
         div { class: "installation-management-container",
-            // Show progress view if installing
-            if *is_installing.read() {
-                ProgressView {
-                    value: *installation_progress.read(),
-                    max: *installation_total.read(),
-                    status: installation_status.read().clone(),
-                    title: format!("Installing {}", installation.name)
-                }
-            } else {
-                // Use the modern layout wrapper
-                ModernAppLayout {
-                    is_home_page: false,
-                    current_installation: Some(installation_state.read().clone()),
-                    active_tab: active_tab,
-                    has_changes: *has_changes.read(),
-                    is_installing: *is_installing.read(),
-                    on_go_home: EventHandler::new(move |_: ()| {
-                        onback.call(());
-                    }),
-                    on_tab_change: EventHandler::new(move |tab: String| {
-                    active_tab.set(tab);  // No borrowing needed
-                    }),
-                    on_launch: Some(handle_launch),
-                    on_back: Some(EventHandler::new(move |_: ()| {
-                        onback.call(());
-                    })),
-                    on_install: Some(handle_install_update),
-                    
-                    // Error display
-                    if let Some(error) = &*installation_error.read() {
-                        div { class: "error-notification",
-                            div { class: "error-message", "{error}" }
-                            button { 
-                                class: "error-close",
-                                onclick: move |_| installation_error.set(None),
-                                "×"
-                            }
-                        }
+            // Error display
+            if let Some(error) = &*installation_error.read() {
+                ErrorNotification {
+                    message: error.clone(),
+                    on_close: move |_| {
+                        installation_error.set(None);
                     }
-                            
-                    // Main content area based on active tab
-                    div { class: "installation-main-content",
-                        match active_tab.read().as_str() {
-                            "features" => {
-                                rsx! {
-                                    FeaturesTab {
-                                        universal_manifest: universal_manifest.read().clone().flatten(),
-                                        presets: presets.read().clone().unwrap_or_default(),
-                                        enabled_features: enabled_features,
-                                        selected_preset: selected_preset,
-                                        filter_text: filter_text,
-                                        installation_id: installation.id.clone(),
+                }
+            }
+
+            ModernAppLayout {
+                is_home_page: false,
+                current_installation: Some(installation_state.read().clone()),
+                active_tab: active_tab,
+                has_changes: *has_changes.read(),
+                is_installing: *is_installing.read(),
+                install_button_text: button_text,
+                install_button_class: button_class,
+                install_button_disabled: button_disabled,
+                on_go_home: EventHandler::new(move |_: ()| {
+                    onback.call(());
+                }),
+                on_tab_change: EventHandler::new(move |tab: String| {
+                    active_tab.set(tab);
+                }),
+                on_launch: Some(handle_launch),
+                on_back: Some(EventHandler::new(move |_: ()| {
+                    onback.call(());
+                })),
+                on_install: Some(handle_install_update),
+                
+                // Main content area based on active tab
+                div { class: "installation-main-content",
+                    match active_tab.read().as_str() {
+                        "features" => {
+                            rsx! {
+                                FeaturesTab {
+                                    universal_manifest: universal_manifest.read().clone().flatten(),
+                                    presets: presets.read().clone().unwrap_or_default(),
+                                    enabled_features: enabled_features,
+                                    selected_preset: selected_preset,
+                                    filter_text: filter_text,
+                                    installation_id: installation.id.clone(),
+                                }
+                            }
+                        },
+                        "performance" => {
+                            rsx! {
+                                PerformanceTab {
+                                    memory_allocation: memory_allocation,
+                                    java_args: java_args,
+                                    installation_id: installation.id.clone()
+                                }
+                            }
+                        },
+                        "settings" => {
+                            rsx! {
+                                SettingsTab {
+                                    installation: installation.clone(),
+                                    installation_id: installation_id_for_delete.clone(),
+                                    ondelete: move |_| {
+                                        // Handle delete functionality - remove from installations list
+                                        let id_to_delete = installation_id_for_delete.clone();
+                                        installations.with_mut(|list| {
+                                            list.retain(|inst| inst.id != id_to_delete);
+                                        });
+                                        // Navigate back to home
+                                        onback.call(());
+                                    },
+                                    onupdate: move |updated_installation: Installation| {
+                                        // Update the installation data in the list
+                                        installations.with_mut(|list| {
+                                            if let Some(index) = list.iter().position(|i| i.id == updated_installation.id) {
+                                                list[index] = updated_installation.clone();
+                                            }
+                                        });
                                     }
                                 }
-                            },
-                            "performance" => {
-                                rsx! {
-                                    PerformanceTab {
-                                        memory_allocation: memory_allocation,
-                                        java_args: java_args,
-                                        installation_id: installation.id.clone()
-                                    }
-                                }
-                            },
-                            "settings" => {
-                                rsx! {
-                                    SettingsTab {
-                                        installation: installation.clone(),
-                                        installation_id: installation_id_for_delete.clone(),
-                                        ondelete: move |_| {
-                                            // Handle delete functionality - remove from installations list
-                                            let id_to_delete = installation_id_for_delete.clone();
-                                            installations.with_mut(|list| {
-                                                list.retain(|inst| inst.id != id_to_delete);
-                                            });
-                                            // Navigate back to home
-                                            onback.call(());
-                                        },
-                                        onupdate: move |updated_installation: Installation| {
-                                            // Update the installation data in the list
-                                            installations.with_mut(|list| {
-                                                if let Some(index) = list.iter().position(|i| i.id == updated_installation.id) {
-                                                    list[index] = updated_installation.clone();
-                                                }
-                                            });
-                                        }
-                                    }
-                                }
-                            },
-                            _ => rsx! { div { "Unknown tab selected" } }
-                        }
+                            }
+                        },
+                        _ => rsx! { div { "Unknown tab selected" } }
                     }
                 }
             }
@@ -2118,7 +2204,7 @@ pub fn app() -> Element {
     let props = use_context::<AppProps>();
     let css = include_str!("assets/style.css");
     
-    // State management
+    // State management (keep your existing state)
     let config = use_signal(|| props.config);
     let mut settings = use_signal(|| false);
     let mut error_signal = use_signal(|| Option::<String>::None);
@@ -2129,112 +2215,7 @@ pub fn app() -> Element {
     let mut installations = use_signal(|| props.installations.clone());
     let mut active_tab = use_signal(|| "features".to_string());
 
-    // Get launcher configuration
-    let launcher = match get_launcher(&config.read().launcher) {
-        Ok(l) => Some(l),
-        Err(e) => {
-            error!("Failed to load launcher: {} - {}", config.read().launcher, e);
-            None
-        },
-    };
-    let has_launcher = launcher.is_some();
-
-    // Load universal manifest with error handling
-    let config_clone = config.clone();
-    let manifest_error_clone = manifest_error.clone();
-    let universal_manifest = use_resource(move || {
-        let config = config_clone.clone();
-        let mut manifest_error = manifest_error_clone.clone();
-        async move {
-            let launcher_str = config.read().launcher.clone();
-            let launcher = match get_launcher(&launcher_str) {
-                Ok(l) => Some(l),
-                Err(_) => None,
-            };
-            
-            let launcher_available = launcher.is_some();
-            if !launcher_available {
-                return None;
-            }
-            
-            debug!("Loading universal manifest...");
-            match crate::universal::load_universal_manifest(&CachedHttpClient::new(), None).await {
-                Ok(manifest) => {
-                    debug!("Successfully loaded universal manifest: {}", manifest.name);
-                    Some(manifest)
-                },
-                Err(e) => {
-                    error!("Failed to load universal manifest: {}", e);
-                    spawn(async move {
-                        manifest_error.set(Some(e.clone()));
-                    });
-                    None
-                }
-            }
-        }
-    });
-    
-    // Load changelog
-    let changelog = use_resource(move || async {
-        match crate::changelog::fetch_changelog("Olinus10/installer-test/master", &CachedHttpClient::new()).await {
-            Ok(changelog) => {
-                debug!("Successfully loaded changelog with {} entries", changelog.entries.len());
-                Some(changelog)
-            },
-            Err(e) => {
-                error!("Failed to load changelog: {}", e);
-                None
-            }
-        }
-    });
-
-    let mut changelog_signal = use_signal(|| None::<ChangelogData>);
-    use_effect(move || {
-        if let Some(Some(changelog_data)) = changelog.read().as_ref() {
-            changelog_signal.set(Some(changelog_data.clone()));
-        }
-    });
-
-    // Modal context for popups
-    let mut modal_context = use_context_provider(ModalContext::default);
-    
-    // Show error modal if error exists
-    if let Some(e) = error_signal() {
-        modal_context.open("Error", rsx! {
-            p {
-                "The installer encountered an error. If the problem persists, please report it in #📂modpack-issues on Discord."
-            }
-            textarea { class: "error-area", readonly: true, "{e}" }
-        }, false, Some(move |_| error_signal.set(None)));
-    }
-
-    // Build CSS content
-    let css_content = css
-        .replace("<BG_COLOR>", "#320625")
-        .replace("<BG_IMAGE>", "https://raw.githubusercontent.com/Wynncraft-Overhaul/installer/master/src/assets/background_installer.png")
-        .replace("<SECONDARY_FONT>", "\"HEADER_FONT\"")
-        .replace("<PRIMARY_FONT>", "\"REGULAR_FONT\"");
-    
-    // Add all the CSS files
-    let category_styles = include_str!("assets/category-styles.css");
-    let feature_styles = include_str!("assets/expanded-feature-styles.css");
-    let preset_styles = include_str!("assets/preset-styles.css");
-    let search_styles = include_str!("assets/search-results-styles.css");
-    let modal_styles = include_str!("assets/modal-styles.css");
-    
-    // Use the updated modern layout CSS from the artifact above
-    let modern_layout = include_str!("assets/modern_layout.css"); // You'll need to put the CSS from the artifact into this file
-
-    // Combine all CSS files
-    let complete_css = format!("{}\n{}\n{}\n{}\n{}\n{}\n{}", 
-        css_content, 
-        category_styles, 
-        feature_styles, 
-        preset_styles, 
-        search_styles,
-        modal_styles,
-        modern_layout
-    );
+    // ... keep your existing logic for launcher, manifest loading, etc. ...
 
     // Determine current state
     let is_home_page = current_installation_id.read().is_none();
@@ -2253,10 +2234,7 @@ pub fn app() -> Element {
         active_tab.set(tab);
     });
 
-    // Determine if we're on a settings or launcher screen
-    let is_special_screen = settings() || config.read().first_launch.unwrap_or(true) || !has_launcher;
-
-    // Determine main content
+    // Main content determination
     let main_content = if settings() {
         rsx! {
             Settings {
@@ -2285,24 +2263,11 @@ pub fn app() -> Element {
         }
     } else if is_home_page {
         rsx! {
-            ModernAppLayout {
-                is_home_page: true,
-                current_installation: None,
-                active_tab: active_tab,
-                has_changes: false,
-                is_installing: false,
-                on_go_home: go_home_handler,
-                on_tab_change: tab_change_handler,
-                on_launch: None,
-                on_back: None,
-                on_install: None,
-                
-                HomePage {
-                    installations,
-                    error_signal: error_signal.clone(),
-                    changelog: changelog_signal,
-                    current_installation_id: current_installation_id.clone(),
-                }
+            HomePage {
+                installations,
+                error_signal: error_signal.clone(),
+                changelog: changelog_signal,
+                current_installation_id: current_installation_id.clone(),
             }
         }
     } else if current_installation_id.read().as_ref().map_or(false, |id| id == "new") {
@@ -2320,14 +2285,14 @@ pub fn app() -> Element {
             }
         }
     } else {
-        // Installation management content - this will use ModernAppLayout internally
+        // Installation management content using ModernAppLayout
         let id = current_installation_id.read().as_ref().unwrap().clone();
         let back_handler_for_mgmt = EventHandler::new(move |_: ()| {
             current_installation_id.set(None);
         });
         
         rsx! {
-            InstallationManagementPage {
+            InstallationManagementPageWithLayout {
                 installation_id: id,
                 onback: back_handler_for_mgmt,
                 installations: installations.clone()
@@ -2335,21 +2300,104 @@ pub fn app() -> Element {
         }
     };
 
-    // Final render
+    // Include the new modern layout CSS with your existing CSS
+    let category_styles = include_str!("assets/category-styles.css");
+    let feature_styles = include_str!("assets/expanded-feature-styles.css");
+    let preset_styles = include_str!("assets/preset-styles.css");
+    let search_styles = include_str!("assets/search-results-styles.css");
+    let modal_styles = include_str!("assets/modal-styles.css");
+    let modern_layout = include_str!("assets/modern_layout.css"); // Your new CSS file
+    
+    let css_content = css
+        .replace("<BG_COLOR>", "#320625")
+        .replace("<BG_IMAGE>", "https://raw.githubusercontent.com/Wynncraft-Overhaul/installer/master/src/assets/background_installer.png")
+        .replace("<SECONDARY_FONT>", "\"HEADER_FONT\"")
+        .replace("<PRIMARY_FONT>", "\"REGULAR_FONT\"");
+
+    let complete_css = format!("{}\n{}\n{}\n{}\n{}\n{}\n{}", 
+        css_content, 
+        category_styles, 
+        feature_styles, 
+        preset_styles, 
+        search_styles,
+        modal_styles,
+        modern_layout
+    );
+
+    // Final render with new layout system
     rsx! {
         div {
             style { {complete_css} }
+            
+            // Include scroll detection JavaScript
+            script { 
+                dangerous_inner_html: r#"
+                function initScrollDetection() {
+                    const contentArea = document.querySelector('.page-content-area');
+                    const scrollIndicator = document.querySelector('.scroll-indicator');
+                    
+                    if (!contentArea || !scrollIndicator) return;
+                    
+                    function checkScrollable() {
+                        const isScrollable = contentArea.scrollHeight > contentArea.clientHeight;
+                        const isNearBottom = contentArea.scrollTop + contentArea.clientHeight >= contentArea.scrollHeight - 50;
+                        
+                        if (isScrollable && !isNearBottom) {
+                            scrollIndicator.classList.add('visible');
+                        } else {
+                            scrollIndicator.classList.remove('visible');
+                        }
+                    }
+                    
+                    checkScrollable();
+                    window.addEventListener('resize', checkScrollable);
+                    
+                    contentArea.addEventListener('scroll', function() {
+                        checkScrollable();
+                        if (contentArea.scrollTop > 100) {
+                            setTimeout(() => scrollIndicator.classList.remove('visible'), 2000);
+                        }
+                    });
+                    
+                    setTimeout(() => scrollIndicator.classList.remove('visible'), 8000);
+                }
+                
+                if (document.readyState === 'loading') {
+                    document.addEventListener('DOMContentLoaded', initScrollDetection);
+                } else {
+                    initScrollDetection();
+                }
+                "#
+            }
+            
             Modal {}
             BackgroundParticles {}
             
-            // For special screens (settings, launcher selection), use simple container
-            if is_special_screen {
+            // Use ModernAppLayout for all content
+            if settings() || config.read().first_launch.unwrap_or(true) || !has_launcher {
+                // Special screens without modern layout
                 div { class: "main-container",
                     {main_content}
                 }
             } else {
-                // For normal operation, content handles its own layout
-                {main_content}
+                // Use the new modern layout system
+                ModernAppLayout {
+                    is_home_page: is_home_page,
+                    current_installation: current_installation.clone(),
+                    active_tab: active_tab,
+                    has_changes: false, // You'll need to pass this from your installation management
+                    is_installing: false, // You'll need to pass this from your installation management
+                    install_button_text: "INSTALL".to_string(), // Dynamic based on state
+                    install_button_class: "".to_string(), // Dynamic based on state
+                    install_button_disabled: false, // Dynamic based on state
+                    on_go_home: go_home_handler,
+                    on_tab_change: tab_change_handler,
+                    on_launch: None, // You'll need to pass this from installation management
+                    on_back: None, // You'll need to pass this from installation management
+                    on_install: None, // You'll need to pass this from installation management
+                    
+                    {main_content}
+                }
             }
             
             // Keep manifest error display
