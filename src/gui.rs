@@ -435,16 +435,6 @@ fn main() {
 }
 
 #[component]
-fn ScrollIndicator() -> Element {
-    rsx! {
-        div { class: "scroll-indicator",
-            span { "Scroll down for more info" }
-            span { class: "scroll-indicator-arrow", "↓" }
-        }
-    }
-}
-
-#[component]
 fn Footer() -> Element {
     rsx! {
         footer { class: "app-footer",
@@ -681,16 +671,12 @@ fn FloatingInstallButton(
 }
 
 #[component]
-fn ScrollIndicator(visible: bool) -> Element {
-    if visible {
-        rsx! {
-            div { class: "scroll-indicator visible",
-                span { "Scroll down for more info" }
-                span { class: "scroll-indicator-arrow", "↓" }
-            }
+fn ScrollIndicator() -> Element {
+    rsx! {
+        div { class: "scroll-indicator",
+            span { "Scroll down for more info" }
+            span { class: "scroll-indicator-arrow", "↓" }
         }
-    } else {
-        rsx! { Fragment {} }
     }
 }
 
