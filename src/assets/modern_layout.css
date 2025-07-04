@@ -1,4 +1,4 @@
-/* Logo - Always visible, top-left corner (blue square) */
+/* Logo - Always visible, top-left corner (bigger size) */
 .floating-logo {
     position: fixed;
     top: 20px;
@@ -13,18 +13,18 @@
 }
 
 .floating-logo img {
-    width: 48px;
-    height: 48px;
-    border-radius: 12px;
+    width: 64px; /* Increased from 48px */
+    height: 64px; /* Increased from 48px */
+    border-radius: 16px; /* Increased border radius */
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
 
-/* Installation Header - Only visible on installation pages (orange area) */
+/* Installation Header - Properly aligned with logo */
 .installation-floating-header {
     position: fixed;
     top: 20px;
-    left: 90px; /* Leave space for logo */
-    right: 180px; /* Leave space for launch button */
+    left: 104px; /* Adjusted for bigger logo: 20 + 64 + 20 */
+    right: 200px; /* More space for longer launch button */
     z-index: 999;
     background: linear-gradient(145deg, rgba(40, 40, 50, 0.95), rgba(25, 25, 35, 0.98));
     border-radius: 16px;
@@ -35,6 +35,37 @@
     display: flex;
     align-items: center;
     gap: 24px;
+    height: 64px; /* Match logo height */
+    box-sizing: border-box;
+}
+
+/* Home page header - new addition */
+.home-floating-header {
+    position: fixed;
+    top: 20px;
+    left: 104px; /* Same alignment as installation header */
+    right: 200px; /* Same as installation header */
+    z-index: 999;
+    background: linear-gradient(145deg, rgba(40, 40, 50, 0.95), rgba(25, 25, 35, 0.98));
+    border-radius: 16px;
+    padding: 16px 24px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 64px; /* Match logo height */
+    box-sizing: border-box;
+}
+
+.home-header-title {
+    font-family: "HEADER_FONT";
+    font-size: 1.6rem;
+    color: #ffffff;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    margin: 0;
 }
 
 .installation-header-info {
@@ -91,23 +122,19 @@
     box-shadow: 0 2px 8px rgba(76, 175, 80, 0.3);
 }
 
-/* Top right buttons area (yellow position) */
-.top-right-buttons {
+/* Discord button for home page (aligned with headers) */
+.floating-discord-button {
     position: fixed;
     top: 20px;
     right: 20px;
     z-index: 1000;
-}
-
-/* Discord button for home page (yellow position) */
-.floating-discord-button {
     display: flex;
     align-items: center;
     gap: 8px;
     background: #5865F2;
     color: white;
-    padding: 12px 20px;
-    border-radius: 12px;
+    padding: 16px 32px; /* Increased padding to match header height */
+    border-radius: 16px; /* Increased border radius */
     text-decoration: none;
     font-weight: 600;
     font-family: "HEADER_FONT";
@@ -115,6 +142,8 @@
     letter-spacing: 1px;
     transition: all 0.3s ease;
     box-shadow: 0 4px 16px rgba(88, 101, 242, 0.4);
+    height: 64px; /* Match logo and header height */
+    box-sizing: border-box;
 }
 
 .floating-discord-button:hover {
@@ -124,14 +153,18 @@
     text-decoration: none;
 }
 
-/* Launch Button - Only visible on installation pages (yellow position) */
+/* Launch Button - Longer and aligned */
 .floating-launch-button {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 1000;
     background: linear-gradient(135deg, #FFD700, #FFA500);
     border: 2px solid rgba(255, 215, 0, 0.6);
-    border-radius: 12px;
-    padding: 12px 24px;
+    border-radius: 16px; /* Increased border radius */
+    padding: 16px 40px; /* Increased padding */
     font-family: "HEADER_FONT";
-    font-size: 1.1rem;
+    font-size: 1.2rem; /* Slightly larger font */
     color: #1a1a1a;
     cursor: pointer;
     text-transform: uppercase;
@@ -140,6 +173,8 @@
     box-shadow: 0 4px 16px rgba(255, 215, 0, 0.4);
     transition: all 0.3s ease;
     animation: golden-glow 3s ease-in-out infinite alternate;
+    height: 64px; /* Match logo and header height */
+    box-sizing: border-box;
 }
 
 .floating-launch-button:hover:not(:disabled) {
@@ -156,13 +191,13 @@
     opacity: 0.7;
 }
 
-/* Content Area - Scrollable region (pink area) */
+/* Content Area - Updated spacing for new header size */
 .page-content-area {
     position: fixed;
-    top: 100px; /* Space for headers */
+    top: 104px; /* Space for larger headers: 20 + 64 + 20 */
     left: 20px;
     right: 20px;
-    bottom: 140px; /* Space for footer */
+    bottom: 20px; /* Remove footer space since we removed it */
     overflow-y: auto;
     overflow-x: hidden;
     padding: 20px;
@@ -170,125 +205,71 @@
     border-radius: 16px;
 }
 
-/* Home page content area (no top headers) */
+/* Home page content area */
 .page-content-area.home-page {
-    top: 20px; /* Less space when no installation headers */
+    top: 104px; /* Same as installation pages now that we have home header */
 }
 
-/* Floating Footer - Always visible (green area) */
-.floating-footer {
+/* Floating Back Button - Bottom left, mirrored to logo */
+.floating-back-button {
     position: fixed;
     bottom: 20px;
     left: 20px;
-    right: 20px;
-    z-index: 999;
-    background: linear-gradient(145deg, rgba(30, 30, 40, 0.95), rgba(20, 20, 30, 0.98));
-    border-radius: 16px;
-    padding: 16px 24px;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
-    backdrop-filter: blur(20px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    min-height: 60px;
-}
-
-/* Footer content for home page */
-.footer-home-content {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 100%;
-}
-
-.footer-stats {
-    font-size: 1rem;
-    color: rgba(255, 255, 255, 0.8);
-    text-align: center;
-}
-
-/* Footer content for installation pages */
-.footer-installation-content {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    width: 100%;
-    gap: 20px;
-}
-
-.footer-back-button {
+    z-index: 1000;
     background: linear-gradient(135deg, rgba(100, 100, 110, 0.8), rgba(80, 80, 90, 0.9));
     border: 1px solid rgba(255, 255, 255, 0.2);
     color: white;
-    border-radius: 10px;
-    padding: 12px 20px;
+    border-radius: 16px;
+    padding: 16px 24px;
     font-family: "REGULAR_FONT";
     cursor: pointer;
     transition: all 0.3s ease;
-    font-size: 0.9rem;
+    font-size: 1rem;
     display: flex;
     align-items: center;
     gap: 8px;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.5px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
 }
 
-.footer-back-button:hover {
+.floating-back-button:hover {
     background: linear-gradient(135deg, rgba(120, 120, 130, 0.9), rgba(100, 100, 110, 1));
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
 }
 
-.footer-installation-info {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 4px;
-    flex: 1;
-}
-
-.footer-installation-name {
-    font-family: "HEADER_FONT";
-    font-size: 1.1rem;
-    color: #ffffff;
-    margin: 0;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-}
-
-.footer-installation-details {
-    display: flex;
-    gap: 12px;
-    font-size: 0.85rem;
-    color: rgba(255, 255, 255, 0.7);
-}
-
-.footer-install-button {
+/* Floating Install Button - Center bottom */
+.floating-install-button {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 1000;
     background: linear-gradient(135deg, #4CAF50, #2E7D32);
     border: none;
     color: white;
-    border-radius: 10px;
-    padding: 14px 28px;
+    border-radius: 16px;
+    padding: 18px 48px;
     font-family: "HEADER_FONT";
-    font-size: 1rem;
+    font-size: 1.4rem;
     font-weight: 700;
     cursor: pointer;
     transition: all 0.3s ease;
     text-transform: uppercase;
     letter-spacing: 1px;
-    box-shadow: 0 4px 15px rgba(76, 175, 80, 0.4);
+    box-shadow: 0 6px 20px rgba(76, 175, 80, 0.4);
     animation: install-glow 3s ease-in-out infinite alternate;
 }
 
-.footer-install-button:hover:not(:disabled) {
+.floating-install-button:hover:not(:disabled) {
     background: linear-gradient(135deg, #66BB6A, #4CAF50);
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(76, 175, 80, 0.6);
+    transform: translateX(-50%) translateY(-3px);
+    box-shadow: 0 8px 25px rgba(76, 175, 80, 0.6);
 }
 
-.footer-install-button:disabled {
+.floating-install-button:disabled {
     background: linear-gradient(135deg, #6a6a6a, #4a4a4a);
     color: #cccccc;
     cursor: not-allowed;
@@ -296,15 +277,58 @@
     animation: none;
 }
 
-.footer-install-button.update-button {
+.floating-install-button.update-button {
     background: linear-gradient(135deg, #FF9800, #F57C00);
-    box-shadow: 0 4px 15px rgba(255, 152, 0, 0.4);
+    box-shadow: 0 6px 20px rgba(255, 152, 0, 0.4);
     animation: update-glow 3s ease-in-out infinite alternate;
 }
 
-.footer-install-button.update-button:hover:not(:disabled) {
+.floating-install-button.update-button:hover:not(:disabled) {
     background: linear-gradient(135deg, #FFB74D, #FF9800);
-    box-shadow: 0 6px 20px rgba(255, 152, 0, 0.6);
+    box-shadow: 0 8px 25px rgba(255, 152, 0, 0.6);
+}
+
+/* Scroll indicator for content area */
+.scroll-indicator {
+    position: fixed;
+    bottom: 100px; /* Above the install button */
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 998;
+    background: rgba(0, 0, 0, 0.7);
+    color: white;
+    border-radius: 20px;
+    padding: 8px 16px;
+    font-family: "REGULAR_FONT";
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+    backdrop-filter: blur(10px);
+}
+
+.scroll-indicator.visible {
+    opacity: 1;
+}
+
+.scroll-indicator-arrow {
+    font-size: 1.2rem;
+    animation: bounce-down 2s ease-in-out infinite;
+}
+
+@keyframes bounce-down {
+    0%, 20%, 50%, 80%, 100% {
+        transform: translateY(0);
+    }
+    40% {
+        transform: translateY(5px);
+    }
+    60% {
+        transform: translateY(3px);
+    }
 }
 
 /* Floating copyright - bottom right corner, always visible */
@@ -342,30 +366,37 @@
 
 @keyframes install-glow {
     0% {
-        box-shadow: 0 4px 15px rgba(76, 175, 80, 0.4);
+        box-shadow: 0 6px 20px rgba(76, 175, 80, 0.4);
     }
     100% {
-        box-shadow: 0 6px 20px rgba(76, 175, 80, 0.6);
+        box-shadow: 0 8px 25px rgba(76, 175, 80, 0.6);
     }
 }
 
 @keyframes update-glow {
     0% {
-        box-shadow: 0 4px 15px rgba(255, 152, 0, 0.4);
+        box-shadow: 0 6px 20px rgba(255, 152, 0, 0.4);
     }
     100% {
-        box-shadow: 0 6px 20px rgba(255, 152, 0, 0.6);
+        box-shadow: 0 8px 25px rgba(255, 152, 0, 0.6);
     }
 }
 
 /* Responsive Design */
 @media (max-width: 768px) {
-    .installation-floating-header {
+    .floating-logo img {
+        width: 48px;
+        height: 48px;
+    }
+    
+    .installation-floating-header,
+    .home-floating-header {
         left: 80px;
         right: 80px;
         flex-direction: column;
         gap: 12px;
         padding: 12px 16px;
+        height: auto;
     }
     
     .installation-header-tabs {
@@ -373,28 +404,25 @@
         justify-content: center;
     }
     
-    .floating-footer {
-        left: 10px;
-        right: 10px;
-        bottom: 10px;
+    .floating-discord-button,
+    .floating-launch-button {
+        padding: 12px 20px;
+        height: 48px;
+    }
+    
+    .floating-back-button {
         padding: 12px 16px;
     }
     
-    .footer-installation-content {
-        flex-direction: column;
-        gap: 12px;
+    .floating-install-button {
+        padding: 16px 32px;
+        font-size: 1.2rem;
     }
     
     .page-content-area {
-        top: 140px;
-        bottom: 160px;
+        top: 120px;
         left: 10px;
         right: 10px;
         padding: 15px;
-    }
-    
-    .page-content-area.home-page {
-        top: 20px;
-        bottom: 120px;
     }
 }
