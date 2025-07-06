@@ -3704,174 +3704,60 @@ a:hover {
     backface-visibility: hidden;
 }
 
-/* Installation Page Header - Greyish with rounded edges */
-.installation-page-header {
-    background: linear-gradient(145deg, rgba(80, 80, 90, 0.95), rgba(65, 65, 75, 0.98));
-    border-radius: 16px 16px 0 0;
-    padding: 20px 30px;
-    margin: 20px 20px 0 20px;
-    box-shadow: 
-        0 4px 20px rgba(0, 0, 0, 0.3),
-        0 0 0 1px rgba(255, 255, 255, 0.1);
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    
-    display: grid;
-    grid-template-columns: auto 1fr auto;
-    align-items: center;
-    gap: 30px;
-    min-height: 80px;
-    position: relative;
-    z-index: 10;
+/* Compact Installation Header Styles */
+.installation-header-compact {
+    margin-bottom: 20px;
+    padding: 5px 0; /* Reduced padding to close gap */
+    text-align: center;
 }
 
-/* Left section with back button and installation info */
-.header-left-section {
+.header-top-row {
     display: flex;
     align-items: center;
-    gap: 20px;
+    justify-content: center; /* Center the content */
+    margin-bottom: 8px; /* Reduced margin */
+    position: relative;
+    min-height: 40px;
 }
 
-.header-back-button {
-    background: linear-gradient(135deg, rgba(100, 100, 110, 0.8), rgba(80, 80, 90, 0.9));
+.back-button-inline {
+    background-color: rgba(60, 60, 60, 0.8);
     border: 1px solid rgba(255, 255, 255, 0.2);
     color: white;
-    border-radius: 10px;
-    padding: 12px 18px;
+    border-radius: 6px;
+    padding: 8px 16px;
     font-family: "REGULAR_FONT";
     cursor: pointer;
     transition: all 0.3s ease;
-    font-size: 0.95rem;
-    font-weight: 500;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-}
-
-.header-back-button:hover {
-    background: linear-gradient(135deg, rgba(120, 120, 130, 0.9), rgba(100, 100, 110, 1));
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-    border-color: rgba(255, 255, 255, 0.3);
-}
-
-.header-installation-info {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-}
-
-.header-installation-title {
-    font-size: 1.8rem;
-    margin: 0;
-    color: #ffffff;
-    font-family: "HEADER_FONT";
-    letter-spacing: 0.05em;
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
-}
-
-.header-installation-meta {
-    display: flex;
-    gap: 12px;
-    flex-wrap: wrap;
-}
-
-.meta-chip {
-    background: linear-gradient(135deg, rgba(60, 60, 70, 0.8), rgba(40, 40, 50, 0.9));
-    color: rgba(255, 255, 255, 0.9);
-    padding: 6px 12px;
-    border-radius: 15px;
-    font-size: 0.85rem;
-    font-family: "REGULAR_FONT";
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    font-weight: 500;
-}
-
-.meta-chip.update-chip {
-    background: linear-gradient(135deg, rgba(255, 185, 0, 0.8), rgba(255, 152, 0, 0.9));
-    color: #000;
-    border-color: rgba(255, 185, 0, 0.8);
-    font-weight: 600;
-    animation: update-chip-pulse 2s infinite;
-}
-
-@keyframes update-chip-pulse {
-    0%, 100% { 
-        box-shadow: 0 0 5px rgba(255, 185, 0, 0.3); 
-    }
-    50% { 
-        box-shadow: 0 0 15px rgba(255, 185, 0, 0.6); 
-    }
-}
-
-/* Center section with navigation tabs */
-.header-center-section {
-    display: flex;
-    justify-content: center;
-}
-
-.header-navigation-tabs {
-    display: flex;
-    background: linear-gradient(135deg, rgba(40, 40, 50, 0.8), rgba(30, 30, 40, 0.9));
-    border-radius: 12px;
-    padding: 6px;
-    gap: 4px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
-}
-
-.header-nav-tab {
-    background-color: transparent;
-    border: none;
-    color: rgba(255, 255, 255, 0.7);
-    padding: 12px 24px;
-    font-family: "REGULAR_FONT";
-    font-size: 1rem;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    border-radius: 8px;
-    position: relative;
-    letter-spacing: 0.5px;
-    text-transform: uppercase;
-}
-
-.header-nav-tab:hover {
-    background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
-    color: rgba(255, 255, 255, 0.9);
-    transform: translateY(-1px);
-}
-
-.header-nav-tab.active {
-    background: linear-gradient(135deg, #4CAF50, #2E7D32);
-    color: white;
-    box-shadow: 0 2px 8px rgba(76, 175, 80, 0.3);
-    font-weight: 600;
-}
-
-.tab-modified-indicator {
+    font-size: 0.9rem;
     position: absolute;
-    top: 8px;
-    right: 8px;
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background-color: #ffb900;
-    box-shadow: 0 0 6px rgba(255, 185, 0, 0.6);
+    left: 0;
 }
 
-/* Right section with launch and launcher buttons */
-.header-right-section {
-    display: flex;
-    align-items: center;
-    gap: 15px;
+.back-button-inline:hover {
+    background-color: rgba(80, 80, 80, 0.9);
+    transform: translateY(-1px); /* Subtle hover effect */
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
-.header-launch-button {
+.installation-title-compact {
+    font-size: 2rem;
+    margin: 0;
+    color: #fce8f6;
+    font-family: "HEADER_FONT";
+    letter-spacing: 0.08em;
+    text-shadow: 0 0 15px rgba(252, 232, 246, 0.3);
+    text-align: center;
+}
+
+
+.header-launch-button-compact {
     background: linear-gradient(135deg, #FFD700, #FFA500);
     border: 2px solid rgba(255, 215, 0, 0.6);
-    border-radius: 12px;
-    padding: 14px 32px;
+    border-radius: 8px;
+    padding: 12px 24px;
     font-family: "HEADER_FONT";
-    font-size: 1.2rem;
+    font-size: 1.1rem;
     color: #1a1a1a;
     cursor: pointer;
     text-transform: uppercase;
@@ -3883,11 +3769,10 @@ a:hover {
         0 0 25px rgba(255, 215, 0, 0.3);
     transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     animation: golden-glow 3s ease-in-out infinite alternate;
-    min-width: 140px;
 }
 
-.header-launch-button:hover:not(:disabled) {
-    transform: translateY(-2px) scale(1.02);
+.header-launch-button-compact:hover:not(:disabled) {
+    transform: translateY(-2px) scale(1.02); /* Smaller scale */
     background: linear-gradient(135deg, #FFEF94, #FFD700);
     border-color: rgba(255, 215, 0, 0.8);
     box-shadow: 
@@ -3895,7 +3780,7 @@ a:hover {
         0 0 40px rgba(255, 215, 0, 0.7);
 }
 
-.header-launch-button:disabled {
+.header-launch-button-compact:disabled {
     background: linear-gradient(135deg, #404040, #2a2a2a);
     border: 2px solid rgba(100, 100, 100, 0.4);
     color: #888888;
@@ -3907,338 +3792,69 @@ a:hover {
     opacity: 0.7;
 }
 
-.header-launcher-button {
-    background: linear-gradient(135deg, rgba(100, 100, 110, 0.8), rgba(80, 80, 90, 0.9));
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    color: white;
-    border-radius: 10px;
-    padding: 12px 20px;
+
+.installation-meta-compact {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    margin-top: 8px; /* Reduced margin */
+    opacity: 0.8;
+}
+
+.meta-item {
+    font-size: 0.85rem; /* Smaller font */
+    color: rgba(255, 255, 255, 0.9);
+    padding: 3px 8px; /* Smaller padding */
+    background-color: rgba(0, 0, 0, 0.3);
+    border-radius: 12px;
     font-family: "REGULAR_FONT";
-    font-size: 0.95rem;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    font-weight: 500;
+}
+
+.meta-separator {
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 0.8rem;
+}
+
+.update-badge-inline {
+    background-color: #ffb900;
+    color: #000;
+    padding: 3px 8px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: bold;
     text-transform: uppercase;
     letter-spacing: 0.5px;
 }
 
-.header-launcher-button:hover {
-    background: linear-gradient(135deg, rgba(120, 120, 130, 0.9), rgba(100, 100, 110, 1));
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-    border-color: rgba(255, 255, 255, 0.3);
+/* Remove old header styles to avoid conflicts */
+.installation-header {
+    display: none;
 }
 
-/* Installation Page Content - No dark container */
-.installation-page-content {
-    margin: 0 20px 20px 20px;
-    background: transparent; /* Remove the dark background */
-    border-radius: 0 0 16px 16px;
-    padding: 30px;
-    min-height: calc(100vh - 200px);
-    position: relative;
-}
-
-/* Features tab with bottom action button */
-.features-tab-container {
-    display: flex;
-    flex-direction: column;
-    min-height: 100%;
-}
-
-.features-tab-content {
-    flex: 1;
-    padding-bottom: 30px;
-}
-
-.features-tab-actions {
-    margin-top: auto;
-    padding-top: 30px;
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
+/* Center the launch button under the title */
+.header-launch-section {
     display: flex;
     justify-content: center;
-    background: linear-gradient(135deg, rgba(20, 20, 30, 0.8), rgba(10, 10, 20, 0.9));
-    border-radius: 12px;
-    padding: 25px;
-    margin-top: 30px;
+    margin-top: 10px; /* Reduced margin */
 }
 
-.features-action-button {
-    border: 2px solid transparent;
-    border-radius: 12px;
-    padding: 18px 60px;
-    font-size: 1.4rem;
-    font-family: "HEADER_FONT";
-    cursor: pointer;
-    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    width: 320px;
+
+/* Center section descriptions under dividers */
+.section-description {
     text-align: center;
-    position: relative;
-    overflow: hidden;
-    text-transform: uppercase;
-    letter-spacing: 2px;
-    font-weight: 700;
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 1rem;
+    margin: 15px auto 25px auto;
+    max-width: 600px;
+    line-height: 1.5;
 }
 
-/* Install button - Bright green */
-.features-action-button.install-button {
-    background: linear-gradient(135deg, #4CAF50, #2E7D32);
-    color: white;
-    border-color: rgba(76, 175, 80, 0.5);
-    box-shadow: 
-        0 8px 25px rgba(76, 175, 80, 0.4),
-        0 0 40px rgba(76, 175, 80, 0.3);
-    animation: install-glow 3s ease-in-out infinite alternate;
-}
-
-.features-action-button.install-button:hover:not(:disabled) {
-    background: linear-gradient(135deg, #66BB6A, #4CAF50);
-    transform: translateY(-5px) scale(1.05);
-    border-color: rgba(76, 175, 80, 0.8);
-    box-shadow: 
-        0 15px 40px rgba(76, 175, 80, 0.6),
-        0 0 80px rgba(76, 175, 80, 0.7);
-    animation: none;
-}
-
-/* Update button - Golden/Orange */
-.features-action-button.update-button {
-    background: linear-gradient(135deg, #FF9800, #F57C00);
-    color: white;
-    border-color: rgba(255, 152, 0, 0.5);
-    box-shadow: 
-        0 8px 25px rgba(255, 152, 0, 0.4),
-        0 0 40px rgba(255, 152, 0, 0.3);
-    animation: update-glow 3s ease-in-out infinite alternate;
-}
-
-.features-action-button.update-button:hover:not(:disabled) {
-    background: linear-gradient(135deg, #FFB74D, #FF9800);
-    transform: translateY(-5px) scale(1.05);
-    border-color: rgba(255, 152, 0, 0.8);
-    box-shadow: 
-        0 15px 40px rgba(255, 152, 0, 0.6),
-        0 0 80px rgba(255, 152, 0, 0.7);
-    animation: none;
-}
-
-/* Modify button - Blue */
-.features-action-button.modify-button {
-    background: linear-gradient(135deg, #2196F3, #1565C0);
-    color: white;
-    border-color: rgba(33, 150, 243, 0.5);
-    box-shadow: 
-        0 8px 25px rgba(33, 150, 243, 0.4),
-        0 0 40px rgba(33, 150, 243, 0.3);
-    animation: modify-glow 3s ease-in-out infinite alternate;
-}
-
-.features-action-button.modify-button:hover:not(:disabled) {
-    background: linear-gradient(135deg, #42A5F5, #2196F3);
-    transform: translateY(-5px) scale(1.05);
-    border-color: rgba(33, 150, 243, 0.8);
-    box-shadow: 
-        0 15px 40px rgba(33, 150, 243, 0.6),
-        0 0 80px rgba(33, 150, 243, 0.7);
-    animation: none;
-}
-
-/* Up to date state */
-.features-action-button.up-to-date {
-    background: linear-gradient(135deg, #6a6a6a, #4a4a4a);
-    color: #cccccc;
-    border-color: rgba(106, 106, 106, 0.5);
-    cursor: not-allowed;
-    box-shadow: 
-        0 6px 20px rgba(0, 0, 0, 0.3),
-        inset 0 0 20px rgba(0, 0, 0, 0.2);
-    animation: none;
-    opacity: 0.8;
-}
-
-/* Installing state */
-.features-action-button.installing {
-    background: linear-gradient(135deg, #9C27B0, #6A1B9A);
-    color: white;
-    border-color: rgba(156, 39, 176, 0.5);
-    cursor: wait;
-    position: relative;
-}
-
-.features-action-button.installing::after {
-    content: '';
-    position: absolute;
-    top: 50%;
-    left: 20px;
-    width: 20px;
-    height: 20px;
-    border: 3px solid rgba(255, 255, 255, 0.3);
-    border-top-color: white;
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
-    transform: translateY(-50%);
-}
-
-/* Responsive design for the header */
-@media (max-width: 1200px) {
-    .installation-page-header {
-        grid-template-columns: 1fr;
-        grid-template-rows: auto auto auto;
-        gap: 20px;
-        text-align: center;
-    }
-    
-    .header-left-section,
-    .header-center-section,
-    .header-right-section {
-        justify-self: center;
-    }
-    
-    .header-left-section {
-        order: 1;
-    }
-    
-    .header-center-section {
-        order: 2;
-    }
-    
-    .header-right-section {
-        order: 3;
-    }
-}
-
-@media (max-width: 768px) {
-    .header-navigation-tabs {
-        flex-direction: column;
-        width: 100%;
-    }
-    
-    .header-nav-tab {
-        padding: 10px 15px;
-    }
-    
-    .header-installation-meta {
-        justify-content: center;
-    }
-    
-    .header-right-section {
-        flex-direction: column;
-        gap: 10px;
-    }
-    
-    .features-action-button {
-        width: 100%;
-        padding: 15px 40px;
-        font-size: 1.2rem;
-    }
-    
-    .installation-page-content {
-        margin: 0 10px 10px 10px;
-        padding: 20px;
-    }
-}
-
-/* Override main container styles for installation pages */
-.main-container.installation-page {
-    padding: 0; /* Remove default padding */
-    margin: 0;
-    background: transparent;
-}
-
-/* Animation keyframes */
-@keyframes install-glow {
-    0% {
-        box-shadow: 
-            0 8px 25px rgba(76, 175, 80, 0.4),
-            0 0 40px rgba(76, 175, 80, 0.3);
-    }
-    100% {
-        box-shadow: 
-            0 12px 35px rgba(76, 175, 80, 0.6),
-            0 0 60px rgba(76, 175, 80, 0.5);
-    }
-}
-
-@keyframes update-glow {
-    0% {
-        box-shadow: 
-            0 8px 25px rgba(255, 152, 0, 0.4),
-            0 0 40px rgba(255, 152, 0, 0.3);
-    }
-    100% {
-        box-shadow: 
-            0 12px 35px rgba(255, 152, 0, 0.6),
-            0 0 60px rgba(255, 152, 0, 0.5);
-    }
-}
-
-@keyframes modify-glow {
-    0% {
-        box-shadow: 
-            0 8px 25px rgba(33, 150, 243, 0.4),
-            0 0 40px rgba(33, 150, 243, 0.3);
-    }
-    100% {
-        box-shadow: 
-            0 12px 35px rgba(33, 150, 243, 0.6),
-            0 0 60px rgba(33, 150, 243, 0.5);
-    }
-}
-
-@keyframes golden-glow {
-    0% {
-        box-shadow: 
-            0 4px 15px rgba(255, 215, 0, 0.4),
-            0 0 25px rgba(255, 215, 0, 0.3);
-    }
-    100% {
-        box-shadow: 
-            0 8px 25px rgba(255, 215, 0, 0.6),
-            0 0 40px rgba(255, 215, 0, 0.5);
-    }
-}
-
-/* Override old header and footer styles */
-.app-header {
-    display: none !important; /* Hide old header */
-}
-
-.app-footer {
-    display: none !important; /* Hide old footer */
-}
-
-.installation-page-header {
-    display: none !important; /* Hide old installation header */
-}
-
-.main-container {
-    height: 100vh !important;
-    overflow: hidden !important;
-    padding: 0 !important;
-    margin: 0 !important;
-}
-
-.main-container.installation-page {
-    height: 100vh !important;
-    overflow: hidden !important;
-    padding: 0 !important;
-    margin: 0 !important;
-}
-
-// 5. Optional: Add smooth transitions between tabs
-.page-content-area > * {
-    animation: fadeIn 0.3s ease-in-out;
-}
-
-@keyframes fadeIn {
-    from {
-        opacity: 0;
-        transform: translateY(10px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
+/* Optional features description */
+.optional-features-description {
+    text-align: center;
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 1rem;
+    margin: 10px auto;
+    max-width: 700px;
 }
