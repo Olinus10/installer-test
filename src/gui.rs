@@ -1103,10 +1103,10 @@ pub fn InstallationManagementPage(
     // Unwrap installation from result
     let installation = installation_result.read().as_ref().unwrap().clone();
     
-    // Create the installation state signal AFTER we have the installation
+    // Create the installation state signal
     let mut installation_state = use_signal(|| installation.clone());
     
-    // Clone needed values to avoid partial moves
+    // Clone needed values
     let installation_id_for_delete = installation.id.clone();
     let installation_id_for_launch = installation.id.clone();
     let installation_for_update = installation.clone();
@@ -1133,66 +1133,6 @@ pub fn InstallationManagementPage(
     // Preset update message signal
     let mut preset_update_msg = use_signal(|| Option::<String>::None);
 
-    // Function to refresh installation data
-    let _refresh_installation = move |updated_installation: Installation| {
-        // Update the current installation data
-        installations.with_mut(|list| {
-            if let Some(index) = list.iter().position(|i| i.id == updated_installation.id) {
-                list[index] = updated_installation.clone();
-            }
-        });
-    };
-    
-    // Function to update installation
-    let _update_installation = move |updated: Installation| {
-        // Update in the installations list
-        installations.with_mut(|list| {
-            if let Some(index) = list.iter().position(|i| i.id == updated.id) {
-                list[index] = updated.clone();
-            }
-        });
-        
-        // Reload the current view
-        spawn(async move {
-            match installation::load_installation(&updated.id) {
-                Ok(_refreshed) => {
-                    // The list has already been updated
-                },
-                Err(e) => {
-                    debug!("Failed to reload installation: {}", e);
-                }
-            }
-        });
-    };
-    
-    // Load universal manifest for features information
-    let universal_manifest = use_resource(move || async {
-        match crate::universal::load_universal_manifest(&crate::CachedHttpClient::new(), None).await {
-            Ok(manifest) => {
-                debug!("Successfully loaded universal manifest for features");
-                Some(manifest)
-            },
-            Err(e) => {
-                error!("Failed to load universal manifest: {}", e);
-                None
-            }
-        }
-    });
-    
-    // Load presets
-    let presets = use_resource(move || async {
-        match crate::preset::load_presets(&crate::CachedHttpClient::new(), None).await {
-            Ok(presets) => {
-                debug!("Successfully loaded {} presets", presets.len());
-                presets
-            },
-            Err(e) => {
-                error!("Failed to load presets: {}", e);
-                Vec::new()
-            }
-        }
-    });
-    
     // Effect to detect changes
     use_effect({
         let enabled_features_for_effect = enabled_features.clone();
@@ -1213,7 +1153,7 @@ pub fn InstallationManagementPage(
     // Handle install/update with progress tracking
     let installation_for_update_clone = installation_for_update.clone();
 
-    // Define the actual update process as a separate closure first
+    // Define the actual update process
     let mut proceed_with_update = {
         let installation_for_update_clone = installation_for_update_clone.clone();
         let enabled_features = enabled_features.clone();
@@ -1320,7 +1260,7 @@ pub fn InstallationManagementPage(
         }
     };
 
-    // Now define the handle_update function that uses proceed_with_update
+    // Handle update function
     let handle_update = {
         let mut proceed_with_update = proceed_with_update.clone();
         let installation_state = installation_state.clone();
@@ -1338,7 +1278,7 @@ pub fn InstallationManagementPage(
         }
     };
         
-    // Button label based on state
+    // Button label and state
     let (action_button_label, button_class, button_disabled) = {
         let current_installation = installation_state.read();
         let installed = current_installation.installed;
@@ -1346,49 +1286,18 @@ pub fn InstallationManagementPage(
         let has_changes = *has_changes.read();
         let is_installing = *is_installing.read();
         
-        debug!("Button state check: installed={}, update_available={}, has_changes={}, is_installing={}", 
-               installed, update_available, has_changes, is_installing);
-        
         if is_installing {
-            ("INSTALLING...", "action-button installing", true)
+            ("INSTALLING...", "footer-action-button installing", true)
         } else if !installed {
-            ("INSTALL", "action-button install-button", false)
+            ("INSTALL", "footer-action-button install", false)
         } else if update_available {
-            ("UPDATE", "action-button update-button", false)
+            ("UPDATE", "footer-action-button update", false)
         } else if has_changes {
-            ("UPDATE", "action-button modify-button", false)
+            ("UPDATE", "footer-action-button modify", false)
         } else {
-            ("INSTALLED", "action-button up-to-date", true)
+            ("INSTALLED", "footer-action-button up-to-date", true)
         }
     };
-
-    // Also add this effect to refresh installation state periodically:
-    use_effect({
-        let installation_id = installation.id.clone();
-        let mut installations = installations.clone();
-        
-        move || {
-            let installation_id = installation_id.clone();
-            let mut installations = installations.clone();
-            
-            spawn(async move {
-                // Reload installation state after any changes
-                if let Ok(updated_inst) = crate::installation::load_installation(&installation_id) {
-                    installations.with_mut(|list| {
-                        if let Some(index) = list.iter().position(|i| i.id == updated_inst.id) {
-                            list[index] = updated_inst;
-                        }
-                    });
-                }
-            });
-        }
-    });
-        
-    // Button disable logic
-    let action_button_disabled = *is_installing.read() || 
-                                (installation.installed && 
-                                 !installation.update_available && 
-                                 !*has_changes.read());
         
     // Handle launch
     let handle_launch = {
@@ -1424,76 +1333,34 @@ pub fn InstallationManagementPage(
         }
     };
 
-    use_effect({
-        let installation_id = installation.id.clone();
-        let mut installations = installations.clone();
-        
-        move || {
-            // Set up a timer to periodically check installation state
-            let installation_id = installation_id.clone();
-            let mut installations = installations.clone();
-            
-            spawn(async move {
-                loop {
-                    tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
-                    
-                    if let Ok(updated_inst) = crate::installation::load_installation(&installation_id) {
-                        installations.with_mut(|list| {
-                            if let Some(index) = list.iter().position(|i| i.id == installation_id) {
-                                if list[index].installed != updated_inst.installed || 
-                                   list[index].update_available != updated_inst.update_available {
-                                    list[index] = updated_inst;
-                                }
-                            }
-                        });
-                    }
-                }
-            });
+    // Load universal manifest for features
+    let universal_manifest = use_resource(move || async {
+        match crate::universal::load_universal_manifest(&crate::CachedHttpClient::new(), None).await {
+            Ok(manifest) => {
+                debug!("Successfully loaded universal manifest for features");
+                Some(manifest)
+            },
+            Err(e) => {
+                error!("Failed to load universal manifest: {}", e);
+                None
+            }
         }
     });
-
-    use_effect({
-        let installation_id = installation.id.clone();
-        let mut installation_state = installation_state.clone();
-        
-        move || {
-            let installation_id = installation_id.clone();
-            let mut installation_state = installation_state.clone();
-            
-            spawn(async move {
-                loop {
-                    tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
-                    
-                    if let Ok(updated_inst) = crate::installation::load_installation(&installation_id) {
-                        installation_state.set(updated_inst);
-                    }
-                }
-            });
-        }
-    });
-
-    use_effect({
-        let installation = installation.clone();
-        let presets_resource = presets.clone();
-        let mut preset_update_msg = preset_update_msg.clone();
-        
-        move || {
-            // Clone the presets data if available
-            if let Some(presets_data) = presets_resource.read().as_ref() {
-                let presets_vec = presets_data.clone(); // Clone the data
-                let installation_clone = installation.clone();
-                
-                spawn(async move {
-                    if let Some(msg) = installation_clone.check_preset_updates(&presets_vec).await {
-                        preset_update_msg.set(Some(msg));
-                    }
-                });
+    
+    // Load presets
+    let presets = use_resource(move || async {
+        match crate::preset::load_presets(&crate::CachedHttpClient::new(), None).await {
+            Ok(presets) => {
+                debug!("Successfully loaded {} presets", presets.len());
+                presets
+            },
+            Err(e) => {
+                error!("Failed to load presets: {}", e);
+                Vec::new()
             }
         }
     });
 
-    let handle_launch_header = handle_launch.clone();
-    
     rsx! {
         div { class: "installation-management-container",
             // Show progress view if installing
@@ -1505,147 +1372,108 @@ pub fn InstallationManagementPage(
                     title: format!("Installing {}", installation.name)
                 }
             } else {
-                // NEW: Integrated header with all controls
-                div { class: "installation-integrated-header",
-                    div { class: "header-left-section",
-                        // Back button
+                // Modern fixed header
+                header { class: "installation-header",
+                    div { class: "installation-header-left",
                         button { 
                             class: "header-back-button",
                             onclick: move |_| onback.call(()),
                             "← Back"
                         }
                         
-                        // Installation info section
-                        div { class: "header-installation-info",
-                            h1 { class: "header-installation-title", "{installation.name}" }
-                            div { class: "header-installation-meta",
-                                span { class: "meta-chip", "Minecraft {installation.minecraft_version}" }
-                                span { class: "meta-chip", "{installation.loader_type} {installation.loader_version}" }
-                                
-                                if installation.update_available {
-                                    span { class: "meta-chip update-chip", "Update Available" }
-                                }
+                        h1 { class: "installation-header-title", "{installation.name}" }
+                    }
+                    
+                    div { class: "installation-header-center",
+                        button { 
+                            class: if *active_tab.read() == "features" { 
+                                "installation-tab active" 
+                            } else { 
+                                "installation-tab" 
+                            },
+                            onclick: move |_| active_tab.set("features"),
+                            "Features"
+                            
+                            if *features_modified.read() {
+                                span { class: "tab-modified-dot" }
                             }
+                        }
+                        
+                        button { 
+                            class: if *active_tab.read() == "performance" { 
+                                "installation-tab active" 
+                            } else { 
+                                "installation-tab" 
+                            },
+                            onclick: move |_| active_tab.set("performance"),
+                            "Performance"
+                            
+                            if *performance_modified.read() {
+                                span { class: "tab-modified-dot" }
+                            }
+                        }
+                        
+                        button { 
+                            class: if *active_tab.read() == "settings" { 
+                                "installation-tab active" 
+                            } else { 
+                                "installation-tab" 
+                            },
+                            onclick: move |_| active_tab.set("settings"),
+                            "Settings"
                         }
                     }
                     
-                    div { class: "header-center-section",
-                        // Tab navigation in header
-                        div { class: "header-tabs",
-                            button { 
-                                class: if *active_tab.read() == "features" { "header-tab active" } else { "header-tab" },
-                                onclick: move |_| active_tab.set("features"),
-                                "Features"
-                                
-                                // Show indicator if features modified
-                                if *features_modified.read() {
-                                    span { class: "tab-modified-indicator" }
-                                }
-                            }
-                            button { 
-                                class: if *active_tab.read() == "performance" { "header-tab active" } else { "header-tab" },
-                                onclick: move |_| active_tab.set("performance"),
-                                "Performance"
-                                
-                                // Show indicator if performance settings modified
-                                if *performance_modified.read() {
-                                    span { class: "tab-modified-indicator" }
-                                }
-                            }
-                            button { 
-                                class: if *active_tab.read() == "settings" { "header-tab active" } else { "header-tab" },
-                                onclick: move |_| active_tab.set("settings"),
-                                "Settings"
-                            }
-                        }
-                    }
-                    
-                    div { class: "header-right-section",
-                        // Launch button in header
+                    div { class: "installation-header-right",
                         button {
                             class: "header-launch-button",
                             disabled: !installation_state.read().installed || *is_installing.read(),
-                            onclick: handle_launch_header,
+                            onclick: handle_launch,
                             if installation_state.read().installed {
                                 "LAUNCH"
                             } else {
                                 "INSTALL FIRST"
                             }
                         }
-                        
-                        // Launcher settings button
-                        button { 
-                            class: "header-settings-button",
-                            onclick: move |_| {
-                                // Handle launcher settings - you can implement this
-                                debug!("Launcher settings clicked");
-                            },
-                            "Launcher"
-                        }
                     }
                 }
 
-                // Error display
-                if let Some(error) = &*installation_error.read() {
-                    div { class: "error-notification",
-                        div { class: "error-message", "{error}" }
-                        button { 
-                            class: "error-close",
-                            onclick: move |_| installation_error.set(None),
-                            "×"
+                // Main content area with padding for fixed header/footer
+                div { class: "installation-page-content",
+                    // Error display
+                    if let Some(error) = &*installation_error.read() {
+                        div { class: "error-notification",
+                            div { class: "error-message", "{error}" }
+                            button { 
+                                class: "error-close",
+                                onclick: move |_| installation_error.set(None),
+                                "×"
+                            }
                         }
                     }
-                }
 
-                // Preset update notification
-                if let Some(update_msg) = preset_update_msg.read().clone() {
-                    div { class: "preset-update-notification",
-                        "{update_msg}"
-                        button {
-                            onclick: move |_| {
-                                let presets_vec = presets.read().clone().unwrap_or_default();
-                                if let Some(base_id) = &installation_for_preset_update.base_preset_id {
-                                    if let Some(preset) = find_preset_by_id(&presets_vec, base_id) {
-                                        let mut installation_clone = installation_for_preset_update.clone();
-                                        installation_clone.apply_preset_update(&preset);
-                                        let _ = installation_clone.save();
-                                    }
-                                }
-                            },
-                            "Apply Preset Update"
+                    // Update warning dialog (if needed)
+                    if *show_update_warning.read() {
+                        UpdateWarningDialog {
+                            onclose: move |_| show_update_warning.set(false),
+                            onproceed: move |_| {
+                                show_update_warning.set(false);
+                                proceed_with_update();
+                            }
                         }
                     }
-                }
-
-                // Update warning dialog (keep existing)
-                if *show_update_warning.read() {
-                    // [Keep existing update warning dialog code]
-                }
-                        
-                // Main content area - simplified, no tabs here
-                div { class: "installation-main-content",
+                    
+                    // Tab content
                     match *active_tab.read() {
                         "features" => {
                             rsx! {
-                                div { class: "features-tab-with-actions",
-                                    FeaturesTab {
-                                        universal_manifest: universal_manifest.read().clone().flatten(),
-                                        presets: presets.read().clone().unwrap_or_default(),
-                                        enabled_features: enabled_features,
-                                        selected_preset: selected_preset,
-                                        filter_text: filter_text,
-                                        installation_id: installation.id.clone(),
-                                    }
-                                    
-                                    // Install/Update button moved here
-                                    div { class: "features-tab-actions",                    
-                                        button {
-                                            class: button_class,
-                                            disabled: button_disabled,
-                                            onclick: handle_update,
-                                            {action_button_label}
-                                        }
-                                    }
+                                FeaturesTab {
+                                    universal_manifest: universal_manifest.read().clone().flatten(),
+                                    presets: presets.read().clone().unwrap_or_default(),
+                                    enabled_features: enabled_features,
+                                    selected_preset: selected_preset,
+                                    filter_text: filter_text,
+                                    installation_id: installation.id.clone(),
                                 }
                             }
                         },
@@ -1664,16 +1492,13 @@ pub fn InstallationManagementPage(
                                     installation: installation.clone(),
                                     installation_id: installation_id_for_delete.clone(),
                                     ondelete: move |_| {
-                                        // Handle delete functionality - remove from installations list
                                         let id_to_delete = installation_id_for_delete.clone();
                                         installations.with_mut(|list| {
                                             list.retain(|inst| inst.id != id_to_delete);
                                         });
-                                        // Navigate back to home
                                         onback.call(());
                                     },
                                     onupdate: move |updated_installation: Installation| {
-                                        // Update the installation data in the list
                                         installations.with_mut(|list| {
                                             if let Some(index) = list.iter().position(|i| i.id == updated_installation.id) {
                                                 list[index] = updated_installation.clone();
@@ -1684,6 +1509,100 @@ pub fn InstallationManagementPage(
                             }
                         },
                         _ => rsx! { div { "Unknown tab selected" } }
+                    }
+                }
+                
+                // Modern fixed footer
+                footer { class: "installation-footer",
+                    div { class: "footer-info",
+                        div { class: "footer-info-item",
+                            span { class: "footer-info-label", "MINECRAFT" }
+                            span { class: "footer-info-value", "{installation.minecraft_version}" }
+                        }
+                        
+                        div { class: "footer-divider" }
+                        
+                        div { class: "footer-info-item",
+                            span { class: "footer-info-label", "LOADER" }
+                            span { class: "footer-info-value", "{installation.loader_type} {installation.loader_version}" }
+                        }
+                        
+                        div { class: "footer-divider" }
+                        
+                        div { class: "footer-info-item",
+                            span { class: "footer-info-label", "MEMORY" }
+                            span { class: "footer-info-value", "{installation.memory_allocation} MB" }
+                        }
+                        
+                        if installation.update_available {
+                            Fragment {
+                                div { class: "footer-divider" }
+                                div { class: "footer-info-item",
+                                    span { class: "footer-info-label", "STATUS" }
+                                    span { class: "footer-info-value", style: "color: #ffb900;", "Update Available" }
+                                }
+                            }
+                        }
+                    }
+                    
+                    button {
+                        class: button_class,
+                        disabled: button_disabled,
+                        onclick: handle_update,
+                        {action_button_label}
+                    }
+                }
+            }
+        }
+    }
+}
+
+#[component]
+fn UpdateWarningDialog(
+    onclose: EventHandler<()>,
+    onproceed: EventHandler<()>,
+) -> Element {
+    rsx! {
+        div { class: "modal-overlay",
+            div { class: "modal-container update-warning-dialog",
+                div { class: "modal-header",
+                    h3 { "Update Warning" }
+                    button { 
+                        class: "modal-close",
+                        onclick: move |_| onclose.call(()),
+                        "×"
+                    }
+                }
+                
+                div { class: "modal-content",
+                    div { class: "warning-message",
+                        p { "Updating will replace all mod files. Make sure to:" }
+                    }
+                    
+                    div { class: "protection-steps",
+                        ul {
+                            li { "Back up any custom configurations" }
+                            li { "Save any modified settings files" }
+                            li { "Note any personal tweaks you've made" }
+                        }
+                    }
+                    
+                    div { class: "warning-note",
+                        p { "Your selected features will be preserved." }
+                    }
+                }
+                
+                div { class: "modal-footer",
+                    button { 
+                        class: "cancel-button",
+                        onclick: move |_| onclose.call(()),
+                        "Cancel"
+                    }
+                    
+                    button { 
+                        class: "update-proceed-button",
+                        onclick: move |_| onproceed.call(()),
+                        "Proceed with Update"
                     }
                 }
             }
