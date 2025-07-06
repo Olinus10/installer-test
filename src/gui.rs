@@ -865,9 +865,9 @@ fn ModernAppLayout(
             }
             
             // Show scroll indicator if there's more content
-            ScrollIndicator {
-                visible: *show_scroll_indicator.read() && !is_home_page
-            }
+            if *show_scroll_indicator.read() && !is_home_page {
+                ScrollIndicator {}
+            }    
             
             // Floating back button (only on installation pages)
             if !is_home_page {
