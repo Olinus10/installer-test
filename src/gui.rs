@@ -577,10 +577,15 @@ fn FloatingLogo(onclick: EventHandler<()>) -> Element {
 }
 
 #[component]
-fn HomeFloatingHeader() -> Element {
+fn HomeFloatingHeader(on_open_settings: EventHandler<()>) -> Element {
     rsx! {
         div { class: "home-floating-header",
             h1 { class: "home-header-title", "Majestic Overhaul" }
+            button { 
+                class: "home-settings-tab",
+                onclick: move |_| on_open_settings.call(()),
+                "Launcher Settings"
+            }
         }
     }
 }
@@ -592,14 +597,23 @@ fn InstallationFloatingHeader(
     loader_info: String,
     active_tab: Signal<String>,
     on_tab_change: EventHandler<String>,
+    on_back: EventHandler<()>,
 ) -> Element {
     rsx! {
         div { class: "installation-floating-header",
             div { class: "installation-header-info",
-                h1 { class: "installation-header-title", "{installation_name}" }
-                div { class: "installation-header-meta",
-                    span { class: "installation-meta-chip", "Minecraft {minecraft_version}" }
-                    span { class: "installation-meta-chip", "{loader_info}" }
+                button { 
+                    class: "installation-back-button",
+                    onclick: move |_| on_back.call(()),
+                    "←"
+                }
+                
+                div { class: "installation-title-section",
+                    h1 { class: "installation-header-title", "{installation_name}" }
+                    div { class: "installation-header-meta",
+                        span { class: "installation-meta-chip", "Minecraft {minecraft_version}" }
+                        span { class: "installation-meta-chip", "{loader_info}" }
+                    }
                 }
             }
             
@@ -677,11 +691,11 @@ fn FloatingInstallButton(
 fn ScrollIndicator() -> Element {
     rsx! {
         div { class: "scroll-indicator",
-            span { "Scroll down for more info" }
             span { class: "scroll-indicator-arrow", "↓" }
         }
     }
 }
+
 
 #[component]
 fn FloatingDiscordButton() -> Element {
@@ -763,9 +777,9 @@ fn FloatingFooter(
                             } else if info.needs_update {
                                 "UPDATE"
                             } else if info.has_changes {
-                                "APPLY CHANGES"
+                                "MODIFY"
                             } else {
-                                "UP TO DATE"
+                                "INSTALLED"
                             }
                         }
                     }
@@ -801,6 +815,7 @@ fn ModernAppLayout(
     on_launch: Option<EventHandler<()>>,
     on_back: Option<EventHandler<()>>,
     on_install: Option<EventHandler<()>>,
+    on_open_settings: Option<EventHandler<()>>, // NEW: Settings handler
     has_changes: bool,
     is_installing: bool,
     install_button_text: String,
@@ -812,13 +827,12 @@ fn ModernAppLayout(
     
     // Effect to check if content is scrollable
     use_effect(move || {
-        // This would need to be implemented with JavaScript to check scroll height
-        // For now, we'll show it by default and hide after user scrolls
+        // Show indicator by default and hide after user scrolls
         show_scroll_indicator.set(true);
         
-        // Auto-hide after 5 seconds
+        // Auto-hide after 12 seconds (longer duration)
         spawn(async move {
-            tokio::time::sleep(tokio::time::Duration::from_secs(5)).await;
+            tokio::time::sleep(tokio::time::Duration::from_secs(12)).await;
             show_scroll_indicator.set(false);
         });
     });
@@ -832,15 +846,22 @@ fn ModernAppLayout(
             
             // Show appropriate header
             if is_home_page {
-                HomeFloatingHeader {}
+                if let Some(settings_handler) = on_open_settings {
+                    HomeFloatingHeader {
+                        on_open_settings: settings_handler
+                    }
+                }
                 FloatingDiscordButton {}
             } else if let Some(installation) = &current_installation {
-                InstallationFloatingHeader {
-                    installation_name: installation.name.clone(),
-                    minecraft_version: installation.minecraft_version.clone(),
-                    loader_info: format!("{} {}", installation.loader_type, installation.loader_version),
-                    active_tab: active_tab,
-                    on_tab_change: on_tab_change,
+                if let Some(back_handler) = on_back {
+                    InstallationFloatingHeader {
+                        installation_name: installation.name.clone(),
+                        minecraft_version: installation.minecraft_version.clone(),
+                        loader_info: format!("{} {}", installation.loader_type, installation.loader_version),
+                        active_tab: active_tab,
+                        on_tab_change: on_tab_change,
+                        on_back: back_handler,
+                    }
                 }
                 
                 if let Some(launch_handler) = on_launch {
@@ -866,20 +887,13 @@ fn ModernAppLayout(
                 {children}
             }
             
-            // Show scroll indicator if there's more content
-            if *show_scroll_indicator.read() && !is_home_page {
+            // Show scroll indicator if there's more content (only on installation pages with install button)
+            if *show_scroll_indicator.read() && !is_home_page && on_install.is_some() {
                 ScrollIndicator {}
             }    
             
-            // Floating back button (only on installation pages)
+            // Floating install button (only on installation pages)
             if !is_home_page {
-                if let Some(back_handler) = on_back {
-                    FloatingBackButton {
-                        onclick: back_handler
-                    }
-                }
-                
-                // Floating install button (only on installation pages)
                 if let Some(install_handler) = on_install {
                     FloatingInstallButton {
                         button_text: install_button_text,
@@ -1793,7 +1807,6 @@ pub fn InstallationManagementPageWithLayout(
         }
     }
 }
-
 #[component]
 fn ProgressView(
     value: i64,
