@@ -894,6 +894,9 @@ fn ModernAppLayout(
     install_button_text: String,
     install_button_class: String,
     install_button_disabled: bool,
+    // Add these new parameters to get the real data:
+    enabled_features: Option<Signal<Vec<String>>>,
+    universal_manifest: Option<UniversalManifest>,
 ) -> Element {
     // State for scroll indicator
     let mut show_scroll_indicator = use_signal(|| false);
@@ -985,20 +988,69 @@ fn ModernAppLayout(
             }
             
             // Show installation info above install button (only on installation pages)
-            if !is_home_page {
-                if let Some(installation) = &current_installation {
-                    // Calculate enabled features count more accurately
-                    let total_features = 50; // You can make this dynamic based on manifest
-                    let enabled_count = installation.enabled_features.len();
-                    let features_count = format!("{}/{}", enabled_count, total_features);
+    if !is_home_page {
+        if let Some(installation) = &current_installation {
+            // Calculate enabled features count DYNAMICALLY
+            let features_count = {
+                if let (Some(enabled_features_signal), Some(manifest)) = (&enabled_features, &universal_manifest) {
+                    // Real counting logic from features tab
+                    let mut total_components = 0;
+                    let mut enabled_components = 0;
                     
-                    InstallButtonInfo {
-                        features_count: features_count,
-                        minecraft_version: installation.minecraft_version.clone(),
-                        loader_info: format!("{} {}", installation.loader_type, installation.loader_version),
+                    // Count mods
+                    for mod_component in &manifest.mods {
+                        total_components += 1;
+                        if enabled_features_signal.read().contains(&mod_component.id) || mod_component.id == "default" {
+                            enabled_components += 1;
+                        }
                     }
+                    
+                    // Count shaderpacks
+                    for shader in &manifest.shaderpacks {
+                        total_components += 1;
+                        if enabled_features_signal.read().contains(&shader.id) || shader.id == "default" {
+                            enabled_components += 1;
+                        }
+                    }
+                    
+                    // Count resourcepacks
+                    for resource in &manifest.resourcepacks {
+                        total_components += 1;
+                        if enabled_features_signal.read().contains(&resource.id) || resource.id == "default" {
+                            enabled_components += 1;
+                        }
+                    }
+                    
+                    // Count includes (but only ones that will actually be downloaded)
+                    for include in &manifest.include {
+                        total_components += 1;
+                        let should_include = if include.id.is_empty() || include.id == "default" {
+                            true
+                        } else if !include.optional {
+                            true
+                        } else {
+                            enabled_features_signal.read().contains(&include.id)
+                        };
+                        
+                        if should_include {
+                            enabled_components += 1;
+                        }
+                    }
+                    
+                    format!("{}/{}", enabled_components, total_components)
+                } else {
+                    // Fallback if data isn't available
+                    format!("{}/Loading...", installation.enabled_features.len())
                 }
+            };
+            
+            InstallButtonInfo {
+                features_count: features_count,
+                minecraft_version: installation.minecraft_version.clone(),
+                loader_info: format!("{} {}", installation.loader_type, installation.loader_version),
             }
+        }
+    }
             
             // Floating install button (only on installation pages)
             if !is_home_page {
@@ -1043,26 +1095,30 @@ fn HomePage(
     let latest_installation = installations().first().cloned();
     
     rsx! {
-        ModernAppLayout {
-            is_home_page: true,
-            current_installation: None,
-            active_tab: use_signal(|| "home".to_string()),
-            has_changes: false,
-            is_installing: false,
-            install_button_text: "".to_string(),
-            install_button_class: "".to_string(),
-            install_button_disabled: true,
-            on_go_home: EventHandler::new(move |_: ()| {
-                // Already on home, do nothing
-            }),
-            on_tab_change: EventHandler::new(move |_tab: String| {
-                // No tab changes on home page
-            }),
-            on_launch: None,
-            on_back: None,
-            on_install: None,
-            on_open_settings: Some(on_open_settings), // Pass the settings handler
-            
+ModernAppLayout {
+    is_home_page: false,
+    current_installation: Some(installation_state.read().clone()),
+    active_tab: active_tab,
+    has_changes: *has_changes.read(),
+    is_installing: *is_installing.read(),
+    install_button_text: button_text,
+    install_button_class: button_class,
+    install_button_disabled: button_disabled,
+    on_go_home: EventHandler::new(move |_: ()| {
+        onback.call(());
+    }),
+    on_tab_change: EventHandler::new(move |tab: String| {
+        active_tab.set(tab);
+    }),
+    on_launch: Some(handle_launch),
+    on_back: Some(EventHandler::new(move |_: ()| {
+        onback.call(());
+    })),
+    on_install: Some(handle_install_update),
+    on_open_settings: None,
+    // Add these new parameters:
+    enabled_features: Some(enabled_features),
+    universal_manifest: universal_manifest.read().clone().flatten(),
             // Home page content
             div { class: "home-container",
                 // Error notification if any
