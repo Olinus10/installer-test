@@ -844,6 +844,7 @@ fn InstallButtonInfo(
 }
 
 // Update your main app layout
+
 #[component]
 fn ModernLayout(
     is_home_page: bool,
@@ -860,13 +861,16 @@ fn ModernLayout(
     universal_manifest: Option<crate::universal::UniversalManifest>,
 ) -> Element {
     rsx! {
-        div { class: "modern-layout",
+        div { 
+            class: "modern-layout",
+            "data-home-page": if is_home_page { "true" } else { "false" },
+            
             // Always show floating logo
             FloatingLogo {
                 onclick: on_go_home
             }
             
-            // Show installation header only on installation pages
+            // Show installation header ONLY on installation pages
             if !is_home_page {
                 if let Some(installation) = &current_installation {
                     InstallationHeader {
@@ -875,19 +879,19 @@ fn ModernLayout(
                         on_tab_change: on_tab_change,
                     }
                     
-                    // Show launch button if installed
+                    // Show launch button ONLY if installed
                     if installation.installed {
                         if let Some(launch_handler) = on_launch {
                             FloatingLaunchButton {
                                 is_installed: installation.installed,
-                                is_installing: false, // You'll need to pass this properly
+                                is_installing: false,
                                 onclick: launch_handler,
                             }
                         }
                     }
                 }
             } else {
-                // Show Discord button only on home page
+                // Show Discord button ONLY on home page
                 FloatingDiscordButton {}
             }
             
@@ -901,75 +905,77 @@ fn ModernLayout(
                 {children}
             }
             
-            // Modern footer
-            ModernFooter {
-                is_home_page: is_home_page,
-                installation_info: if let Some(installation) = &current_installation {
-                    // Calculate features count
-                    let features_count = if let (Some(enabled_features_signal), Some(manifest)) = (&enabled_features, &universal_manifest) {
-                        let mut total_components = 0;
-                        let mut enabled_components = 0;
-                        
-                        // Count mods
-                        for mod_component in &manifest.mods {
-                            total_components += 1;
-                            if enabled_features_signal.read().contains(&mod_component.id) || mod_component.id == "default" {
-                                enabled_components += 1;
-                            }
-                        }
-                        
-                        // Count shaderpacks
-                        for shader in &manifest.shaderpacks {
-                            total_components += 1;
-                            if enabled_features_signal.read().contains(&shader.id) || shader.id == "default" {
-                                enabled_components += 1;
-                            }
-                        }
-                        
-                        // Count resourcepacks
-                        for resource in &manifest.resourcepacks {
-                            total_components += 1;
-                            if enabled_features_signal.read().contains(&resource.id) || resource.id == "default" {
-                                enabled_components += 1;
-                            }
-                        }
-                        
-                        // Count includes
-                        for include in &manifest.include {
-                            total_components += 1;
-                            let should_include = if include.id.is_empty() || include.id == "default" {
-                                true
-                            } else if !include.optional {
-                                true
-                            } else {
-                                enabled_features_signal.read().contains(&include.id)
-                            };
+            // Show footer ONLY on installation pages
+            if !is_home_page {
+                ModernFooter {
+                    is_home_page: false,
+                    installation_info: if let Some(installation) = &current_installation {
+                        // Calculate features count
+                        let features_count = if let (Some(enabled_features_signal), Some(manifest)) = (&enabled_features, &universal_manifest) {
+                            let mut total_components = 0;
+                            let mut enabled_components = 0;
                             
-                            if should_include {
-                                enabled_components += 1;
+                            // Count mods
+                            for mod_component in &manifest.mods {
+                                total_components += 1;
+                                if enabled_features_signal.read().contains(&mod_component.id) || mod_component.id == "default" {
+                                    enabled_components += 1;
+                                }
                             }
-                        }
+                            
+                            // Count shaderpacks
+                            for shader in &manifest.shaderpacks {
+                                total_components += 1;
+                                if enabled_features_signal.read().contains(&shader.id) || shader.id == "default" {
+                                    enabled_components += 1;
+                                }
+                            }
+                            
+                            // Count resourcepacks
+                            for resource in &manifest.resourcepacks {
+                                total_components += 1;
+                                if enabled_features_signal.read().contains(&resource.id) || resource.id == "default" {
+                                    enabled_components += 1;
+                                }
+                            }
+                            
+                            // Count includes
+                            for include in &manifest.include {
+                                total_components += 1;
+                                let should_include = if include.id.is_empty() || include.id == "default" {
+                                    true
+                                } else if !include.optional {
+                                    true
+                                } else {
+                                    enabled_features_signal.read().contains(&include.id)
+                                };
+                                
+                                if should_include {
+                                    enabled_components += 1;
+                                }
+                            }
+                            
+                            format!("{}/{}", enabled_components, total_components)
+                        } else {
+                            "Loading...".to_string()
+                        };
                         
-                        format!("{}/{}", enabled_components, total_components)
+                        Some(InstallationFooterInfo {
+                            minecraft_version: installation.minecraft_version.clone(),
+                            loader_type: installation.loader_type.clone(),
+                            loader_version: installation.loader_version.clone(),
+                            features_count: features_count,
+                            installed: installation.installed,
+                            needs_update: installation.update_available,
+                            has_changes: has_changes,
+                            is_up_to_date: installation.installed && !installation.update_available && !has_changes,
+                        })
                     } else {
-                        format!("{}/Loading...", installation.enabled_features.len())
-                    };
-                    
-                    Some(InstallationFooterInfo {
-                        minecraft_version: installation.minecraft_version.clone(),
-                        loader_type: installation.loader_type.clone(),
-                        loader_version: installation.loader_version.clone(),
-                        features_count: features_count,
-                        installed: installation.installed,
-                        needs_update: installation.update_available,
-                        has_changes: has_changes,
-                        is_up_to_date: installation.installed && !installation.update_available && !has_changes,
-                    })
-                } else {
-                    None
-                },
-                on_back: on_back,
-                on_install: on_install,
+                        None
+                    },
+                    on_back: on_back,
+                    on_install: on_install,
+                }
             }
         }
     }
@@ -2420,40 +2426,40 @@ pub fn app() -> Element {
     };
 
     // Final render with modern layout
-    rsx! {
-        div {
-            style { {complete_css} }
-            Modal {}
-            BackgroundParticles {}
+rsx! {
+    div {
+        style { {complete_css} }
+        Modal {}
+        BackgroundParticles {}
+        
+        ModernLayout {
+            is_home_page: is_home_page,
+            current_installation: current_installation.clone(),
+            active_tab: use_signal(|| "features".to_string()),
+            has_changes: false,
+            enabled_features: None,
+            universal_manifest: universal_manifest.read().clone().flatten(),
+            on_go_home: on_go_home,
+            on_tab_change: on_tab_change,
+            on_launch: on_launch_handler,
+            on_back: on_back_handler,
+            on_install: on_install_handler,
             
-            ModernLayout {
-                is_home_page: is_home_page,
-                current_installation: current_installation.clone(),
-                active_tab: use_signal(|| "features".to_string()),
-                has_changes: false,
-                enabled_features: None,
-                universal_manifest: universal_manifest.read().clone().flatten(),
-                on_go_home: on_go_home,
-                on_tab_change: on_tab_change,
-                on_launch: on_launch_handler,
-                on_back: on_back_handler,
-                on_install: on_install_handler,
-                
-                {main_content}
-            }
-            
-            // Manifest error display
-            if let Some(error) = manifest_error() {
-                ManifestErrorDisplay {
-                    error: error.message.clone(),
-                    error_type: format!("{}", error.error_type),
-                    file_name: error.file_name.clone(),
-                    onclose: move |_| manifest_error.set(None),
-                    onreport: move |_| {
-                        let _ = open_url("https://discord.com/channels/778965021656743966/1234506784626970684");
-                    }
+            {main_content}
+        }
+        
+        // Manifest error display
+        if let Some(error) = manifest_error() {
+            ManifestErrorDisplay {
+                error: error.message.clone(),
+                error_type: format!("{}", error.error_type),
+                file_name: error.file_name.clone(),
+                onclose: move |_| manifest_error.set(None),
+                onreport: move |_| {
+                    let _ = open_url("https://discord.com/channels/778965021656743966/1234506784626970684");
                 }
             }
         }
     }
+}
 }
