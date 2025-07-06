@@ -8,7 +8,7 @@ use simplelog::{CombinedLogger, TermLogger, WriteLogger, LevelFilter, TerminalMo
 use std::fs::File;
 use dioxus::desktop::{Config as DioxusConfig, WindowBuilder, LogicalSize};
 use dioxus::desktop::tao::window::Icon;
-use std::collections::{BTreeMap, HashMap};
+use std::collections::BTreeMap;
 use std::path::PathBuf;
 use base64::{Engine, engine::general_purpose::URL_SAFE_NO_PAD};
 use modal::ModalContext;
@@ -29,7 +29,6 @@ use crate::launch_modpack;
 use crate::universal::ModComponent;
 use crate::universal::ManifestError;
 use crate::universal::ManifestErrorType;
-use crate::universal::UniversalManifest;
 use crate::launcher::FeaturesTab;
 use crate::launcher::PerformanceTab;
 use crate::launcher::SettingsTab;
@@ -591,34 +590,30 @@ fn HomeFloatingHeader(on_open_settings: EventHandler<()>) -> Element {
 }
 
 #[component]
-fn InstallationFloatingHeader(
+fn InstallationHeader(
     installation_name: String,
     active_tab: Signal<String>,
     on_tab_change: EventHandler<String>,
-    on_back: EventHandler<()>,
 ) -> Element {
     rsx! {
-        div { class: "installation-floating-header",
-            div { class: "installation-header-info",
-                button { 
-                    class: "installation-back-button",
-                    onclick: move |_| on_back.call(()),
-                    "← Back"
-                }
-                
-                div { class: "installation-title-section",
-                    h1 { class: "installation-header-title", "{installation_name}" }
-                }
+        div { class: "installation-header",
+            div { class: "installation-title-section",
+                h1 { class: "installation-title", "{installation_name}" }
             }
             
-            div { class: "installation-header-tabs",
+            div { class: "installation-tabs",
                 button { 
-                    class: if *active_tab.read() == "performance" { "installation-tab active" } else { "installation-tab" },
+                    class: if *active_tab.read() == "features" { "tab-button active" } else { "tab-button" },
+                    onclick: move |_| on_tab_change.call("features".to_string()),
+                    "Features"
+                }
+                button { 
+                    class: if *active_tab.read() == "performance" { "tab-button active" } else { "tab-button" },
                     onclick: move |_| on_tab_change.call("performance".to_string()),
                     "Performance"
                 }
                 button { 
-                    class: if *active_tab.read() == "settings" { "installation-tab active" } else { "installation-tab" },
+                    class: if *active_tab.read() == "settings" { "tab-button active" } else { "tab-button" },
                     onclick: move |_| on_tab_change.call("settings".to_string()),
                     "Settings"
                 }
@@ -626,6 +621,7 @@ fn InstallationFloatingHeader(
         }
     }
 }
+
 
 #[component]
 fn FloatingLaunchButton(
@@ -672,6 +668,7 @@ fn FloatingDiscordButton() -> Element {
         }
     }
 }
+
 
 #[component]
 fn FloatingBackButton(onclick: EventHandler<()>) -> Element {
@@ -742,14 +739,14 @@ fn EnhancedScrollIndicator(
 }
 
 #[component]
-fn FloatingFooter(
+fn ModernFooter(
     is_home_page: bool,
     installation_info: Option<InstallationFooterInfo>,
     on_back: Option<EventHandler<()>>,
     on_install: Option<EventHandler<()>>,
 ) -> Element {
     rsx! {
-        footer { class: "floating-footer",
+        footer { class: "modern-footer",
             if is_home_page {
                 // Home page footer - just stats
                 div { class: "footer-home-content",
@@ -758,7 +755,7 @@ fn FloatingFooter(
                     }
                 }
             } else if let Some(info) = installation_info {
-                // Installation page footer content
+                // Installation page footer
                 div { class: "footer-installation-content",
                     // Back button on the left
                     if let Some(back_handler) = on_back {
@@ -771,11 +768,10 @@ fn FloatingFooter(
                     
                     // Installation info in center
                     div { class: "footer-installation-info",
-                        h3 { class: "footer-installation-name", "{info.name}" }
                         div { class: "footer-installation-details",
                             span { "Minecraft {info.minecraft_version}" }
                             span { "{info.loader_type} {info.loader_version}" }
-                            span { "{info.memory_allocation} MB" }
+                            span { "{info.features_count} features" }
                         }
                     }
                     
@@ -810,16 +806,16 @@ fn FloatingFooter(
 // Helper struct for footer information
 #[derive(Clone, Debug, PartialEq)]
 pub struct InstallationFooterInfo {
-    pub name: String,
     pub minecraft_version: String,
     pub loader_type: String,
     pub loader_version: String,
-    pub memory_allocation: i32,
+    pub features_count: String,
     pub installed: bool,
     pub needs_update: bool,
     pub has_changes: bool,
     pub is_up_to_date: bool,
 }
+
 
 #[component]
 fn InstallButtonInfo(
@@ -849,7 +845,7 @@ fn InstallButtonInfo(
 
 // Update your main app layout
 #[component]
-fn ModernAppLayout(
+fn ModernLayout(
     is_home_page: bool,
     current_installation: Option<Installation>,
     active_tab: Signal<String>,
@@ -859,135 +855,111 @@ fn ModernAppLayout(
     on_launch: Option<EventHandler<()>>,
     on_back: Option<EventHandler<()>>,
     on_install: Option<EventHandler<()>>,
-    on_open_settings: Option<EventHandler<()>>,
     has_changes: bool,
-    is_installing: bool,
-    install_button_text: String,
-    install_button_class: String,
-    install_button_disabled: bool,
-    // Optional parameters for calculating features count
     enabled_features: Option<Signal<Vec<String>>>,
-    universal_manifest: Option<UniversalManifest>,
+    universal_manifest: Option<crate::universal::UniversalManifest>,
 ) -> Element {
-    
     rsx! {
-        div { class: "modern-app-layout",
+        div { class: "modern-layout",
             // Always show floating logo
             FloatingLogo {
                 onclick: on_go_home
             }
             
-            // Show appropriate header
-            if is_home_page {
-                if let Some(settings_handler) = on_open_settings {
-                    HomeFloatingHeader {
-                        on_open_settings: settings_handler
+            // Show installation header only on installation pages
+            if !is_home_page {
+                if let Some(installation) = &current_installation {
+                    InstallationHeader {
+                        installation_name: installation.name.clone(),
+                        active_tab: active_tab,
+                        on_tab_change: on_tab_change,
+                    }
+                    
+                    // Show launch button if installed
+                    if installation.installed {
+                        if let Some(launch_handler) = on_launch {
+                            FloatingLaunchButton {
+                                is_installed: installation.installed,
+                                is_installing: false, // You'll need to pass this properly
+                                onclick: launch_handler,
+                            }
+                        }
                     }
                 }
+            } else {
+                // Show Discord button only on home page
                 FloatingDiscordButton {}
-            } else if let Some(installation) = &current_installation {
-                InstallationFloatingHeader {
-                    installation_name: installation.name.clone(),
-                    active_tab: active_tab,
-                    on_tab_change: on_tab_change,
-                    on_back: on_back.unwrap_or_else(|| EventHandler::new(|_| {})),
-                }
-                
-                if let Some(launch_handler) = on_launch {
-                    FloatingLaunchButton {
-                        is_installed: installation.installed,
-                        is_installing: is_installing,
-                        onclick: launch_handler,
-                    }
-                }
             }
             
             // Scrollable content area
             div { 
                 class: if is_home_page {
-                    "page-content-area home-page"
+                    "content-area home-content"
                 } else {
-                    "page-content-area"
+                    "content-area installation-content"
                 },
                 {children}
             }
             
-            // Show installation info above install button (only on installation pages)
-            if !is_home_page {
-                if let Some(installation) = &current_installation {
-                    // Calculate enabled features count DYNAMICALLY
-                    {
-                        let features_count = if let (Some(enabled_features_signal), Some(manifest)) = (&enabled_features, &universal_manifest) {
-                            // Real counting logic
-                            let mut total_components = 0;
-                            let mut enabled_components = 0;
-                            
-                            // Count mods
-                            for mod_component in &manifest.mods {
-                                total_components += 1;
-                                if enabled_features_signal.read().contains(&mod_component.id) || mod_component.id == "default" {
-                                    enabled_components += 1;
-                                }
-                            }
-                            
-                            // Count shaderpacks
-                            for shader in &manifest.shaderpacks {
-                                total_components += 1;
-                                if enabled_features_signal.read().contains(&shader.id) || shader.id == "default" {
-                                    enabled_components += 1;
-                                }
-                            }
-                            
-                            // Count resourcepacks
-                            for resource in &manifest.resourcepacks {
-                                total_components += 1;
-                                if enabled_features_signal.read().contains(&resource.id) || resource.id == "default" {
-                                    enabled_components += 1;
-                                }
-                            }
-                            
-                            // Count includes
-                            for include in &manifest.include {
-                                total_components += 1;
-                                let should_include = if include.id.is_empty() || include.id == "default" {
-                                    true
-                                } else if !include.optional {
-                                    true
-                                } else {
-                                    enabled_features_signal.read().contains(&include.id)
-                                };
-                                
-                                if should_include {
-                                    enabled_components += 1;
-                                }
-                            }
-                            
-                            format!("{}/{}", enabled_components, total_components)
-                        } else {
-                            format!("{}/Loading...", installation.enabled_features.len())
-                        };
-                        
-                        rsx! {
-                            InstallButtonInfo {
-                                features_count: features_count,
-                                minecraft_version: installation.minecraft_version.clone(),
-                                loader_info: format!("{} {}", installation.loader_type, installation.loader_version),
-                            }
-                        }
-                    }
-                }
-            }
-            
-            // Floating footer
-            FloatingFooter {
+            // Modern footer
+            ModernFooter {
                 is_home_page: is_home_page,
                 installation_info: if let Some(installation) = &current_installation {
+                    // Calculate features count
+                    let features_count = if let (Some(enabled_features_signal), Some(manifest)) = (&enabled_features, &universal_manifest) {
+                        let mut total_components = 0;
+                        let mut enabled_components = 0;
+                        
+                        // Count mods
+                        for mod_component in &manifest.mods {
+                            total_components += 1;
+                            if enabled_features_signal.read().contains(&mod_component.id) || mod_component.id == "default" {
+                                enabled_components += 1;
+                            }
+                        }
+                        
+                        // Count shaderpacks
+                        for shader in &manifest.shaderpacks {
+                            total_components += 1;
+                            if enabled_features_signal.read().contains(&shader.id) || shader.id == "default" {
+                                enabled_components += 1;
+                            }
+                        }
+                        
+                        // Count resourcepacks
+                        for resource in &manifest.resourcepacks {
+                            total_components += 1;
+                            if enabled_features_signal.read().contains(&resource.id) || resource.id == "default" {
+                                enabled_components += 1;
+                            }
+                        }
+                        
+                        // Count includes
+                        for include in &manifest.include {
+                            total_components += 1;
+                            let should_include = if include.id.is_empty() || include.id == "default" {
+                                true
+                            } else if !include.optional {
+                                true
+                            } else {
+                                enabled_features_signal.read().contains(&include.id)
+                            };
+                            
+                            if should_include {
+                                enabled_components += 1;
+                            }
+                        }
+                        
+                        format!("{}/{}", enabled_components, total_components)
+                    } else {
+                        format!("{}/Loading...", installation.enabled_features.len())
+                    };
+                    
                     Some(InstallationFooterInfo {
-                        name: installation.name.clone(),
                         minecraft_version: installation.minecraft_version.clone(),
                         loader_type: installation.loader_type.clone(),
                         loader_version: installation.loader_version.clone(),
-                        memory_allocation: installation.memory_allocation,
+                        features_count: features_count,
                         installed: installation.installed,
                         needs_update: installation.update_available,
                         has_changes: has_changes,
@@ -998,11 +970,6 @@ fn ModernAppLayout(
                 },
                 on_back: on_back,
                 on_install: on_install,
-            }
-            
-            // Copyright in bottom corner
-            div { class: "floating-copyright",
-                "© 2023-2025 Majestic Overhaul. CC BY-NC-SA 4.0."
             }
         }
     }
@@ -1015,7 +982,6 @@ fn HomePage(
     error_signal: Signal<Option<String>>,
     changelog: Signal<Option<ChangelogData>>,
     current_installation_id: Signal<Option<String>>,
-    on_open_settings: EventHandler<()>,
 ) -> Element {
     // State for the installation creation dialog
     let mut show_creation_dialog = use_signal(|| false);
@@ -1025,30 +991,17 @@ fn HomePage(
     let latest_installation = installations().first().cloned();
     
     rsx! {
-        // Use a simple home layout instead of ModernAppLayout
         div { class: "home-container",
-            // Floating logo
-            FloatingLogo {
-                onclick: EventHandler::new(|_: ()| {
-                    // Already on home page, do nothing or scroll to top
-                    debug!("Already on home page");
-                })
-            }
-            
-            // Home header
-            HomeFloatingHeader {
-                on_open_settings: on_open_settings
-            }
-            
-            // Discord button
-            FloatingDiscordButton {}
-            
             // Error notification if any
             if let Some(error) = error_signal() {
-                ErrorNotification {
-                    message: error,
-                    on_close: move |_| {
-                        error_signal.set(None);
+                div { class: "error-notification",
+                    div { class: "error-message", "{error}" }
+                    button { 
+                        class: "error-close",
+                        onclick: move |_| {
+                            error_signal.set(None);
+                        },
+                        "×"
                     }
                 }
             }
@@ -1069,94 +1022,207 @@ fn HomePage(
                 }
             }
             
-            // Main content area
-            div { class: "page-content-area home-page",
-                if has_installations {
-                    // Regular home page with installations
-                    StatisticsDisplay {}
-                    
-                    // Section divider for installations
-                    div { class: "section-divider with-title", 
-                        span { class: "divider-title", "YOUR INSTALLATIONS" }
+            if has_installations {
+                // Regular home page with installations
+                
+                // Statistics display
+                div { class: "stats-container",
+                    div { class: "stat-item",
+                        span { class: "stat-value", "200+" }
+                        span { class: "stat-label", "FPS" }
                     }
-                    
-                    // Grid of installation cards
-                    div { class: "installations-grid",
-                        // Existing installation cards
-                        for installation in installations() {
-                            {
-                                let installation_id = installation.id.clone();
-                                rsx! {
-                                    InstallationCard { 
-                                        installation: installation.clone(),
-                                        onclick: move |_| {
-                                            debug!("Clicked installation: {}", installation_id);
-                                            current_installation_id.set(Some(installation_id.clone()));
+                    div { class: "stat-item",
+                        span { class: "stat-value", "100+" }
+                        span { class: "stat-label", "MODS" }
+                    }
+                    div { class: "stat-item",
+                        span { class: "stat-value", "20K+" }
+                        span { class: "stat-label", "DOWNLOADS" }
+                    }
+                }
+                
+                // Section divider for installations
+                div { class: "section-divider with-title", 
+                    span { class: "divider-title", "YOUR INSTALLATIONS" }
+                }
+                
+                // Grid of installation cards
+                div { class: "installations-grid",
+                    // Existing installation cards
+                    for installation in installations() {
+                        {
+                            let installation_id = installation.id.clone();
+                            rsx! {
+                                div { 
+                                    class: "installation-card",
+                                    onclick: move |_| {
+                                        debug!("Clicked installation: {}", installation_id);
+                                        current_installation_id.set(Some(installation_id.clone()));
+                                    },
+                                    
+                                    div { class: "installation-card-header",
+                                        h3 { "{installation.name}" }
+                                        
+                                        if installation.update_available {
+                                            span { class: "update-badge", "Update Available" }
+                                        }
+                                    }
+                                    
+                                    div { class: "installation-card-details",
+                                        div { class: "detail-item",
+                                            span { class: "detail-label", "Minecraft:" }
+                                            span { class: "detail-value", "{installation.minecraft_version}" }
+                                        }
+                                        
+                                        div { class: "detail-item",
+                                            span { class: "detail-label", "Loader:" }
+                                            span { class: "detail-value", "{installation.loader_type} {installation.loader_version}" }
+                                        }
+                                    }
+                                    
+                                    div { class: "installation-card-actions",
+                                        button { 
+                                            class: "play-button",
+                                            onclick: move |evt| {
+                                                evt.stop_propagation();
+                                                // Handle play click
+                                            },
+                                            "Play"
+                                        }
+                                        
+                                        button { 
+                                            class: "manage-button",
+                                            onclick: move |evt| {
+                                                evt.stop_propagation();
+                                                current_installation_id.set(Some(installation_id.clone()));
+                                            },
+                                            "Manage"
                                         }
                                     }
                                 }
                             }
                         }
-                        
-                        // Create new installation card
-                        div { 
-                            class: "installation-card new-installation",
-                            onclick: move |_| show_creation_dialog.set(true),
-                            
-                            div { class: "installation-card-content", 
-                                div { class: "installation-card-icon", "+" }
-                                h3 { "Create New Installation" }
-                                p { "Set up a new Wynncraft experience" }
-                            }
-                        }
                     }
-                } else {
-                    // First-time user experience
-                    div { class: "welcome-container first-time",
-                        h1 { "Welcome to the MAJESTIC OVERHAUL" }
-                        p { "Enhance your Wynncraft experience with optimized performance and improved visuals." }
+                    
+                    // Create new installation card
+                    div { 
+                        class: "installation-card new-installation",
+                        onclick: move |_| show_creation_dialog.set(true),
                         
-                        // Statistics for first-time users too
-                        StatisticsDisplay {}
-                        
-                        button {
-                            class: "main-install-button",
-                            onclick: move |_| {
-                                show_creation_dialog.set(true);
-                            },
-                            "Get Started"
+                        div { class: "installation-card-content", 
+                            div { class: "installation-card-icon", "+" }
+                            h3 { "Create New Installation" }
+                            p { "Set up a new Wynncraft experience" }
                         }
                     }
                 }
-                
-                // Recent changes section
-                ChangelogSection { changelog: changelog() }
+            } else {
+                // First-time user experience
+                div { class: "welcome-container first-time",
+                    h1 { "Welcome to the MAJESTIC OVERHAUL" }
+                    p { "Enhance your Wynncraft experience with optimized performance and improved visuals." }
+                    
+                    // Statistics for first-time users too
+                    div { class: "stats-container",
+                        div { class: "stat-item",
+                            span { class: "stat-value", "200+" }
+                            span { class: "stat-label", "FPS" }
+                        }
+                        div { class: "stat-item",
+                            span { class: "stat-value", "100+" }
+                            span { class: "stat-label", "MODS" }
+                        }
+                        div { class: "stat-item",
+                            span { class: "stat-value", "20K+" }
+                            span { class: "stat-label", "DOWNLOADS" }
+                        }
+                    }
+                    
+                    button {
+                        class: "main-install-button",
+                        onclick: move |_| {
+                            show_creation_dialog.set(true);
+                        },
+                        "Get Started"
+                    }
+                }
+            }
+            
+            // Recent changes section
+            if let Some(changelog_data) = changelog() {
+                if !changelog_data.entries.is_empty() {
+                    div { class: "changelog-container",
+                        div { class: "section-divider with-title", 
+                            span { class: "divider-title", "LATEST CHANGES" }
+                        }
+                        
+                        div { class: "changelog-entries",
+                            for (index, entry) in changelog_data.entries.iter().enumerate().take(3) {
+                                div { 
+                                    class: "changelog-entry",
+                                    
+                                    div { class: "changelog-header",
+                                        h3 { class: "changelog-title", "{entry.title}" }
+                                        
+                                        if let Some(version) = &entry.version {
+                                            span { class: "changelog-version", "v{version}" }
+                                        }
+                                        
+                                        if let Some(date) = &entry.date {
+                                            span { class: "changelog-date", "{date}" }
+                                        }
+                                    }
+                                    
+                                    div { 
+                                        class: "changelog-content",
+                                        dangerous_inner_html: "{entry.contents}"
+                                    }
+                                    
+                                    if index < 2 {
+                                        div { class: "entry-divider" }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
             }
             
             // Installation creation dialog
             if *show_creation_dialog.read() {
-                SimplifiedInstallationWizard {
-                    onclose: move |_| {
-                        show_creation_dialog.set(false);
-                    },
-                    oncreate: move |new_installation: Installation| {
-                        // Add the new installation to the list
-                        installations.with_mut(|list| {
-                            list.insert(0, new_installation.clone());
-                        });
+                div { class: "wizard-overlay",
+                    div { class: "installation-wizard",
+                        div { class: "wizard-header",
+                            h2 { "Create New Installation" }
+                            button { 
+                                class: "close-button",
+                                onclick: move |_| show_creation_dialog.set(false),
+                                "×"
+                            }
+                        }
                         
-                        // Close the dialog
-                        show_creation_dialog.set(false);
+                        div { class: "wizard-content",
+                            p { "Installation wizard content goes here..." }
+                        }
                         
-                        // Set the current installation to navigate to the installation page
-                        current_installation_id.set(Some(new_installation.id));
+                        div { class: "wizard-footer",
+                            button {
+                                class: "cancel-button",
+                                onclick: move |_| show_creation_dialog.set(false),
+                                "Cancel"
+                            }
+                            
+                            button {
+                                class: "create-button",
+                                onclick: move |_| {
+                                    // Handle installation creation
+                                    show_creation_dialog.set(false);
+                                },
+                                "Create Installation"
+                            }
+                        }
                     }
                 }
-            }
-            
-            // Copyright in bottom corner
-            div { class: "floating-copyright",
-                "© 2023-2025 Majestic Overhaul. CC BY-NC-SA 4.0."
             }
         }
     }
@@ -1532,10 +1598,11 @@ let installation = Installation::new_custom(
 // Installation management page - SIMPLIFIED VERSION WITHOUT COMPLEX HEADER
 
 #[component]
-pub fn InstallationManagementPageWithLayout(
+fn InstallationManagementPageWithModernLayout(
     installation_id: String,
-    onback: EventHandler<()>,
     installations: Signal<Vec<Installation>>,
+    universal_manifest: Option<crate::universal::UniversalManifest>,
+    on_back: EventHandler<()>,
 ) -> Element {
     // State for the current tab
     let mut active_tab = use_signal(|| "features".to_string());
@@ -1545,15 +1612,6 @@ pub fn InstallationManagementPageWithLayout(
         crate::installation::load_installation(&installation_id)
     });
 
-    // Installation status signals
-    let mut is_installing = use_signal(|| false);
-    let mut installation_error = use_signal(|| Option::<String>::None);
-    
-    // Progress tracking signals
-    let mut installation_progress = use_signal(|| 0i64);
-    let mut installation_total = use_signal(|| 0i64);
-    let mut installation_status = use_signal(|| String::new());
-    
     // Handle installation not found
     if let Err(e) = &*installation_result.read() {
         return rsx! {
@@ -1564,7 +1622,7 @@ pub fn InstallationManagementPageWithLayout(
                 
                 button {
                     class: "back-button",
-                    onclick: move |_| onback.call(()),
+                    onclick: move |_| on_back.call(()),
                     "Back to Home"
                 }
             }
@@ -1573,14 +1631,6 @@ pub fn InstallationManagementPageWithLayout(
     
     // Unwrap installation from result
     let installation = installation_result.read().as_ref().unwrap().clone();
-    
-    // Create the installation state signal AFTER we have the installation
-    let mut installation_state = use_signal(|| installation.clone());
-    
-    // Clone needed values to avoid partial moves
-    let installation_id_for_delete = installation.id.clone();
-    let installation_id_for_launch = installation.id.clone();
-    let installation_for_update = installation.clone();
     
     // State for modification tracking
     let mut has_changes = use_signal(|| false);
@@ -1591,20 +1641,6 @@ pub fn InstallationManagementPageWithLayout(
     
     // Filter text for feature search
     let filter_text = use_signal(|| String::new());
-    
-    // Load universal manifest for features information
-    let universal_manifest = use_resource(move || async {
-        match crate::universal::load_universal_manifest(&crate::CachedHttpClient::new(), None).await {
-            Ok(manifest) => {
-                debug!("Successfully loaded universal manifest for features");
-                Some(manifest)
-            },
-            Err(e) => {
-                error!("Failed to load universal manifest: {}", e);
-                None
-            }
-        }
-    });
     
     // Load presets
     let presets = use_resource(move || async {
@@ -1620,283 +1656,63 @@ pub fn InstallationManagementPageWithLayout(
         }
     });
     
-    // Effect to detect changes
-    use_effect({
-        let enabled_features_for_effect = enabled_features.clone();
-        let memory_for_effect = memory_allocation.clone();
-        let java_for_effect = java_args.clone();
-        let original_features = installation.enabled_features.clone();
-        let original_memory = installation.memory_allocation;
-        let original_java = installation.java_args.clone();
-        let mut has_changes_copy = has_changes.clone();
-        
-        move || {
-            let features_changed = enabled_features_for_effect.read().clone() != original_features;
-            let memory_changed = *memory_for_effect.read() != original_memory;
-            let java_changed = java_for_effect.read().clone() != original_java;
-            
-            let any_changes = features_changed || memory_changed || java_changed;
-            has_changes_copy.set(any_changes);
-        }
-    });
-    
-    // Handle install/update with progress tracking
-    let handle_install_update = EventHandler::new({
-        let mut is_installing = is_installing.clone();
-        let mut installation_error = installation_error.clone();
-        let mut installation_progress = installation_progress.clone();
-        let mut installation_total = installation_total.clone();
-        let mut installation_status = installation_status.clone();
-        let mut has_changes = has_changes.clone();
-        let mut installations = installations.clone();
-        let mut installation_state = installation_state.clone();
-        let enabled_features = enabled_features.clone();
-        let memory_allocation = memory_allocation.clone();
-        let java_args = java_args.clone();
-        let installation_for_update = installation_for_update.clone();
-        
-        move |_: ()| {
-            is_installing.set(true);
-            let mut installation_clone = installation_for_update.clone();
-            
-            // Update settings
-            installation_clone.enabled_features = enabled_features.read().clone();
-            installation_clone.memory_allocation = *memory_allocation.read();
-            installation_clone.java_args = java_args.read().clone();
-            installation_clone.modified = true;
-            
-            let http_client = crate::CachedHttpClient::new();
-            let mut installation_error_clone = installation_error.clone();
-            let mut progress = installation_progress.clone();
-            let mut total = installation_total.clone();
-            let mut status = installation_status.clone();
-            let mut is_installing_clone = is_installing.clone();
-            let mut has_changes_clone = has_changes.clone();
-            let mut installations = installations.clone();
-            let mut installation_state = installation_state.clone();
-            let installation_id = installation_clone.id.clone();
-
-            spawn(async move {
-                // Calculate total items
-                match crate::universal::load_universal_manifest(&http_client, None).await {
-                    Ok(manifest) => {
-                        let total_items = manifest.mods.len() + manifest.shaderpacks.len() + 
-                                         manifest.resourcepacks.len() + manifest.include.len();
-                        total.set(total_items as i64);
-                        progress.set(0);
-                        status.set("Preparing installation...".to_string());
-                        
-                        // Create a progress callback
-                        let progress_callback = move || {
-                            progress.with_mut(|p| *p += 1);
-                            let current = *progress.read();
-                            let total_val = *total.read();
-                            status.set(format!("Installing... {}/{}", current, total_val));
-                        };
-                        
-                        match installation_clone.install_or_update_with_progress(&http_client, progress_callback).await {
-                            Ok(_) => {
-                                // Mark as installed
-                                installation_clone.installed = true;
-                                installation_clone.update_available = false;
-                                installation_clone.modified = false;
-                                
-                                // Save the installation
-                                if let Err(e) = installation_clone.save() {
-                                    error!("Failed to save installation: {}", e);
-                                    installation_error_clone.set(Some(format!("Failed to save installation: {}", e)));
-                                } else {
-                                    // Update installation state
-                                    installation_state.set(installation_clone.clone());
-                                    
-                                    // Update the installations list
-                                    installations.with_mut(|list| {
-                                        if let Some(index) = list.iter().position(|i| i.id == installation_id) {
-                                            list[index] = installation_clone;
-                                        }
-                                    });
-                                    
-                                    // Clear modification flags
-                                    has_changes_clone.set(false);
-                                    
-                                    // Stop showing progress after a brief delay
-                                    tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
-                                }
+    // Main content based on active tab
+    rsx! {
+        div { class: "installation-content",
+            match active_tab.read().as_str() {
+                "features" => {
+                    rsx! {
+                        FeaturesTab {
+                            universal_manifest: universal_manifest.clone(),
+                            presets: presets.read().clone().unwrap_or_default(),
+                            enabled_features: enabled_features,
+                            selected_preset: selected_preset,
+                            filter_text: filter_text,
+                            installation_id: installation.id.clone(),
+                        }
+                    }
+                },
+                "performance" => {
+                    rsx! {
+                        PerformanceTab {
+                            memory_allocation: memory_allocation,
+                            java_args: java_args,
+                            installation_id: installation.id.clone()
+                        }
+                    }
+                },
+                "settings" => {
+                    rsx! {
+                        SettingsTab {
+                            installation: installation.clone(),
+                            installation_id: installation.id.clone(),
+                            ondelete: move |_| {
+                                // Handle delete functionality - remove from installations list
+                                let id_to_delete = installation.id.clone();
+                                installations.with_mut(|list| {
+                                    list.retain(|inst| inst.id != id_to_delete);
+                                });
+                                // Navigate back to home
+                                on_back.call(());
                             },
-                            Err(e) => {
-                                error!("Installation failed: {}", e);
-                                installation_error_clone.set(Some(format!("Installation failed: {}", e)));
+                            onupdate: move |updated_installation: Installation| {
+                                // Update the installation data in the list
+                                installations.with_mut(|list| {
+                                    if let Some(index) = list.iter().position(|i| i.id == updated_installation.id) {
+                                        list[index] = updated_installation.clone();
+                                    }
+                                });
                             }
                         }
-                    },
-                    Err(e) => {
-                        error!("Failed to load manifest: {}", e);
-                        installation_error_clone.set(Some(format!("Failed to load manifest: {}", e)));
                     }
-                }
-                
-                // Always stop installing state
-                is_installing_clone.set(false);
-            });
-        }
-    });
-    
-    // Handle launch
-    let handle_launch = EventHandler::new({
-        let mut installation_error_clone = installation_error.clone();
-        let installation_id = installation_id_for_launch.clone();
-        
-        move |_: ()| {
-            let mut installation_error_clone = installation_error_clone.clone();
-            let installation_id = installation_id.clone();
-            
-            // Create a channel to communicate back to the main thread
-            let (error_tx, error_rx) = std::sync::mpsc::channel::<String>();
-            
-            // Launch the game
-            std::thread::spawn(move || {
-                match crate::launch_modpack(&installation_id) {
-                    Ok(_) => {
-                        debug!("Successfully launched modpack: {}", installation_id);
-                    },
-                    Err(e) => {
-                        error!("Failed to launch modpack: {}", e);
-                        let _ = error_tx.send(format!("Failed to launch modpack: {}", e));
-                    }
-                }
-            });
-            
-            // Create a task to check for errors from the background thread
-            spawn(async move {
-                if let Ok(error_message) = error_rx.recv() {
-                    installation_error_clone.set(Some(error_message));
-                }
-            });
-        }
-    });
-    let (button_text, button_class, button_disabled) = {
-        let current_installation = installation_state.read();
-        let installed = current_installation.installed;
-        let update_available = current_installation.update_available;
-        let has_changes_val = *has_changes.read();
-        let is_installing_val = *is_installing.read();
-        
-        if is_installing_val {
-            ("INSTALLING...".to_string(), "installing".to_string(), true)
-        } else if !installed {
-            ("INSTALL".to_string(), "".to_string(), false)
-        } else if update_available {
-            ("UPDATE".to_string(), "update-button".to_string(), false)
-        } else if has_changes_val {
-            ("MODIFY".to_string(), "".to_string(), false)
-        } else {
-            ("UPDATED".to_string(), "up-to-date".to_string(), true)
-        }
-    };
-
-    // Show progress view if installing
-    if *is_installing.read() {
-        return rsx! {
-            ProgressView {
-                value: *installation_progress.read(),
-                max: *installation_total.read(),
-                status: installation_status.read().clone(),
-                title: format!("Installing {}", installation.name)
-            }
-        };
-    }
-
-    // Main render with ModernAppLayout
-    rsx! {
-        div { class: "installation-management-container",
-            // Error display
-            if let Some(error) = &*installation_error.read() {
-                ErrorNotification {
-                    message: error.clone(),
-                    on_close: move |_| {
-                        installation_error.set(None);
-                    }
-                }
-            }
-
-            ModernAppLayout {
-                is_home_page: false,
-                current_installation: Some(installation_state.read().clone()),
-                active_tab: active_tab,
-                has_changes: *has_changes.read(),
-                is_installing: *is_installing.read(),
-                install_button_text: button_text,
-                install_button_class: button_class,
-                install_button_disabled: button_disabled,
-                on_go_home: EventHandler::new(move |_: ()| {
-                    onback.call(());
-                }),
-                on_tab_change: EventHandler::new(move |tab: String| {
-                    active_tab.set(tab);
-                }),
-                on_launch: Some(handle_launch),
-                on_back: Some(EventHandler::new(move |_: ()| {
-                    onback.call(());
-                })),
-                on_install: Some(handle_install_update),
-                on_open_settings: None, // Not needed on installation pages
-                
-                // Main content area based on active tab
-                div { class: "installation-main-content",
-                    match active_tab.read().as_str() {
-                        "features" => {
-                            rsx! {
-                                FeaturesTab {
-                                    universal_manifest: universal_manifest.read().clone().flatten(),
-                                    presets: presets.read().clone().unwrap_or_default(),
-                                    enabled_features: enabled_features,
-                                    selected_preset: selected_preset,
-                                    filter_text: filter_text,
-                                    installation_id: installation.id.clone(),
-                                }
-                            }
-                        },
-                        "performance" => {
-                            rsx! {
-                                PerformanceTab {
-                                    memory_allocation: memory_allocation,
-                                    java_args: java_args,
-                                    installation_id: installation.id.clone()
-                                }
-                            }
-                        },
-                        "settings" => {
-                            rsx! {
-                                SettingsTab {
-                                    installation: installation.clone(),
-                                    installation_id: installation_id_for_delete.clone(),
-                                    ondelete: move |_| {
-                                        // Handle delete functionality - remove from installations list
-                                        let id_to_delete = installation_id_for_delete.clone();
-                                        installations.with_mut(|list| {
-                                            list.retain(|inst| inst.id != id_to_delete);
-                                        });
-                                        // Navigate back to home
-                                        onback.call(());
-                                    },
-                                    onupdate: move |updated_installation: Installation| {
-                                        // Update the installation data in the list
-                                        installations.with_mut(|list| {
-                                            if let Some(index) = list.iter().position(|i| i.id == updated_installation.id) {
-                                                list[index] = updated_installation.clone();
-                                            }
-                                        });
-                                    }
-                                }
-                            }
-                        },
-                        _ => rsx! { div { "Unknown tab selected" } }
-                    }
-                }
+                },
+                _ => rsx! { div { "Unknown tab selected" } }
             }
         }
     }
 }
+
+
 #[component]
 fn ProgressView(
     value: i64,
@@ -2470,7 +2286,7 @@ pub fn app() -> Element {
         }, false, Some(move |_| error_signal.set(None)));
     }
 
-    // Build CSS content - Include the modern layout CSS
+    // Build CSS content
     let css_content = include_str!("assets/style.css")
         .replace("<BG_COLOR>", "#320625")
         .replace("<BG_IMAGE>", "https://raw.githubusercontent.com/Wynncraft-Overhaul/installer/master/src/assets/background_installer.png")
@@ -2483,7 +2299,7 @@ pub fn app() -> Element {
     let preset_styles = include_str!("assets/preset-styles.css");
     let search_styles = include_str!("assets/search-results-styles.css");
     let modal_styles = include_str!("assets/modal-styles.css");
-    let modern_layout = include_str!("assets/modern_layout.css"); // Your new modern layout CSS
+    let modern_layout_css = include_str!("assets/modern_layout.css"); // Your new CSS
     
     // Combine all CSS files
     let complete_css = format!("{}\n{}\n{}\n{}\n{}\n{}\n{}", 
@@ -2493,49 +2309,77 @@ pub fn app() -> Element {
         preset_styles, 
         search_styles,
         modal_styles,
-        modern_layout
+        modern_layout_css
     );
 
     // Determine current state
     let is_home_page = current_installation_id.read().is_none();
 
-    // Determine main content
-    let main_content = if settings() {
-        rsx! {
-            Settings {
-                config,
-                settings,
-                config_path: props.config_path.clone(),
-                error: error_signal.clone(),
-                b64_id: URL_SAFE_NO_PAD.encode(props.modpack_source)
+    // Special screens that don't use modern layout
+    if settings() {
+        return rsx! {
+            div {
+                style { {complete_css} }
+                Modal {}
+                BackgroundParticles {}
+                
+                div { class: "main-container",
+                    Settings {
+                        config,
+                        settings,
+                        config_path: props.config_path.clone(),
+                        error: error_signal.clone(),
+                        b64_id: URL_SAFE_NO_PAD.encode(props.modpack_source)
+                    }
+                }
             }
-        }
-    } else if config.read().first_launch.unwrap_or(true) || !has_launcher {
-        rsx! {
-            Launcher {
-                config,
-                config_path: props.config_path.clone(),
-                error: error_signal.clone(),
-                b64_id: URL_SAFE_NO_PAD.encode(props.modpack_source)
+        };
+    }
+    
+    if config.read().first_launch.unwrap_or(true) || !has_launcher {
+        return rsx! {
+            div {
+                style { {complete_css} }
+                Modal {}
+                BackgroundParticles {}
+                
+                div { class: "main-container",
+                    Launcher {
+                        config,
+                        config_path: props.config_path.clone(),
+                        error: error_signal.clone(),
+                        b64_id: URL_SAFE_NO_PAD.encode(props.modpack_source)
+                    }
+                }
             }
-        }
-    } else if universal_manifest.read().is_none() && has_launcher {
-        rsx! {
-            div { class: "loading-container",
-                div { class: "loading-spinner" }
-                div { class: "loading-text", "Loading modpack information..." }
+        };
+    }
+    
+    if universal_manifest.read().is_none() && has_launcher {
+        return rsx! {
+            div {
+                style { {complete_css} }
+                Modal {}
+                BackgroundParticles {}
+                
+                div { class: "main-container",
+                    div { class: "loading-container",
+                        div { class: "loading-spinner" }
+                        div { class: "loading-text", "Loading modpack information..." }
+                    }
+                }
             }
-        }
-    } else if is_home_page {
+        };
+    }
+
+    // Main content with modern layout
+    let main_content = if is_home_page {
         rsx! {
             HomePage {
                 installations,
                 error_signal: error_signal.clone(),
                 changelog: changelog_signal,
                 current_installation_id: current_installation_id.clone(),
-                on_open_settings: EventHandler::new(move |_: ()| {
-                    settings.set(true);
-                })
             }
         }
     } else if current_installation_id.read().as_ref().map_or(false, |id| id == "new") {
@@ -2553,86 +2397,84 @@ pub fn app() -> Element {
             }
         }
     } else {
-        // Installation management content using the new layout
+        // Installation management page
         let id = current_installation_id.read().as_ref().unwrap().clone();
-        let back_handler_for_mgmt = EventHandler::new(move |_: ()| {
-            current_installation_id.set(None);
-        });
-        
         rsx! {
-            InstallationManagementPageWithLayout {
+            InstallationManagementPageWithModernLayout {
                 installation_id: id,
-                onback: back_handler_for_mgmt,
-                installations: installations.clone()
+                installations: installations.clone(),
+                universal_manifest: universal_manifest.read().clone().flatten(),
+                on_back: move |_| {
+                    current_installation_id.set(None);
+                }
             }
         }
     };
 
-    // Final render with new modern layout
+    // Get current installation for layout props
+    let current_installation = if let Some(id) = current_installation_id.read().as_ref() {
+        installations().iter().find(|i| &i.id == id).cloned()
+    } else {
+        None
+    };
+
+    // Final render with modern layout
     rsx! {
         div {
             style { {complete_css} }
             Modal {}
             BackgroundParticles {}
             
-            // Show special screens (settings, launcher) without modern layout
-            if settings() || config.read().first_launch.unwrap_or(true) || !has_launcher {
-                div { class: "main-container",
-                    {main_content}
-                }
-            } else {
-                // Use the new modern layout for normal operation
-                ModernAppLayout {
-                    is_home_page: is_home_page,
-                    current_installation: if let Some(id) = current_installation_id.read().as_ref() {
-                        installations().iter().find(|i| &i.id == id).cloned()
-                    } else {
-                        None
-                    },
-                    active_tab: use_signal(|| "features".to_string()), // You'll need to manage this properly
-                    has_changes: false, // You'll need to calculate this properly
-                    is_installing: false, // You'll need to manage this properly
-                    install_button_text: "INSTALL".to_string(), // You'll need to calculate this
-                    install_button_class: "".to_string(),
-                    install_button_disabled: false,
-                    on_go_home: EventHandler::new(move |_: ()| {
-                        current_installation_id.set(None);
-                    }),
-                    on_tab_change: EventHandler::new(move |_tab: String| {
-                        // Handle tab changes
-                    }),
-                    on_launch: if !is_home_page {
-                        Some(EventHandler::new(move |_: ()| {
+            ModernLayout {
+                is_home_page: is_home_page,
+                current_installation: current_installation.clone(),
+                active_tab: use_signal(|| "features".to_string()),
+                has_changes: false, // You'll calculate this properly in the installation component
+                enabled_features: None, // Pass from installation component when needed
+                universal_manifest: universal_manifest.read().clone().flatten(),
+                on_go_home: move |_| {
+                    current_installation_id.set(None);
+                },
+                on_tab_change: move |_tab: String| {
+                    // Handle tab changes in installation component
+                },
+                on_launch: if !is_home_page && current_installation.as_ref().map_or(false, |i| i.installed) {
+                    Some(move |_| {
+                        if let Some(id) = current_installation_id.read().as_ref() {
                             // Handle launch
-                        }))
-                    } else {
-                        None
-                    },
-                    on_back: if !is_home_page {
-                        Some(EventHandler::new(move |_: ()| {
-                            current_installation_id.set(None);
-                        }))
-                    } else {
-                        None
-                    },
-                    on_install: if !is_home_page {
-                        Some(EventHandler::new(move |_: ()| {
-                            // Handle install
-                        }))
-                    } else {
-                        None
-                    },
-                    on_open_settings: Some(EventHandler::new(move |_: ()| {
-                        settings.set(true);
-                    })),
-                    enabled_features: None, // You'll need to pass this from your installation management
-                    universal_manifest: universal_manifest.read().clone().flatten(),
-                    
-                    {main_content}
-                }
+                            spawn({
+                                let id = id.clone();
+                                async move {
+                                    match crate::launch_modpack(&id) {
+                                        Ok(_) => debug!("Successfully launched modpack: {}", id),
+                                        Err(e) => error!("Failed to launch modpack: {}", e),
+                                    }
+                                }
+                            });
+                        }
+                    })
+                } else {
+                    None
+                },
+                on_back: if !is_home_page {
+                    Some(move |_| {
+                        current_installation_id.set(None);
+                    })
+                } else {
+                    None
+                },
+                on_install: if !is_home_page {
+                    Some(move |_| {
+                        // Handle install - this will be managed by the installation component
+                    })
+                } else {
+                    None
+                },
+                
+                {main_content}
             }
             
-            // Keep manifest error display
+            // Manifest error display
             if let Some(error) = manifest_error() {
                 ManifestErrorDisplay {
                     error: error.message.clone(),
