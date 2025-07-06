@@ -581,7 +581,6 @@ fn FloatingLogo(onclick: EventHandler<()>) -> Element {
 fn HomeFloatingHeader(on_open_settings: EventHandler<()>) -> Element {
     rsx! {
         div { class: "home-floating-header",
-            h1 { class: "home-header-title", "Majestic Overhaul" }
             button { 
                 class: "home-settings-tab",
                 onclick: move |_| on_open_settings.call(()),
@@ -590,11 +589,10 @@ fn HomeFloatingHeader(on_open_settings: EventHandler<()>) -> Element {
         }
     }
 }
+
 #[component]
 fn InstallationFloatingHeader(
     installation_name: String,
-    minecraft_version: String,
-    loader_info: String,
     active_tab: Signal<String>,
     on_tab_change: EventHandler<String>,
     on_back: EventHandler<()>,
@@ -605,24 +603,15 @@ fn InstallationFloatingHeader(
                 button { 
                     class: "installation-back-button",
                     onclick: move |_| on_back.call(()),
-                    "←"
+                    "← Back"
                 }
                 
                 div { class: "installation-title-section",
                     h1 { class: "installation-header-title", "{installation_name}" }
-                    div { class: "installation-header-meta",
-                        span { class: "installation-meta-chip", "Minecraft {minecraft_version}" }
-                        span { class: "installation-meta-chip", "{loader_info}" }
-                    }
                 }
             }
             
             div { class: "installation-header-tabs",
-                button { 
-                    class: if *active_tab.read() == "features" { "installation-tab active" } else { "installation-tab" },
-                    onclick: move |_| on_tab_change.call("features".to_string()),
-                    "Features"
-                }
                 button { 
                     class: if *active_tab.read() == "performance" { "installation-tab active" } else { "installation-tab" },
                     onclick: move |_| on_tab_change.call("performance".to_string()),
@@ -637,7 +626,6 @@ fn InstallationFloatingHeader(
         }
     }
 }
-
 
 #[component]
 fn FloatingLaunchButton(
@@ -661,55 +649,37 @@ fn FloatingLaunchButton(
 }
 
 #[component]
+fn FloatingDiscordButton() -> Element {
+    rsx! {
+        a { 
+            class: "floating-discord-button",
+            href: "https://discord.gg/olinus-corner-778965021656743966",
+            target: "_blank",
+            rel: "noopener noreferrer",
+            
+            svg {
+                width: "24",
+                height: "24",
+                view_box: "0 0 24 24",
+                fill: "currentColor",
+                
+                path {
+                    d: "M19.54 0c1.356 0 2.46 1.104 2.46 2.472v21.528l-2.58-2.28-1.452-1.344-1.536-1.428.636 2.22h-13.608c-1.356 0-2.46-1.104-2.46-2.472v-16.224c0-1.368 1.104-2.472 2.46-2.472h16.08zm-4.632 15.672c2.652-.084 3.672-1.824 3.672-1.824 0-3.864-1.728-6.996-1.728-6.996-1.728-1.296-3.372-1.26-3.372-1.26l-.168.192c2.04.624 2.988 1.524 2.988 1.524-1.248-.684-2.472-1.02-3.612-1.152-.864-.096-1.692-.072-2.424.024l-.204.024c-.42.036-1.44.192-2.724.756-.444.204-.708.348-.708.348s.996-.948 3.156-1.572l-.12-.144s-1.644-.036-3.372 1.26c0 0-1.728 3.132-1.728 6.996 0 0 1.008 1.74 3.66 1.824 0 0 .444-.54.804-.996-1.524-.456-2.1-1.416-2.1-1.416l.336.204.048.036.047.027.014.006.047.027c.3.168.6.3.876.408.492.192 1.08.384 1.764.516.9.168 1.956.228 3.108.012.564-.096 1.14-.264 1.74-.516.42-.156.888-.384 1.38-.708 0 0-.6.984-2.172 1.428.36.456.792.972.792.972zm-5.58-5.604c-.684 0-1.224.6-1.224 1.332 0 .732.552 1.332 1.224 1.332.684 0 1.224-.6 1.224-1.332.012-.732-.54-1.332-1.224-1.332zm4.38 0c-.684 0-1.224.6-1.224 1.332 0 .732.552 1.332 1.224 1.332.684 0 1.224-.6 1.224-1.332 0-.732-.54-1.332-1.224-1.332z"
+                }
+            }
+            
+            "Discord"
+        }
+    }
+}
+
+#[component]
 fn FloatingBackButton(onclick: EventHandler<()>) -> Element {
     rsx! {
         button {
             class: "floating-back-button",
             onclick: move |_| onclick.call(()),
             "←"
-        }
-    }
-}
-
-#[component]
-fn FloatingInstallButton(
-    button_text: String,
-    button_class: String,
-    disabled: bool,
-    onclick: EventHandler<()>,
-) -> Element {
-    rsx! {
-        button {
-            class: "floating-install-button {button_class}",
-            disabled: disabled,
-            onclick: move |_| onclick.call(()),
-            "{button_text}"
-        }
-    }
-}
-
-#[component]
-fn InstallButtonInfo(
-    features_count: String,
-    minecraft_version: String,
-    loader_info: String,
-) -> Element {
-    rsx! {
-        div { class: "install-button-info",
-            div { class: "install-button-info-content",
-                div { class: "info-item",
-                    span { class: "label", "Features:" }
-                    span { class: "value", "{features_count}" }
-                }
-                div { class: "info-item",
-                    span { class: "label", "Minecraft:" }
-                    span { class: "value", "{minecraft_version}" }
-                }
-                div { class: "info-item",
-                    span { class: "label", "Loader:" }
-                    span { class: "value", "{loader_info}" }
-                }
-            }
         }
     }
 }
@@ -772,31 +742,6 @@ fn EnhancedScrollIndicator(
 }
 
 #[component]
-fn FloatingDiscordButton() -> Element {
-    rsx! {
-        a { 
-            class: "floating-discord-button",
-            href: "https://discord.gg/olinus-corner-778965021656743966",
-            target: "_blank",
-            rel: "noopener noreferrer",
-            
-            svg {
-                width: "24",
-                height: "24",
-                view_box: "0 0 24 24",
-                fill: "currentColor",
-                
-                path {
-                    d: "M19.54 0c1.356 0 2.46 1.104 2.46 2.472v21.528l-2.58-2.28-1.452-1.344-1.536-1.428.636 2.22h-13.608c-1.356 0-2.46-1.104-2.46-2.472v-16.224c0-1.368 1.104-2.472 2.46-2.472h16.08zm-4.632 15.672c2.652-.084 3.672-1.824 3.672-1.824 0-3.864-1.728-6.996-1.728-6.996-1.728-1.296-3.372-1.26-3.372-1.26l-.168.192c2.04.624 2.988 1.524 2.988 1.524-1.248-.684-2.472-1.02-3.612-1.152-.864-.096-1.692-.072-2.424.024l-.204.024c-.42.036-1.44.192-2.724.756-.444.204-.708.348-.708.348s.996-.948 3.156-1.572l-.12-.144s-1.644-.036-3.372 1.26c0 0-1.728 3.132-1.728 6.996 0 0 1.008 1.74 3.66 1.824 0 0 .444-.54.804-.996-1.524-.456-2.1-1.416-2.1-1.416l.336.204.048.036.047.027.014.006.047.027c.3.168.6.3.876.408.492.192 1.08.384 1.764.516.9.168 1.956.228 3.108.012.564-.096 1.14-.264 1.74-.516.42-.156.888-.384 1.38-.708 0 0-.6.984-2.172 1.428.36.456.792.972.792.972zm-5.58-5.604c-.684 0-1.224.6-1.224 1.332 0 .732.552 1.332 1.224 1.332.684 0 1.224-.6 1.224-1.332.012-.732-.54-1.332-1.224-1.332zm4.38 0c-.684 0-1.224.6-1.224 1.332 0 .732.552 1.332 1.224 1.332.684 0 1.224-.6 1.224-1.332 0-.732-.54-1.332-1.224-1.332z"
-                }
-            }
-            
-            span { "Discord" }
-        }
-    }
-}
-
-#[component]
 fn FloatingFooter(
     is_home_page: bool,
     installation_info: Option<InstallationFooterInfo>,
@@ -806,9 +751,8 @@ fn FloatingFooter(
     rsx! {
         footer { class: "floating-footer",
             if is_home_page {
-                // Home page footer - just stats or minimal content
+                // Home page footer - just stats
                 div { class: "footer-home-content",
-                    // Maybe show some stats or leave mostly empty
                     div { class: "footer-stats",
                         span { "200+ FPS • 100+ Mods • 20K+ Downloads" }
                     }
@@ -816,7 +760,7 @@ fn FloatingFooter(
             } else if let Some(info) = installation_info {
                 // Installation page footer content
                 div { class: "footer-installation-content",
-                    // Back button (blue position in footer)
+                    // Back button on the left
                     if let Some(back_handler) = on_back {
                         button {
                             class: "footer-back-button",
@@ -877,6 +821,32 @@ pub struct InstallationFooterInfo {
     pub is_up_to_date: bool,
 }
 
+#[component]
+fn InstallButtonInfo(
+    features_count: String,
+    minecraft_version: String,
+    loader_info: String,
+) -> Element {
+    rsx! {
+        div { class: "install-button-info",
+            div { class: "install-button-info-content",
+                div { class: "info-item",
+                    span { class: "label", "Features:" }
+                    span { class: "value", "{features_count}" }
+                }
+                div { class: "info-item",
+                    span { class: "label", "Minecraft:" }
+                    span { class: "value", "{minecraft_version}" }
+                }
+                div { class: "info-item",
+                    span { class: "label", "Loader:" }
+                    span { class: "value", "{loader_info}" }
+                }
+            }
+        }
+    }
+}
+
 // Update your main app layout
 #[component]
 fn ModernAppLayout(
@@ -895,40 +865,10 @@ fn ModernAppLayout(
     install_button_text: String,
     install_button_class: String,
     install_button_disabled: bool,
-    // Make these optional parameters with defaults
+    // Optional parameters for calculating features count
     enabled_features: Option<Signal<Vec<String>>>,
     universal_manifest: Option<UniversalManifest>,
 ) -> Element {
-    // State for scroll indicator
-    let mut show_scroll_indicator = use_signal(|| false);
-    let mut has_user_scrolled = use_signal(|| false);
-    
-    // Generate unique container ID for this layout instance
-    let container_id = format!("content-{}", 
-        if is_home_page { "home" } else { "installation" }
-    );
-    
-    // Effect to show scroll indicator on content load
-    use_effect({
-        let mut show_scroll_indicator = show_scroll_indicator.clone();
-        let active_tab = active_tab.clone();
-        
-        move || {
-            if !is_home_page {
-                // Show indicator on tab changes or initial load
-                show_scroll_indicator.set(true);
-                has_user_scrolled.set(false);
-                
-                // Auto-hide after 10 seconds
-                spawn(async move {
-                    tokio::time::sleep(tokio::time::Duration::from_secs(10)).await;
-                    if !*has_user_scrolled.read() {
-                        show_scroll_indicator.set(false);
-                    }
-                });
-            }
-        }
-    });
     
     rsx! {
         div { class: "modern-app-layout",
@@ -948,8 +888,6 @@ fn ModernAppLayout(
             } else if let Some(installation) = &current_installation {
                 InstallationFloatingHeader {
                     installation_name: installation.name.clone(),
-                    minecraft_version: installation.minecraft_version.clone(),
-                    loader_info: format!("{} {}", installation.loader_type, installation.loader_version),
                     active_tab: active_tab,
                     on_tab_change: on_tab_change,
                     on_back: on_back.unwrap_or_else(|| EventHandler::new(|_| {})),
@@ -966,113 +904,103 @@ fn ModernAppLayout(
             
             // Scrollable content area
             div { 
-                id: "{container_id}",
                 class: if is_home_page {
                     "page-content-area home-page"
                 } else {
                     "page-content-area"
                 },
-                onscroll: move |_| {
-                    // Hide scroll indicator when user starts scrolling
-                    show_scroll_indicator.set(false);
-                    has_user_scrolled.set(true);
-                },
                 {children}
-            }
-            
-            // Enhanced scroll indicator for installation pages
-            if !is_home_page {
-                EnhancedScrollIndicator {
-                    container_id: container_id.clone(),
-                    show_condition: *show_scroll_indicator.read() && on_install.is_some(),
-                }
             }
             
             // Show installation info above install button (only on installation pages)
             if !is_home_page {
-    if let Some(installation) = &current_installation {
-        // Calculate enabled features count DYNAMICALLY
-        {
-            let features_count = if let (Some(enabled_features_signal), Some(manifest)) = (&enabled_features, &universal_manifest) {
-                // Real counting logic
-                let mut total_components = 0;
-                let mut enabled_components = 0;
-                
-                // Count mods
-                for mod_component in &manifest.mods {
-                    total_components += 1;
-                    if enabled_features_signal.read().contains(&mod_component.id) || mod_component.id == "default" {
-                        enabled_components += 1;
-                    }
-                }
-                
-                // Count shaderpacks
-                for shader in &manifest.shaderpacks {
-                    total_components += 1;
-                    if enabled_features_signal.read().contains(&shader.id) || shader.id == "default" {
-                        enabled_components += 1;
-                    }
-                }
-                
-                // Count resourcepacks
-                for resource in &manifest.resourcepacks {
-                    total_components += 1;
-                    if enabled_features_signal.read().contains(&resource.id) || resource.id == "default" {
-                        enabled_components += 1;
-                    }
-                }
-                
-                // Count includes
-                for include in &manifest.include {
-                    total_components += 1;
-                    let should_include = if include.id.is_empty() || include.id == "default" {
-                        true
-                    } else if !include.optional {
-                        true
-                    } else {
-                        enabled_features_signal.read().contains(&include.id)
-                    };
-                    
-                    if should_include {
-                        enabled_components += 1;
-                    }
-                }
-                
-                format!("{}/{}", enabled_components, total_components)
-            } else {
-                format!("{}/Loading...", installation.enabled_features.len())
-            };
-            
-            rsx! {
-                InstallButtonInfo {
-                    features_count: features_count,
-                    minecraft_version: installation.minecraft_version.clone(),
-                    loader_info: format!("{} {}", installation.loader_type, installation.loader_version),
-                }
-            }
-        }
-    }
-}
-            
-            // Floating install button (only on installation pages)
-            if !is_home_page {
-                if let Some(install_handler) = on_install {
-                    FloatingInstallButton {
-                        button_text: install_button_text,
-                        button_class: install_button_class,
-                        disabled: install_button_disabled,
-                        onclick: install_handler,
-                    }
-                }
-                
-                if let Some(back_handler) = on_back {
-                    FloatingBackButton {
-                        onclick: back_handler,
+                if let Some(installation) = &current_installation {
+                    // Calculate enabled features count DYNAMICALLY
+                    {
+                        let features_count = if let (Some(enabled_features_signal), Some(manifest)) = (&enabled_features, &universal_manifest) {
+                            // Real counting logic
+                            let mut total_components = 0;
+                            let mut enabled_components = 0;
+                            
+                            // Count mods
+                            for mod_component in &manifest.mods {
+                                total_components += 1;
+                                if enabled_features_signal.read().contains(&mod_component.id) || mod_component.id == "default" {
+                                    enabled_components += 1;
+                                }
+                            }
+                            
+                            // Count shaderpacks
+                            for shader in &manifest.shaderpacks {
+                                total_components += 1;
+                                if enabled_features_signal.read().contains(&shader.id) || shader.id == "default" {
+                                    enabled_components += 1;
+                                }
+                            }
+                            
+                            // Count resourcepacks
+                            for resource in &manifest.resourcepacks {
+                                total_components += 1;
+                                if enabled_features_signal.read().contains(&resource.id) || resource.id == "default" {
+                                    enabled_components += 1;
+                                }
+                            }
+                            
+                            // Count includes
+                            for include in &manifest.include {
+                                total_components += 1;
+                                let should_include = if include.id.is_empty() || include.id == "default" {
+                                    true
+                                } else if !include.optional {
+                                    true
+                                } else {
+                                    enabled_features_signal.read().contains(&include.id)
+                                };
+                                
+                                if should_include {
+                                    enabled_components += 1;
+                                }
+                            }
+                            
+                            format!("{}/{}", enabled_components, total_components)
+                        } else {
+                            format!("{}/Loading...", installation.enabled_features.len())
+                        };
+                        
+                        rsx! {
+                            InstallButtonInfo {
+                                features_count: features_count,
+                                minecraft_version: installation.minecraft_version.clone(),
+                                loader_info: format!("{} {}", installation.loader_type, installation.loader_version),
+                            }
+                        }
                     }
                 }
             }
             
-            // Copyright in bottom corner - always visible
+            // Floating footer
+            FloatingFooter {
+                is_home_page: is_home_page,
+                installation_info: if let Some(installation) = &current_installation {
+                    Some(InstallationFooterInfo {
+                        name: installation.name.clone(),
+                        minecraft_version: installation.minecraft_version.clone(),
+                        loader_type: installation.loader_type.clone(),
+                        loader_version: installation.loader_version.clone(),
+                        memory_allocation: installation.memory_allocation,
+                        installed: installation.installed,
+                        needs_update: installation.update_available,
+                        has_changes: has_changes,
+                        is_up_to_date: installation.installed && !installation.update_available && !has_changes,
+                    })
+                } else {
+                    None
+                },
+                on_back: on_back,
+                on_install: on_install,
+            }
+            
+            // Copyright in bottom corner
             div { class: "floating-copyright",
                 "© 2023-2025 Majestic Overhaul. CC BY-NC-SA 4.0."
             }
@@ -2555,7 +2483,7 @@ pub fn app() -> Element {
     let preset_styles = include_str!("assets/preset-styles.css");
     let search_styles = include_str!("assets/search-results-styles.css");
     let modal_styles = include_str!("assets/modal-styles.css");
-    let modern_layout = include_str!("assets/modern_layout.css"); // NEW: Your modern layout CSS
+    let modern_layout = include_str!("assets/modern_layout.css"); // Your new modern layout CSS
     
     // Combine all CSS files
     let complete_css = format!("{}\n{}\n{}\n{}\n{}\n{}\n{}", 
@@ -2640,7 +2568,7 @@ pub fn app() -> Element {
         }
     };
 
-    // Final render
+    // Final render with new modern layout
     rsx! {
         div {
             style { {complete_css} }
@@ -2654,7 +2582,54 @@ pub fn app() -> Element {
                 }
             } else {
                 // Use the new modern layout for normal operation
-                {main_content}
+                ModernAppLayout {
+                    is_home_page: is_home_page,
+                    current_installation: if let Some(id) = current_installation_id.read().as_ref() {
+                        installations().iter().find(|i| &i.id == id).cloned()
+                    } else {
+                        None
+                    },
+                    active_tab: use_signal(|| "features".to_string()), // You'll need to manage this properly
+                    has_changes: false, // You'll need to calculate this properly
+                    is_installing: false, // You'll need to manage this properly
+                    install_button_text: "INSTALL".to_string(), // You'll need to calculate this
+                    install_button_class: "".to_string(),
+                    install_button_disabled: false,
+                    on_go_home: EventHandler::new(move |_: ()| {
+                        current_installation_id.set(None);
+                    }),
+                    on_tab_change: EventHandler::new(move |_tab: String| {
+                        // Handle tab changes
+                    }),
+                    on_launch: if !is_home_page {
+                        Some(EventHandler::new(move |_: ()| {
+                            // Handle launch
+                        }))
+                    } else {
+                        None
+                    },
+                    on_back: if !is_home_page {
+                        Some(EventHandler::new(move |_: ()| {
+                            current_installation_id.set(None);
+                        }))
+                    } else {
+                        None
+                    },
+                    on_install: if !is_home_page {
+                        Some(EventHandler::new(move |_: ()| {
+                            // Handle install
+                        }))
+                    } else {
+                        None
+                    },
+                    on_open_settings: Some(EventHandler::new(move |_: ()| {
+                        settings.set(true);
+                    })),
+                    enabled_features: None, // You'll need to pass this from your installation management
+                    universal_manifest: universal_manifest.read().clone().flatten(),
+                    
+                    {main_content}
+                }
             }
             
             // Keep manifest error display
@@ -2671,4 +2646,4 @@ pub fn app() -> Element {
             }
         }
     }
-} 
+}
