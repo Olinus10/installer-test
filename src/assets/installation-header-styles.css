@@ -1,0 +1,706 @@
+/* Installation Page Header Styles */
+.installation-header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    background: linear-gradient(135deg, rgba(0, 0, 0, 0.95), rgba(20, 20, 20, 0.98));
+    backdrop-filter: blur(20px);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6), 0 0 40px rgba(0, 0, 0, 0.3);
+    z-index: 1000;
+    padding: 0 20px;
+    height: 80px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 0 0 20px 20px;
+    margin: 0 10px;
+    animation: headerSlideDown 0.5s ease-out;
+}
+
+@keyframes headerSlideDown {
+    from {
+        transform: translateY(-100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+/* Left section with back button and title */
+.installation-header-left {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    flex: 1;
+}
+
+/* Modern back button */
+.header-back-button {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: white;
+    border-radius: 12px;
+    padding: 10px 20px;
+    font-family: "REGULAR_FONT";
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    font-size: 0.95rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    position: relative;
+    overflow: hidden;
+}
+
+.header-back-button::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    transition: left 0.5s ease;
+}
+
+.header-back-button:hover::before {
+    left: 100%;
+}
+
+.header-back-button:hover {
+    background: rgba(255, 255, 255, 0.2);
+    transform: translateX(-5px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+}
+
+/* Installation title in header */
+.installation-header-title {
+    font-size: 1.8rem;
+    margin: 0;
+    color: #fce8f6;
+    font-family: "HEADER_FONT";
+    letter-spacing: 0.08em;
+    text-shadow: 0 2px 10px rgba(252, 232, 246, 0.3);
+    animation: titleGlow 3s ease-in-out infinite alternate;
+}
+
+@keyframes titleGlow {
+    0% { text-shadow: 0 2px 10px rgba(252, 232, 246, 0.3); }
+    100% { text-shadow: 0 2px 20px rgba(252, 232, 246, 0.5), 0 0 30px rgba(252, 232, 246, 0.2); }
+}
+
+/* Center section with tabs */
+.installation-header-center {
+    display: flex;
+    gap: 10px;
+    background: rgba(0, 0, 0, 0.3);
+    padding: 8px;
+    border-radius: 16px;
+}
+
+/* Installation page tabs */
+.installation-tab {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.7);
+    border-radius: 12px;
+    padding: 10px 24px;
+    font-family: "REGULAR_FONT";
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    position: relative;
+    overflow: hidden;
+}
+
+.installation-tab::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    background: radial-gradient(circle, rgba(255, 255, 255, 0.2) 0%, transparent 70%);
+    transform: translate(-50%, -50%);
+    transition: width 0.5s ease, height 0.5s ease;
+}
+
+.installation-tab:hover::before {
+    width: 100%;
+    height: 100%;
+}
+
+.installation-tab:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+}
+
+.installation-tab.active {
+    background: linear-gradient(135deg, rgba(76, 175, 80, 0.3), rgba(60, 150, 64, 0.3));
+    color: white;
+    border-color: rgba(76, 175, 80, 0.5);
+    box-shadow: 0 0 20px rgba(76, 175, 80, 0.3);
+}
+
+.installation-tab.active:hover {
+    transform: translateY(-2px);
+}
+
+/* Tab modified indicator */
+.tab-modified-dot {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 6px;
+    height: 6px;
+    background: #ffb900;
+    border-radius: 50%;
+    box-shadow: 0 0 10px rgba(255, 185, 0, 0.6);
+    animation: modifiedPulse 2s ease-in-out infinite;
+}
+
+@keyframes modifiedPulse {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.2); opacity: 0.8; }
+}
+
+/* Right section with launch button */
+.installation-header-right {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+/* Launch button in header */
+.header-launch-button {
+    background: linear-gradient(135deg, #FFD700, #FFA500);
+    border: 2px solid rgba(255, 215, 0, 0.6);
+    border-radius: 14px;
+    padding: 12px 32px;
+    font-family: "HEADER_FONT";
+    font-size: 1.2rem;
+    color: #1a1a1a;
+    cursor: pointer;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    font-weight: 700;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+    box-shadow: 
+        0 8px 25px rgba(255, 215, 0, 0.4),
+        0 0 40px rgba(255, 215, 0, 0.3),
+        inset 0 -3px 10px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    position: relative;
+    overflow: hidden;
+}
+
+.header-launch-button::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: linear-gradient(
+        45deg,
+        transparent,
+        rgba(255, 255, 255, 0.3),
+        rgba(255, 255, 255, 0.6),
+        rgba(255, 255, 255, 0.3),
+        transparent
+    );
+    transform: rotate(45deg);
+    animation: launchShimmer 3s linear infinite;
+}
+
+@keyframes launchShimmer {
+    0% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
+    100% { transform: translateX(100%) translateY(100%) rotate(45deg); }
+}
+
+.header-launch-button:hover {
+    transform: translateY(-3px) scale(1.05);
+    background: linear-gradient(135deg, #FFEF94, #FFD700);
+    box-shadow: 
+        0 12px 35px rgba(255, 215, 0, 0.6),
+        0 0 60px rgba(255, 215, 0, 0.7);
+}
+
+.header-launch-button:active {
+    transform: translateY(-1px) scale(1.02);
+}
+
+.header-launch-button:disabled {
+    background: linear-gradient(135deg, #404040, #2a2a2a);
+    border: 2px solid rgba(100, 100, 100, 0.4);
+    color: #888888;
+    cursor: not-allowed;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    animation: none;
+}
+
+.header-launch-button:disabled::before {
+    display: none;
+}
+
+/* Installation Footer Styles */
+.installation-footer {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: linear-gradient(135deg, rgba(0, 0, 0, 0.95), rgba(20, 20, 20, 0.98));
+    backdrop-filter: blur(20px);
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.6), 0 0 40px rgba(0, 0, 0, 0.3);
+    z-index: 1000;
+    padding: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 20px 20px 0 0;
+    margin: 0 10px;
+    animation: footerSlideUp 0.5s ease-out;
+}
+
+@keyframes footerSlideUp {
+    from {
+        transform: translateY(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+/* Footer info section */
+.footer-info {
+    display: flex;
+    gap: 30px;
+    align-items: center;
+}
+
+.footer-info-item {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.footer-info-label {
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.5);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.footer-info-value {
+    font-size: 0.95rem;
+    color: white;
+    font-weight: 500;
+}
+
+/* Footer divider */
+.footer-divider {
+    width: 1px;
+    height: 30px;
+    background: linear-gradient(to bottom, transparent, rgba(255, 255, 255, 0.3), transparent);
+}
+
+/* Install/Update button in footer */
+.footer-action-button {
+    padding: 14px 40px;
+    border-radius: 14px;
+    font-family: "HEADER_FONT";
+    font-size: 1.1rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    position: relative;
+    overflow: hidden;
+}
+
+.footer-action-button.install {
+    background: linear-gradient(135deg, #4CAF50, #2E7D32);
+    color: white;
+    border: 2px solid rgba(76, 175, 80, 0.5);
+    box-shadow: 0 6px 20px rgba(76, 175, 80, 0.4);
+}
+
+.footer-action-button.update {
+    background: linear-gradient(135deg, #FF9800, #F57C00);
+    color: white;
+    border: 2px solid rgba(255, 152, 0, 0.5);
+    box-shadow: 0 6px 20px rgba(255, 152, 0, 0.4);
+}
+
+.footer-action-button.modify {
+    background: linear-gradient(135deg, #2196F3, #1565C0);
+    color: white;
+    border: 2px solid rgba(33, 150, 243, 0.5);
+    box-shadow: 0 6px 20px rgba(33, 150, 243, 0.4);
+}
+
+.footer-action-button.up-to-date {
+    background: linear-gradient(135deg, #6a6a6a, #4a4a4a);
+    color: #cccccc;
+    border: 2px solid rgba(106, 106, 106, 0.5);
+    cursor: not-allowed;
+    opacity: 0.8;
+}
+
+.footer-action-button:not(.up-to-date):hover {
+    transform: translateY(-3px) scale(1.05);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+}
+
+.footer-action-button:not(.up-to-date):active {
+    transform: translateY(-1px) scale(1.02);
+}
+
+/* Button shimmer effect */
+.footer-action-button:not(.up-to-date)::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+        90deg,
+        transparent,
+        rgba(255, 255, 255, 0.2),
+        rgba(255, 255, 255, 0.3),
+        rgba(255, 255, 255, 0.2),
+        transparent
+    );
+    transition: left 0.6s ease;
+}
+
+.footer-action-button:not(.up-to-date):hover::before {
+    left: 100%;
+}
+
+/* Responsive adjustments */
+@media (max-width: 1024px) {
+    .installation-header-title {
+        font-size: 1.4rem;
+    }
+    
+    .installation-tab {
+        padding: 8px 16px;
+        font-size: 0.9rem;
+    }
+    
+    .header-launch-button {
+        padding: 10px 24px;
+        font-size: 1rem;
+    }
+}
+
+@media (max-width: 768px) {
+    .installation-header {
+        height: auto;
+        padding: 15px;
+        flex-direction: column;
+        gap: 15px;
+    }
+    
+    .installation-header-left,
+    .installation-header-center,
+    .installation-header-right {
+        width: 100%;
+        justify-content: center;
+    }
+    
+    .installation-footer {
+        flex-direction: column;
+        gap: 15px;
+        padding: 15px;
+    }
+    
+    .footer-info {
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+}
+
+/* Main content adjustment for fixed header/footer */
+.installation-page-content {
+    padding-top: 100px; /* Space for header */
+    padding-bottom: 100px; /* Space for footer */
+    min-height: 100vh;
+    animation: contentFadeIn 0.6s ease-out;
+}
+
+@keyframes contentFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Remove the old installation management styles */
+.installation-management-container {
+    width: 100%;
+    height: 100vh;
+    overflow-y: auto;
+}
+
+/* Hide old elements */
+.installation-header-compact,
+.header-top-row,
+.installation-actions,
+.features-tab-actions {
+    display: none !important;
+}
+
+/* Update main container when on installation page */
+.main-container.installation-page {
+    padding: 0;
+    overflow: hidden;
+}0.885, 0.32, 1.275);
+    position: relative;
+    overflow: hidden;
+}
+
+.header-launch-button::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: linear-gradient(
+        45deg,
+        transparent,
+        rgba(255, 255, 255, 0.3),
+        rgba(255, 255, 255, 0.6),
+        rgba(255, 255, 255, 0.3),
+        transparent
+    );
+    transform: rotate(45deg);
+    animation: launchShimmer 3s linear infinite;
+}
+
+@keyframes launchShimmer {
+    0% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
+    100% { transform: translateX(100%) translateY(100%) rotate(45deg); }
+}
+
+.header-launch-button:hover {
+    transform: translateY(-3px) scale(1.05);
+    background: linear-gradient(135deg, #FFEF94, #FFD700);
+    box-shadow: 
+        0 12px 35px rgba(255, 215, 0, 0.6),
+        0 0 60px rgba(255, 215, 0, 0.7);
+}
+
+.header-launch-button:active {
+    transform: translateY(-1px) scale(1.02);
+}
+
+.header-launch-button:disabled {
+    background: linear-gradient(135deg, #404040, #2a2a2a);
+    border: 2px solid rgba(100, 100, 100, 0.4);
+    color: #888888;
+    cursor: not-allowed;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    animation: none;
+}
+
+.header-launch-button:disabled::before {
+    display: none;
+}
+
+/* Installation Footer Styles */
+.installation-footer {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: linear-gradient(135deg, rgba(0, 0, 0, 0.95), rgba(20, 20, 20, 0.98));
+    backdrop-filter: blur(20px);
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.6), 0 0 40px rgba(0, 0, 0, 0.3);
+    z-index: 1000;
+    padding: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 20px 20px 0 0;
+    margin: 0 10px;
+    animation: footerSlideUp 0.5s ease-out;
+}
+
+@keyframes footerSlideUp {
+    from {
+        transform: translateY(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+/* Footer info section */
+.footer-info {
+    display: flex;
+    gap: 30px;
+    align-items: center;
+}
+
+.footer-info-item {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.footer-info-label {
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.5);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.footer-info-value {
+    font-size: 0.95rem;
+    color: white;
+    font-weight: 500;
+}
+
+/* Footer divider */
+.footer-divider {
+    width: 1px;
+    height: 30px;
+    background: linear-gradient(to bottom, transparent, rgba(255, 255, 255, 0.3), transparent);
+}
+
+/* Install/Update button in footer */
+.footer-action-button {
+    padding: 14px 40px;
+    border-radius: 14px;
+    font-family: "HEADER_FONT";
+    font-size: 1.1rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    position: relative;
+    overflow: hidden;
+}
+
+.footer-action-button.install {
+    background: linear-gradient(135deg, #4CAF50, #2E7D32);
+    color: white;
+    border: 2px solid rgba(76, 175, 80, 0.5);
+    box-shadow: 0 6px 20px rgba(76, 175, 80, 0.4);
+}
+
+.footer-action-button.update {
+    background: linear-gradient(135deg, #FF9800, #F57C00);
+    color: white;
+    border: 2px solid rgba(255, 152, 0, 0.5);
+    box-shadow: 0 6px 20px rgba(255, 152, 0, 0.4);
+}
+
+.footer-action-button.modify {
+    background: linear-gradient(135deg, #2196F3, #1565C0);
+    color: white;
+    border: 2px solid rgba(33, 150, 243, 0.5);
+    box-shadow: 0 6px 20px rgba(33, 150, 243, 0.4);
+}
+
+.footer-action-button.up-to-date {
+    background: linear-gradient(135deg, #6a6a6a, #4a4a4a);
+    color: #cccccc;
+    border: 2px solid rgba(106, 106, 106, 0.5);
+    cursor: not-allowed;
+    opacity: 0.8;
+}
+
+.footer-action-button:not(.up-to-date):hover {
+    transform: translateY(-3px) scale(1.05);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+}
+
+.footer-action-button:not(.up-to-date):active {
+    transform: translateY(-1px) scale(1.02);
+}
+
+/* Responsive adjustments */
+@media (max-width: 1024px) {
+    .installation-header-title {
+        font-size: 1.4rem;
+    }
+    
+    .installation-tab {
+        padding: 8px 16px;
+        font-size: 0.9rem;
+    }
+    
+    .header-launch-button {
+        padding: 10px 24px;
+        font-size: 1rem;
+    }
+}
+
+@media (max-width: 768px) {
+    .installation-header {
+        height: auto;
+        padding: 15px;
+        flex-direction: column;
+        gap: 15px;
+    }
+    
+    .installation-header-left,
+    .installation-header-center,
+    .installation-header-right {
+        width: 100%;
+        justify-content: center;
+    }
+    
+    .installation-footer {
+        flex-direction: column;
+        gap: 15px;
+        padding: 15px;
+    }
+    
+    .footer-info {
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+}
+
+/* Main content adjustment for fixed header/footer */
+.installation-page-content {
+    padding-top: 100px; /* Space for header */
+    padding-bottom: 100px; /* Space for footer */
+    min-height: 100vh;
+    animation: contentFadeIn 0.6s ease-out;
+}
+
+@keyframes contentFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
