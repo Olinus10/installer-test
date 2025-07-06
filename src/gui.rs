@@ -1046,18 +1046,21 @@ fn HomePage(
                     span { class: "divider-title", "YOUR INSTALLATIONS" }
                 }
                 
-                // Grid of installation cards
+                // Grid of installation cards - FIX THE OWNERSHIP ISSUE HERE
                 div { class: "installations-grid",
                     // Existing installation cards
                     for installation in installations() {
                         {
-                            let installation_id = installation.id.clone();
+                            // FIX: Clone the ID for each closure separately
+                            let installation_id_for_click = installation.id.clone();
+                            let installation_id_for_manage = installation.id.clone();
+                            
                             rsx! {
                                 div { 
                                     class: "installation-card",
                                     onclick: move |_| {
-                                        debug!("Clicked installation: {}", installation_id);
-                                        current_installation_id.set(Some(installation_id.clone()));
+                                        debug!("Clicked installation: {}", installation_id_for_click);
+                                        current_installation_id.set(Some(installation_id_for_click.clone()));
                                     },
                                     
                                     div { class: "installation-card-header",
@@ -1085,7 +1088,7 @@ fn HomePage(
                                             class: "play-button",
                                             onclick: move |evt| {
                                                 evt.stop_propagation();
-                                                // Handle play click
+                                                // Handle play click - would need the ID here too if implemented
                                             },
                                             "Play"
                                         }
@@ -1094,7 +1097,7 @@ fn HomePage(
                                             class: "manage-button",
                                             onclick: move |evt| {
                                                 evt.stop_propagation();
-                                                current_installation_id.set(Some(installation_id.clone()));
+                                                current_installation_id.set(Some(installation_id_for_manage.clone()));
                                             },
                                             "Manage"
                                         }
@@ -1151,76 +1154,22 @@ fn HomePage(
             // Recent changes section
             if let Some(changelog_data) = changelog() {
                 if !changelog_data.entries.is_empty() {
-                    div { class: "changelog-container",
-                        div { class: "section-divider with-title", 
-                            span { class: "divider-title", "LATEST CHANGES" }
-                        }
-                        
-                        div { class: "changelog-entries",
-                            for (index, entry) in changelog_data.entries.iter().enumerate().take(3) {
-                                div { 
-                                    class: "changelog-entry",
-                                    
-                                    div { class: "changelog-header",
-                                        h3 { class: "changelog-title", "{entry.title}" }
-                                        
-                                        if let Some(version) = &entry.version {
-                                            span { class: "changelog-version", "v{version}" }
-                                        }
-                                        
-                                        if let Some(date) = &entry.date {
-                                            span { class: "changelog-date", "{date}" }
-                                        }
-                                    }
-                                    
-                                    div { 
-                                        class: "changelog-content",
-                                        dangerous_inner_html: "{entry.contents}"
-                                    }
-                                    
-                                    if index < 2 {
-                                        div { class: "entry-divider" }
-                                    }
-                                }
-                            }
-                        }
-                    }
+                    ChangelogSection { changelog: Some(changelog_data) }
                 }
             }
             
             // Installation creation dialog
             if *show_creation_dialog.read() {
-                div { class: "wizard-overlay",
-                    div { class: "installation-wizard",
-                        div { class: "wizard-header",
-                            h2 { "Create New Installation" }
-                            button { 
-                                class: "close-button",
-                                onclick: move |_| show_creation_dialog.set(false),
-                                "×"
-                            }
-                        }
-                        
-                        div { class: "wizard-content",
-                            p { "Installation wizard content goes here..." }
-                        }
-                        
-                        div { class: "wizard-footer",
-                            button {
-                                class: "cancel-button",
-                                onclick: move |_| show_creation_dialog.set(false),
-                                "Cancel"
-                            }
-                            
-                            button {
-                                class: "create-button",
-                                onclick: move |_| {
-                                    // Handle installation creation
-                                    show_creation_dialog.set(false);
-                                },
-                                "Create Installation"
-                            }
-                        }
+                SimplifiedInstallationWizard {
+                    onclose: move |_| {
+                        show_creation_dialog.set(false);
+                    },
+                    oncreate: move |new_installation: Installation| {
+                        installations.with_mut(|list| {
+                            list.insert(0, new_installation.clone());
+                        });
+                        show_creation_dialog.set(false);
+                        current_installation_id.set(Some(new_installation.id));
                     }
                 }
             }
@@ -2286,7 +2235,7 @@ pub fn app() -> Element {
         }, false, Some(move |_| error_signal.set(None)));
     }
 
-    // Build CSS content
+    // Build CSS content - include the modern layout CSS
     let css_content = include_str!("assets/style.css")
         .replace("<BG_COLOR>", "#320625")
         .replace("<BG_IMAGE>", "https://raw.githubusercontent.com/Wynncraft-Overhaul/installer/master/src/assets/background_installer.png")
@@ -2299,7 +2248,9 @@ pub fn app() -> Element {
     let preset_styles = include_str!("assets/preset-styles.css");
     let search_styles = include_str!("assets/search-results-styles.css");
     let modal_styles = include_str!("assets/modal-styles.css");
-    let modern_layout_css = include_str!("assets/modern_layout.css"); // Your new CSS
+    
+    // IMPORTANT: You need to create this file with the CSS I provided earlier
+    let modern_layout_css = include_str!("assets/modern_layout.css");
     
     // Combine all CSS files
     let complete_css = format!("{}\n{}\n{}\n{}\n{}\n{}\n{}", 
@@ -2372,7 +2323,61 @@ pub fn app() -> Element {
         };
     }
 
-    // Main content with modern layout
+    // Create event handlers properly to fix compilation errors
+    let on_go_home = EventHandler::new({
+        let mut current_installation_id = current_installation_id.clone();
+        move |_: ()| {
+            current_installation_id.set(None);
+        }
+    });
+
+    let on_tab_change = EventHandler::new(move |_tab: String| {
+        debug!("Tab changed to: {}", _tab);
+    });
+
+    // Get current installation for layout props
+    let current_installation = if let Some(id) = current_installation_id.read().as_ref() {
+        installations().iter().find(|i| &i.id == id).cloned()
+    } else {
+        None
+    };
+
+    // Create conditional event handlers properly
+    let on_launch_handler = if !is_home_page && current_installation.as_ref().map_or(false, |i| i.installed) {
+        let current_installation_id = current_installation_id.clone();
+        Some(EventHandler::new(move |_: ()| {
+            if let Some(id) = current_installation_id.read().as_ref() {
+                let id_clone = id.clone();
+                spawn(async move {
+                    match crate::launch_modpack(&id_clone) {
+                        Ok(_) => debug!("Successfully launched modpack: {}", id_clone),
+                        Err(e) => error!("Failed to launch modpack: {}", e),
+                    }
+                });
+            }
+        }))
+    } else {
+        None
+    };
+
+    let on_back_handler = if !is_home_page {
+        let mut current_installation_id = current_installation_id.clone();
+        Some(EventHandler::new(move |_: ()| {
+            current_installation_id.set(None);
+        }))
+    } else {
+        None
+    };
+
+    let on_install_handler = if !is_home_page {
+        Some(EventHandler::new(move |_: ()| {
+            debug!("Install handler called");
+        }))
+    } else {
+        None
+    };
+
+    // Main content
     let main_content = if is_home_page {
         rsx! {
             HomePage {
@@ -2404,18 +2409,14 @@ pub fn app() -> Element {
                 installation_id: id,
                 installations: installations.clone(),
                 universal_manifest: universal_manifest.read().clone().flatten(),
-                on_back: move |_| {
-                    current_installation_id.set(None);
-                }
+                on_back: EventHandler::new({
+                    let mut current_installation_id = current_installation_id.clone();
+                    move |_: ()| {
+                        current_installation_id.set(None);
+                    }
+                })
             }
         }
-    };
-
-    // Get current installation for layout props
-    let current_installation = if let Some(id) = current_installation_id.read().as_ref() {
-        installations().iter().find(|i| &i.id == id).cloned()
-    } else {
-        None
     };
 
     // Final render with modern layout
@@ -2429,47 +2430,14 @@ pub fn app() -> Element {
                 is_home_page: is_home_page,
                 current_installation: current_installation.clone(),
                 active_tab: use_signal(|| "features".to_string()),
-                has_changes: false, // You'll calculate this properly in the installation component
-                enabled_features: None, // Pass from installation component when needed
+                has_changes: false,
+                enabled_features: None,
                 universal_manifest: universal_manifest.read().clone().flatten(),
-                on_go_home: move |_| {
-                    current_installation_id.set(None);
-                },
-                on_tab_change: move |_tab: String| {
-                    // Handle tab changes in installation component
-                },
-                on_launch: if !is_home_page && current_installation.as_ref().map_or(false, |i| i.installed) {
-                    Some(move |_| {
-                        if let Some(id) = current_installation_id.read().as_ref() {
-                            // Handle launch
-                            spawn({
-                                let id = id.clone();
-                                async move {
-                                    match crate::launch_modpack(&id) {
-                                        Ok(_) => debug!("Successfully launched modpack: {}", id),
-                                        Err(e) => error!("Failed to launch modpack: {}", e),
-                                    }
-                                }
-                            });
-                        }
-                    })
-                } else {
-                    None
-                },
-                on_back: if !is_home_page {
-                    Some(move |_| {
-                        current_installation_id.set(None);
-                    })
-                } else {
-                    None
-                },
-                on_install: if !is_home_page {
-                    Some(move |_| {
-                        // Handle install - this will be managed by the installation component
-                    })
-                } else {
-                    None
-                },
+                on_go_home: on_go_home,
+                on_tab_change: on_tab_change,
+                on_launch: on_launch_handler,
+                on_back: on_back_handler,
+                on_install: on_install_handler,
                 
                 {main_content}
             }
