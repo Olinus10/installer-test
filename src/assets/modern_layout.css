@@ -567,3 +567,396 @@
 .install-button-info {
     display: none !important;
 }
+
+/* CORRECTED modern_layout.css - Fix for conflicting styles */
+
+/* Force hide ALL old elements first */
+.app-header,
+.app-footer,
+.installation-integrated-header,
+.installation-floating-header,
+.home-floating-header,
+.floating-footer,
+.install-button-info,
+.features-count-container {
+    display: none !important;
+}
+
+/* Reset any existing positioning */
+.main-container,
+.modern-app-layout,
+.installation-management-container {
+    height: 100vh !important;
+    overflow: hidden !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    position: relative !important;
+}
+
+/* ============ FLOATING LOGO (ALWAYS VISIBLE) ============ */
+.floating-logo {
+    position: fixed !important;
+    top: 20px !important;
+    left: 20px !important;
+    z-index: 1000 !important;
+    width: 60px !important;
+    height: 60px !important;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border-radius: 16px;
+    overflow: hidden;
+    background: linear-gradient(145deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
+    backdrop-filter: blur(15px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 
+        0 8px 32px rgba(0, 0, 0, 0.4),
+        0 0 0 1px rgba(255, 255, 255, 0.1);
+}
+
+.floating-logo img {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: cover;
+}
+
+.floating-logo:hover {
+    transform: scale(1.05) translateY(-2px);
+    box-shadow: 
+        0 12px 40px rgba(0, 0, 0, 0.5),
+        0 0 0 1px rgba(255, 255, 255, 0.15);
+}
+
+/* ============ INSTALLATION HEADER (ONLY ON INSTALLATION PAGES) ============ */
+.installation-header {
+    position: fixed !important;
+    top: 20px !important;
+    left: 100px !important; /* After the logo */
+    right: 200px !important; /* Leave space for launch button */
+    height: 60px !important;
+    background: linear-gradient(145deg, rgba(30, 30, 30, 0.95), rgba(20, 20, 20, 0.98)) !important;
+    border-radius: 16px !important;
+    z-index: 999 !important;
+    display: flex !important;
+    align-items: center !important;
+    padding: 0 30px !important;
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    box-shadow: 
+        0 8px 32px rgba(0, 0, 0, 0.4),
+        0 0 0 1px rgba(255, 255, 255, 0.1);
+}
+
+.installation-title-section {
+    flex: 1 !important;
+}
+
+.installation-title {
+    font-family: "HEADER_FONT" !important;
+    font-size: 1.4rem !important;
+    color: #fce8f6 !important;
+    margin: 0 !important;
+    letter-spacing: 0.05em;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+.installation-tabs {
+    display: flex !important;
+    gap: 8px !important;
+}
+
+.tab-button {
+    background: rgba(60, 60, 60, 0.8) !important;
+    color: rgba(255, 255, 255, 0.7) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    border-radius: 10px !important;
+    padding: 10px 20px !important;
+    font-family: "REGULAR_FONT" !important;
+    font-size: 0.9rem !important;
+    cursor: pointer !important;
+    transition: all 0.3s ease !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.5px !important;
+    font-weight: 500 !important;
+}
+
+.tab-button:hover {
+    background: rgba(80, 80, 80, 0.9) !important;
+    color: rgba(255, 255, 255, 0.9) !important;
+    transform: translateY(-1px) !important;
+}
+
+.tab-button.active {
+    background: linear-gradient(135deg, #4CAF50, #2E7D32) !important;
+    color: white !important;
+    border-color: rgba(76, 175, 80, 0.6) !important;
+    box-shadow: 0 4px 15px rgba(76, 175, 80, 0.3) !important;
+}
+
+/* ============ FLOATING LAUNCH BUTTON (INSTALLATION PAGES ONLY) ============ */
+.floating-launch-button {
+    position: fixed !important;
+    top: 20px !important;
+    right: 20px !important;
+    width: 160px !important;
+    height: 60px !important;
+    background: linear-gradient(135deg, #FFD700, #FFA500) !important;
+    color: #1a1a1a !important;
+    border: 2px solid rgba(255, 215, 0, 0.6) !important;
+    border-radius: 16px !important;
+    font-family: "HEADER_FONT" !important;
+    font-size: 1.1rem !important;
+    cursor: pointer !important;
+    z-index: 999 !important;
+    transition: all 0.3s ease !important;
+    text-transform: uppercase !important;
+    letter-spacing: 1px !important;
+    font-weight: 700 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    backdrop-filter: blur(15px);
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 8px 25px rgba(255, 215, 0, 0.4) !important;
+}
+
+.floating-launch-button:hover:not(:disabled) {
+    transform: translateY(-3px) scale(1.02) !important;
+    background: linear-gradient(135deg, #FFEF94, #FFD700) !important;
+    box-shadow: 0 12px 35px rgba(255, 215, 0, 0.6) !important;
+}
+
+.floating-launch-button:disabled {
+    background: linear-gradient(135deg, #404040, #2a2a2a) !important;
+    border: 2px solid rgba(100, 100, 100, 0.4) !important;
+    color: #888888 !important;
+    cursor: not-allowed !important;
+    transform: none !important;
+    opacity: 0.7 !important;
+}
+
+/* ============ FLOATING DISCORD BUTTON (HOME PAGE ONLY) ============ */
+.floating-discord-button {
+    position: fixed !important;
+    top: 20px !important;
+    right: 20px !important;
+    width: 160px !important;
+    height: 60px !important;
+    background: linear-gradient(135deg, #5865F2, #4752c4) !important;
+    color: white !important;
+    border: 2px solid rgba(88, 101, 242, 0.6) !important;
+    border-radius: 16px !important;
+    font-family: "HEADER_FONT" !important;
+    font-size: 1.1rem !important;
+    cursor: pointer !important;
+    z-index: 999 !important;
+    transition: all 0.3s ease !important;
+    text-transform: uppercase !important;
+    letter-spacing: 1px !important;
+    font-weight: 700 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 8px !important;
+    backdrop-filter: blur(15px);
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 8px 25px rgba(88, 101, 242, 0.4) !important;
+    text-decoration: none !important;
+}
+
+.floating-discord-button:hover {
+    transform: translateY(-3px) scale(1.02) !important;
+    background: linear-gradient(135deg, #6b73ff, #5865F2) !important;
+    box-shadow: 0 12px 35px rgba(88, 101, 242, 0.6) !important;
+}
+
+/* ============ CONTENT AREA ============ */
+.content-area,
+.page-content-area,
+.installation-main-content {
+    position: absolute !important;
+    left: 20px !important;
+    right: 20px !important;
+    bottom: 140px !important; /* Space for footer */
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    z-index: 1 !important;
+    background: transparent !important;
+}
+
+/* Home page content - no header, no footer */
+.content-area.home-content,
+.page-content-area.home-page {
+    top: 20px !important;
+    bottom: 20px !important; /* No footer on home page */
+}
+
+/* Installation page content - has header and footer */
+.content-area.installation-content,
+.page-content-area:not(.home-page) {
+    top: 100px !important; /* Space for installation header */
+    bottom: 140px !important; /* Space for footer */
+}
+
+/* ============ MODERN FOOTER (INSTALLATION PAGES ONLY) ============ */
+.modern-footer {
+    position: fixed !important;
+    bottom: 20px !important;
+    left: 20px !important;
+    right: 20px !important;
+    height: 100px !important;
+    background: linear-gradient(145deg, rgba(30, 30, 30, 0.95), rgba(20, 20, 20, 0.98)) !important;
+    border-radius: 16px !important;
+    z-index: 999 !important;
+    display: flex !important;
+    align-items: center !important;
+    padding: 0 30px !important;
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    box-shadow: 
+        0 8px 32px rgba(0, 0, 0, 0.4),
+        0 0 0 1px rgba(255, 255, 255, 0.1);
+}
+
+/* Hide footer on home page */
+.modern-layout[data-home-page="true"] .modern-footer {
+    display: none !important;
+}
+
+.footer-installation-content {
+    flex: 1 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+}
+
+.footer-back-button {
+    background: linear-gradient(135deg, rgba(100, 100, 110, 0.8), rgba(80, 80, 90, 0.9)) !important;
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+    color: white !important;
+    border-radius: 12px !important;
+    padding: 14px 20px !important;
+    font-family: "REGULAR_FONT" !important;
+    cursor: pointer !important;
+    transition: all 0.3s ease !important;
+    font-size: 1rem !important;
+    font-weight: 600 !important;
+}
+
+.footer-back-button:hover {
+    background: linear-gradient(135deg, rgba(120, 120, 130, 0.9), rgba(100, 100, 110, 1)) !important;
+    transform: translateY(-2px) !important;
+}
+
+.footer-installation-info {
+    text-align: center !important;
+    flex: 1 !important;
+}
+
+.footer-installation-details {
+    display: flex !important;
+    justify-content: center !important;
+    gap: 20px !important;
+    color: rgba(255, 255, 255, 0.7) !important;
+    font-family: "REGULAR_FONT" !important;
+    font-size: 0.9rem !important;
+}
+
+.footer-install-button {
+    background: linear-gradient(135deg, #4CAF50, #2E7D32) !important;
+    color: white !important;
+    border: none !important;
+    border-radius: 12px !important;
+    padding: 16px 32px !important;
+    font-family: "HEADER_FONT" !important;
+    font-size: 1.1rem !important;
+    font-weight: 600 !important;
+    cursor: pointer !important;
+    transition: all 0.3s ease !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.5px !important;
+    box-shadow: 0 4px 15px rgba(76, 175, 80, 0.3) !important;
+}
+
+.footer-install-button.update-button {
+    background: linear-gradient(135deg, #FF9800, #F57C00) !important;
+    box-shadow: 0 4px 15px rgba(255, 152, 0, 0.3) !important;
+}
+
+.footer-install-button:hover:not(:disabled) {
+    transform: translateY(-2px) !important;
+    background: linear-gradient(135deg, #66BB6A, #4CAF50) !important;
+    box-shadow: 0 6px 20px rgba(76, 175, 80, 0.5) !important;
+}
+
+.footer-install-button.update-button:hover:not(:disabled) {
+    background: linear-gradient(135deg, #FFB74D, #FF9800) !important;
+    box-shadow: 0 6px 20px rgba(255, 152, 0, 0.5) !important;
+}
+
+.footer-install-button:disabled {
+    background: linear-gradient(135deg, #6a6a6a, #4a4a4a) !important;
+    color: #cccccc !important;
+    cursor: not-allowed !important;
+    transform: none !important;
+    opacity: 0.7 !important;
+}
+
+/* ============ HOME PAGE ADJUSTMENTS ============ */
+.home-container {
+    padding: 20px !important;
+    max-width: 1200px !important;
+    margin: 0 auto !important;
+}
+
+/* ============ RESPONSIVE DESIGN ============ */
+@media (max-width: 1200px) {
+    .installation-header {
+        left: 90px !important;
+        right: 180px !important;
+    }
+    
+    .floating-launch-button,
+    .floating-discord-button {
+        width: 140px !important;
+    }
+}
+
+@media (max-width: 768px) {
+    .floating-logo {
+        width: 50px !important;
+        height: 50px !important;
+        top: 15px !important;
+        left: 15px !important;
+    }
+    
+    .installation-header {
+        left: 75px !important;
+        right: 15px !important;
+        height: 50px !important;
+        top: 15px !important;
+    }
+    
+    .floating-launch-button,
+    .floating-discord-button {
+        display: none !important;
+    }
+    
+    .content-area,
+    .page-content-area {
+        left: 15px !important;
+        right: 15px !important;
+        bottom: 120px !important;
+    }
+    
+    .content-area.installation-content,
+    .page-content-area:not(.home-page) {
+        top: 75px !important;
+    }
+    
+    .modern-footer {
+        bottom: 15px !important;
+        left: 15px !important;
+        right: 15px !important;
+        height: 80px !important;
+    }
+}
