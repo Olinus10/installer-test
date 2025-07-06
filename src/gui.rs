@@ -990,67 +990,69 @@ fn ModernAppLayout(
             
             // Show installation info above install button (only on installation pages)
             if !is_home_page {
-                if let Some(installation) = &current_installation {
-                    // Calculate enabled features count DYNAMICALLY
-                    let features_count = {
-                        if let (Some(enabled_features_signal), Some(manifest)) = (&enabled_features, &universal_manifest) {
-                            // Real counting logic
-                            let mut total_components = 0;
-                            let mut enabled_components = 0;
-                            
-                            // Count mods
-                            for mod_component in &manifest.mods {
-                                total_components += 1;
-                                if enabled_features_signal.read().contains(&mod_component.id) || mod_component.id == "default" {
-                                    enabled_components += 1;
-                                }
-                            }
-                            
-                            // Count shaderpacks
-                            for shader in &manifest.shaderpacks {
-                                total_components += 1;
-                                if enabled_features_signal.read().contains(&shader.id) || shader.id == "default" {
-                                    enabled_components += 1;
-                                }
-                            }
-                            
-                            // Count resourcepacks
-                            for resource in &manifest.resourcepacks {
-                                total_components += 1;
-                                if enabled_features_signal.read().contains(&resource.id) || resource.id == "default" {
-                                    enabled_components += 1;
-                                }
-                            }
-                            
-                            // Count includes
-                            for include in &manifest.include {
-                                total_components += 1;
-                                let should_include = if include.id.is_empty() || include.id == "default" {
-                                    true
-                                } else if !include.optional {
-                                    true
-                                } else {
-                                    enabled_features_signal.read().contains(&include.id)
-                                };
-                                
-                                if should_include {
-                                    enabled_components += 1;
-                                }
-                            }
-                            
-                            format!("{}/{}", enabled_components, total_components)
-                        } else {
-                            format!("{}/Loading...", installation.enabled_features.len())
-                        }
-                    };
-                    
-                    InstallButtonInfo {
-                        features_count: features_count,
-                        minecraft_version: installation.minecraft_version.clone(),
-                        loader_info: format!("{} {}", installation.loader_type, installation.loader_version),
+    if let Some(installation) = &current_installation {
+        // Calculate enabled features count DYNAMICALLY
+        {
+            let features_count = if let (Some(enabled_features_signal), Some(manifest)) = (&enabled_features, &universal_manifest) {
+                // Real counting logic
+                let mut total_components = 0;
+                let mut enabled_components = 0;
+                
+                // Count mods
+                for mod_component in &manifest.mods {
+                    total_components += 1;
+                    if enabled_features_signal.read().contains(&mod_component.id) || mod_component.id == "default" {
+                        enabled_components += 1;
                     }
                 }
+                
+                // Count shaderpacks
+                for shader in &manifest.shaderpacks {
+                    total_components += 1;
+                    if enabled_features_signal.read().contains(&shader.id) || shader.id == "default" {
+                        enabled_components += 1;
+                    }
+                }
+                
+                // Count resourcepacks
+                for resource in &manifest.resourcepacks {
+                    total_components += 1;
+                    if enabled_features_signal.read().contains(&resource.id) || resource.id == "default" {
+                        enabled_components += 1;
+                    }
+                }
+                
+                // Count includes
+                for include in &manifest.include {
+                    total_components += 1;
+                    let should_include = if include.id.is_empty() || include.id == "default" {
+                        true
+                    } else if !include.optional {
+                        true
+                    } else {
+                        enabled_features_signal.read().contains(&include.id)
+                    };
+                    
+                    if should_include {
+                        enabled_components += 1;
+                    }
+                }
+                
+                format!("{}/{}", enabled_components, total_components)
+            } else {
+                format!("{}/Loading...", installation.enabled_features.len())
+            };
+            
+            rsx! {
+                InstallButtonInfo {
+                    features_count: features_count,
+                    minecraft_version: installation.minecraft_version.clone(),
+                    loader_info: format!("{} {}", installation.loader_type, installation.loader_version),
+                }
             }
+        }
+    }
+}
             
             // Floating install button (only on installation pages)
             if !is_home_page {
