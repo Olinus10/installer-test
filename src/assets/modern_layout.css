@@ -1,4 +1,4 @@
-/* Logo - Always visible, top-left corner (bigger size) */
+/* Logo - Always visible, top-left corner (bigger size, no background) */
 .floating-logo {
     position: fixed;
     top: 20px;
@@ -6,6 +6,7 @@
     z-index: 1000;
     cursor: pointer;
     transition: transform 0.3s ease;
+    background: none; /* Ensure no background */
 }
 
 .floating-logo:hover {
@@ -17,19 +18,20 @@
     height: 64px; /* Increased from 48px */
     border-radius: 16px; /* Increased border radius */
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    background: none; /* Ensure no background on image */
 }
 
-/* Installation Header - Better gradient and transparency */
+/* Installation Header - More transparent */
 .installation-floating-header {
     position: fixed;
     top: 20px;
     left: 104px; /* Adjusted for bigger logo: 20 + 64 + 20 */
-    right: 280px; /* More space for launch button */
+    right: 240px; /* More space for launch button */
     z-index: 999;
     background: linear-gradient(145deg, 
-        rgba(60, 60, 70, 0.85), 
-        rgba(40, 40, 50, 0.9),
-        rgba(30, 30, 40, 0.95)
+        rgba(60, 60, 70, 0.4), 
+        rgba(40, 40, 50, 0.45),
+        rgba(30, 30, 40, 0.5)
     );
     border-radius: 16px;
     padding: 16px 24px;
@@ -43,17 +45,17 @@
     box-sizing: border-box;
 }
 
-/* Home page header */
+/* Home page header - More transparent */
 .home-floating-header {
     position: fixed;
     top: 20px;
     left: 104px; /* Same alignment as installation header */
-    right: 280px; /* Same as installation header */
+    right: 240px; /* Same as installation header */
     z-index: 999;
     background: linear-gradient(145deg, 
-        rgba(60, 60, 70, 0.85), 
-        rgba(40, 40, 50, 0.9),
-        rgba(30, 30, 40, 0.95)
+        rgba(60, 60, 70, 0.4), 
+        rgba(40, 40, 50, 0.45),
+        rgba(30, 30, 40, 0.5)
     );
     border-radius: 16px;
     padding: 16px 24px;
@@ -62,7 +64,7 @@
     border: 1px solid rgba(255, 255, 255, 0.15);
     display: flex;
     align-items: center;
-    justify-content: flex-start; /* Align to left */
+    justify-content: space-between; /* Space between title and settings tab */
     height: 64px; /* Match logo height */
     box-sizing: border-box;
 }
@@ -74,6 +76,26 @@
     letter-spacing: 0.5px;
     text-transform: uppercase;
     margin: 0;
+}
+
+/* Settings tab for home page */
+.home-settings-tab {
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 8px;
+    padding: 8px 16px;
+    color: rgba(255, 255, 255, 0.7);
+    font-family: "REGULAR_FONT";
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.home-settings-tab:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.9);
 }
 
 .installation-header-info {
@@ -140,7 +162,7 @@
     box-shadow: 0 2px 8px rgba(76, 175, 80, 0.3);
 }
 
-/* Discord button for home page (aligned with headers) */
+/* Discord button for home page - Moved closer to header */
 .floating-discord-button {
     position: fixed;
     top: 20px;
@@ -162,6 +184,7 @@
     box-shadow: 0 4px 16px rgba(88, 101, 242, 0.4);
     height: 64px; /* Match logo and header height */
     box-sizing: border-box;
+    min-width: 140px; /* Consistent width */
 }
 
 .floating-discord-button:hover {
@@ -171,7 +194,7 @@
     text-decoration: none;
 }
 
-/* Launch Button - Longer and aligned */
+/* Launch Button - Constant size, moved closer to header */
 .floating-launch-button {
     position: fixed;
     top: 20px;
@@ -180,9 +203,9 @@
     background: linear-gradient(135deg, #FFD700, #FFA500);
     border: 2px solid rgba(255, 215, 0, 0.6);
     border-radius: 16px; /* Increased border radius */
-    padding: 16px 40px; /* Increased padding */
+    padding: 16px 24px; /* Consistent padding */
     font-family: "HEADER_FONT";
-    font-size: 1.2rem; /* Slightly larger font */
+    font-size: 1rem; /* Consistent font size */
     color: #1a1a1a;
     cursor: pointer;
     text-transform: uppercase;
@@ -193,7 +216,15 @@
     animation: golden-glow 3s ease-in-out infinite alternate;
     height: 64px; /* Match logo and header height */
     box-sizing: border-box;
-    min-width: 140px; /* Ensure consistent width */
+    min-width: 140px; /* Consistent width regardless of text */
+    max-width: 140px; /* Prevent expansion */
+    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .floating-launch-button:hover:not(:disabled) {
@@ -210,16 +241,17 @@
     opacity: 0.7;
 }
 
-/* Content Area - Full page size under floating elements */
+/* Content Area - Full page size with bottom padding for install button */
 .page-content-area {
     position: fixed;
     top: 104px; /* Space for headers: 20 + 64 + 20 */
     left: 0; /* Full width */
     right: 0; /* Full width */
-    bottom: 0; /* Full height to bottom */
+    bottom: 100px; /* Space for floating install button + margin */
     overflow-y: auto;
     overflow-x: hidden;
     padding: 20px;
+    padding-bottom: 40px; /* Extra bottom padding */
     box-sizing: border-box;
     border-radius: 0; /* No border radius for full page */
 }
@@ -227,39 +259,12 @@
 /* Home page content area */
 .page-content-area.home-page {
     top: 104px; /* Same as installation pages */
+    bottom: 0; /* No install button on home page */
 }
 
-/* Floating Back Button - Bottom left corner, no background */
-.floating-back-button {
-    position: fixed;
-    bottom: 20px;
-    left: 20px;
-    z-index: 1000;
-    background: none; /* No background */
-    border: none;
-    color: white;
-    border-radius: 16px;
-    padding: 16px;
-    font-family: "REGULAR_FONT";
-    cursor: pointer;
-    transition: all 0.3s ease;
-    font-size: 1.5rem; /* Larger arrow */
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 600;
-    width: 56px;
-    height: 56px;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
-}
+/* Remove the floating back button - now integrated into header */
 
-.floating-back-button:hover {
-    background: rgba(255, 255, 255, 0.1);
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
-}
-
-/* Floating Install Button - Center bottom */
+/* Floating Install Button - Always centered */
 .floating-install-button {
     position: fixed;
     bottom: 20px;
@@ -281,7 +286,11 @@
     box-shadow: 0 6px 20px rgba(76, 175, 80, 0.4);
     animation: install-glow 3s ease-in-out infinite alternate;
     min-width: 200px; /* Ensure consistent width */
+    max-width: 200px; /* Prevent expansion */
     text-align: center; /* Center text within button */
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .floating-install-button:hover:not(:disabled) {
@@ -296,6 +305,8 @@
     cursor: not-allowed;
     opacity: 0.6;
     animation: none;
+    /* Ensure centering even when disabled */
+    transform: translateX(-50%);
 }
 
 .floating-install-button.update-button {
@@ -309,7 +320,7 @@
     box-shadow: 0 8px 25px rgba(255, 152, 0, 0.6);
 }
 
-/* Scroll indicator for content area - Made more visible */
+/* Scroll indicator - Just arrow, visible longer */
 .scroll-indicator {
     position: fixed;
     bottom: 100px; /* Above the install button */
@@ -318,20 +329,21 @@
     z-index: 998;
     background: rgba(0, 0, 0, 0.8);
     color: white;
-    border-radius: 20px;
-    padding: 12px 20px;
-    font-family: "REGULAR_FONT";
-    font-size: 1rem;
+    border-radius: 50%;
+    padding: 16px;
+    font-size: 1.8rem;
     display: flex;
     align-items: center;
-    gap: 10px;
+    justify-content: center;
     opacity: 1;
     transition: opacity 0.3s ease;
     pointer-events: none;
     backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    border: 2px solid rgba(255, 255, 255, 0.3);
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
-    animation: fade-out-after-delay 8s ease forwards;
+    animation: fade-out-after-long-delay 15s ease forwards;
+    width: 56px;
+    height: 56px;
 }
 
 .scroll-indicator.visible {
@@ -339,7 +351,6 @@
 }
 
 .scroll-indicator-arrow {
-    font-size: 1.4rem;
     animation: bounce-down 2s ease-in-out infinite;
 }
 
@@ -355,9 +366,26 @@
     }
 }
 
-@keyframes fade-out-after-delay {
-    0%, 75% { opacity: 1; }
+@keyframes fade-out-after-long-delay {
+    0%, 85% { opacity: 1; }
     100% { opacity: 0; }
+}
+
+/* Headers should be behind modals/popups */
+.floating-logo,
+.installation-floating-header,
+.home-floating-header,
+.floating-launch-button,
+.floating-discord-button {
+    z-index: 999; /* Lower than modals which should be 1000+ */
+}
+
+/* Ensure modals and overlays are above headers */
+.wizard-overlay,
+.progress-container,
+.modal-overlay,
+.manifest-error-overlay {
+    z-index: 1100; /* Above headers */
 }
 
 /* Floating copyright - bottom right corner, always visible */
