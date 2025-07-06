@@ -2543,14 +2543,16 @@ pub fn app() -> Element {
         }
     } else if is_home_page {
         rsx! {
-            HomePage {
-                installations,
-                error_signal: error_signal.clone(),
-                changelog: changelog_signal,
-                current_installation_id: current_installation_id.clone(),
-            }
-        }
-    } else if current_installation_id.read().as_ref().map_or(false, |id| id == "new") {
+    HomePage {
+        installations,
+        error_signal: error_signal.clone(),
+        changelog: changelog_signal,
+        current_installation_id: current_installation_id.clone(),
+        on_open_settings: EventHandler::new(move |_: ()| {
+            settings.set(true);
+        })
+    }
+} else if current_installation_id.read().as_ref().map_or(false, |id| id == "new") {
         rsx! {
             SimplifiedInstallationWizard {
                 onclose: move |_| {
