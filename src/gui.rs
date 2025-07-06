@@ -589,7 +589,6 @@ fn HomeFloatingHeader(on_open_settings: EventHandler<()>) -> Element {
         }
     }
 }
-
 #[component]
 fn InstallationFloatingHeader(
     installation_name: String,
@@ -638,6 +637,7 @@ fn InstallationFloatingHeader(
     }
 }
 
+
 #[component]
 fn FloatingLaunchButton(
     is_installed: bool,
@@ -653,7 +653,7 @@ fn FloatingLaunchButton(
             if is_installed {
                 "LAUNCH"
             } else {
-                "INSTALL FIRST"
+                "LAUNCH"
             }
         }
     }
@@ -688,14 +688,87 @@ fn FloatingInstallButton(
 }
 
 #[component]
-fn ScrollIndicator() -> Element {
+fn InstallButtonInfo(
+    features_count: String,
+    minecraft_version: String,
+    loader_info: String,
+) -> Element {
     rsx! {
-        div { class: "scroll-indicator",
-            span { class: "scroll-indicator-arrow", "↓" }
+        div { class: "install-button-info",
+            div { class: "install-button-info-content",
+                div { class: "info-item",
+                    span { class: "label", "Features:" }
+                    span { class: "value", "{features_count}" }
+                }
+                div { class: "info-item",
+                    span { class: "label", "Minecraft:" }
+                    span { class: "value", "{minecraft_version}" }
+                }
+                div { class: "info-item",
+                    span { class: "label", "Loader:" }
+                    span { class: "value", "{loader_info}" }
+                }
+            }
         }
     }
 }
 
+#[component]
+fn EnhancedScrollIndicator(
+    container_id: String,
+    show_condition: bool,
+) -> Element {
+    let mut show_indicator = use_signal(|| false);
+    let mut has_scrolled = use_signal(|| false);
+    
+    // Effect to check if content is scrollable and show indicator
+    use_effect({
+        let container_id = container_id.clone();
+        let mut show_indicator = show_indicator.clone();
+        let mut has_scrolled = has_scrolled.clone();
+        
+        move || {
+            if !show_condition {
+                show_indicator.set(false);
+                return;
+            }
+            
+            // Show indicator initially if content is scrollable
+            spawn(async move {
+                // Wait a bit for content to load
+                tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
+                
+                // Check if we haven't scrolled yet
+                if !*has_scrolled.read() {
+                    show_indicator.set(true);
+                    
+                    // Auto-hide after 8 seconds if user hasn't scrolled
+                    tokio::time::sleep(tokio::time::Duration::from_secs(8)).await;
+                    if !*has_scrolled.read() {
+                        show_indicator.set(false);
+                    }
+                }
+            });
+        }
+    });
+    
+    if *show_indicator.read() {
+        rsx! {
+            div { 
+                class: "scroll-indicator enhanced",
+                onclick: move |_| {
+                    // Hide indicator when clicked
+                    show_indicator.set(false);
+                    has_scrolled.set(true);
+                },
+                span { class: "scroll-indicator-arrow", "↓" }
+                span { class: "scroll-indicator-text", "More content below" }
+            }
+        }
+    } else {
+        rsx! { Fragment {} }
+    }
+}
 
 #[component]
 fn FloatingDiscordButton() -> Element {
@@ -815,7 +888,7 @@ fn ModernAppLayout(
     on_launch: Option<EventHandler<()>>,
     on_back: Option<EventHandler<()>>,
     on_install: Option<EventHandler<()>>,
-    on_open_settings: Option<EventHandler<()>>, // NEW: Settings handler
+    on_open_settings: Option<EventHandler<()>>,
     has_changes: bool,
     is_installing: bool,
     install_button_text: String,
@@ -824,17 +897,33 @@ fn ModernAppLayout(
 ) -> Element {
     // State for scroll indicator
     let mut show_scroll_indicator = use_signal(|| false);
+    let mut has_user_scrolled = use_signal(|| false);
     
-    // Effect to check if content is scrollable
-    use_effect(move || {
-        // Show indicator by default and hide after user scrolls
-        show_scroll_indicator.set(true);
+    // Generate unique container ID for this layout instance
+    let container_id = format!("content-{}", 
+        if is_home_page { "home" } else { "installation" }
+    );
+    
+    // Effect to show scroll indicator on content load
+    use_effect({
+        let mut show_scroll_indicator = show_scroll_indicator.clone();
+        let active_tab = active_tab.clone();
         
-        // Auto-hide after 12 seconds (longer duration)
-        spawn(async move {
-            tokio::time::sleep(tokio::time::Duration::from_secs(12)).await;
-            show_scroll_indicator.set(false);
-        });
+        move || {
+            if !is_home_page {
+                // Show indicator on tab changes or initial load
+                show_scroll_indicator.set(true);
+                has_user_scrolled.set(false);
+                
+                // Auto-hide after 10 seconds
+                spawn(async move {
+                    tokio::time::sleep(tokio::time::Duration::from_secs(10)).await;
+                    if !*has_user_scrolled.read() {
+                        show_scroll_indicator.set(false);
+                    }
+                });
+            }
+        }
     });
     
     rsx! {
@@ -853,15 +942,13 @@ fn ModernAppLayout(
                 }
                 FloatingDiscordButton {}
             } else if let Some(installation) = &current_installation {
-                if let Some(back_handler) = on_back {
-                    InstallationFloatingHeader {
-                        installation_name: installation.name.clone(),
-                        minecraft_version: installation.minecraft_version.clone(),
-                        loader_info: format!("{} {}", installation.loader_type, installation.loader_version),
-                        active_tab: active_tab,
-                        on_tab_change: on_tab_change,
-                        on_back: back_handler,
-                    }
+                InstallationFloatingHeader {
+                    installation_name: installation.name.clone(),
+                    minecraft_version: installation.minecraft_version.clone(),
+                    loader_info: format!("{} {}", installation.loader_type, installation.loader_version),
+                    active_tab: active_tab,
+                    on_tab_change: on_tab_change,
+                    on_back: on_back.unwrap_or_else(|| EventHandler::new(|_| {})),
                 }
                 
                 if let Some(launch_handler) = on_launch {
@@ -875,6 +962,7 @@ fn ModernAppLayout(
             
             // Scrollable content area
             div { 
+                id: "{container_id}",
                 class: if is_home_page {
                     "page-content-area home-page"
                 } else {
@@ -883,14 +971,34 @@ fn ModernAppLayout(
                 onscroll: move |_| {
                     // Hide scroll indicator when user starts scrolling
                     show_scroll_indicator.set(false);
+                    has_user_scrolled.set(true);
                 },
                 {children}
             }
             
-            // Show scroll indicator if there's more content (only on installation pages with install button)
-            if *show_scroll_indicator.read() && !is_home_page && on_install.is_some() {
-                ScrollIndicator {}
-            }    
+            // Enhanced scroll indicator for installation pages
+            if !is_home_page {
+                EnhancedScrollIndicator {
+                    container_id: container_id.clone(),
+                    show_condition: *show_scroll_indicator.read() && on_install.is_some(),
+                }
+            }
+            
+            // Show installation info above install button (only on installation pages)
+            if !is_home_page {
+                if let Some(installation) = &current_installation {
+                    // Calculate enabled features count more accurately
+                    let total_features = 50; // You can make this dynamic based on manifest
+                    let enabled_count = installation.enabled_features.len();
+                    let features_count = format!("{}/{}", enabled_count, total_features);
+                    
+                    InstallButtonInfo {
+                        features_count: features_count,
+                        minecraft_version: installation.minecraft_version.clone(),
+                        loader_info: format!("{} {}", installation.loader_type, installation.loader_version),
+                    }
+                }
+            }
             
             // Floating install button (only on installation pages)
             if !is_home_page {
@@ -900,6 +1008,12 @@ fn ModernAppLayout(
                         button_class: install_button_class,
                         disabled: install_button_disabled,
                         onclick: install_handler,
+                    }
+                }
+                
+                if let Some(back_handler) = on_back {
+                    FloatingBackButton {
+                        onclick: back_handler,
                     }
                 }
             }
@@ -919,6 +1033,7 @@ fn HomePage(
     error_signal: Signal<Option<String>>,
     changelog: Signal<Option<ChangelogData>>,
     current_installation_id: Signal<Option<String>>,
+    on_open_settings: EventHandler<()>, // Add this parameter
 ) -> Element {
     // State for the installation creation dialog
     let mut show_creation_dialog = use_signal(|| false);
@@ -931,21 +1046,22 @@ fn HomePage(
         ModernAppLayout {
             is_home_page: true,
             current_installation: None,
-            active_tab: use_signal(|| "home".to_string()), // Dummy tab signal for home page
+            active_tab: use_signal(|| "home".to_string()),
             has_changes: false,
             is_installing: false,
-            install_button_text: "".to_string(), // Not used on home page
-            install_button_class: "".to_string(), // Not used on home page
-            install_button_disabled: true, // Not used on home page
+            install_button_text: "".to_string(),
+            install_button_class: "".to_string(),
+            install_button_disabled: true,
             on_go_home: EventHandler::new(move |_: ()| {
                 // Already on home, do nothing
             }),
             on_tab_change: EventHandler::new(move |_tab: String| {
                 // No tab changes on home page
             }),
-            on_launch: None, // No launch button on home page
-            on_back: None, // No back button on home page
-            on_install: None, // No install button on home page
+            on_launch: None,
+            on_back: None,
+            on_install: None,
+            on_open_settings: Some(on_open_settings), // Pass the settings handler
             
             // Home page content
             div { class: "home-container",
@@ -977,8 +1093,6 @@ fn HomePage(
                 
                 if has_installations {
                     // Regular home page with installations
-                    
-                    // Statistics display
                     StatisticsDisplay {}
                     
                     // Section divider for installations
@@ -1037,9 +1151,6 @@ fn HomePage(
                 
                 // Recent changes section
                 ChangelogSection { changelog: changelog() }
-                
-                // Footer with Discord button and other info
-                Footer {}
                 
                 // Installation creation dialog
                 if *show_creation_dialog.read() {
@@ -1434,8 +1545,6 @@ let installation = Installation::new_custom(
 }
 
 // Installation management page - SIMPLIFIED VERSION WITHOUT COMPLEX HEADER
-// Complete InstallationManagementPageWithLayout component
-// Replace your existing InstallationManagementPage with this
 
 #[component]
 pub fn InstallationManagementPageWithLayout(
@@ -1680,17 +1789,12 @@ pub fn InstallationManagementPageWithLayout(
             });
         }
     });
-
-    // Button state logic
     let (button_text, button_class, button_disabled) = {
         let current_installation = installation_state.read();
         let installed = current_installation.installed;
         let update_available = current_installation.update_available;
         let has_changes_val = *has_changes.read();
         let is_installing_val = *is_installing.read();
-        
-        debug!("Button state check: installed={}, update_available={}, has_changes={}, is_installing={}", 
-               installed, update_available, has_changes_val, is_installing_val);
         
         if is_installing_val {
             ("INSTALLING...".to_string(), "installing".to_string(), true)
@@ -1750,6 +1854,7 @@ pub fn InstallationManagementPageWithLayout(
                     onback.call(());
                 })),
                 on_install: Some(handle_install_update),
+                on_open_settings: None, // Not needed on installation pages
                 
                 // Main content area based on active tab
                 div { class: "installation-main-content",
@@ -2290,7 +2395,6 @@ pub struct AppProps {
 // Fixed app function with modern layout
 pub fn app() -> Element {
     let props = use_context::<AppProps>();
-    let css = include_str!("assets/style.css");
     
     // State management
     let config = use_signal(|| props.config);
@@ -2381,8 +2485,8 @@ pub fn app() -> Element {
         }, false, Some(move |_| error_signal.set(None)));
     }
 
-    // Build CSS content
-    let css_content = css
+    // Build CSS content - Include the modern layout CSS
+    let css_content = include_str!("assets/style.css")
         .replace("<BG_COLOR>", "#320625")
         .replace("<BG_IMAGE>", "https://raw.githubusercontent.com/Wynncraft-Overhaul/installer/master/src/assets/background_installer.png")
         .replace("<SECONDARY_FONT>", "\"HEADER_FONT\"")
