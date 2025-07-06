@@ -29,6 +29,7 @@ use crate::launch_modpack;
 use crate::universal::ModComponent;
 use crate::universal::ManifestError;
 use crate::universal::ManifestErrorType;
+use crate::universal::UniversalManifest;
 use crate::launcher::FeaturesTab;
 use crate::launcher::PerformanceTab;
 use crate::launcher::SettingsTab;
@@ -894,7 +895,7 @@ fn ModernAppLayout(
     install_button_text: String,
     install_button_class: String,
     install_button_disabled: bool,
-    // Add these new parameters to get the real data:
+    // Add these parameters:
     enabled_features: Option<Signal<Vec<String>>>,
     universal_manifest: Option<UniversalManifest>,
 ) -> Element {
@@ -993,7 +994,7 @@ fn ModernAppLayout(
             // Calculate enabled features count DYNAMICALLY
             let features_count = {
                 if let (Some(enabled_features_signal), Some(manifest)) = (&enabled_features, &universal_manifest) {
-                    // Real counting logic from features tab
+                    // Real counting logic
                     let mut total_components = 0;
                     let mut enabled_components = 0;
                     
@@ -1021,7 +1022,7 @@ fn ModernAppLayout(
                         }
                     }
                     
-                    // Count includes (but only ones that will actually be downloaded)
+                    // Count includes
                     for include in &manifest.include {
                         total_components += 1;
                         let should_include = if include.id.is_empty() || include.id == "default" {
@@ -1039,7 +1040,6 @@ fn ModernAppLayout(
                     
                     format!("{}/{}", enabled_components, total_components)
                 } else {
-                    // Fallback if data isn't available
                     format!("{}/Loading...", installation.enabled_features.len())
                 }
             };
