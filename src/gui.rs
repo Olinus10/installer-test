@@ -1465,7 +1465,7 @@ pub fn InstallationManagementPage(
                     
                     // Tab content
                     match *active_tab.read() {
-                        "features" => {
+                    "features" => {
                             rsx! {
                                 FeaturesTab {
                                     universal_manifest: universal_manifest.read().clone().flatten(),
