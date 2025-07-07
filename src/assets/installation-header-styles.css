@@ -939,3 +939,83 @@
     background: linear-gradient(135deg, #5865F2, #4752C4) !important;
     margin-left: 15px;
 }
+
+/* Hide Discord button in installation page footer */
+.installation-page-content .footer-action-button:not(.install):not(.update):not(.modify):not(.up-to-date) {
+    display: none !important;
+}
+
+/* 6. PROGRESS WINDOW IMPROVEMENTS */
+.progress-container {
+    background: linear-gradient(145deg, 
+        rgba(20, 20, 30, 0.9), 
+        rgba(15, 15, 25, 0.95)) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+}
+
+.progress-header h1 {
+    text-shadow: 0 2px 6px rgba(0, 0, 0, 0.8) !important;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.6)) !important;
+    color: #fce8f6 !important;
+}
+
+/* Ensure progress updates smoothly */
+.progress-bar {
+    transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.progress-track {
+    background: linear-gradient(145deg, 
+        rgba(30, 30, 30, 0.6), 
+        rgba(40, 40, 40, 0.8)) !important;
+}
+
+/* 7. POPUPS ABOVE HEADER/FOOTER */
+.modal-overlay,
+.wizard-overlay,
+.manifest-error-overlay,
+.update-warning-dialog {
+    z-index: 2000 !important;
+}
+
+.modal-container,
+.installation-wizard,
+.manifest-error-container {
+    z-index: 2001 !important;
+}
+
+/* 8. UPDATE WARNING - Add Open Directory Button */
+.update-warning-dialog .modal-footer {
+    justify-content: space-between !important;
+    gap: 15px;
+}
+
+.update-warning-dialog .secondary-button,
+.open-folder-button {
+    background: linear-gradient(135deg, #2196F3, #1565C0) !important;
+    border: none !important;
+    color: white !important;
+    border-radius: 8px !important;
+    padding: 10px 20px !important;
+    font-family: "HEADER_FONT" !important;
+    font-size: 0.95rem !important;
+    cursor: pointer !important;
+    transition: all 0.3s ease !important;
+    text-transform: uppercase !important;
+    letter-spacing: 1px !important;
+    font-weight: 600 !important;
+    box-shadow: 0 4px 15px rgba(33, 150, 243, 0.3) !important;
+}
+
+.update-warning-dialog .secondary-button:hover,
+.open-folder-button:hover {
+    background: linear-gradient(135deg, #42A5F5, #2196F3) !important;
+    transform: translateY(-2px) !important;
+    box-shadow: 0 6px 20px rgba(33, 150, 243, 0.5) !important;
+}
+
+/* Ensure footer actions spacing in installation page */
+.installation-page-content .footer-actions {
+    justify-content: center !important;
+}
