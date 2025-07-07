@@ -514,7 +514,7 @@ fn Footer() -> Element {
                 div { class: "footer-section",
                     h3 { class: "footer-heading", "About" }
                     p { class: "footer-text", 
-                        "The Wynncraft Overhaul Installer provides easy access to modpacks that enhance your Wynncraft experience."
+                        "Easy access to modpacks that enhance your Wynncraft experience."
                     }
                 }
                 
@@ -1572,45 +1572,81 @@ fn UpdateWarningDialog(
 ) -> Element {
     rsx! {
         div { class: "modal-overlay",
-            div { class: "modal-container update-warning-dialog",
-                div { class: "modal-header",
-                    h3 { "Update Warning" }
-                    button { 
-                        class: "modal-close",
-                        onclick: move |_| onclose.call(()),
-                        "×"
-                    }
+        div { class: "modal-container update-warning-dialog",
+            div { class: "modal-header",
+                h3 { "⚠️ Update Warning" }
+                button { 
+                    class: "modal-close",
+                    onclick: move |_| show_update_warning.set(false),
+                    "×"
                 }
-                
-                div { class: "modal-content",
-                    div { class: "warning-message",
-                        p { "Updating will replace all mod files. Make sure to:" }
+            }
+            
+            div { class: "modal-content",
+                div { class: "warning-message",
+                    p { 
+                        strong { "Important: " }
+                        "Updating may reset some mod configurations, especially Wynntils settings."
                     }
                     
-                    div { class: "protection-steps",
-                        ul {
-                            li { "Back up any custom configurations" }
-                            li { "Save any modified settings files" }
-                            li { "Note any personal tweaks you've made" }
-                        }
+                    p { 
+                        "To protect your Wynntils configuration:"
+                    }
+                    
+                    ol { class: "protection-steps",
+                        li { "Click 'Open Installation Folder' below" }
+                        li { "Make a backup copy of the 'wynntils' folder" }
+                        li { "After updating, restore your backed-up folder if needed" }
                     }
                     
                     div { class: "warning-note",
-                        p { "Your selected features will be preserved." }
+                        p { 
+                            "💡 Tip: Keep your Wynntils folder backed up regularly to avoid losing your waypoints, "
+                            "map data, and custom settings."
+                        }
                     }
                 }
+            }
+            
+            div { class: "modal-footer",
+                button { 
+                    class: "secondary-button",
+                    onclick: {
+                        let installation_path = installation.installation_path.clone();
+                        move |_| {
+                            // Open the installation folder
+                            #[cfg(target_os = "windows")]
+                            let _ = std::process::Command::new("explorer")
+                                .arg(&installation_path)
+                                .spawn();
+                            
+                            #[cfg(target_os = "macos")]
+                            let _ = std::process::Command::new("open")
+                                .arg(&installation_path)
+                                .spawn();
+                                
+                            #[cfg(target_os = "linux")]
+                            let _ = std::process::Command::new("xdg-open")
+                                .arg(&installation_path)
+                                .spawn();
+                        }
+                    },
+                    "Open Installation Folder"
+                }
                 
-                div { class: "modal-footer",
-                    button { 
-                        class: "cancel-button",
-                        onclick: move |_| onclose.call(()),
-                        "Cancel"
-                    }
-                    
-                    button { 
-                        class: "update-proceed-button",
-                        onclick: move |_| onproceed.call(()),
-                        "Proceed with Update"
+                button { 
+                    class: "cancel-button",
+                    onclick: move |_| show_update_warning.set(false),
+                    "Cancel Update"
+                }
+                
+                button { 
+                    class: "primary-button update-proceed-button",
+                    onclick: move |_| {
+                        show_update_warning.set(false);
+                        proceed_with_update();
+                    },
+                    "Proceed with Update"
                     }
                 }
             }
