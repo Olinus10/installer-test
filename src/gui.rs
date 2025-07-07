@@ -1049,7 +1049,7 @@ pub fn InstallationManagementPage(
     // Get icon base64 for header
     let icon_base64 = {
         use base64::{Engine, engine::general_purpose::STANDARD};
-        Some(STANDARD.encode(include_bytes!("../assets/icon.png")))
+        Some(STANDARD.encode(include_bytes!("assets/icon.png")))
     };
     
     // State for the current tab
