@@ -1019,3 +1019,261 @@
 .installation-page-content .footer-actions {
     justify-content: center !important;
 }
+
+
+
+/* 1. DISCORD BUTTON FIXES AAAAAAAAAAAAAAAAAAA */
+
+/* Hide Discord button on installation pages - more specific selector */
+.installation-page .modern-footer .footer-action-button[href*="discord"],
+.installation-management-container ~ .modern-footer .footer-action-button[href*="discord"],
+.installation-page-content ~ .modern-footer .footer-action-button[href*="discord"] {
+    display: none !important;
+}
+
+/* Blue Discord button for home page only */
+.home-container ~ .modern-footer .footer-action-button[href*="discord"],
+.modern-footer a.footer-action-button[href*="discord"] {
+    background: linear-gradient(135deg, #5865F2, #4752C4) !important;
+    color: white !important;
+    border: 2px solid rgba(88, 101, 242, 0.6) !important;
+    box-shadow: 0 4px 15px rgba(88, 101, 242, 0.3) !important;
+    text-decoration: none !important;
+}
+
+.home-container ~ .modern-footer .footer-action-button[href*="discord"]:hover,
+.modern-footer a.footer-action-button[href*="discord"]:hover {
+    background: linear-gradient(135deg, #6B7AFF, #5865F2) !important;
+    transform: translateY(-2px) !important;
+    box-shadow: 0 6px 20px rgba(88, 101, 242, 0.4) !important;
+    border-color: rgba(88, 101, 242, 0.8) !important;
+}
+
+/* 2. INSTALLATION PAGE TABS - Grouped in box with colors */
+
+/* Create container for installation tabs */
+.installation-page .header-center,
+.installation-management-container ~ * .header-center,
+.installation-page-content ~ * .header-center {
+    position: relative;
+    justify-content: center;
+    padding: 0;
+}
+
+/* Group the three main tabs (excluding back button) */
+.installation-page .header-center::after,
+.installation-management-container ~ * .header-center::after,
+.installation-page-content ~ * .header-center::after {
+    content: '';
+    position: absolute;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 16px;
+    backdrop-filter: blur(10px);
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: auto;
+    height: calc(100% + 8px);
+    z-index: -1;
+    /* Calculate width to fit the three tabs */
+    padding: 0 calc(100px + 10px); /* Account for back button width + gap */
+}
+
+/* Position back button absolutely */
+.installation-page .nav-tab.back-tab,
+.installation-management-container ~ * .nav-tab.back-tab {
+    position: absolute;
+    left: 20px;
+    background: rgba(60, 60, 60, 0.5) !important;
+    z-index: 2;
+}
+
+/* Style the grouped tabs */
+.installation-page .nav-tab:not(.back-tab),
+.installation-management-container ~ * .nav-tab:not(.back-tab) {
+    margin: 0 4px;
+    z-index: 1;
+}
+
+/* Features tab - Green (1st tab after back button) */
+.installation-page .nav-tab:nth-of-type(2),
+.installation-management-container ~ * .nav-tab:nth-of-type(2) {
+    background: rgba(76, 175, 80, 0.15) !important;
+    border: 1px solid rgba(76, 175, 80, 0.3) !important;
+    color: rgba(255, 255, 255, 0.9) !important;
+}
+
+.installation-page .nav-tab:nth-of-type(2):hover,
+.installation-management-container ~ * .nav-tab:nth-of-type(2):hover {
+    background: rgba(76, 175, 80, 0.25) !important;
+    border-color: rgba(76, 175, 80, 0.5) !important;
+    box-shadow: 0 5px 15px rgba(76, 175, 80, 0.2) !important;
+}
+
+.installation-page .nav-tab:nth-of-type(2).active,
+.installation-management-container ~ * .nav-tab:nth-of-type(2).active {
+    background: linear-gradient(135deg, rgba(76, 175, 80, 0.35), rgba(60, 150, 64, 0.35)) !important;
+    color: white !important;
+    border-color: rgba(76, 175, 80, 0.6) !important;
+    box-shadow: 0 0 20px rgba(76, 175, 80, 0.3) !important;
+}
+
+/* Performance tab - Red (2nd tab after back button) */
+.installation-page .nav-tab:nth-of-type(3),
+.installation-management-container ~ * .nav-tab:nth-of-type(3) {
+    background: rgba(244, 67, 54, 0.15) !important;
+    border: 1px solid rgba(244, 67, 54, 0.3) !important;
+    color: rgba(255, 255, 255, 0.9) !important;
+}
+
+.installation-page .nav-tab:nth-of-type(3):hover,
+.installation-management-container ~ * .nav-tab:nth-of-type(3):hover {
+    background: rgba(244, 67, 54, 0.25) !important;
+    border-color: rgba(244, 67, 54, 0.5) !important;
+    box-shadow: 0 5px 15px rgba(244, 67, 54, 0.2) !important;
+}
+
+.installation-page .nav-tab:nth-of-type(3).active,
+.installation-management-container ~ * .nav-tab:nth-of-type(3).active {
+    background: linear-gradient(135deg, rgba(244, 67, 54, 0.35), rgba(211, 47, 47, 0.35)) !important;
+    color: white !important;
+    border-color: rgba(244, 67, 54, 0.6) !important;
+    box-shadow: 0 0 20px rgba(244, 67, 54, 0.3) !important;
+}
+
+/* Settings tab - Blue (3rd tab after back button) */
+.installation-page .nav-tab:nth-of-type(4),
+.installation-management-container ~ * .nav-tab:nth-of-type(4) {
+    background: rgba(33, 150, 243, 0.15) !important;
+    border: 1px solid rgba(33, 150, 243, 0.3) !important;
+    color: rgba(255, 255, 255, 0.9) !important;
+}
+
+.installation-page .nav-tab:nth-of-type(4):hover,
+.installation-management-container ~ * .nav-tab:nth-of-type(4):hover {
+    background: rgba(33, 150, 243, 0.25) !important;
+    border-color: rgba(33, 150, 243, 0.5) !important;
+    box-shadow: 0 5px 15px rgba(33, 150, 243, 0.2) !important;
+}
+
+.installation-page .nav-tab:nth-of-type(4).active,
+.installation-management-container ~ * .nav-tab:nth-of-type(4).active {
+    background: linear-gradient(135deg, rgba(33, 150, 243, 0.35), rgba(21, 101, 192, 0.35)) !important;
+    color: white !important;
+    border-color: rgba(33, 150, 243, 0.6) !important;
+    box-shadow: 0 0 20px rgba(33, 150, 243, 0.3) !important;
+}
+
+/* Alternative approach using flexbox for tab grouping */
+.installation-page .header-center,
+.installation-management-container ~ * .header-center {
+    display: flex;
+    gap: 0;
+    position: relative;
+    padding-left: 120px; /* Space for back button */
+}
+
+/* Create visual grouping box */
+.installation-page .header-center .nav-tab:nth-of-type(2),
+.installation-management-container ~ * .header-center .nav-tab:nth-of-type(2) {
+    border-radius: 12px 0 0 12px !important;
+    margin-left: 12px;
+}
+
+.installation-page .header-center .nav-tab:nth-of-type(4),
+.installation-management-container ~ * .header-center .nav-tab:nth-of-type(4) {
+    border-radius: 0 12px 12px 0 !important;
+    margin-right: 12px;
+}
+
+.installation-page .header-center .nav-tab:nth-of-type(3),
+.installation-management-container ~ * .header-center .nav-tab:nth-of-type(3) {
+    border-radius: 0 !important;
+    border-left: none !important;
+    border-right: none !important;
+}
+
+/* 3. UPDATE WARNING DIALOG - Smaller buttons */
+
+.update-warning-dialog {
+    max-width: 500px !important; /* Reduce dialog width */
+}
+
+.update-warning-dialog .modal-footer {
+    padding: 15px 20px !important;
+    gap: 10px !important;
+}
+
+.update-warning-dialog .modal-footer button {
+    padding: 8px 16px !important; /* Reduced from 10px 20px */
+    font-size: 0.85rem !important; /* Reduced from 0.95rem */
+    min-width: auto !important;
+    white-space: nowrap !important;
+}
+
+.update-warning-dialog .cancel-button {
+    padding: 8px 16px !important;
+    font-size: 0.85rem !important;
+}
+
+.update-warning-dialog .secondary-button,
+.update-warning-dialog .open-folder-button {
+    padding: 8px 16px !important;
+    font-size: 0.85rem !important;
+    letter-spacing: 0.5px !important; /* Reduced letter spacing */
+}
+
+.update-warning-dialog .update-proceed-button {
+    padding: 8px 16px !important;
+    font-size: 0.85rem !important;
+    letter-spacing: 0.5px !important;
+}
+
+/* Make buttons stack on very small screens */
+@media (max-width: 500px) {
+    .update-warning-dialog .modal-footer {
+        flex-direction: column !important;
+        gap: 8px !important;
+    }
+    
+    .update-warning-dialog .modal-footer button {
+        width: 100% !important;
+    }
+}
+
+/* 4. ADDITIONAL FIXES */
+
+/* Ensure footer actions are properly spaced on installation pages */
+.installation-page .footer-actions,
+.installation-management-container ~ .modern-footer .footer-actions {
+    justify-content: center !important;
+    gap: 0 !important; /* Remove gap since Discord button is hidden */
+}
+
+/* Make sure the install button is centered when alone */
+.installation-page .footer-action-button.install:only-child,
+.installation-management-container ~ .modern-footer .footer-action-button.install:only-child {
+    margin: 0 auto !important;
+}
+
+/* Fix z-index issues with tab grouping */
+.installation-page .modern-header,
+.installation-management-container ~ * .modern-header {
+    z-index: 1000;
+}
+
+.installation-page .header-center,
+.installation-management-container ~ * .header-center {
+    z-index: 10;
+}
+
+/* Ensure proper class application */
+body:has(.installation-management-container) {
+    --is-installation-page: true;
+}
+
+/* Use CSS variable to conditionally hide Discord button */
+.modern-footer .footer-action-button[href*="discord"] {
+    display: var(--is-installation-page, block);
+}
