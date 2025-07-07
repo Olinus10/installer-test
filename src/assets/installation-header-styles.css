@@ -4,8 +4,11 @@
     top: 0;
     left: 0;
     right: 0;
-    background: linear-gradient(135deg, rgba(0, 0, 0, 0.85), rgba(20, 20, 20, 0.9));
-    backdrop-filter: blur(20px);
+        background: linear-gradient(135deg, 
+        rgba(0, 0, 0, 0.7), 
+        rgba(20, 20, 20, 0.75),
+        rgba(10, 10, 10, 0.8)) !important;
+    backdrop-filter: blur(20px) saturate(1.5);
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4), 0 0 30px rgba(0, 0, 0, 0.2);
     z-index: 1000;
     padding: 0 30px;
@@ -13,7 +16,7 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 0 0 25px 25px;
     margin: 0 15px;
     animation: headerSlideDown 0.5s ease-out;
@@ -164,6 +167,12 @@
     animation: modifiedPulse 2s ease-in-out infinite;
 }
 
+/* Additional refinements for tab modified dots */
+.tab-modified-dot {
+    background: #ffb900;
+    box-shadow: 0 0 8px rgba(255, 185, 0, 0.5);
+}
+
 @keyframes modifiedPulse {
     0%, 100% { transform: scale(1); opacity: 1; }
     50% { transform: scale(1.2); opacity: 0.8; }
@@ -254,15 +263,18 @@
     bottom: 0;
     left: 0;
     right: 0;
-    background: linear-gradient(135deg, rgba(0, 0, 0, 0.7), rgba(20, 20, 20, 0.8));
-    backdrop-filter: blur(15px);
+        background: linear-gradient(135deg, 
+        rgba(0, 0, 0, 0.65), 
+        rgba(20, 20, 20, 0.7),
+        rgba(10, 10, 10, 0.75)) !important;
+    backdrop-filter: blur(20px) saturate(1.5);
     box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.3), 0 0 30px rgba(0, 0, 0, 0.2);
     z-index: 1000;
     padding: 20px 30px;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 25px 25px 0 0;
     margin: 0 15px;
     animation: footerSlideUp 0.5s ease-out;
@@ -317,13 +329,6 @@
     min-width: 250px;
     text-align: center;
     box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
-}
-
-.footer-action-button.install {
-    background: linear-gradient(135deg, #4CAF50, #2E7D32);
-    color: white;
-    border: 2px solid rgba(76, 175, 80, 0.6);
-    box-shadow: 0 8px 30px rgba(76, 175, 80, 0.5), 0 0 40px rgba(76, 175, 80, 0.3);
 }
 
 .footer-action-button.update {
@@ -646,10 +651,58 @@
 }
 
 .footer-action-button.install {
-    background: linear-gradient(135deg, #4CAF50, #2E7D32);
-    color: white;
-    border: 2px solid rgba(76, 175, 80, 0.5);
-    box-shadow: 0 6px 20px rgba(76, 175, 80, 0.4);
+    background: linear-gradient(135deg, #4CAF50, #2E7D32) !important;
+    color: white !important;
+    border: 2px solid rgba(76, 175, 80, 0.6) !important;
+    box-shadow: 0 4px 15px rgba(76, 175, 80, 0.4),
+                0 0 30px rgba(76, 175, 80, 0.3) !important;
+    animation: install-button-glow 3s ease-in-out infinite alternate;
+}
+
+@keyframes install-button-glow {
+    0% {
+        box-shadow: 0 4px 15px rgba(76, 175, 80, 0.4),
+                    0 0 30px rgba(76, 175, 80, 0.3);
+    }
+    100% {
+        box-shadow: 0 6px 20px rgba(76, 175, 80, 0.6),
+                    0 0 45px rgba(76, 175, 80, 0.5);
+    }
+}
+
+.footer-action-button.install:hover {
+    background: linear-gradient(135deg, #66BB6A, #4CAF50) !important;
+    transform: translateY(-3px) scale(1.02) !important;
+    box-shadow: 0 8px 25px rgba(76, 175, 80, 0.6),
+    border-color: 0 0 60px rgba(76, 175, 80, 0.7) !important;
+}
+
+.footer-action-button.install::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+        90deg,
+        transparent,
+        rgba(255, 255, 255, 0.2),
+        rgba(255, 255, 255, 0.3),
+        rgba(255, 255, 255, 0.2),
+        transparent
+    );
+    transform: skewX(-25deg);
+    transition: left 0.6s ease;
+}
+
+.footer-action-button.install:hover::before {
+    left: 100%;
+}
+
+/* Hide Discord button in installation page footer */
+.installation-page-content .footer-action-button:not(.install):not(.update):not(.modify):not(.up-to-date) {
+    display: none !important;
 }
 
 .footer-action-button.update {
@@ -770,4 +823,119 @@
     font-size: 0.8rem;
     color: rgba(255, 255, 255, 0.5);
     margin: 0;
+}
+
+.nav-tab[onclick*="settings.set(true)"],
+.header-right .nav-tab {
+    background: linear-gradient(135deg, rgba(33, 150, 243, 0.15), rgba(21, 101, 192, 0.2));
+    border: 1px solid rgba(33, 150, 243, 0.3);
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.nav-tab[onclick*="settings.set(true)"]:hover,
+.header-right .nav-tab:hover {
+    background: linear-gradient(135deg, rgba(33, 150, 243, 0.25), rgba(21, 101, 192, 0.3));
+    border-color: rgba(33, 150, 243, 0.5);
+    color: white;
+    box-shadow: 0 5px 15px rgba(33, 150, 243, 0.2);
+}
+
+.installation-page-content .header-center {
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 12px;
+    padding: 6px;
+    gap: 4px;
+    max-width: fit-content;
+    margin: 0 auto;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(10px);
+}
+
+/* Keep back button separate */
+.installation-page-content .nav-tab.back-tab {
+    position: absolute;
+    left: 20px;
+    background: rgba(60, 60, 60, 0.5);
+}
+
+/* Features tab - Green */
+.installation-page-content .nav-tab:nth-child(2) {
+    background: rgba(76, 175, 80, 0.15);
+    border: 1px solid rgba(76, 175, 80, 0.3);
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.installation-page-content .nav-tab:nth-child(2):hover {
+    background: rgba(76, 175, 80, 0.25);
+    border-color: rgba(76, 175, 80, 0.5);
+    box-shadow: 0 5px 15px rgba(76, 175, 80, 0.2);
+}
+
+.installation-page-content .nav-tab:nth-child(2).active {
+    background: linear-gradient(135deg, rgba(76, 175, 80, 0.35), rgba(60, 150, 64, 0.35));
+    color: white;
+    border-color: rgba(76, 175, 80, 0.6);
+    box-shadow: 0 0 20px rgba(76, 175, 80, 0.3);
+}
+
+/* Performance tab - Red */
+.installation-page-content .nav-tab:nth-child(3) {
+    background: rgba(244, 67, 54, 0.15);
+    border: 1px solid rgba(244, 67, 54, 0.3);
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.installation-page-content .nav-tab:nth-child(3):hover {
+    background: rgba(244, 67, 54, 0.25);
+    border-color: rgba(244, 67, 54, 0.5);
+    box-shadow: 0 5px 15px rgba(244, 67, 54, 0.2);
+}
+
+.installation-page-content .nav-tab:nth-child(3).active {
+    background: linear-gradient(135deg, rgba(244, 67, 54, 0.35), rgba(211, 47, 47, 0.35));
+    color: white;
+    border-color: rgba(244, 67, 54, 0.6);
+    box-shadow: 0 0 20px rgba(244, 67, 54, 0.3);
+}
+
+/* Settings tab - Blue */
+.installation-page-content .nav-tab:nth-child(4) {
+    background: rgba(33, 150, 243, 0.15);
+    border: 1px solid rgba(33, 150, 243, 0.3);
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.installation-page-content .nav-tab:nth-child(4):hover {
+    background: rgba(33, 150, 243, 0.25);
+    border-color: rgba(33, 150, 243, 0.5);
+    box-shadow: 0 5px 15px rgba(33, 150, 243, 0.2);
+}
+
+.installation-page-content .nav-tab:nth-child(4).active {
+    background: linear-gradient(135deg, rgba(33, 150, 243, 0.35), rgba(21, 101, 192, 0.35));
+    color: white;
+    border-color: rgba(33, 150, 243, 0.6);
+    box-shadow: 0 0 20px rgba(33, 150, 243, 0.3);
+}
+
+/* Ensure progress doesn't freeze - force GPU acceleration */
+.progress-container,
+.progress-bar,
+.progress-track {
+    transform: translateZ(0);
+    will-change: transform, width;
+    backface-visibility: hidden;
+}
+
+/* Fix header center alignment for installation tabs */
+.installation-page-content .modern-header .header-center {
+    position: relative;
+    justify-content: center;
+    flex: 1;
+}
+
+/* Discord button specific styling for home page footer */
+.home-container ~ .modern-footer .footer-action-button[href*="discord"] {
+    background: linear-gradient(135deg, #5865F2, #4752C4) !important;
+    margin-left: 15px;
 }
