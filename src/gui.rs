@@ -1453,7 +1453,8 @@ pub fn InstallationManagementPage(
                             onproceed: move |_| {
                                 show_update_warning.set(false);
                                 proceed_with_update();
-                            }
+                            },
+                            installation_path: installation.installation_path.clone(), // Add this line
                         }
                     }
                     
@@ -1569,53 +1570,88 @@ footer { class: "modern-footer",
 fn UpdateWarningDialog(
     onclose: EventHandler<()>,
     onproceed: EventHandler<()>,
+    installation_path: PathBuf, // Add this parameter
 ) -> Element {
+    // Function to open the installation folder
+    let open_folder = move |_| {
+        let path = installation_path.clone();
+        
+        #[cfg(target_os = "windows")]
+        let result = {
+            let path_str = path.to_string_lossy().replace("/", "\\");
+            std::process::Command::new("explorer")
+                .arg(&path_str)
+                .spawn()
+        };
+        
+        #[cfg(target_os = "macos")]
+        let result = std::process::Command::new("open")
+            .arg(&path)
+            .spawn();
+            
+        #[cfg(target_os = "linux")]
+        let result = std::process::Command::new("xdg-open")
+            .arg(&path)
+            .spawn();
+            
+        #[cfg(not(any(target_os = "windows", target_os = "macos", target_os = "linux")))]
+        let result = Err(std::io::Error::new(std::io::ErrorKind::Other, "Unsupported platform"));
+        
+        if let Err(e) = result {
+            error!("Failed to open installation folder: {}", e);
+        }
+    };
+    
     rsx! {
         div { class: "modal-overlay",
-        div { class: "modal-container update-warning-dialog",
-            div { class: "modal-header",
-                h3 { "⚠️ Update Warning" }
-                button { 
+            div { class: "modal-container update-warning-dialog",
+                div { class: "modal-header",
+                    h3 { "⚠️ Update Warning" }
+                    button { 
                         class: "modal-close",
                         onclick: move |_| onclose.call(()),
                         "×"
+                    }
                 }
-            }
-            
-            div { class: "modal-content",
-                div { class: "warning-message",
-                    p { 
-                        strong { "Important: " }
-                        "Updating may reset some mod configurations, especially Wynntils settings."
-                    }
-                    
-                    p { 
-                        "To protect your Wynntils configuration:"
-                    }
-                    
-                    ol { class: "protection-steps",
-                        li { "Click 'Open Installation Folder' below" }
-                        li { "Make a backup copy of the 'wynntils' folder" }
-                        li { "After updating, restore your backed-up folder if needed" }
-                    }
-                    
-                    div { class: "warning-note",
+                
+                div { class: "modal-content",
+                    div { class: "warning-message",
                         p { 
-                            "💡 Tip: Keep your Wynntils folder backed up regularly to avoid losing your waypoints, "
-                            "map data, and custom settings."
+                            strong { "Important: " }
+                            "Updating may reset some mod configurations, especially Wynntils settings."
+                        }
+                        
+                        p { 
+                            "To protect your Wynntils configuration:"
+                        }
+                        
+                        ol { class: "protection-steps",
+                            li { "Click 'Open Installation Folder' below" }
+                            li { "Make a backup copy of the 'wynntils' folder" }
+                            li { "After updating, restore your backed-up folder if needed" }
+                        }
+                        
+                        div { class: "warning-note",
+                            p { 
+                                "💡 Tip: Keep your Wynntils folder backed up regularly to avoid losing your waypoints, "
+                                "map data, and custom settings."
+                            }
                         }
                     }
                 }
-            }
-            
-            div { class: "modal-footer",
                 
-                        button { 
+                div { class: "modal-footer",
+                    button { 
                         class: "cancel-button",
                         onclick: move |_| onclose.call(()),
                         "Cancel"
                     }
-                
+                    
+                    button { 
+                        class: "secondary-button open-folder-button",
+                        onclick: open_folder,
+                        "Open Installation Folder"
+                    }
                     
                     button { 
                         class: "update-proceed-button",
