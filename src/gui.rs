@@ -509,34 +509,8 @@ onclick: move |_| {
 #[component]
 fn Footer() -> Element {
     rsx! {
-        footer { class: "app-footer",
-            div { class: "footer-content",
-                div { class: "footer-section",
-                    h3 { class: "footer-heading", "Community" }
-                    a { 
-                        class: "discord-button",
-                        href: "https://discord.gg/olinus-corner-778965021656743966",
-                        target: "_blank",
-                        rel: "noopener noreferrer",
-                        
-                        // Discord logo (simplified SVG as inline content)
-                        svg {
-                            class: "discord-logo",
-                            xmlns: "http://www.w3.org/2000/svg",
-                            width: "24",
-                            height: "24",
-                            view_box: "0 0 24 24",
-                            fill: "currentColor",
-                            
-                            path {
-                                d: "M19.54 0c1.356 0 2.46 1.104 2.46 2.472v21.528l-2.58-2.28-1.452-1.344-1.536-1.428.636 2.22h-13.608c-1.356 0-2.46-1.104-2.46-2.472v-16.224c0-1.368 1.104-2.472 2.46-2.472h16.08zm-4.632 15.672c2.652-.084 3.672-1.824 3.672-1.824 0-3.864-1.728-6.996-1.728-6.996-1.728-1.296-3.372-1.26-3.372-1.26l-.168.192c2.04.624 2.988 1.524 2.988 1.524-1.248-.684-2.472-1.02-3.612-1.152-.864-.096-1.692-.072-2.424.024l-.204.024c-.42.036-1.44.192-2.724.756-.444.204-.708.348-.708.348s.996-.948 3.156-1.572l-.12-.144s-1.644-.036-3.372 1.26c0 0-1.728 3.132-1.728 6.996 0 0 1.008 1.74 3.66 1.824 0 0 .444-.54.804-.996-1.524-.456-2.1-1.416-2.1-1.416l.336.204.048.036.047.027.014.006.047.027c.3.168.6.3.876.408.492.192 1.08.384 1.764.516.9.168 1.956.228 3.108.012.564-.096 1.14-.264 1.74-.516.42-.156.888-.384 1.38-.708 0 0-.6.984-2.172 1.428.36.456.792.972.792.972zm-5.58-5.604c-.684 0-1.224.6-1.224 1.332 0 .732.552 1.332 1.224 1.332.684 0 1.224-.6 1.224-1.332.012-.732-.54-1.332-1.224-1.332zm4.38 0c-.684 0-1.224.6-1.224 1.332 0 .732.552 1.332 1.224 1.332.684 0 1.224-.6 1.224-1.332 0-.732-.54-1.332-1.224-1.332z"
-                            }
-                        }
-                        
-                        span { "Join our Discord" }
-                    }
-                }
-                
+        footer { class: "modern-footer",
+            div { class: "footer-info",
                 div { class: "footer-section",
                     h3 { class: "footer-heading", "About" }
                     p { class: "footer-text", 
@@ -544,16 +518,22 @@ fn Footer() -> Element {
                     }
                 }
                 
+                div { class: "footer-divider" }
+                
                 div { class: "footer-section",
-                    h3 { class: "footer-heading", "Legal" }
-                    p { class: "footer-text", 
-                        "All modpacks are made by the community and are not affiliated with Wynncraft."
-                    }
+                    p { class: "copyright", "© 2023-2025 Majestic Overhaul. CC BY-NC-SA 4.0." }
                 }
             }
             
-            div { class: "footer-bottom",
-                p { class: "copyright", "© 2023-2025 Majestic Overhaul. CC BY-NC-SA 4.0." }
+            // Discord button using the action button style
+            a {
+                class: "footer-action-button install",
+                href: "https://discord.gg/olinus-corner-778965021656743966",
+                target: "_blank",
+                rel: "noopener noreferrer",
+                style: "text-decoration: none;",
+                
+                "JOIN OUR DISCORD"
             }
         }
     }
@@ -1066,6 +1046,12 @@ pub fn InstallationManagementPage(
     onback: EventHandler<()>,
     installations: Signal<Vec<Installation>>,
 ) -> Element {
+    // Get icon base64 for header
+    let icon_base64 = {
+        use base64::{Engine, engine::general_purpose::STANDARD};
+        Some(STANDARD.encode(include_bytes!("../assets/icon.png")))
+    };
+    
     // State for the current tab
     let mut active_tab = use_signal(|| "features");
 
@@ -1372,24 +1358,32 @@ pub fn InstallationManagementPage(
                     title: format!("Installing {}", installation.name)
                 }
             } else {
-                // Modern fixed header
-                header { class: "installation-header",
-                    div { class: "installation-header-left",
+                // Modern unified header
+                header { class: "modern-header",
+                    div { class: "header-left",
+                        if let Some(icon_base64) = icon_base64 {
+                            img { 
+                                class: "header-logo",
+                                src: "data:image/png;base64,{icon_base64}",
+                                alt: "Logo"
+                            }
+                        }
+                        
+                        h1 { class: "header-title", "{installation.name}" }
+                    }
+                    
+                    div { class: "header-center",
                         button { 
-                            class: "header-back-button",
+                            class: "nav-tab back-tab",
                             onclick: move |_| onback.call(()),
                             "← Back"
                         }
                         
-                        h1 { class: "installation-header-title", "{installation.name}" }
-                    }
-                    
-                    div { class: "installation-header-center",
                         button { 
                             class: if *active_tab.read() == "features" { 
-                                "installation-tab active" 
+                                "nav-tab active" 
                             } else { 
-                                "installation-tab" 
+                                "nav-tab" 
                             },
                             onclick: move |_| active_tab.set("features"),
                             "Features"
@@ -1401,9 +1395,9 @@ pub fn InstallationManagementPage(
                         
                         button { 
                             class: if *active_tab.read() == "performance" { 
-                                "installation-tab active" 
+                                "nav-tab active" 
                             } else { 
-                                "installation-tab" 
+                                "nav-tab" 
                             },
                             onclick: move |_| active_tab.set("performance"),
                             "Performance"
@@ -1415,16 +1409,16 @@ pub fn InstallationManagementPage(
                         
                         button { 
                             class: if *active_tab.read() == "settings" { 
-                                "installation-tab active" 
+                                "nav-tab active" 
                             } else { 
-                                "installation-tab" 
+                                "nav-tab" 
                             },
                             onclick: move |_| active_tab.set("settings"),
                             "Settings"
                         }
                     }
                     
-                    div { class: "installation-header-right",
+                    div { class: "header-right",
                         button {
                             class: "header-launch-button",
                             disabled: !installation_state.read().installed || *is_installing.read(),
@@ -1465,7 +1459,7 @@ pub fn InstallationManagementPage(
                     
                     // Tab content
                     match *active_tab.read() {
-                    "features" => {
+                        "features" => {
                             rsx! {
                                 FeaturesTab {
                                     universal_manifest: universal_manifest.read().clone().flatten(),
@@ -2782,35 +2776,89 @@ fn AppHeader(
     on_select_installation: EventHandler<String>,
     on_go_home: EventHandler<()>,
     on_open_settings: EventHandler<()>,
-    show_installation_tabs: bool, // NEW: Control whether to show installation tabs
+    show_installation_tabs: bool,
 ) -> Element {
     let icon_base64 = {
         use base64::{Engine, engine::general_purpose::STANDARD};
         STANDARD.encode(include_bytes!("assets/icon.png"))
     };
     
-    // Only show installation management tabs if we're on an installation page
+    // For home page - show simple header with home/installations navigation
     if !show_installation_tabs {
-        // Simple header with just logo and basic navigation
         return rsx! {
-            header { class: "app-header simple-header",
-                // Logo and title - clickable to go home
-                div { 
-                    class: "app-header-left", 
-                    onclick: move |_| on_go_home.call(()),
-                    
+            header { class: "modern-header",
+                div { class: "header-left",
                     img { 
-                        class: "app-logo", 
+                        class: "header-logo", 
                         src: "data:image/png;base64,{icon_base64}",
-                        alt: "Wynncraft Overhaul Logo"
+                        alt: "Logo"
                     }
-                    h1 { class: "app-title", "MAJESTIC OVERHAUL" }
+                    h1 { class: "header-title", "MAJESTIC OVERHAUL" }
                 }
                 
-                // Just the launcher settings button on the right
-                div { class: "app-header-right",
+                div { class: "header-center",
                     button { 
-                        class: "settings-button",
+                        class: if current_installation_id.read().is_none() { 
+                            "nav-tab active" 
+                        } else { 
+                            "nav-tab" 
+                        },
+                        onclick: move |_| on_go_home.call(()),
+                        "Home"
+                    }
+                    
+                    // Direct installation tabs
+                    for installation in installations().iter().take(3) {
+                        {
+                            let id = installation.id.clone();
+                            let name = installation.name.clone();
+                            let is_active = current_installation_id.read().as_ref().map_or(false, |current_id| current_id == &id);
+                            
+                            rsx! {
+                                button {
+                                    class: if is_active { "nav-tab active" } else { "nav-tab" },
+                                    onclick: move |_| on_select_installation.call(id.clone()),
+                                    "{name}"
+                                }
+                            }
+                        }
+                    }
+                    
+                    // More dropdown if needed
+                    if installations().len() > 3 {
+                        div { class: "dropdown",
+                            button { class: "nav-tab", "More ▼" }
+                            div { class: "dropdown-content",
+                                for installation in installations().iter().skip(3) {
+                                    {
+                                        let id = installation.id.clone();
+                                        let name = installation.name.clone();
+                                        let is_active = current_installation_id.read().as_ref().map_or(false, |current_id| current_id == &id);
+                                        
+                                        rsx! {
+                                            button {
+                                                class: if is_active { "dropdown-item active" } else { "dropdown-item" },
+                                                onclick: move |_| on_select_installation.call(id.clone()),
+                                                "{name}"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    
+                    // New installation button
+                    button { 
+                        class: "nav-tab",
+                        onclick: move |_| on_select_installation.call("new".to_string()),
+                        "+"
+                    }
+                }
+                
+                div { class: "header-right",
+                    button { 
+                        class: "nav-tab",
                         onclick: move |_| on_open_settings.call(()),
                         "Launcher"
                     }
@@ -2819,137 +2867,8 @@ fn AppHeader(
         };
     }
     
-    // Full header with installation tabs (for when managing installations from home page)
-    // This is now only used if you want to show installation tabs in the main header
-    // (which based on your new design, you probably don't need)
-    
-    // Number of installation tabs to show directly
-    let MAX_INSTALLATION_TABS = 2;
-    
-    // Prepare installation tabs
-    let all_installations = installations();
-    let direct_installations = all_installations.iter().take(MAX_INSTALLATION_TABS).cloned().collect::<Vec<_>>();
-    let dropdown_installations = all_installations.iter().skip(MAX_INSTALLATION_TABS).cloned().collect::<Vec<_>>();
-
-    // Current ID for active state
-    let current_id = current_installation_id();
-    
-    // Pre-build direct tabs
-    let direct_tabs_content = {
-        let mut tabs = Vec::new();
-        for installation in &direct_installations {
-            let id = installation.id.clone();
-            let name = installation.name.clone();
-            let is_active = current_id.as_ref().map_or(false, |current_id| current_id == &id);
-            let on_select = on_select_installation.clone();
-            
-            tabs.push(
-                rsx! {
-                    button {
-                        class: {
-                            if is_active { 
-                                "header-tab-button active" 
-                            } else { 
-                                "header-tab-button" 
-                            }
-                        },
-                        onclick: move |_| on_select.call(id.clone()),
-                        "{name}"
-                    }
-                }
-            );
-        }
-        tabs.into_iter()
-    };
-    
-    // Pre-build dropdown menu
-    let dropdown_menu = if !dropdown_installations.is_empty() {
-        let dropdown_items = dropdown_installations.iter().map(|installation| {
-            let id = installation.id.clone();
-            let name = installation.name.clone();
-            let is_active = current_id.as_ref().map_or(false, |current_id| current_id == &id);
-            let on_select = on_select_installation.clone();
-            
-            rsx! {
-                button {
-                    class: {
-                        if is_active { 
-                            "dropdown-item active" 
-                        } else { 
-                            "dropdown-item" 
-                        }
-                    },
-                    onclick: move |_| on_select.call(id.clone()),
-                    "{name}"
-                }
-            }
-        }).collect::<Vec<_>>();
-        
-        rsx! {
-            div { class: "dropdown",
-                button { class: "header-tab-button", "More ▼" }
-                div { class: "dropdown-content",
-                    {dropdown_items.into_iter()}
-                }
-            }
-        }
-    } else {
-        rsx! { Fragment {} }
-    };
-    
-    // Main render for full header
-    rsx! {
-        header { class: "app-header",
-            // Logo and title
-            div { 
-                class: "app-header-left", 
-                onclick: move |_| on_go_home.call(()),
-                
-                img { 
-                    class: "app-logo", 
-                    src: "data:image/png;base64,{icon_base64}",
-                    alt: "Wynncraft Overhaul Logo"
-                }
-                h1 { class: "app-title", "MAJESTIC OVERHAUL" }
-            }
-            
-            // Tabs
-            div { class: "header-tabs",
-                // Home tab
-                button { 
-                    class: {
-                        if current_id.is_none() { 
-                            "header-tab-button active" 
-                        } else { 
-                            "header-tab-button" 
-                        }
-                    },
-                    onclick: move |_| on_go_home.call(()),
-                    "Home"
-                }
-                
-                // Direct installation tabs
-                {direct_tabs_content}
-                
-                // Dropdown menu
-                {dropdown_menu}
-                
-                // Create new installation tab
-                button { 
-                    class: "header-tab-button new-installation-tab",
-                    onclick: move |_| on_select_installation.call("new".to_string()),
-                    "+"
-                }
-            }
-            
-            // Settings button
-            button { 
-                class: "settings-button",
-                onclick: move |_| on_open_settings.call(()),
-                "Launcher"
-            }
-        }
-    }
+    // If we need installation management tabs (this path might not be used anymore)
+    rsx! { Fragment {} }
 }
 
 #[derive(Debug, Clone)]
