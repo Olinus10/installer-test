@@ -745,3 +745,29 @@
         transform: translateY(0);
     }
 }
+
+/* Footer section styling */
+.footer-section {
+    flex: 1;
+    text-align: center;
+}
+
+.footer-heading {
+    font-family: "HEADER_FONT";
+    font-size: 1.1rem;
+    margin: 0 0 8px 0;
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.footer-text {
+    font-size: 0.9rem;
+    color: rgba(255, 255, 255, 0.7);
+    margin: 0;
+    max-width: 400px;
+}
+
+.copyright {
+    font-size: 0.8rem;
+    color: rgba(255, 255, 255, 0.5);
+    margin: 0;
+}
