@@ -1507,45 +1507,59 @@ pub fn InstallationManagementPage(
                 }
                 
                 // Modern fixed footer
-                footer { class: "installation-footer",
-                    div { class: "footer-info",
-                        div { class: "footer-info-item",
-                            span { class: "footer-info-label", "MINECRAFT" }
-                            span { class: "footer-info-value", "{installation.minecraft_version}" }
-                        }
-                        
-                        div { class: "footer-divider" }
-                        
-                        div { class: "footer-info-item",
-                            span { class: "footer-info-label", "LOADER" }
-                            span { class: "footer-info-value", "{installation.loader_type} {installation.loader_version}" }
-                        }
-                        
-                        div { class: "footer-divider" }
-                        
-                        div { class: "footer-info-item",
-                            span { class: "footer-info-label", "MEMORY" }
-                            span { class: "footer-info-value", "{installation.memory_allocation} MB" }
-                        }
-                        
-                        if installation.update_available {
-                            Fragment {
-                                div { class: "footer-divider" }
-                                div { class: "footer-info-item",
-                                    span { class: "footer-info-label", "STATUS" }
-                                    span { class: "footer-info-value", style: "color: #ffb900;", "Update Available" }
-                                }
-                            }
-                        }
-                    }
-                    
-                    button {
-                        class: button_class,
-                        disabled: button_disabled,
-                        onclick: handle_update,
-                        {action_button_label}
-                    }
+footer { class: "modern-footer",
+    div { class: "footer-info",
+        div { class: "footer-info-item",
+            span { class: "footer-info-label", "MINECRAFT" }
+            span { class: "footer-info-value", "{installation.minecraft_version}" }
+        }
+        
+        div { class: "footer-divider" }
+        
+        div { class: "footer-info-item",
+            span { class: "footer-info-label", "LOADER" }
+            span { class: "footer-info-value", "{installation.loader_type} {installation.loader_version}" }
+        }
+        
+        div { class: "footer-divider" }
+        
+        div { class: "footer-info-item",
+            span { class: "footer-info-label", "MEMORY" }
+            span { class: "footer-info-value", "{installation.memory_allocation} MB" }
+        }
+        
+        if installation.update_available {
+            Fragment {
+                div { class: "footer-divider" }
+                div { class: "footer-info-item",
+                    span { class: "footer-info-label", "STATUS" }
+                    span { class: "footer-info-value", style: "color: #ffb900;", "Update Available" }
                 }
+            }
+        }
+    }
+    
+    // Action buttons container
+    div { class: "footer-actions",
+        button {
+            class: button_class,
+            disabled: button_disabled,
+            onclick: handle_update,
+            {action_button_label}
+        }
+        
+        // Discord button
+        a {
+            class: "footer-action-button install",
+            href: "https://discord.gg/olinus-corner-778965021656743966",
+            target: "_blank",
+            rel: "noopener noreferrer",
+            style: "text-decoration: none; margin-left: 15px;",
+            
+            "DISCORD"
+        }
+    }
+}
             }
         }
     }
