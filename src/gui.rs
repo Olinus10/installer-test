@@ -1570,7 +1570,6 @@ fn UpdateWarningDialog(
     onclose: EventHandler<()>,
     onproceed: EventHandler<()>,
 ) -> Element {
-    let installation = installation.clone();
     rsx! {
         div { class: "modal-overlay",
         div { class: "modal-container update-warning-dialog",
@@ -1610,30 +1609,6 @@ fn UpdateWarningDialog(
             }
             
             div { class: "modal-footer",
-                button { 
-                    class: "secondary-button",
-                    onclick: {
-                        let installation_path = installation::installation_path.clone();
-                        move |_| {
-                            // Open the installation folder
-                            #[cfg(target_os = "windows")]
-                            let _ = std::process::Command::new("explorer")
-                                .arg(&installation_path)
-                                .spawn();
-                            
-                            #[cfg(target_os = "macos")]
-                            let _ = std::process::Command::new("open")
-                                .arg(&installation_path)
-                                .spawn();
-                                
-                            #[cfg(target_os = "linux")]
-                            let _ = std::process::Command::new("xdg-open")
-                                .arg(&installation_path)
-                                .spawn();
-                        }
-                    },
-                    "Open Installation Folder"
-                }
                 
                         button { 
                         class: "cancel-button",
