@@ -1570,6 +1570,7 @@ fn UpdateWarningDialog(
     onclose: EventHandler<()>,
     onproceed: EventHandler<()>,
 ) -> Element {
+    let installation = installation.clone();
     rsx! {
         div { class: "modal-overlay",
         div { class: "modal-container update-warning-dialog",
