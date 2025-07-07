@@ -1605,17 +1605,7 @@ footer { class: "modern-footer",
             onclick: handle_update,
             {action_button_label}
         }
-        
-        // Discord button
-        a {
-            class: "footer-action-button install",
-            href: "https://discord.gg/olinus-corner-778965021656743966",
-            target: "_blank",
-            rel: "noopener noreferrer",
-            style: "text-decoration: none; margin-left: 15px;",
-            
-            "DISCORD"
-        }
+    
     }
 }
             }
