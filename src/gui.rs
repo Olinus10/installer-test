@@ -1576,9 +1576,9 @@ fn UpdateWarningDialog(
             div { class: "modal-header",
                 h3 { "⚠️ Update Warning" }
                 button { 
-                    class: "modal-close",
-                    onclick: move |_| show_update_warning.set(false),
-                    "×"
+                        class: "modal-close",
+                        onclick: move |_| onclose.call(()),
+                        "×"
                 }
             }
             
@@ -1612,7 +1612,7 @@ fn UpdateWarningDialog(
                 button { 
                     class: "secondary-button",
                     onclick: {
-                        let installation_path = installation.installation_path.clone();
+                        let installation_path = installation::installation_path.clone();
                         move |_| {
                             // Open the installation folder
                             #[cfg(target_os = "windows")]
@@ -1634,19 +1634,17 @@ fn UpdateWarningDialog(
                     "Open Installation Folder"
                 }
                 
-                button { 
-                    class: "cancel-button",
-                    onclick: move |_| show_update_warning.set(false),
-                    "Cancel Update"
-                }
+                        button { 
+                        class: "cancel-button",
+                        onclick: move |_| onclose.call(()),
+                        "Cancel"
+                    }
                 
-                button { 
-                    class: "primary-button update-proceed-button",
-                    onclick: move |_| {
-                        show_update_warning.set(false);
-                        proceed_with_update();
-                    },
-                    "Proceed with Update"
+                    
+                    button { 
+                        class: "update-proceed-button",
+                        onclick: move |_| onproceed.call(()),
+                        "Proceed with Update"
                     }
                 }
             }
