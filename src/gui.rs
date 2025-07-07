@@ -554,8 +554,8 @@ fn HomePage(
     let has_installations = !installations().is_empty();
     let latest_installation = installations().first().cloned();
     
-    rsx! {
-        div { class: "home-container",
+rsx! {
+        div { class: "home-container home-page",
             // Error notification if any
             if let Some(error) = error_signal() {
                 ErrorNotification {
@@ -1401,17 +1401,20 @@ let mut proceed_with_update = {
         }
     });
 
-    rsx! {
-        div { class: "installation-management-container",
+rsx! {
+    div { 
+        class: "installation-management-container installation-page",
             // Show progress view if installing
             if *is_installing.read() {
-                ProgressView {
-                    value: *installation_progress.read(),
-                    max: *installation_total.read(),
-                    status: installation_status.read().clone(),
-                    title: format!("Installing {}", installation.name)
-                }
-            } else {
+    div { class: "installation-page",
+        ProgressView {
+            value: *installation_progress.read(),
+            max: *installation_total.read(),
+            status: installation_status.read().clone(),
+            title: format!("Installing {}", installation.name)
+        }
+    }
+} else {
                 // Modern unified header
                 header { class: "modern-header",
                     div { class: "header-left",
