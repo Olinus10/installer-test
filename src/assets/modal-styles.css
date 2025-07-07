@@ -936,16 +936,3 @@ button:disabled {
     border-color: rgba(76, 175, 80, 0.8);
 }
 
-/* 7. POPUPS ABOVE HEADER/FOOTER */
-.modal-overlay,
-.wizard-overlay,
-.manifest-error-overlay,
-.update-warning-dialog {
-    z-index: 2000 !important;
-}
-
-.modal-container,
-.installation-wizard,
-.manifest-error-container {
-    z-index: 2001 !important;
-}
