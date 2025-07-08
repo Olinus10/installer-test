@@ -1382,3 +1382,37 @@ body:has(.installation-management-container) {
 .installation-page .modern-footer .footer-info-value {
     font-size: 0.9rem; /* Slightly smaller */
 }
+
+.installation-page .header-center::after,
+.installation-management-container ~ * .header-center::after,
+.installation-page-content ~ * .header-center::after {
+    content: '';
+    position: absolute;
+    background: rgba(0, 0, 0, 0.5); /* Darker background */
+    border: 2px solid rgba(255, 255, 255, 0.15); /* More visible border */
+    border-radius: 16px;
+    backdrop-filter: blur(10px);
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: auto;
+    height: calc(100% + 12px); /* Slightly taller */
+    z-index: -1;
+    /* Calculate width to fit the three tabs */
+    padding: 0 calc(100px + 20px); /* More padding */
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3); /* Add shadow for depth */
+}
+
+/* Ensure tabs have proper spacing from the container */
+.installation-page .nav-tab:not(.back-tab),
+.installation-management-container ~ * .nav-tab:not(.back-tab) {
+    margin: 0 6px; /* Increase spacing between tabs */
+    z-index: 1;
+}
+
+/* First tab spacing adjustment */
+.installation-page .header-center .nav-tab:nth-of-type(2),
+.installation-management-container ~ * .header-center .nav-tab:nth-of-type(2) {
+    border-radius: 12px 0 0 12px !important;
+    margin-left: 16px; /* More space from container edge */
+}
