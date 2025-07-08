@@ -13,37 +13,6 @@ use crate::{CachedHttpClient, launcher};
 use crate::preset::Preset;
 use crate::Launcher;
 
-// Helper function to compare semantic versions
-fn compare_versions(version1: &str, version2: &str) -> std::cmp::Ordering {
-    let parse_version = |v: &str| -> Vec<u32> {
-        v.split('.')
-            .map(|part| part.parse::<u32>().unwrap_or(0))
-            .collect()
-    };
-    
-    let v1_parts = parse_version(version1);
-    let v2_parts = parse_version(version2);
-    
-    let max_len = std::cmp::max(v1_parts.len(), v2_parts.len());
-    
-    for i in 0..max_len {
-        let v1_part = v1_parts.get(i).unwrap_or(&0);
-        let v2_part = v2_parts.get(i).unwrap_or(&0);
-        
-        match v1_part.cmp(v2_part) {
-            std::cmp::Ordering::Equal => continue,
-            other => return other,
-        }
-    }
-    
-    std::cmp::Ordering::Equal
-}
-
-// Check if a version is newer than another
-fn is_version_newer(current: &str, new: &str) -> bool {
-    compare_versions(new, current) == std::cmp::Ordering::Greater
-}
-
 #[derive(Debug, Deserialize, Serialize, Default, Clone)]
 pub struct InstallationsIndex {
     pub installations: Vec<String>,  // List of installation IDs
@@ -146,7 +115,8 @@ pub struct Installation {
     pub installed: bool,
     pub modified: bool,
     pub update_available: bool,
-    pub preset_update_available: bool,
+    pub preset_update_available: bool,  // Keep only this one
+    
     
     // Launcher and versioning information
     pub launcher_type: String,    // "vanilla", "multimc", etc.
@@ -202,141 +172,75 @@ impl Installation {
             universal_version,
             last_launch: None,
             total_launches: 0,
-            preset_update_available: false,
-            base_preset_id: Some(preset.id.clone()),
-            base_preset_version: preset.preset_version.clone(),
-            custom_features: Vec::new(),
-            removed_features: Vec::new(),
+    preset_update_available: false,
+    base_preset_id: Some(preset.id.clone()),  // or None for custom
+    base_preset_version: preset.preset_version.clone(),  // or None for custom
+    custom_features: Vec::new(),
+    removed_features: Vec::new(),
         }
     }
 
     // Custom installation without using a preset
-    pub fn new_custom(
-        name: String,
-        minecraft_version: String,
-        loader_type: String,
-        loader_version: String,
-        launcher_type: String,
-        universal_version: String,
-    ) -> Self {
-        let id = uuid::Uuid::new_v4().to_string();
-        let now = chrono::Utc::now();
-        
-        info!("Creating new custom installation '{}' with ID: {}", name, id);
-        
-        // Generate installation path based on ID
-        let installations_dir = get_installations_dir();
-        let installation_path = installations_dir.join(&id);
-        
-        Self {
-            id,
-            name,
-            created_at: now,
-            last_used: now,
-            minecraft_version,
-            loader_type,
-            loader_version,
-            installation_path,
-            enabled_features: vec!["default".to_string()],
-            memory_allocation: 3072, // 3GB default
-            java_args: "-XX:+UseG1GC -XX:+UnlockExperimentalVMOptions -XX:G1NewSizePercent=20 -XX:G1ReservePercent=20 -XX:MaxGCPauseMillis=50 -XX:G1HeapRegionSize=32M".to_string(),
-            installed: false,
-            modified: false,
-            update_available: false,
-            launcher_type,
-            universal_version,
-            last_launch: None,
-            total_launches: 0,
-            preset_update_available: false,
-            base_preset_id: None,
-            base_preset_version: None,
-            custom_features: Vec::new(),
-            removed_features: Vec::new(),
-        }
+pub fn new_custom(
+    name: String,
+    minecraft_version: String,
+    loader_type: String,
+    loader_version: String,
+    launcher_type: String,
+    universal_version: String,
+) -> Self {
+    let id = uuid::Uuid::new_v4().to_string();
+    let now = chrono::Utc::now();
+    
+    info!("Creating new custom installation '{}' with ID: {}", name, id);
+    
+    // Generate installation path based on ID
+    let installations_dir = get_installations_dir();
+    let installation_path = installations_dir.join(&id);
+    
+    Self {
+        id,
+        name,
+        created_at: now,
+        last_used: now,
+        minecraft_version,
+        loader_type,
+        loader_version,
+        installation_path,
+        enabled_features: vec!["default".to_string()],
+        memory_allocation: 3072, // 3GB default
+        java_args: "-XX:+UseG1GC -XX:+UnlockExperimentalVMOptions -XX:G1NewSizePercent=20 -XX:G1ReservePercent=20 -XX:MaxGCPauseMillis=50 -XX:G1HeapRegionSize=32M".to_string(),
+        installed: false,
+        modified: false,
+        update_available: false,
+        launcher_type,
+        universal_version,
+        last_launch: None,
+        total_launches: 0,
+        preset_update_available: false,
+        base_preset_id: None,  // Changed from preset.id.clone()
+        base_preset_version: None,  // Changed from preset.preset_version.clone()
+        custom_features: Vec::new(),
+        removed_features: Vec::new(),
     }
+}
 
-    // NEW: Check for modpack updates by comparing universal manifest versions
-    pub async fn check_modpack_updates(&mut self, http_client: &CachedHttpClient) -> Result<bool, String> {
-        debug!("Checking for modpack updates for installation: {}", self.id);
-        
-        // Load the current universal manifest
-        let universal_manifest = match crate::universal::load_universal_manifest(http_client, None).await {
-            Ok(manifest) => manifest,
-            Err(e) => {
-                warn!("Failed to load universal manifest for update check: {}", e.message);
-                return Ok(false); // Don't fail completely, just no update available
-            }
-        };
-        
-        let remote_version = &universal_manifest.modpack_version;
-        let local_version = &self.universal_version;
-        
-        debug!("Comparing versions: local={}, remote={}", local_version, remote_version);
-        
-        // Check if remote version is newer
-        let modpack_update_available = is_version_newer(local_version, remote_version);
-        
-        if modpack_update_available {
-            info!("Modpack update available: {} -> {}", local_version, remote_version);
-        }
-        
-        self.update_available = modpack_update_available;
-        
-        Ok(modpack_update_available)
-    }
-
-    // NEW: Check for preset updates by comparing preset versions
-    pub async fn check_preset_updates(&mut self, presets: &[Preset]) -> Result<bool, String> {
+    pub async fn check_preset_updates(&self, presets: &[Preset]) -> Option<String> {
         if let Some(base_preset_id) = &self.base_preset_id {
-            debug!("Checking for preset updates for preset: {}", base_preset_id);
-            
             if let Some(current_preset) = presets.iter().find(|p| p.id == *base_preset_id) {
                 // Check if preset version has changed
                 if let (Some(current_version), Some(base_version)) = 
                     (&current_preset.preset_version, &self.base_preset_version) {
-                    
-                    debug!("Comparing preset versions: local={}, remote={}", base_version, current_version);
-                    
-                    let preset_update_available = is_version_newer(base_version, current_version);
-                    
-                    if preset_update_available {
-                        info!("Preset update available: {} -> {}", base_version, current_version);
+                    if current_version != base_version {
+                        return Some(format!(
+                            "Preset '{}' has been updated from {} to {}",
+                            current_preset.name, base_version, current_version
+                        ));
                     }
-                    
-                    self.preset_update_available = preset_update_available;
-                    
-                    return Ok(preset_update_available);
                 }
-            } else {
-                warn!("Base preset {} not found in current presets", base_preset_id);
             }
         }
-        
-        self.preset_update_available = false;
-        Ok(false)
-    }
-
-    // NEW: Combined update check that handles both modpack and preset updates
-    pub async fn check_for_updates(&mut self, http_client: &CachedHttpClient, presets: &[Preset]) -> Result<bool, String> {
-        debug!("Performing comprehensive update check for installation: {}", self.id);
-        
-        // Check both modpack and preset updates
-        let modpack_update = self.check_modpack_updates(http_client).await?;
-        let preset_update = self.check_preset_updates(presets).await?;
-        
-        // If either has an update available, we show the update button
-        let any_update_available = modpack_update || preset_update;
-        
-        // Store the combined result
-        self.update_available = any_update_available;
-        
-        // Save the updated state
-        self.save()?;
-        
-        debug!("Update check complete: modpack={}, preset={}, overall={}", 
-               modpack_update, preset_update, any_update_available);
-        
-        Ok(any_update_available)
+        None
     }
     
     pub fn apply_preset_update(&mut self, preset: &Preset) {
@@ -362,7 +266,6 @@ impl Installation {
     pub fn mark_installed(&mut self) -> Result<(), String> {
         self.installed = true;
         self.update_available = false;
-        self.preset_update_available = false; // Clear both update flags
         self.modified = false;
         self.last_used = chrono::Utc::now();
         self.save()
@@ -389,58 +292,58 @@ impl Installation {
         self.install_or_update_with_progress(http_client, || {}).await
     }
     
-    pub async fn install_or_update_with_progress<F: FnMut() + Clone>(
-        &self, 
-        http_client: &crate::CachedHttpClient,
-        progress_callback: F
-    ) -> Result<(), String> {
-        // Get the universal manifest
-        let universal_manifest = crate::universal::load_universal_manifest(http_client, None).await
-            .map_err(|e| format!("Failed to load universal manifest: {}", e.message))?;
-        
-        // Convert universal manifest to regular manifest with our enabled features
-        let mut manifest = crate::universal::universal_to_manifest(
-            &universal_manifest, 
-            self.enabled_features.clone()
-        );
-        
-        // IMPORTANT: Override the UUID with this installation's ID
-        manifest.uuid = self.id.clone();
-        manifest.name = self.name.clone();
-        
-        // Create launcher
-        let launcher = match self.launcher_type.as_str() {
-            "vanilla" => {
-                let app_data = crate::get_app_data();
-                Ok(crate::Launcher::Vanilla(app_data))
-            },
-            "multimc" => crate::get_multimc_folder("MultiMC").map(crate::Launcher::MultiMC),
-            "prismlauncher" => crate::get_multimc_folder("PrismLauncher").map(crate::Launcher::MultiMC),
-            _ => Err(format!("Unsupported launcher type: {}", self.launcher_type)),
-        }?;
-        
-        let installer_profile = crate::InstallerProfile {
-            manifest,
-            http_client: http_client.clone(),
-            installed: self.installed,
-            update_available: self.update_available,
-            modpack_source: "Wynncraft-Overhaul/majestic-overhaul/".to_string(),
-            modpack_branch: "master".to_string(),
-            enabled_features: self.enabled_features.clone(),
-            launcher: Some(launcher),
-            local_manifest: None,
-            changelog: None,
-        };
-        
-        // Install or update based on current state
-        if !self.installed {
-            crate::install(&installer_profile, progress_callback).await?;
-        } else {
-            crate::update(&installer_profile, progress_callback).await?;
-        }
-        
-        Ok(())
+   pub async fn install_or_update_with_progress<F: FnMut() + Clone>(
+    &self, 
+    http_client: &crate::CachedHttpClient,
+    progress_callback: F
+) -> Result<(), String> {
+    // Get the universal manifest
+    let universal_manifest = crate::universal::load_universal_manifest(http_client, None).await
+        .map_err(|e| format!("Failed to load universal manifest: {}", e))?;
+    
+    // Convert universal manifest to regular manifest with our enabled features
+    let mut manifest = crate::universal::universal_to_manifest(
+        &universal_manifest, 
+        self.enabled_features.clone()
+    );
+    
+    // IMPORTANT: Override the UUID with this installation's ID
+    manifest.uuid = self.id.clone();
+    manifest.name = self.name.clone();
+    
+    // Create launcher
+    let launcher = match self.launcher_type.as_str() {
+        "vanilla" => {
+            let app_data = crate::get_app_data();
+            Ok(crate::Launcher::Vanilla(app_data))
+        },
+        "multimc" => crate::get_multimc_folder("MultiMC").map(crate::Launcher::MultiMC),
+        "prismlauncher" => crate::get_multimc_folder("PrismLauncher").map(crate::Launcher::MultiMC),
+        _ => Err(format!("Unsupported launcher type: {}", self.launcher_type)),
+    }?;
+    
+    let installer_profile = crate::InstallerProfile {
+        manifest,
+        http_client: http_client.clone(),
+        installed: self.installed,
+        update_available: self.update_available,
+        modpack_source: "Wynncraft-Overhaul/majestic-overhaul/".to_string(),
+        modpack_branch: "master".to_string(),
+        enabled_features: self.enabled_features.clone(),
+        launcher: Some(launcher),
+        local_manifest: None,
+        changelog: None,
+    };
+    
+    // Install or update based on current state
+    if !self.installed {
+        crate::install(&installer_profile, progress_callback).await?;
+    } else {
+        crate::update(&installer_profile, progress_callback).await?;
     }
+    
+    Ok(())
+}
     
     // Update the play method to increment launch count
     pub fn record_launch(&mut self) -> Result<(), String> {
@@ -452,26 +355,48 @@ impl Installation {
         self.save()
     }
     
+    // Check if installation needs updates
+    pub async fn check_for_updates(&mut self, http_client: &CachedHttpClient, presets: &[Preset]) -> Result<bool, String> {
+        // Check modpack updates (existing code)
+        let universal_manifest = crate::universal::load_universal_manifest(http_client, None).await
+        .map_err(|e| format!("Failed to load universal manifest: {}", e))?;  // Convert ManifestError to String
+        let modpack_update = universal_manifest.modpack_version != self.universal_version;
+        
+        // Check preset updates
+        let preset_update = if let Some(base_preset_id) = &self.base_preset_id {
+            if let Some(current_preset) = presets.iter().find(|p| p.id == *base_preset_id) {
+                if let (Some(current_version), Some(base_version)) = 
+                    (&current_preset.preset_version, &self.base_preset_version) {
+                    current_version != base_version
+                } else {
+                    false
+                }
+            } else {
+                false
+            }
+        } else {
+            false
+        };
+        
+        self.update_available = modpack_update || preset_update;
+        self.preset_update_available = preset_update;
+        
+        self.save()?;
+        Ok(self.update_available)
+    }
+    
     // Update the installation after successful install/update
     pub async fn complete_installation(&mut self, http_client: &CachedHttpClient) -> Result<(), String> {
         // Load latest manifest to get current version
         let universal_manifest = crate::universal::load_universal_manifest(http_client, None).await
-            .map_err(|e| format!("Failed to load universal manifest: {}", e.message))?;
+            .map_err(|e| format!("Failed to load universal manifest: {}", e))?;
         
-        // Update installation state - IMPORTANT: Update version numbers here
+        // Update installation state
         self.installed = true;
         self.update_available = false;
-        self.preset_update_available = false;
         self.modified = false;
-        self.universal_version = universal_manifest.modpack_version; // Update to new version
+        self.universal_version = universal_manifest.modpack_version;
         self.last_used = chrono::Utc::now();
-        
-        // If we have a preset, update its version too
-        if let Some(preset_id) = &self.base_preset_id {
-            // We would need to get the current preset version here
-            // This might require loading presets, but for now we'll handle it in the calling code
-            debug!("Installation completed, preset version should be updated by calling code");
-        }
         
         self.save()
     }
