@@ -1565,109 +1565,73 @@ rsx! {
                 }
                 
                 // Modern fixed footer
-footer { class: "modern-footer",
-        div { class: "footer-info",
-            div { class: "footer-info-item",
-                span { class: "footer-info-label", "MINECRAFT" }
-                span { class: "footer-info-value", "{installation.minecraft_version}" }
-            }
-            
-            div { class: "footer-divider" }
-            
-            div { class: "footer-info-item",
-                span { class: "footer-info-label", "LOADER" }
-                span { class: "footer-info-value", "{installation.loader_type} {installation.loader_version}" }
-            }
-            
-            div { class: "footer-divider" }
-            
-            div { class: "footer-info-item",
-                span { class: "footer-info-label", "MEMORY" }
-                span { class: "footer-info-value", "{installation.memory_allocation} MB" }
-            }
-            
-            div { class: "footer-divider" }
-            
-            // NEW: Add feature counter to footer
-            div { class: "footer-features-count",
-                span { class: "footer-info-label", "FEATURES" }
-                span { class: "footer-info-value",
-                    {
-                        if let Some(manifest) = universal_manifest.read().as_ref().and_then(|opt| opt.as_ref()) {
-                            // Count ALL components that will actually be installed
-                            let mut total_components = 0;
-                            let mut enabled_components = 0;
-                            
-                            // Count mods
-                            for mod_component in &manifest.mods {
-                                total_components += 1;
-                                if enabled_features.read().contains(&mod_component.id) || mod_component.id == "default" {
-                                    enabled_components += 1;
+                footer { class: "modern-footer",
+                    div { class: "footer-info",
+                        div { class: "footer-info-item",
+                            span { class: "footer-info-label", "MINECRAFT" }
+                            span { class: "footer-info-value", "{installation.minecraft_version}" }
+                        }
+                        
+                        div { class: "footer-divider" }
+                        
+                        div { class: "footer-info-item",
+                            span { class: "footer-info-label", "LOADER" }
+                            span { class: "footer-info-value", "{installation.loader_type} {installation.loader_version}" }
+                        }
+                        
+                        div { class: "footer-divider" }
+                        
+                        div { class: "footer-info-item",
+                            span { class: "footer-info-label", "MEMORY" }
+                            span { class: "footer-info-value", "{installation.memory_allocation} MB" }
+                        }
+                        
+                        // Add feature counter here
+                        div { class: "footer-divider" }
+                        
+                        div { class: "footer-info-item",
+                            span { class: "footer-info-label", "FEATURES" }
+                            span { class: "footer-info-value", 
+                                {
+                                    let enabled_count = enabled_features.read().len();
+                                    if let Some(Some(manifest)) = universal_manifest.read().as_ref() {
+                                        let total_components = manifest.mods.len() + 
+                                                             manifest.shaderpacks.len() + 
+                                                             manifest.resourcepacks.len() + 
+                                                             manifest.include.len();
+                                        format!("{}/{}", enabled_count, total_components)
+                                    } else {
+                                        format!("{} enabled", enabled_count)
+                                    }
                                 }
                             }
-                            
-                            // Count shaderpacks
-                            for shader in &manifest.shaderpacks {
-                                total_components += 1;
-                                if enabled_features.read().contains(&shader.id) || shader.id == "default" {
-                                    enabled_components += 1;
+                        }
+                        
+                        if installation.update_available {
+                            Fragment {
+                                div { class: "footer-divider" }
+                                div { class: "footer-info-item",
+                                    span { class: "footer-info-label", "STATUS" }
+                                    span { class: "footer-info-value", style: "color: #ffb900;", "Update Available" }
                                 }
                             }
-                            
-                            // Count resourcepacks
-                            for resource in &manifest.resourcepacks {
-                                total_components += 1;
-                                if enabled_features.read().contains(&resource.id) || resource.id == "default" {
-                                    enabled_components += 1;
-                                }
-                            }
-                            
-                            // Count includes (but only ones that will actually be downloaded)
-                            for include in &manifest.include {
-                                total_components += 1;
-                                let should_include = if include.id.is_empty() || include.id == "default" {
-                                    true
-                                } else if !include.optional {
-                                    true
-                                } else {
-                                    enabled_features.read().contains(&include.id)
-                                };
-                                
-                                if should_include {
-                                    enabled_components += 1;
-                                }
-                            }
-                            
-                            format!("{}/{}", enabled_components, total_components)
-                        } else {
-                            "Loading...".to_string()
+                        }
+                    }
+                    
+                    // Action buttons container
+                    div { class: "footer-actions",
+                        button {
+                            class: button_class,
+                            disabled: button_disabled,
+                            onclick: handle_update,
+                            {action_button_label}
                         }
                     }
                 }
             }
-            
-            if installation.update_available {
-                Fragment {
-                    div { class: "footer-divider" }
-                    div { class: "footer-info-item",
-                        span { class: "footer-info-label", "STATUS" }
-                        span { class: "footer-info-value", style: "color: #ffb900;", "Update Available" }
-                    }
-                }
-            }
-        }
-        
-        // Action buttons container
-        div { class: "footer-actions",
-            button {
-                class: button_class,
-                disabled: button_disabled,
-                onclick: handle_update,
-                {action_button_label}
-            }
         }
     }
-}}}}
+}
 
 #[component]
 fn UpdateWarningDialog(
@@ -2933,8 +2897,8 @@ fn AppHeader(
                         "Home"
                     }
                     
-                    // Direct installation tabs
-                    for installation in installations().iter().take(3) {
+                    // Direct installation tabs - CHANGED FROM take(3) TO take(2)
+                    for installation in installations().iter().take(2) {
                         {
                             let id = installation.id.clone();
                             let name = installation.name.clone();
@@ -2951,11 +2915,12 @@ fn AppHeader(
                     }
                     
                     // More dropdown if needed
-                    if installations().len() > 2 {
+                    if installations().len() > 1 {
                         div { class: "dropdown",
                             button { class: "nav-tab", "More ▼" }
                             div { class: "dropdown-content",
-                                for installation in installations().iter().skip(3) {
+                                // CHANGED FROM skip(3) TO skip(2)
+                                for installation in installations().iter().skip(2) {
                                     {
                                         let id = installation.id.clone();
                                         let name = installation.name.clone();
