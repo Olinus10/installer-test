@@ -512,7 +512,6 @@ fn Footer() -> Element {
         footer { class: "modern-footer",
             div { class: "footer-info",
                 div { class: "footer-section",
-                    h3 { class: "footer-heading", "About" }
                     p { class: "footer-text", 
                         "Enhance your Wynncraft experience easily with modpacks made by Olinus10."
                     }
