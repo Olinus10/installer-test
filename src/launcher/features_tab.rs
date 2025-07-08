@@ -386,63 +386,6 @@ div {
                     "Customize individual features to create your perfect experience."
                 }
                 
-                // Features count badge
-div { class: "features-count-container",
-    span { class: "features-count-badge",
-        {
-            if let Some(manifest) = &universal_manifest {
-                // Count ALL components that will actually be installed
-                let mut total_components = 0;
-                let mut enabled_components = 0;
-                
-                // Count mods
-                for mod_component in &manifest.mods {
-                    total_components += 1;
-                    if enabled_features.read().contains(&mod_component.id) || mod_component.id == "default" {
-                        enabled_components += 1;
-                    }
-                }
-                
-                // Count shaderpacks
-                for shader in &manifest.shaderpacks {
-                    total_components += 1;
-                    if enabled_features.read().contains(&shader.id) || shader.id == "default" {
-                        enabled_components += 1;
-                    }
-                }
-                
-                // Count resourcepacks
-                for resource in &manifest.resourcepacks {
-                    total_components += 1;
-                    if enabled_features.read().contains(&resource.id) || resource.id == "default" {
-                        enabled_components += 1;
-                    }
-                }
-                
-                // Count includes (but only ones that will actually be downloaded)
-                for include in &manifest.include {
-                    total_components += 1;
-                    let should_include = if include.id.is_empty() || include.id == "default" {
-                        true
-                    } else if !include.optional {
-                        true
-                    } else {
-                        enabled_features.read().contains(&include.id)
-                    };
-                    
-                    if should_include {
-                        enabled_components += 1;
-                    }
-                }
-                
-                rsx! { "{enabled_components}/{total_components} components enabled" }
-            } else {
-                rsx! { "Loading components..." }
-            }
-        }
-    }
-}
-                
                 // Centered expand/collapse button with improved styling
                 button { 
                     class: "expand-collapse-button",
