@@ -357,17 +357,31 @@ pub fn new_custom(
     
     // Check if installation needs updates
     pub async fn check_for_updates(&mut self, http_client: &CachedHttpClient, presets: &[Preset]) -> Result<bool, String> {
-        // Check modpack updates (existing code)
+        // Check modpack updates using semantic version comparison
         let universal_manifest = crate::universal::load_universal_manifest(http_client, None).await
-        .map_err(|e| format!("Failed to load universal manifest: {}", e))?;  // Convert ManifestError to String
-        let modpack_update = universal_manifest.modpack_version != self.universal_version;
+            .map_err(|e| format!("Failed to load universal manifest: {}", e))?;
+        
+        // Use the compare_versions function for modpack version
+        let modpack_update = match crate::compare_versions(&universal_manifest.modpack_version, &self.universal_version) {
+            std::cmp::Ordering::Greater => {
+                debug!("Modpack update available: {} -> {}", self.universal_version, universal_manifest.modpack_version);
+                true
+            },
+            _ => false
+        };
         
         // Check preset updates
         let preset_update = if let Some(base_preset_id) = &self.base_preset_id {
             if let Some(current_preset) = presets.iter().find(|p| p.id == *base_preset_id) {
                 if let (Some(current_version), Some(base_version)) = 
                     (&current_preset.preset_version, &self.base_preset_version) {
-                    current_version != base_version
+                    match crate::compare_versions(current_version, base_version) {
+                        std::cmp::Ordering::Greater => {
+                            debug!("Preset update available: {} -> {}", base_version, current_version);
+                            true
+                        },
+                        _ => false
+                    }
                 } else {
                     false
                 }
@@ -378,8 +392,15 @@ pub fn new_custom(
             false
         };
         
+        // Update both flags
         self.update_available = modpack_update || preset_update;
         self.preset_update_available = preset_update;
+        
+        // Store the new version for later use
+        if modpack_update {
+            // You might want to store the new version temporarily
+            // self.pending_universal_version = Some(universal_manifest.modpack_version);
+        }
         
         self.save()?;
         Ok(self.update_available)
