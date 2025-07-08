@@ -2457,3 +2457,26 @@ async fn init(
         changelog, // Add the changelog field
     })
 }
+
+fn compare_versions(v1: &str, v2: &str) -> std::cmp::Ordering {
+    let parse_version = |v: &str| -> Vec<u32> {
+        v.split('.')
+            .filter_map(|s| s.parse::<u32>().ok())
+            .collect()
+    };
+    
+    let v1_parts = parse_version(v1);
+    let v2_parts = parse_version(v2);
+    
+    for i in 0..std::cmp::max(v1_parts.len(), v2_parts.len()) {
+        let p1 = v1_parts.get(i).copied().unwrap_or(0);
+        let p2 = v2_parts.get(i).copied().unwrap_or(0);
+        
+        match p1.cmp(&p2) {
+            std::cmp::Ordering::Equal => continue,
+            other => return other,
+        }
+    }
+    
+    std::cmp::Ordering::Equal
+}
