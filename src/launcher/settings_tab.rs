@@ -115,7 +115,7 @@ let handle_rename = move |_| {
     installation_copy.name = new_name_trimmed.clone();
     
     // Validate name length (add character limit check)
-    const MAX_NAME_LENGTH: usize = 25;
+    const MAX_NAME_LENGTH: usize = 15;
     if new_name_trimmed.is_empty() {
         rename_error.set(Some("Installation name cannot be empty".to_string()));
         return;
