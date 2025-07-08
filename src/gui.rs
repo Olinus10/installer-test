@@ -1667,7 +1667,7 @@ footer { class: "modern-footer",
             }
         }
     }
-}
+}}}}
 
 #[component]
 fn UpdateWarningDialog(
