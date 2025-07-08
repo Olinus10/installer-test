@@ -2895,7 +2895,7 @@ fn AppHeader(
                     }
                     
                     // More dropdown if needed
-                    if installations().len() > 3 {
+                    if installations().len() > 2 {
                         div { class: "dropdown",
                             button { class: "nav-tab", "More ▼" }
                             div { class: "dropdown-content",
