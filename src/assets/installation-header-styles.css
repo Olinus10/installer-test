@@ -1312,3 +1312,27 @@ body:has(.installation-management-container) {
     border-radius: 12px 0 0 12px !important;
     margin-left: 16px; /* More space from container edge */
 }
+
+/* ENHANCED TAB CONTAINER - Make it much more visible */
+.installation-page .header-center::after,
+.installation-management-container ~ * .header-center::after,
+.installation-page-content ~ * .header-center::after {
+    content: '';
+    position: absolute;
+    background: rgba(0, 0, 0, 0.7) !important; /* Even darker background */
+    border: 3px solid rgba(255, 255, 255, 0.25) !important; /* Thicker, more visible border */
+    border-radius: 20px; /* Slightly larger radius */
+    backdrop-filter: blur(15px);
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: auto;
+    height: calc(100% + 20px); /* Much taller for more visibility */
+    z-index: -1;
+    /* More padding to make container larger */
+    padding: 0 calc(100px + 30px); /* Increased padding */
+    box-shadow: 
+        0 8px 25px rgba(0, 0, 0, 0.5), /* Stronger shadow */
+        inset 0 0 20px rgba(255, 255, 255, 0.05), /* Inner glow */
+        0 0 40px rgba(0, 0, 0, 0.4); /* Outer shadow */
+}
