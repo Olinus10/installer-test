@@ -514,7 +514,7 @@ fn Footer() -> Element {
                 div { class: "footer-section",
                     h3 { class: "footer-heading", "About" }
                     p { class: "footer-text", 
-                        "Easy access to modpacks that enhance your Wynncraft experience."
+                        "Enhance your Wynncraft experience easily with modpacks made by Olinus10."
                     }
                 }
                 
@@ -809,7 +809,7 @@ pub fn SimplifiedInstallationWizard(props: InstallationCreationProps) -> Element
     let mut manifest_error = use_signal(|| Option::<ManifestError>::None);
     
     // Character limit for installation names
-    const MAX_NAME_LENGTH: usize = 25;
+    const MAX_NAME_LENGTH: usize = 15;
     
     // Suggested names based on existing installations count
     let installations = use_context::<AppProps>().installations;
@@ -1333,7 +1333,7 @@ let mut proceed_with_update = {
         } else if update_available {
             ("UPDATE", "footer-action-button update", false)
         } else if has_changes {
-            ("UPDATE", "footer-action-button modify", false)
+            ("MODIFY", "footer-action-button modify", false)
         } else {
             ("INSTALLED", "footer-action-button up-to-date", true)
         }
