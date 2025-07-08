@@ -1277,3 +1277,108 @@ body:has(.installation-management-container) {
 .modern-footer .footer-action-button[href*="discord"] {
     display: var(--is-installation-page, block);
 }
+
+/* Make the tab container more visible with proper background and borders */
+.installation-page .header-center {
+    background: rgba(0, 0, 0, 0.4) !important; /* Increased opacity */
+    border-radius: 16px !important; /* Larger radius */
+    padding: 8px !important; /* Increased padding */
+    gap: 6px !important; /* Increased gap */
+    max-width: fit-content;
+    margin: 0 auto;
+    border: 2px solid rgba(255, 255, 255, 0.15) !important; /* Stronger border */
+    backdrop-filter: blur(15px) !important; /* Stronger blur */
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3) !important; /* Add shadow */
+}
+
+/* Enhanced tab styling within the container */
+.installation-page .nav-tab:not(.back-tab) {
+    margin: 0 2px !important; /* Reduced margin for tighter grouping */
+    z-index: 1;
+    border-radius: 12px !important; /* Match container radius */
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important;
+    position: relative;
+    overflow: hidden;
+}
+
+/* Add a subtle inner glow to the tab container */
+.installation-page .header-center::before {
+    content: '';
+    position: absolute;
+    top: 1px;
+    left: 1px;
+    right: 1px;
+    bottom: 1px;
+    background: linear-gradient(135deg, 
+        rgba(255, 255, 255, 0.1) 0%, 
+        rgba(255, 255, 255, 0.05) 50%, 
+        rgba(255, 255, 255, 0.02) 100%);
+    border-radius: 14px;
+    pointer-events: none;
+    z-index: 0;
+}
+
+/* Ensure tabs are above the glow effect */
+.installation-page .nav-tab {
+    position: relative;
+    z-index: 2;
+}
+
+/* 3. MOVE FEATURE COUNTER TO FOOTER */
+/* Hide the existing feature counter in the features tab */
+.features-count-container {
+    display: none !important;
+}
+
+/* Add feature counter to the footer */
+.installation-page .modern-footer .footer-info {
+    display: flex;
+    gap: 20px; /* Reduced from 30px to fit more items */
+    align-items: center;
+}
+
+.installation-page .modern-footer .footer-info-item {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: fit-content; /* Prevent shrinking */
+}
+
+/* Add the feature counter as a new footer item */
+.footer-features-count {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: fit-content;
+}
+
+.footer-features-count .footer-info-label {
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.5);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.footer-features-count .footer-info-value {
+    font-size: 0.95rem;
+    color: white;
+    font-weight: 500;
+}
+
+/* Adjust footer layout for the new counter */
+.installation-page .modern-footer {
+    padding: 18px 30px; /* Slightly reduced vertical padding */
+}
+
+/* Make footer info items more compact */
+.installation-page .modern-footer .footer-info-item {
+    min-width: auto;
+}
+
+.installation-page .modern-footer .footer-info-label {
+    font-size: 0.7rem; /* Slightly smaller */
+}
+
+.installation-page .modern-footer .footer-info-value {
+    font-size: 0.9rem; /* Slightly smaller */
+}
