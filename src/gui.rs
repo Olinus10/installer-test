@@ -697,18 +697,18 @@ fn InstallationCard(
             div { class: "installation-card-header",
                 h3 { "{installation.name}" }
                 
-if installation.update_available {
-    span { 
-        class: "update-badge", 
-if installation.preset_update_available && !installation.update_available {
-    "Preset Update"
-} else if !installation.preset_update_available && installation.update_available {
-    "Modpack Update"
-} else {
-    "Updates Available"
-}
-    }
-}
+                if installation.update_available {
+                    span { 
+                        class: "update-badge", 
+                        if installation.preset_update_available && !installation.update_available {
+                            "Preset Update"
+                        } else if !installation.preset_update_available && installation.update_available {
+                            "Modpack Update"  
+                        } else {
+                            "Updates Available"
+                        }
+                    }
+                }
             }
             
             div { class: "installation-card-details",
@@ -1248,12 +1248,27 @@ let mut proceed_with_update = {
                         Ok(_) => {
                             // Set to complete
                             status.set("Installation completed!".to_string());
-                            progress.set(*total.read()); // Ensure we're at 100%
+                            progress.set(*total.read());
                             
-                            // Mark as installed
+                            // Mark as installed and update version
                             installation_clone.installed = true;
                             installation_clone.update_available = false;
+                            installation_clone.preset_update_available = false;
                             installation_clone.modified = false;
+                            
+                            // Update the universal version to the newly installed version
+                            if let Ok(manifest) = crate::universal::load_universal_manifest(&http_client, None).await {
+                                installation_clone.universal_version = manifest.modpack_version;
+                            }
+                            
+                            // Update preset version if it was updated
+                            if let Some(base_preset_id) = &installation_clone.base_preset_id {
+                                if let Ok(presets) = crate::preset::load_presets(&http_client, None).await {
+                                    if let Some(preset) = presets.iter().find(|p| p.id == *base_preset_id) {
+                                        installation_clone.base_preset_version = preset.preset_version.clone();
+                                    }
+                                }
+                            }
                             
                             // Save the installation
                             if let Err(e) = installation_clone.save() {
@@ -1318,25 +1333,27 @@ let mut proceed_with_update = {
     };
         
     // Button label and state
-    let (action_button_label, button_class, button_disabled) = {
-        let current_installation = installation_state.read();
-        let installed = current_installation.installed;
-        let update_available = current_installation.update_available;
-        let has_changes = *has_changes.read();
-        let is_installing = *is_installing.read();
-        
-        if is_installing {
-            ("INSTALLING...", "footer-action-button installing", true)
-        } else if !installed {
-            ("INSTALL", "footer-action-button install", false)
-        } else if update_available {
-            ("UPDATE", "footer-action-button update", false)
-        } else if has_changes {
-            ("MODIFY", "footer-action-button modify", false)
-        } else {
-            ("INSTALLED", "footer-action-button up-to-date", true)
-        }
-    };
+let (action_button_label, button_class, button_disabled) = {
+    let current_installation = installation_state.read();
+    let installed = current_installation.installed;
+    let update_available = current_installation.update_available;
+    let preset_update_available = current_installation.preset_update_available;
+    let has_changes = *has_changes.read();
+    let is_installing = *is_installing.read();
+    
+    if is_installing {
+        ("INSTALLING...", "footer-action-button installing", true)
+    } else if !installed {
+        ("INSTALL", "footer-action-button install", false)
+    } else if update_available || preset_update_available {
+        // Show update for either modpack or preset updates
+        ("UPDATE", "footer-action-button update", false)
+    } else if has_changes {
+        ("MODIFY", "footer-action-button modify", false)
+    } else {
+        ("INSTALLED", "footer-action-button up-to-date", true)
+    }
+};
         
     // Handle launch
     let handle_launch = {
@@ -3054,6 +3071,22 @@ let changelog = use_resource(move || async {
     if let Some(Some(changelog_data)) = changelog.read().as_ref() {
         changelog_signal.set(Some(changelog_data.clone()));
     }
+});
+
+    use_effect(move || {
+    let installations = installations.clone();
+    let http_client = CachedHttpClient::new();
+    
+    spawn(async move {
+        // Check for updates on startup
+        for mut installation in installations.read().clone() {
+            if installation.installed {
+                if let Ok(presets) = crate::preset::load_presets(&http_client, None).await {
+                    let _ = installation.check_for_updates(&http_client, &presets).await;
+                }
+            }
+        }
+    });
 });
 
     // Modal context for popups
