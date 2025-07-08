@@ -416,16 +416,16 @@ a:hover {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); /* Reduced from 300px */
     gap: 20px; /* Reduced from 25px */
-    margin-top: 25px; /* Reduced from 30px */
+    margin-top: 20px; /* Reduced from 30px */
     justify-items: center;
 }
 
 .installation-card {
     background: linear-gradient(145deg, rgba(40, 40, 50, 0.3), rgba(25, 25, 35, 0.4));
-    border-radius: 16px;
+    border-radius: 14px; /* Slightly smaller radius */
     overflow: hidden;
     box-shadow: 
-        0 8px 32px rgba(0, 0, 0, 0.4),
+        0 6px 24px rgba(0, 0, 0, 0.3), /* Reduced shadow */
         0 0 0 1px rgba(255, 255, 255, 0.05);
     transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1);
     cursor: pointer;
@@ -434,13 +434,9 @@ a:hover {
     display: flex;
     flex-direction: column;
     width: 100%;
-    max-width: 350px;
+    max-width: 320px; /* Reduced from 350px */
     position: relative;
     backdrop-filter: blur(10px);
-    
-    /* REDUCED: Make cards more compact */
-    min-height: 240px; /* Reduced from implicit ~300px+ */
-    max-height: 280px; /* Add max height to prevent excessive growth */
 }
 
 .installation-card::before {
@@ -490,7 +486,7 @@ a:hover {
 
 .installation-card-header {
     background: linear-gradient(135deg, rgba(60, 60, 70, 0.2), rgba(45, 45, 55, 0.3));
-    padding: 15px; /* Reduced from 20px */
+    padding: 16px; /* Reduced from 20px */
     position: relative;
     border-bottom: 1px solid rgba(255, 255, 255, 0.08);
     z-index: 2;
@@ -512,7 +508,7 @@ a:hover {
 
 .installation-card-header h3 {
     margin: 0;
-    font-size: 1.2rem; /* Reduced from 1.4rem */
+    font-size: 1.3rem; /* Reduced from 1.4rem */
     color: #ffffff;
     font-family: "HEADER_FONT";
     letter-spacing: 0.5px;
@@ -520,7 +516,7 @@ a:hover {
 }
 
 .installation-card-details {
-    padding: 15px; /* Reduced from 20px */
+    padding: 16px; /* Reduced from 20px */
     flex-grow: 1;
     z-index: 2;
     position: relative;
@@ -552,9 +548,10 @@ a:hover {
 .detail-item {
     display: flex;
     justify-content: space-between;
-    margin-bottom: 8px; /* Reduced from 12px */
+    margin-bottom: 10px; /* Reduced from 12px */
     padding: 6px 0; /* Reduced from 8px */
     border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    font-size: 0.85rem; /* Slightly smaller font */
 }
 
 .detail-item:last-child {
@@ -564,17 +561,14 @@ a:hover {
 
 .detail-label {
     font-weight: 600;
-    color: rgba(255, 255, 255, 0.7);  
-}
-
-.detail-label,
-.detail-value {
-    font-size: 0.85rem; /* Reduced from 0.9rem */
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 0.9rem;
 }
 
 .detail-value {
     color: #ffffff;
     font-weight: 500;
+    font-size: 0.9rem;
 }
 
 .memory-detail .detail-value {
@@ -585,7 +579,7 @@ a:hover {
 /* Installation card button fixes */
 .installation-card-actions {
     display: flex;
-    padding: 15px; /* Reduced from 20px */
+    padding: 16px; /* Reduced from 20px */
     border-top: 1px solid rgba(255, 255, 255, 0.05);
     gap: 10px; /* Reduced from 12px */
     z-index: 2;
@@ -3394,4 +3388,25 @@ a:hover {
     font-size: 1rem;
     margin: 10px auto;
     max-width: 700px;
+}
+
+/* Also reduce the new installation card */
+.installation-card.new-installation .installation-card-content {
+    padding: 30px 25px; /* Reduced from 40px 30px */
+}
+
+.installation-card-icon {
+    font-size: 2.5rem; /* Reduced from 3rem */
+    width: 70px; /* Reduced from 80px */
+    height: 70px; /* Reduced from 80px */
+}
+
+/* Reduce statistics display size slightly */
+.stats-container {
+    margin: 10px auto; /* Reduced from 15px */
+    padding: 12px; /* Reduced from 15px */
+}
+
+.stat-value {
+    font-size: 2.2rem; /* Reduced from 2.5rem */
 }
