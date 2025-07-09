@@ -1689,7 +1689,7 @@ fn UpdateWarningDialog(
         div { class: "modal-overlay",
             div { class: "modal-container update-warning-dialog",
                 div { class: "modal-header",
-                    h3 { "⚠️ Update Warning" }
+                    h3 { "UPDATE WARNING" }
                     button { 
                         class: "modal-close",
                         onclick: move |_| onclose.call(()),
