@@ -1727,19 +1727,19 @@ fn UpdateWarningDialog(
                     button { 
                         class: "cancel-button",
                         onclick: move |_| onclose.call(()),
-                        "Cancel"
+                        "CANCEL"
                     }
                     
                     button { 
                         class: "secondary-button open-folder-button",
                         onclick: open_folder,
-                        "Open Installation Folder"
+                        "OPEN"
                     }
                     
                     button { 
                         class: "update-proceed-button",
                         onclick: move |_| onproceed.call(()),
-                        "Proceed with Update"
+                        "UPDATE"
                     }
                 }
             }
