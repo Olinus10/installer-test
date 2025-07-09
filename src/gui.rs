@@ -1733,7 +1733,7 @@ fn UpdateWarningDialog(
                     button { 
                         class: "secondary-button open-folder-button",
                         onclick: open_folder,
-                        "OPEN"
+                        "OPEN FOLDER"
                     }
                     
                     button { 
@@ -1809,13 +1809,6 @@ fn ProgressView(
             
             div { class: "progress-header",
                 h1 { "{title}" }
-                div { class: "progress-subtitle", 
-                    if is_complete {
-                        "Installation Complete!"
-                    } else {
-                        "Installation in progress..."
-                    }
-                }
             }
             
             div { class: "progress-content",
