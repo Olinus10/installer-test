@@ -452,13 +452,13 @@ struct Feature {
 
 #[derive(Debug, Deserialize, Serialize, Clone, PartialEq)]
 struct RemoteInclude {
-    location: String,
-    path: Option<String>,
+    pub location: String,
+    pub path: Option<String>,
     #[serde(default = "default_id")]
-    id: String,
-    version: String,
-    name: Option<String>,
-    authors: Option<Vec<Author>>,
+    pub id: String,
+    pub version: String,
+    pub name: Option<String>,
+    pub authors: Option<Vec<Author>>,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone, PartialEq)]
@@ -1449,26 +1449,24 @@ async fn install<F: FnMut() + Clone>(installer_profile: &InstallerProfile, mut p
     info!("Installing modpack");
     
     // Calculate total items correctly - count actual items to be downloaded
-// Calculate total items correctly - count actual items to be downloaded
-let mut total_items = 0;
+    let mut total_items = 0;
 
-// Count all mods that should be installed
-total_items += installer_profile.manifest.mods.iter()
-    .filter(|m| {
-        // Include if it's in enabled_features OR it's "default"
-        installer_profile.enabled_features.contains(&m.id) || m.id == "default"
-    })
-    .count();
+    // Count all mods that should be installed
+    total_items += installer_profile.manifest.mods.iter()
+        .filter(|m| {
+            installer_profile.enabled_features.contains(&m.id) || m.id == "default"
+        })
+        .count();
 
-// Count enabled shaderpacks
-total_items += installer_profile.manifest.shaderpacks.iter()
-    .filter(|s| installer_profile.enabled_features.contains(&s.id) || s.id == "default")
-    .count();
+    // Count enabled shaderpacks
+    total_items += installer_profile.manifest.shaderpacks.iter()
+        .filter(|s| installer_profile.enabled_features.contains(&s.id) || s.id == "default")
+        .count();
 
-// Count enabled resourcepacks
-total_items += installer_profile.manifest.resourcepacks.iter()
-    .filter(|r| installer_profile.enabled_features.contains(&r.id) || r.id == "default")
-    .count();
+    // Count enabled resourcepacks
+    total_items += installer_profile.manifest.resourcepacks.iter()
+        .filter(|r| installer_profile.enabled_features.contains(&r.id) || r.id == "default")
+        .count();
     
     // Count enabled includes
     total_items += installer_profile.manifest.include.iter()
@@ -1483,8 +1481,21 @@ total_items += installer_profile.manifest.resourcepacks.iter()
         })
         .count();
     
+    // NEW: Count enabled remote includes
+    if let Some(remote_includes) = &installer_profile.manifest.remote_include {
+        total_items += remote_includes.iter()
+            .filter(|r| {
+                if r.id == "default" {
+                    true
+                } else {
+                    installer_profile.enabled_features.contains(&r.id)
+                }
+            })
+            .count();
+    }
+    
     debug!("Total items to install: {}", total_items);
-    debug!("installer_profile = {installer_profile:#?}");
+    
     let modpack_root = &get_modpack_root(
         installer_profile
             .launcher
@@ -1496,10 +1507,10 @@ total_items += installer_profile.manifest.resourcepacks.iter()
     let http_client = &installer_profile.http_client;
     let minecraft_folder = get_minecraft_folder();
     
-    // NEW: Check if this is an update by looking for existing manifest
+    // Check if this is an update by looking for existing manifest
     let is_update = modpack_root.join("manifest.json").exists();
     
-    // NEW: Collect items that should be ignored during updates
+    // Collect items that should be ignored during updates
     let mut ignore_update_items = std::collections::HashSet::new();
     
     // Check universal manifest for ignore_update flags
@@ -1533,6 +1544,14 @@ total_items += installer_profile.manifest.resourcepacks.iter()
             if include.ignore_update {
                 ignore_update_items.insert(include.id.clone());
                 debug!("Will ignore updates for include: {}", include.location);
+            }
+        }
+        
+        // NEW: Add remote includes with ignore_update=true
+        for remote in &universal_manifest.remote_include {
+            if remote.ignore_update {
+                ignore_update_items.insert(remote.id.clone());
+                debug!("Will ignore updates for remote include: {}", remote.id);
             }
         }
     }
@@ -1597,12 +1616,12 @@ total_items += installer_profile.manifest.resourcepacks.iter()
     
     let mut included_files: HashMap<String, Included> = HashMap::new();
     
-    // Handle includes with ignore_update support
+    // Handle regular includes
     if !manifest.include.is_empty() {
         debug!("Processing {} includes from manifest", manifest.include.len());
         
         for inc in &manifest.include {
-            // NEW: Check if we should ignore this include during updates
+            // Check if we should ignore this include during updates
             if is_update && ignore_update_items.contains(&inc.id) {
                 debug!("Ignoring update for include: {} (ignore_update=true)", inc.id);
                 continue;
@@ -1610,11 +1629,10 @@ total_items += installer_profile.manifest.resourcepacks.iter()
             
             // Check if this include should be installed
             let should_install = if inc.id.is_empty() || inc.id == "default" {
-                true // Always install default/no-id includes
+                true
             } else if !inc.optional {
-                true // Always install non-optional includes
+                true
             } else {
-                // For optional includes, check if they're enabled
                 installer_profile.enabled_features.contains(&inc.id)
             };
             
@@ -1624,114 +1642,166 @@ total_items += installer_profile.manifest.resourcepacks.iter()
                 continue;
             }
         
-        debug!("Processing include: {} (location: {}, optional: {}, default_enabled: {})", 
-               inc.id, inc.location, inc.optional, inc.default_enabled);
-        
-        // Build the raw GitHub URL
-        let github_url = format!(
-            "https://raw.githubusercontent.com/Wynncraft-Overhaul/majestic-overhaul/master/{}",
-            inc.location
-        );
-        
-        // Determine target path
-        let target_path = modpack_root.join(&inc.location);
-        
-        // Determine if it's a file or directory
-        let is_file = inc.location.ends_with(".zip") || 
-                     inc.location.ends_with(".txt") || 
-                     inc.location == "options.txt" ||
-                     (inc.location.contains('.') && !inc.location.starts_with("."));  // Files with extensions, but not hidden folders
-        
-        let is_directory = inc.location == "config" || 
-                          inc.location.starts_with(".") ||  // Hidden folders like .bobby
-                          (!inc.location.contains('.') && !is_file);  // Folders without extensions
-        
-        if is_file {
-            // It's a file - download directly
-            debug!("Downloading file include: {} to {:?}", github_url, target_path);
+            debug!("Processing include: {} (location: {}, optional: {}, default_enabled: {})", 
+                   inc.id, inc.location, inc.optional, inc.default_enabled);
             
-            // Create parent directory if needed
-            if let Some(parent) = target_path.parent() {
-                if let Err(e) = fs::create_dir_all(parent) {
-                    error!("Failed to create directory for include {}: {}", inc.location, e);
-                    continue;
-                }
-            }
-            
-            // Download the file
-            match http_client.get_async(&github_url).await {
-                Ok(mut response) => {
-                    if response.status() == StatusCode::OK {
-                        match response.bytes().await {
-                            Ok(bytes) => {
-                                match fs::write(&target_path, bytes) {
-                                    Ok(_) => {
-                                        debug!("Successfully downloaded include file: {}", inc.location);
-                                        included_files.insert(
-                                            inc.id.clone(),
-                                            Included {
-                                                md5: String::new(),
-                                                files: vec![target_path.to_string_lossy().to_string()],
-                                            }
-                                        );
-                                        progress_callback();
-                                    },
-                                    Err(e) => {
-                                        error!("Failed to write include file {}: {}", inc.location, e);
-                                    }
-                                }
-                            },
-                            Err(e) => {
-                                error!("Failed to read include file bytes: {}", e);
-                            }
-                        }
-                    } else {
-                        error!("Failed to download include {}: HTTP {}", inc.location, response.status());
-                    }
-                },
-                Err(e) => {
-                    error!("Failed to download include {}: {}", inc.location, e);
-                }
-            }
-        } else if is_directory {
-            // It's a directory - use GitHub API to download all files
-            debug!("Downloading directory include: {} (hidden folder: {})", 
-                   inc.location, inc.location.starts_with("."));
-            
-            // Create the target directory first (especially important for hidden folders)
-            if let Err(e) = fs::create_dir_all(&target_path) {
-                error!("Failed to create directory {}: {}", target_path.display(), e);
-                continue;
-            }
-            
-            let api_url = format!(
-                "https://api.github.com/repos/Wynncraft-Overhaul/majestic-overhaul/contents/{}",
+            // [Include processing logic remains the same as before...]
+            let github_url = format!(
+                "https://raw.githubusercontent.com/Wynncraft-Overhaul/majestic-overhaul/master/{}",
                 inc.location
             );
             
-            match download_github_directory(http_client, &api_url, &inc.location, modpack_root).await {
+            let target_path = modpack_root.join(&inc.location);
+            
+            let is_file = inc.location.ends_with(".zip") || 
+                         inc.location.ends_with(".txt") || 
+                         inc.location == "options.txt" ||
+                         (inc.location.contains('.') && !inc.location.starts_with("."));
+            
+            let is_directory = inc.location == "config" || 
+                              inc.location.starts_with(".") ||
+                              (!inc.location.contains('.') && !is_file);
+            
+            if is_file {
+                debug!("Downloading file include: {} to {:?}", github_url, target_path);
+                
+                if let Some(parent) = target_path.parent() {
+                    if let Err(e) = fs::create_dir_all(parent) {
+                        error!("Failed to create directory for include {}: {}", inc.location, e);
+                        continue;
+                    }
+                }
+                
+                match http_client.get_async(&github_url).await {
+                    Ok(mut response) => {
+                        if response.status() == StatusCode::OK {
+                            match response.bytes().await {
+                                Ok(bytes) => {
+                                    match fs::write(&target_path, bytes) {
+                                        Ok(_) => {
+                                            debug!("Successfully downloaded include file: {}", inc.location);
+                                            included_files.insert(
+                                                inc.id.clone(),
+                                                Included {
+                                                    md5: String::new(),
+                                                    files: vec![target_path.to_string_lossy().to_string()],
+                                                }
+                                            );
+                                            progress_callback();
+                                        },
+                                        Err(e) => {
+                                            error!("Failed to write include file {}: {}", inc.location, e);
+                                        }
+                                    }
+                                },
+                                Err(e) => {
+                                    error!("Failed to read include file bytes: {}", e);
+                                }
+                            }
+                        } else {
+                            error!("Failed to download include {}: HTTP {}", inc.location, response.status());
+                        }
+                    },
+                    Err(e) => {
+                        error!("Failed to download include {}: {}", inc.location, e);
+                    }
+                }
+            } else if is_directory {
+                debug!("Downloading directory include: {} (hidden folder: {})", 
+                       inc.location, inc.location.starts_with("."));
+                
+                if let Err(e) = fs::create_dir_all(&target_path) {
+                    error!("Failed to create directory {}: {}", target_path.display(), e);
+                    continue;
+                }
+                
+                let api_url = format!(
+                    "https://api.github.com/repos/Wynncraft-Overhaul/majestic-overhaul/contents/{}",
+                    inc.location
+                );
+                
+                match download_github_directory(http_client, &api_url, &inc.location, modpack_root).await {
+                    Ok(files) => {
+                        debug!("Successfully downloaded include directory: {} ({} files)", inc.location, files.len());
+                        included_files.insert(
+                            inc.id.clone(),
+                            Included {
+                                md5: String::new(),
+                                files,
+                            }
+                        );
+                        progress_callback();
+                    },
+                    Err(e) => {
+                        error!("Failed to download include directory {}: {}", inc.location, e);
+                    }
+                }
+            } else {
+                error!("Unable to determine if include {} is a file or directory", inc.location);
+            }
+        }
+    } else {
+        debug!("No includes to process");
+    }
+    
+    // NEW: Handle remote includes
+    if let Some(remote_includes) = &manifest.remote_include {
+        debug!("Processing {} remote includes from manifest", remote_includes.len());
+        
+        for remote in remote_includes {
+            // Check if we should ignore this remote include during updates
+            if is_update && ignore_update_items.contains(&remote.id) {
+                debug!("Ignoring update for remote include: {} (ignore_update=true)", remote.id);
+                continue;
+            }
+            
+            // Check if this remote include should be installed
+            let should_install = if remote.id == "default" {
+                true
+            } else {
+                installer_profile.enabled_features.contains(&remote.id)
+            };
+            
+            if !should_install {
+                debug!("Skipping disabled remote include: {} (enabled={})", 
+                       remote.id, installer_profile.enabled_features.contains(&remote.id));
+                continue;
+            }
+            
+            debug!("Processing remote include: {} (location: {})", remote.id, remote.location);
+            
+            // Determine the target path
+            let target_path = if let Some(path) = &remote.path {
+                modpack_root.join(path)
+            } else {
+                modpack_root.clone()
+            };
+            
+            // Get the name for display
+            let name = remote.name.clone().unwrap_or_else(|| remote.id.clone());
+            
+            // Download and extract the remote include
+            match download_zip(&name, http_client, &remote.location, &target_path).await {
                 Ok(files) => {
-                    debug!("Successfully downloaded include directory: {} ({} files)", inc.location, files.len());
+                    debug!("Successfully downloaded remote include: {} ({} files)", name, files.len());
                     included_files.insert(
-                        inc.id.clone(),
+                        remote.id.clone(),
                         Included {
-                            md5: String::new(),
+                            md5: remote.version.clone(), // Use version as MD5 for remote includes
                             files,
                         }
                     );
                     progress_callback();
                 },
                 Err(e) => {
-                    error!("Failed to download include directory {}: {}", inc.location, e);
+                    error!("Failed to download remote include {}: {:?}", name, e);
+                    return Err(format!("Failed to download remote include {}: {:?}", name, e));
                 }
             }
-        } else {
-            error!("Unable to determine if include {} is a file or directory", inc.location);
         }
+    } else {
+        debug!("No remote includes to process");
     }
-} else {
-    debug!("No includes to process");
-}
     
     // Save local manifest
     let local_manifest = Manifest {
@@ -1818,23 +1888,23 @@ total_items += installer_profile.manifest.resourcepacks.iter()
     }
 
     if let Ok(mut installation) = crate::installation::load_installation(&installer_profile.manifest.uuid) {
-    if let Err(e) = installation.complete_installation(http_client).await {
-        error!("Failed to update installation state: {}", e);
-    } else {
-        debug!("Successfully marked installation as complete");
+        if let Err(e) = installation.complete_installation(http_client).await {
+            error!("Failed to update installation state: {}", e);
+        } else {
+            debug!("Successfully marked installation as complete");
+        }
     }
-}
 
     if let Ok(mut installation) = crate::installation::load_installation(&installer_profile.manifest.uuid) {
-    installation.installed = true;
-    installation.update_available = false;
-    installation.modified = false;
-    if let Err(e) = installation.save() {
-        error!("Failed to update installation state: {}", e);
-    } else {
-        debug!("Successfully marked installation as complete");
+        installation.installed = true;
+        installation.update_available = false;
+        installation.modified = false;
+        if let Err(e) = installation.save() {
+            error!("Failed to update installation state: {}", e);
+        } else {
+            debug!("Successfully marked installation as complete");
+        }
     }
-}
     
     info!("Installed modpack!");
     Ok(())
