@@ -15,62 +15,127 @@ pub fn FeaturesTab(
     let presets_for_closure = presets.clone();
     let installation_id_for_apply = installation_id.clone();
     let installation_id_for_toggle = installation_id.clone();
-    let installation_id_for_memo = installation_id.clone(); // Add this clone
-    let installation_id_for_rsx = installation_id.clone(); // Add this clone
+    let installation_id_for_memo = installation_id.clone();
+    let installation_id_for_rsx = installation_id.clone();
     
-    // Load the installation to check its preset
-    let installation_preset_id = use_memo(move || {
+    // FIXED: Load the installation to check its preset AND enabled features
+    let installation_data = use_memo(move || {
         if let Ok(installation) = crate::installation::load_installation(&installation_id_for_memo) {
-            installation.base_preset_id
+            Some((installation.base_preset_id.clone(), installation.enabled_features.clone()))
         } else {
             None
         }
     });
 
+    // FIXED: Initialize both preset selection and enabled features from installation
     use_effect({
         let mut selected_preset = selected_preset.clone();
+        let mut enabled_features = enabled_features.clone();
+        
         move || {
-            if let Some(preset_id) = installation_preset_id() {
-                selected_preset.set(Some(preset_id));
+            if let Some((preset_id, features)) = installation_data() {
+                // Set the preset selection
+                selected_preset.set(preset_id.clone());
+                
+                // FIXED: Set the enabled features from the installation
+                enabled_features.set(features);
+                
+                debug!("Loaded installation preset: {:?}", preset_id);
+                debug!("Loaded installation features: {:?}", enabled_features.read());
             }
         }
     });
     
-    // Handle changing a preset
+    // FIXED: Enhanced apply_preset function that properly updates features
     let apply_preset = move |preset_id: String| {
+        debug!("Applying preset: {}", preset_id);
+        
         if let Some(preset) = find_preset_by_id(&presets_for_closure, &preset_id) {
-            // Update enabled features
-            enabled_features.set(preset.enabled_features.clone());
+            // FIXED: Update enabled features immediately and completely
+            let new_features = preset.enabled_features.clone();
+            enabled_features.set(new_features.clone());
             
             // Mark as selected
             selected_preset.set(Some(preset_id.clone()));
+            
+            debug!("Applied preset '{}' with features: {:?}", preset.name, new_features);
             
             // Store the preset info in the installation
             if let Ok(mut installation) = crate::installation::load_installation(&installation_id_for_apply) {
                 installation.base_preset_id = Some(preset.id.clone());
                 installation.base_preset_version = preset.preset_version.clone();
+                installation.enabled_features = new_features; // FIXED: Update installation features too
                 installation.custom_features.clear();
                 installation.removed_features.clear();
-                let _ = installation.save();
+                installation.modified = true; // FIXED: Mark as modified so install button activates
+                
+                if let Err(e) = installation.save() {
+                    error!("Failed to save installation: {}", e);
+                } else {
+                    debug!("Successfully saved installation with preset: {}", preset.id);
+                }
             }
         }
     };
     
-    // Update selected_preset to use the loaded value
-    use_effect(move || {
-        if let Some(preset_id) = installation_preset_id() {
-            selected_preset.set(Some(preset_id));
+    // FIXED: Enhanced feature matching for preset detection
+    let detect_current_preset = use_memo({
+        let enabled_features = enabled_features.clone();
+        let presets = presets.clone();
+        
+        move || {
+            let current_features = enabled_features.read();
+            
+            // Find a preset that exactly matches current features
+            for preset in &presets {
+                // FIXED: More sophisticated feature matching
+                let mut preset_features = preset.enabled_features.clone();
+                let mut current_features_vec = current_features.clone();
+                
+                // Sort both for comparison
+                preset_features.sort();
+                current_features_vec.sort();
+                
+                if preset_features == current_features_vec {
+                    debug!("Detected matching preset: {} for features: {:?}", preset.name, current_features_vec);
+                    return Some(preset.id.clone());
+                }
+            }
+            
+            debug!("No matching preset found for features: {:?}", current_features);
+            None
         }
     });
+    
+    // FIXED: Auto-update selected preset when features change
+    use_effect({
+        let mut selected_preset = selected_preset.clone();
+        let detected_preset = detect_current_preset.clone();
         
+        move || {
+            if let Some(detected_id) = detected_preset() {
+                if selected_preset.read().as_ref() != Some(&detected_id) {
+                    selected_preset.set(Some(detected_id.clone()));
+                    debug!("Auto-selected preset based on features: {}", detected_id);
+                }
+            } else {
+                // Only clear if we had a preset selected but features no longer match
+                if selected_preset.read().is_some() {
+                    selected_preset.set(None);
+                    debug!("Cleared preset selection - features don't match any preset");
+                }
+            }
+        }
+    });
     
     // Clone presets again for toggle_feature
     let presets_for_toggle = presets.clone();
     let universal_manifest_for_toggle = universal_manifest.clone();
     
-    // Handle toggling a feature with dependency checking
+    // FIXED: Enhanced toggle_feature with better preset tracking
     let toggle_feature = move |feature_id: String| {
-        // Use the cloned version inside the closure
+        debug!("Toggling feature: {}", feature_id);
+        
         let manifest_for_deps = universal_manifest_for_toggle.clone();
         
         enabled_features.with_mut(|features| {
@@ -80,17 +145,16 @@ pub fn FeaturesTab(
                 // Add the feature
                 if !features.contains(&feature_id) {
                     features.push(feature_id.clone());
+                    debug!("Enabled feature: {}", feature_id);
                 }
                 
                 // Check for dependencies and enable them too
                 if let Some(manifest) = &manifest_for_deps {
-                    // Check all component types for the feature being enabled
                     let all_components: Vec<&ModComponent> = manifest.mods.iter()
                         .chain(manifest.shaderpacks.iter())
                         .chain(manifest.resourcepacks.iter())
                         .collect();
                     
-                    // Find the component being enabled
                     if let Some(component) = all_components.iter().find(|c| c.id == feature_id) {
                         if let Some(deps) = &component.dependencies {
                             for dep_id in deps {
@@ -105,6 +169,7 @@ pub fn FeaturesTab(
             } else {
                 // Remove the feature
                 features.retain(|id| id != &feature_id);
+                debug!("Disabled feature: {}", feature_id);
                 
                 // Check if any enabled features depend on this one
                 if let Some(manifest) = &manifest_for_deps {
@@ -113,7 +178,6 @@ pub fn FeaturesTab(
                         .chain(manifest.resourcepacks.iter())
                         .collect();
                     
-                    // Find features that depend on the one being disabled
                     let dependent_features: Vec<String> = all_components.iter()
                         .filter(|c| {
                             features.contains(&c.id) && 
@@ -122,7 +186,6 @@ pub fn FeaturesTab(
                         .map(|c| c.id.clone())
                         .collect();
                     
-                    // Also disable dependent features
                     for dep_feat in dependent_features {
                         debug!("Auto-disabling dependent feature: {} (depends on {})", dep_feat, feature_id);
                         features.retain(|id| id != &dep_feat);
@@ -131,7 +194,11 @@ pub fn FeaturesTab(
             }
         });
 
+        // FIXED: Update installation with new feature state
         if let Ok(mut installation) = crate::installation::load_installation(&installation_id_for_toggle) {
+            installation.enabled_features = enabled_features.read().clone();
+            installation.modified = true; // FIXED: Always mark as modified when features change
+            
             if let Some(base_preset_id) = &installation.base_preset_id {
                 if let Some(base_preset) = find_preset_by_id(&presets_for_toggle, base_preset_id) {
                     // Check if this feature was in the original preset
@@ -151,12 +218,17 @@ pub fn FeaturesTab(
                         }
                         installation.removed_features.retain(|id| id != &feature_id);
                     }
-                    
-                    let _ = installation.save();
                 }
+            }
+            
+            if let Err(e) = installation.save() {
+                error!("Failed to save installation after feature toggle: {}", e);
+            } else {
+                debug!("Successfully saved installation after toggling feature: {}", feature_id);
             }
         }
     };
+
     
     // Button hover states
     let mut custom_button_hover = use_signal(|| false);
@@ -479,11 +551,37 @@ div {
             .cloned()
             .collect();
         
+        // FIXED: Get optional includes
+        let optional_includes: Vec<IncludeComponent> = manifest.include.iter()
+            .filter(|i| i.optional && !i.id.is_empty())
+            .cloned()
+            .collect();
+        
         // Combine all optional components
         let mut all_components = Vec::new();
         all_components.extend(optional_mods);
         all_components.extend(optional_shaderpacks);
         all_components.extend(optional_resourcepacks);
+        
+        // Convert optional includes to components for unified handling
+        for include in &optional_includes {
+            all_components.push(ModComponent {
+                id: include.id.clone(),
+                name: include.name.clone().unwrap_or_else(|| include.location.clone()),
+                description: Some(format!("Configuration: {}", include.location)),
+                source: "include".to_string(),
+                location: include.location.clone(),
+                version: "1.0".to_string(),
+                path: None,
+                optional: include.optional,
+                default_enabled: include.default_enabled,
+                authors: include.authors.clone().unwrap_or_default(),
+                category: Some("Configuration".to_string()), // Group includes in Configuration category
+                dependencies: None,
+                incompatibilities: None,
+                ignore_update: include.ignore_update,
+            });
+        }
         
         // Get includes from manifest
         let includes = manifest.include.clone();
@@ -628,7 +726,7 @@ div {
         
         // Return all elements
         rsx! {
-            {elements_to_render.into_iter()}
+            {render_features_by_category(all_components, enabled_features.clone(), filter_text.clone(), toggle_feature)}
         }
     } else {
         rsx! {
@@ -651,13 +749,41 @@ fn render_features_by_category(
     enabled_features: Signal<Vec<String>>,
     filter_text: Signal<String>,
     toggle_feature: impl FnMut(String) + Clone + 'static,
+    // FIXED: Add includes parameter
+    includes: Vec<IncludeComponent>,
 ) -> Element {
     // Apply current filter
     let filter = filter_text.read().to_lowercase();
+    
+    // FIXED: Combine components with optional includes
+    let mut all_components = components;
+    
+    // Convert optional includes to ModComponent-like structure for display
+    for include in includes {
+        if include.optional && !include.id.is_empty() {
+            all_components.push(ModComponent {
+                id: include.id.clone(),
+                name: include.name.clone().unwrap_or_else(|| include.location.clone()),
+                description: Some(format!("Include: {}", include.location)),
+                source: "include".to_string(),
+                location: include.location,
+                version: "1.0".to_string(), // Default version for includes
+                path: None,
+                optional: include.optional,
+                default_enabled: include.default_enabled,
+                authors: include.authors.unwrap_or_default(),
+                category: Some("Configuration".to_string()), // Default category for includes
+                dependencies: None,
+                incompatibilities: None,
+                ignore_update: include.ignore_update,
+            });
+        }
+    }
+    
     let filtered_components = if filter.is_empty() {
-        components
+        all_components
     } else {
-        components.into_iter()
+        all_components.into_iter()
             .filter(|comp| {
                 let name_match = comp.name.to_lowercase().contains(&filter);
                 let desc_match = comp.description.as_ref()
@@ -667,10 +793,9 @@ fn render_features_by_category(
             .collect()
     };
     
-    // Group components by category
+    // Group components by category (including includes)
     let mut categories: std::collections::BTreeMap<String, Vec<ModComponent>> = std::collections::BTreeMap::new();
     
-    // Group components by their categories
     for component in filtered_components {
         // Skip if component is default_enabled as these are shown separately
         if component.default_enabled {
