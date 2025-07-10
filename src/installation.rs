@@ -128,7 +128,6 @@ pub struct Installation {
 }
 
 impl Installation {
-    // Create a new installation from a preset
     pub fn new_from_preset(
         name: String,
         preset: &Preset,
@@ -172,11 +171,11 @@ impl Installation {
             universal_version,
             last_launch: None,
             total_launches: 0,
-    preset_update_available: false,
-    base_preset_id: Some(preset.id.clone()),  // or None for custom
-    base_preset_version: preset.preset_version.clone(),  // or None for custom
-    custom_features: Vec::new(),
-    removed_features: Vec::new(),
+            preset_update_available: false,
+            base_preset_id: Some(preset.id.clone()),
+            base_preset_version: preset.preset_version.clone(),
+            custom_features: Vec::new(),
+            removed_features: Vec::new(),
         }
     }
 
