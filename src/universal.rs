@@ -141,6 +141,61 @@ impl std::fmt::Display for ManifestErrorType {
     }
 }
 
+impl UniversalManifest {
+    pub fn get_optional_includes(&self) -> Vec<&IncludeComponent> {
+        self.include.iter()
+            .filter(|include| include.optional && !include.id.is_empty())
+            .collect()
+    }
+    
+    pub fn get_all_optional_components(&self) -> Vec<ModComponent> {
+        let mut components = Vec::new();
+        
+        // Add optional mods
+        components.extend(
+            self.mods.iter()
+                .filter(|m| m.optional)
+                .cloned()
+        );
+        
+        // Add optional shaderpacks
+        components.extend(
+            self.shaderpacks.iter()
+                .filter(|s| s.optional)
+                .cloned()
+        );
+        
+        // Add optional resourcepacks
+        components.extend(
+            self.resourcepacks.iter()
+                .filter(|r| r.optional)
+                .cloned()
+        );
+        
+        // FIXED: Convert optional includes to ModComponent format
+        for include in self.get_optional_includes() {
+            components.push(ModComponent {
+                id: include.id.clone(),
+                name: include.name.clone().unwrap_or_else(|| include.location.clone()),
+                description: Some(format!("Configuration file: {}", include.location)),
+                source: "include".to_string(),
+                location: include.location.clone(),
+                version: "1.0".to_string(),
+                path: None,
+                optional: include.optional,
+                default_enabled: include.default_enabled,
+                authors: include.authors.clone().unwrap_or_default(),
+                category: Some("Configuration".to_string()),
+                dependencies: None,
+                incompatibilities: None,
+                ignore_update: include.ignore_update,
+            });
+        }
+        
+        components
+    }
+}
+
 pub async fn validate_universal_json(http_client: &CachedHttpClient, url: &str) -> Result<(), String> {
     debug!("Validating universal.json structure from: {}", url);
     
