@@ -1480,3 +1480,63 @@ body:has(.installation-management-container) {
     justify-content: center !important;
     z-index: 9999 !important; /* Ensure it's above everything */
 }
+
+/* Update button - Golden/Orange */
+.installation-actions .update-button {
+    background: linear-gradient(135deg, #FF9800, #F57C00);
+    color: white;
+    border-color: rgba(255, 152, 0, 0.5);
+    box-shadow: 
+        0 8px 25px rgba(255, 152, 0, 0.4),
+        0 0 40px rgba(255, 152, 0, 0.3);
+    animation: update-glow 3s ease-in-out infinite alternate;
+}
+
+@keyframes update-glow {
+    0% {
+        box-shadow: 
+            0 8px 25px rgba(255, 152, 0, 0.4),
+            0 0 40px rgba(255, 152, 0, 0.3);
+        /* Remove any white glow */
+    }
+    100% {
+        box-shadow: 
+            0 12px 35px rgba(255, 152, 0, 0.6),
+            0 0 60px rgba(255, 152, 0, 0.5);
+        /* Keep it orange */
+    }
+}
+
+/* Group the three main tabs (excluding back button) - FIXED */
+.installation-page .header-center::after,
+.installation-management-container ~ * .header-center::after,
+.installation-page-content ~ * .header-center::after {
+    content: '';
+    position: absolute;
+    background: rgba(0, 0, 0, 0.5);
+    border: 2px solid rgba(255, 255, 255, 0.15);
+    border-radius: 16px;
+    backdrop-filter: blur(10px);
+    top: 50%;
+    transform: translateY(-50%);
+    /* Fix positioning and sizing */
+    left: 120px; /* Start after back button */
+    width: calc(100% - 140px - 120px); /* Full width minus back button space and right padding */
+    height: calc(100% + 16px);
+    z-index: -1;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+    pointer-events: none;
+}
+
+/* Ensure tabs are properly positioned */
+.installation-page .nav-tab:not(.back-tab),
+.installation-management-container ~ * .nav-tab:not(.back-tab) {
+    margin: 0 8px;
+    z-index: 1;
+    position: relative;
+}
+
+/* First tab after back button */
+.installation-page .nav-tab:nth-of-type(2) {
+    margin-left: 140px; /* Align with container start */
+}
