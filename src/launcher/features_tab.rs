@@ -1,7 +1,8 @@
 use dioxus::prelude::*;
-use crate::universal::{ModComponent, UniversalManifest};
+use crate::universal::{ModComponent, UniversalManifest, IncludeComponent}; // Add IncludeComponent import
 use crate::preset::{Preset, find_preset_by_id};
-use log::debug;
+use log::{debug, error}; // Add error macro import
+
 
 #[component]
 pub fn FeaturesTab(
@@ -583,7 +584,7 @@ div {
             });
         }
         
-        // Get includes from manifest
+        // Get includes from manifest - FIXED: Pass the includes to the render function
         let includes = manifest.include.clone();
         
         // NEW: Get ALL default-enabled components (both optional and non-optional)
@@ -721,12 +722,12 @@ div {
             });
         }
         
-        // Then add the regular features by category
-        elements_to_render.push(render_features_by_category(all_components, enabled_features.clone(), filter_text.clone(), toggle_feature));
+        // Then add the regular features by category - FIXED: Pass includes parameter
+        elements_to_render.push(render_features_by_category(all_components, enabled_features.clone(), filter_text.clone(), toggle_feature, includes));
         
         // Return all elements
         rsx! {
-            {render_features_by_category(all_components, enabled_features.clone(), filter_text.clone(), toggle_feature)}
+            {render_features_by_category(all_components, enabled_features.clone(), filter_text.clone(), toggle_feature, includes)}
         }
     } else {
         rsx! {
@@ -743,14 +744,13 @@ div {
     } 
 }
 
-// Helper function to render features by category - unchanged
+// Helper function to render features by category - FIXED: Add includes parameter
 fn render_features_by_category(
     components: Vec<ModComponent>,
     enabled_features: Signal<Vec<String>>,
     filter_text: Signal<String>,
     toggle_feature: impl FnMut(String) + Clone + 'static,
-    // FIXED: Add includes parameter
-    includes: Vec<IncludeComponent>,
+    includes: Vec<IncludeComponent>, // FIXED: Add includes parameter
 ) -> Element {
     // Apply current filter
     let filter = filter_text.read().to_lowercase();
