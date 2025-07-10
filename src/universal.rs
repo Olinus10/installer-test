@@ -34,7 +34,33 @@ pub struct ModComponent {
     pub dependencies: Option<Vec<String>>,
     #[serde(default)]
     pub incompatibilities: Option<Vec<String>>,
-    // NEW: Add ignore_update support
+    #[serde(default = "default_false")]
+    pub ignore_update: bool,
+}
+
+// NEW: RemoteIncludeComponent structure
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
+pub struct RemoteIncludeComponent {
+    pub id: String,
+    #[serde(default)]
+    pub name: Option<String>,
+    #[serde(default)]
+    pub description: Option<String>,
+    pub source: String, // Should be "ddl" for direct download
+    pub location: String, // The download URL
+    #[serde(default)]
+    pub path: Option<String>, // Optional path to extract to
+    pub version: String,
+    #[serde(default = "default_false")]
+    pub optional: bool,
+    #[serde(default = "default_false")]
+    pub default_enabled: bool,
+    #[serde(default)]
+    pub category: Option<String>,
+    #[serde(default)]
+    pub authors: Vec<Author>,
+    #[serde(default)]
+    pub dependencies: Option<Vec<String>>,
     #[serde(default = "default_false")]
     pub ignore_update: bool,
 }
@@ -60,9 +86,13 @@ pub struct UniversalManifest {
     #[serde(default)]
     pub resourcepacks: Vec<ModComponent>,
     
-    // Add includes support
+    // Include support
     #[serde(default)]
     pub include: Vec<IncludeComponent>,
+    
+    // NEW: Remote include support
+    #[serde(default)]
+    pub remote_include: Vec<RemoteIncludeComponent>,
     
     // Metadata
     #[serde(default)]
@@ -93,7 +123,6 @@ pub struct IncludeComponent {
     pub optional: bool,
     #[serde(default = "default_false")]
     pub default_enabled: bool,
-    // NEW: Add ignore_update support
     #[serde(default = "default_false")]
     pub ignore_update: bool,
 }
@@ -111,7 +140,7 @@ pub struct ManifestError {
     pub message: String,
     pub error_type: ManifestErrorType,
     pub file_name: String,
-    pub raw_content: Option<String>, // Store the raw content for debugging
+    pub raw_content: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -148,6 +177,13 @@ impl UniversalManifest {
             .collect()
     }
     
+    // NEW: Get optional remote includes
+    pub fn get_optional_remote_includes(&self) -> Vec<&RemoteIncludeComponent> {
+        self.remote_include.iter()
+            .filter(|remote| remote.optional)
+            .collect()
+    }
+    
     pub fn get_all_optional_components(&self) -> Vec<ModComponent> {
         let mut components = Vec::new();
         
@@ -172,7 +208,7 @@ impl UniversalManifest {
                 .cloned()
         );
         
-        // FIXED: Convert optional includes to ModComponent format
+        // Convert optional includes to ModComponent format
         for include in self.get_optional_includes() {
             components.push(ModComponent {
                 id: include.id.clone(),
@@ -192,192 +228,27 @@ impl UniversalManifest {
             });
         }
         
-        components
-    }
-}
-
-pub async fn validate_universal_json(http_client: &CachedHttpClient, url: &str) -> Result<(), String> {
-    debug!("Validating universal.json structure from: {}", url);
-    
-    match http_client.get_async(url).await {
-        Ok(mut response) => {
-            let status = response.status();
-            
-            if status != StatusCode::OK {
-                return Err(format!("Failed to fetch universal.json: HTTP {}", status));
-            }
-            
-            match response.text().await {
-                Ok(json_text) => {
-                    debug!("Received {} bytes of universal.json", json_text.len());
-                    
-                    // First check if it's valid JSON
-                    match serde_json::from_str::<serde_json::Value>(&json_text) {
-                        Ok(value) => {
-                            debug!("universal.json is valid JSON");
-                            
-                            // Check if it's an object
-                            if let Some(obj) = value.as_object() {
-                                debug!("Top-level fields in universal.json:");
-                                for (key, val) in obj {
-                                    let type_name = match val {
-                                        serde_json::Value::Null => "null",
-                                        serde_json::Value::Bool(_) => "boolean",
-                                        serde_json::Value::Number(_) => "number",
-                                        serde_json::Value::String(_) => "string",
-                                        serde_json::Value::Array(_) => "array",
-                                        serde_json::Value::Object(_) => "object",
-                                    };
-                                    debug!("  - {}: {}", key, type_name);
-                                }
-                                
-                                // Now check for required fields
-                                let required_fields = vec![
-                                    "manifest_version", "modpack_version", "minecraft_version",
-                                    "name", "subtitle", "description", "icon", "uuid",
-                                    "loader", "mods", "version"
-                                ];
-                                
-                                for field in required_fields {
-                                    if !obj.contains_key(field) {
-                                        return Err(format!("universal.json is missing required field: {}", field));
-                                    }
-                                }
-                            }
-                        },
-                        Err(e) => {
-                            return Err(format!("universal.json is not valid JSON: {}", e));
-                        }
-                    }
-                    
-                    // Now try to deserialize into our struct
-                    match serde_json::from_str::<UniversalManifest>(&json_text) {
-                        Ok(_) => {
-                            debug!("universal.json successfully validates against UniversalManifest struct");
-                            Ok(())
-                        },
-                        Err(e) => {
-                            Err(format!("universal.json does not match UniversalManifest struct: {}", e))
-                        }
-                    }
-                },
-                Err(e) => {
-                    Err(format!("Failed to read universal.json: {}", e))
-                }
-            }
-        },
-        Err(e) => {
-            Err(format!("Failed to fetch universal.json: {}", e))
+        // NEW: Convert optional remote includes to ModComponent format
+        for remote in self.get_optional_remote_includes() {
+            components.push(ModComponent {
+                id: remote.id.clone(),
+                name: remote.name.clone().unwrap_or_else(|| remote.id.clone()),
+                description: remote.description.clone(),
+                source: "remote_include".to_string(),
+                location: remote.location.clone(),
+                version: remote.version.clone(),
+                path: remote.path.as_ref().map(|p| PathBuf::from(p)),
+                optional: remote.optional,
+                default_enabled: remote.default_enabled,
+                authors: remote.authors.clone(),
+                category: remote.category.clone(),
+                dependencies: remote.dependencies.clone(),
+                incompatibilities: None,
+                ignore_update: remote.ignore_update,
+            });
         }
-    }
-}
-
-// Default URL for the universal manifest
-const DEFAULT_UNIVERSAL_URL: &str = "https://raw.githubusercontent.com/Wynncraft-Overhaul/majestic-overhaul/master/universal.json";
-const DEFAULT_PRESETS_URL: &str = "https://raw.githubusercontent.com/Wynncraft-Overhaul/majestic-overhaul/master/presets.json";
-
-// Load the universal manifest from a URL - UPDATED to use new repository
-pub async fn load_universal_manifest(http_client: &CachedHttpClient, url: Option<&str>) -> Result<UniversalManifest, ManifestError> {
-    let manifest_url = url.unwrap_or("https://raw.githubusercontent.com/Wynncraft-Overhaul/majestic-overhaul/master/universal.json");
-    debug!("Loading universal manifest from: {}", manifest_url);
-    
-    // Add retry logic for more reliability
-    let mut retries = 0;
-    const MAX_RETRIES: usize = 3;
-    
-    loop {
-        match http_client.get_async(manifest_url).await {
-            Ok(mut response) => {
-                if response.status() != StatusCode::OK {
-                    let status = response.status();
-                    error!("Failed to fetch universal manifest: HTTP {}", status);
-                    
-                    if retries < MAX_RETRIES && (status.as_u16() >= 500 || status.as_u16() == 429) {
-                        retries += 1;
-                        debug!("Retrying request ({}/{})", retries, MAX_RETRIES);
-                        tokio::time::sleep(tokio::time::Duration::from_millis(500 * retries as u64)).await;
-                        continue;
-                    }
-                    
-                    return Err(ManifestError {
-                        message: format!("Failed to fetch universal manifest: HTTP {}", status),
-                        error_type: ManifestErrorType::NetworkError,
-                        file_name: "universal.json".to_string(),
-                        raw_content: None,
-                    });
-                }
-                
-                // Get text as String to avoid the unsized str error
-                match response.text().await {
-                    Ok(manifest_json) => {
-                        // Store the raw JSON for debugging
-                        let raw_content = Some(manifest_json.clone());
-                        
-                        // Try parsing as regular JSON first to catch syntax errors
-                        if let Err(json_err) = serde_json::from_str::<serde_json::Value>(&manifest_json) {
-                            return Err(ManifestError {
-                                message: format!("Invalid JSON syntax: {}", json_err),
-                                error_type: ManifestErrorType::SyntaxError,
-                                file_name: "universal.json".to_string(),
-                                raw_content,
-                            });
-                        }
-                        
-                        // Parse the universal manifest
-match serde_json::from_str::<UniversalManifest>(&manifest_json) {
-    Ok(manifest) => {
-        debug!("Successfully loaded universal manifest for {}", manifest.name);
-        return Ok(manifest);
-    },
-    Err(e) => {
-        error!("Failed to parse universal manifest JSON: {}", e);
         
-        return Err(ManifestError {
-            message: format!("Failed to parse universal manifest: {}", e),
-            error_type: ManifestErrorType::DeserializationError,
-            file_name: "universal.json".to_string(),
-            raw_content,
-        });
-                            }
-                        }
-                    },
-                    Err(e) => {
-                        error!("Failed to read universal manifest response: {}", e);
-                        
-                        if retries < MAX_RETRIES {
-                            retries += 1;
-                            debug!("Retrying request ({}/{})", retries, MAX_RETRIES);
-                            tokio::time::sleep(tokio::time::Duration::from_millis(500 * retries as u64)).await;
-                            continue;
-                        }
-                        
-return Err(ManifestError {
-    message: format!("Failed to read universal manifest: {}", e),
-    error_type: ManifestErrorType::NetworkError,
-    file_name: "universal.json".to_string(),
-    raw_content: None,
-});
-                    }
-                }
-            },
-            Err(e) => {
-                error!("Failed to fetch universal manifest: {}", e);
-                
-                if retries < MAX_RETRIES {
-                    retries += 1;
-                    debug!("Retrying request ({}/{})", retries, MAX_RETRIES);
-                    tokio::time::sleep(tokio::time::Duration::from_millis(500 * retries as u64)).await;
-                    continue;
-                }
-                
-return Err(ManifestError {
-    message: format!("Failed to fetch universal manifest: {}", e),
-    error_type: ManifestErrorType::NetworkError,
-    file_name: "universal.json".to_string(),
-    raw_content: None,
-});
-            }
-        }
+        components
     }
 }
 
@@ -445,58 +316,86 @@ pub fn universal_to_manifest(universal: &UniversalManifest, enabled_features: Ve
         }
     }
     
-    // Convert mods from universal format to original format
-let mods = universal.mods.iter().map(|component| {
-    crate::Mod {
-        name: component.name.clone(),
-        source: component.source.clone(),
-        location: component.location.clone(),
-        version: component.version.clone(),
-        path: component.path.clone(),
-        id: component.id.clone(),
-        authors: component.authors.clone(),
-        ignore_update: component.ignore_update,  // NEW: Copy ignore_update field
+    // NEW: Add optional remote includes as features
+    for remote in &universal.remote_include {
+        if remote.optional {
+            features.push(crate::Feature {
+                id: remote.id.clone(),
+                name: remote.name.clone().unwrap_or_else(|| remote.id.clone()),
+                default: remote.default_enabled,
+                hidden: false,
+                description: remote.description.clone(),
+            });
+        }
     }
-}).collect();
+    
+    // Convert components to old format
+    let mods = universal.mods.iter().map(|component| {
+        crate::Mod {
+            name: component.name.clone(),
+            source: component.source.clone(),
+            location: component.location.clone(),
+            version: component.version.clone(),
+            path: component.path.clone(),
+            id: component.id.clone(),
+            authors: component.authors.clone(),
+            ignore_update: component.ignore_update,
+        }
+    }).collect();
 
-// Convert shaderpacks and resourcepacks similarly
-let shaderpacks = universal.shaderpacks.iter().map(|component| {
-    crate::Shaderpack {
-        name: component.name.clone(),
-        source: component.source.clone(),
-        location: component.location.clone(),
-        version: component.version.clone(),
-        path: component.path.clone(),
-        id: component.id.clone(),
-        authors: component.authors.clone(),
-        ignore_update: component.ignore_update,  // NEW: Copy ignore_update field
-    }
-}).collect();
+    let shaderpacks = universal.shaderpacks.iter().map(|component| {
+        crate::Shaderpack {
+            name: component.name.clone(),
+            source: component.source.clone(),
+            location: component.location.clone(),
+            version: component.version.clone(),
+            path: component.path.clone(),
+            id: component.id.clone(),
+            authors: component.authors.clone(),
+            ignore_update: component.ignore_update,
+        }
+    }).collect();
 
-let resourcepacks = universal.resourcepacks.iter().map(|component| {
-    crate::Resourcepack {
-        name: component.name.clone(),
-        source: component.source.clone(),
-        location: component.location.clone(),
-        version: component.version.clone(),
-        path: component.path.clone(),
-        id: component.id.clone(),
-        authors: component.authors.clone(),
-        ignore_update: component.ignore_update,  // NEW: Copy ignore_update field
-    }
-}).collect();
+    let resourcepacks = universal.resourcepacks.iter().map(|component| {
+        crate::Resourcepack {
+            name: component.name.clone(),
+            source: component.source.clone(),
+            location: component.location.clone(),
+            version: component.version.clone(),
+            path: component.path.clone(),
+            id: component.id.clone(),
+            authors: component.authors.clone(),
+            ignore_update: component.ignore_update,
+        }
+    }).collect();
 
-let includes: Vec<crate::Include> = universal.include.iter().map(|inc| {
-    crate::Include {
-        location: inc.location.clone(),
-        id: if inc.id.is_empty() { "default".to_string() } else { inc.id.clone() },
-        name: inc.name.clone(),
-        authors: inc.authors.clone(),
-        optional: inc.optional,
-        default_enabled: inc.default_enabled,
-        ignore_update: inc.ignore_update,  // NEW: Copy ignore_update field
-    }
-}).collect();
+    let includes: Vec<crate::Include> = universal.include.iter().map(|inc| {
+        crate::Include {
+            location: inc.location.clone(),
+            id: if inc.id.is_empty() { "default".to_string() } else { inc.id.clone() },
+            name: inc.name.clone(),
+            authors: inc.authors.clone(),
+            optional: inc.optional,
+            default_enabled: inc.default_enabled,
+            ignore_update: inc.ignore_update,
+        }
+    }).collect();
+    
+    // NEW: Convert remote includes to old RemoteInclude format
+    let remote_include: Option<Vec<crate::RemoteInclude>> = if universal.remote_include.is_empty() {
+        None
+    } else {
+        Some(universal.remote_include.iter().map(|remote| {
+            crate::RemoteInclude {
+                location: remote.location.clone(),
+                path: remote.path.clone(),
+                id: remote.id.clone(),
+                version: remote.version.clone(),
+                name: remote.name.clone(),
+                authors: Some(remote.authors.clone()),
+            }
+        }).collect())
+    };
     
     // Build the manifest
     crate::Manifest {
@@ -520,7 +419,7 @@ let includes: Vec<crate::Include> = universal.include.iter().map(|inc| {
         mods,
         shaderpacks,
         resourcepacks,
-        remote_include: None,
+        remote_include, // NEW: Add the converted remote includes
         include: includes,
         features,
         trend: None,
@@ -534,5 +433,105 @@ let includes: Vec<crate::Include> = universal.include.iter().map(|inc| {
         category: universal.category.clone(),
         is_new: None,
         short_description: universal.short_description.clone(),
+    }
+}
+
+// Rest of the existing functions remain the same...
+pub async fn load_universal_manifest(http_client: &CachedHttpClient, url: Option<&str>) -> Result<UniversalManifest, ManifestError> {
+    let manifest_url = url.unwrap_or("https://raw.githubusercontent.com/Wynncraft-Overhaul/majestic-overhaul/master/universal.json");
+    debug!("Loading universal manifest from: {}", manifest_url);
+    
+    let mut retries = 0;
+    const MAX_RETRIES: usize = 3;
+    
+    loop {
+        match http_client.get_async(manifest_url).await {
+            Ok(mut response) => {
+                if response.status() != StatusCode::OK {
+                    let status = response.status();
+                    error!("Failed to fetch universal manifest: HTTP {}", status);
+                    
+                    if retries < MAX_RETRIES && (status.as_u16() >= 500 || status.as_u16() == 429) {
+                        retries += 1;
+                        debug!("Retrying request ({}/{})", retries, MAX_RETRIES);
+                        tokio::time::sleep(tokio::time::Duration::from_millis(500 * retries as u64)).await;
+                        continue;
+                    }
+                    
+                    return Err(ManifestError {
+                        message: format!("Failed to fetch universal manifest: HTTP {}", status),
+                        error_type: ManifestErrorType::NetworkError,
+                        file_name: "universal.json".to_string(),
+                        raw_content: None,
+                    });
+                }
+                
+                match response.text().await {
+                    Ok(manifest_json) => {
+                        let raw_content = Some(manifest_json.clone());
+                        
+                        if let Err(json_err) = serde_json::from_str::<serde_json::Value>(&manifest_json) {
+                            return Err(ManifestError {
+                                message: format!("Invalid JSON syntax: {}", json_err),
+                                error_type: ManifestErrorType::SyntaxError,
+                                file_name: "universal.json".to_string(),
+                                raw_content,
+                            });
+                        }
+                        
+                        match serde_json::from_str::<UniversalManifest>(&manifest_json) {
+                            Ok(manifest) => {
+                                debug!("Successfully loaded universal manifest for {}", manifest.name);
+                                return Ok(manifest);
+                            },
+                            Err(e) => {
+                                error!("Failed to parse universal manifest JSON: {}", e);
+                                
+                                return Err(ManifestError {
+                                    message: format!("Failed to parse universal manifest: {}", e),
+                                    error_type: ManifestErrorType::DeserializationError,
+                                    file_name: "universal.json".to_string(),
+                                    raw_content,
+                                });
+                            }
+                        }
+                    },
+                    Err(e) => {
+                        error!("Failed to read universal manifest response: {}", e);
+                        
+                        if retries < MAX_RETRIES {
+                            retries += 1;
+                            debug!("Retrying request ({}/{})", retries, MAX_RETRIES);
+                            tokio::time::sleep(tokio::time::Duration::from_millis(500 * retries as u64)).await;
+                            continue;
+                        }
+                        
+                        return Err(ManifestError {
+                            message: format!("Failed to read universal manifest: {}", e),
+                            error_type: ManifestErrorType::NetworkError,
+                            file_name: "universal.json".to_string(),
+                            raw_content: None,
+                        });
+                    }
+                }
+            },
+            Err(e) => {
+                error!("Failed to fetch universal manifest: {}", e);
+                
+                if retries < MAX_RETRIES {
+                    retries += 1;
+                    debug!("Retrying request ({}/{})", retries, MAX_RETRIES);
+                    tokio::time::sleep(tokio::time::Duration::from_millis(500 * retries as u64)).await;
+                    continue;
+                }
+                
+                return Err(ManifestError {
+                    message: format!("Failed to fetch universal manifest: {}", e),
+                    error_type: ManifestErrorType::NetworkError,
+                    file_name: "universal.json".to_string(),
+                    raw_content: None,
+                });
+            }
+        }
     }
 }
