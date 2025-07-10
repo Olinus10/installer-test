@@ -1311,7 +1311,7 @@ let mut proceed_with_update = {
             }
             
             // Only stop installing state if not already stopped by successful completion
-            if *installation_error_clone.read().is_some() {
+            if installation_error_clone.read().is_some() {
                 is_installing_clone.set(false);
             }
         });
