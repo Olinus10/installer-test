@@ -28,7 +28,7 @@ pub fn FeaturesTab(
     });
 
     use_effect({
-        let selected_preset = selected_preset.clone();
+        let mut selected_preset = selected_preset.clone();
         move || {
             if let Some(preset_id) = installation_preset_id() {
                 selected_preset.set(Some(preset_id));
