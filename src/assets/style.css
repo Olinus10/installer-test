@@ -2088,21 +2088,20 @@ a:hover {
     position: relative;
     z-index: 1;
 }
-
+/* Enhanced Progress Header */
 .progress-header h1 {
     font-size: 2.4rem;
     margin: 0 0 15px 0;
-    color: #fce8f6;
+    color: #ffffff; /* Changed to pure white */
     letter-spacing: 0.08em;
     font-family: "HEADER_FONT";
-    /* FIX: Correct the text shadow direction */
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.7); /* Changed from 2px 2px 4px to 0 2px 4px */
-    background: linear-gradient(135deg, #fce8f6, #d8b8d0);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    /* FIX: Use drop-shadow filter instead for gradient text */
-    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8); /* Fixed shadow direction */
+    /* Remove the gradient effect for better readability */
+    -webkit-text-fill-color: initial;
+    background: none;
+    -webkit-background-clip: initial;
+    background-clip: initial;
+    filter: none; /* Remove filter */
 }
 
 
