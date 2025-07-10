@@ -1448,8 +1448,12 @@ async fn install<F: FnMut() + Clone>(installer_profile: &InstallerProfile, mut p
     
     // Count enabled mods
     total_items += installer_profile.manifest.mods.iter()
-        .filter(|m| installer_profile.enabled_features.contains(&m.id) || m.id == "default")
-        .count();
+    .filter(|m| {
+        installer_profile.enabled_features.contains(&m.id) || 
+        m.id == "default" || 
+        !m.optional
+    })
+    .count();
     
     // Count enabled shaderpacks
     total_items += installer_profile.manifest.shaderpacks.iter()
