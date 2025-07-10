@@ -34,40 +34,71 @@ pub fn FeaturesTab(
         
         move || {
             if let Some((preset_id, features)) = installation_data() {
-                // Set the preset selection
+                // Set the preset selection from installation
                 selected_preset.set(preset_id.clone());
                 
-                // FIXED: Set the enabled features from the installation
+                // Set the enabled features from the installation
                 enabled_features.set(features);
                 
                 debug!("Loaded installation preset: {:?}", preset_id);
                 debug!("Loaded installation features: {:?}", enabled_features.read());
+            } else {
+                // No installation data - this is a fresh installation
+                // Default to custom preset (None) and basic features
+                selected_preset.set(None);
+                
+                // Set default features for new installation
+                enabled_features.with_mut(|features| {
+                    features.clear();
+                    features.push("default".to_string());
+                    
+                    // Add any default-enabled features from the universal manifest
+                    if let Some(manifest) = &universal_manifest {
+                        for component in &manifest.mods {
+                            if component.default_enabled && !features.contains(&component.id) {
+                                features.push(component.id.clone());
+                            }
+                        }
+                        for component in &manifest.shaderpacks {
+                            if component.default_enabled && !features.contains(&component.id) {
+                                features.push(component.id.clone());
+                            }
+                        }
+                        for component in &manifest.resourcepacks {
+                            if component.default_enabled && !features.contains(&component.id) {
+                                features.push(component.id.clone());
+                            }
+                        }
+                    }
+                });
+                
+                debug!("Fresh installation - defaulting to custom preset with default features");
             }
         }
     });
     
-    // FIXED: Enhanced apply_preset function that properly updates features
+    // FIXED: Enhanced apply_preset function that properly updates features and saves selection
     let apply_preset = move |preset_id: String| {
         debug!("Applying preset: {}", preset_id);
         
         if let Some(preset) = find_preset_by_id(&presets_for_closure, &preset_id) {
-            // FIXED: Update enabled features immediately and completely
+            // Update enabled features immediately and completely
             let new_features = preset.enabled_features.clone();
             enabled_features.set(new_features.clone());
             
-            // Mark as selected
+            // Mark as selected (this will persist the user's choice)
             selected_preset.set(Some(preset_id.clone()));
             
             debug!("Applied preset '{}' with features: {:?}", preset.name, new_features);
             
-            // Store the preset info in the installation
+            // Store the preset info in the installation for persistence
             if let Ok(mut installation) = crate::installation::load_installation(&installation_id_for_apply) {
                 installation.base_preset_id = Some(preset.id.clone());
                 installation.base_preset_version = preset.preset_version.clone();
-                installation.enabled_features = new_features; // FIXED: Update installation features too
+                installation.enabled_features = new_features;
                 installation.custom_features.clear();
                 installation.removed_features.clear();
-                installation.modified = true; // FIXED: Mark as modified so install button activates
+                installation.modified = true;
                 
                 if let Err(e) = installation.save() {
                     error!("Failed to save installation: {}", e);
@@ -78,7 +109,7 @@ pub fn FeaturesTab(
         }
     };
     
-    // FIXED: Enhanced feature matching for preset detection
+    // FIXED: Enhanced feature matching for preset detection - but don't auto-update selection
     let detect_current_preset = use_memo({
         let enabled_features = enabled_features.clone();
         let presets = presets.clone();
@@ -107,26 +138,8 @@ pub fn FeaturesTab(
         }
     });
     
-    // FIXED: Auto-update selected preset when features change
-    use_effect({
-        let mut selected_preset = selected_preset.clone();
-        let detected_preset = detect_current_preset.clone();
-        
-        move || {
-            if let Some(detected_id) = detected_preset() {
-                if selected_preset.read().as_ref() != Some(&detected_id) {
-                    selected_preset.set(Some(detected_id.clone()));
-                    debug!("Auto-selected preset based on features: {}", detected_id);
-                }
-            } else {
-                // Only clear if we had a preset selected but features no longer match
-                if selected_preset.read().is_some() {
-                    selected_preset.set(None);
-                    debug!("Cleared preset selection - features don't match any preset");
-                }
-            }
-        }
-    });
+    // REMOVED: Auto-update selected preset logic that was causing issues
+    // The preset selection should only change when user explicitly clicks a preset
     
     // Clone presets again for toggle_feature
     let presets_for_toggle = presets.clone();
@@ -275,7 +288,9 @@ div {
         }
     },
     onclick: move |_| {
-        // Clear features when selecting custom preset
+        debug!("Custom preset clicked - switching to custom configuration");
+        
+        // Clear features when selecting custom preset and set defaults
         enabled_features.with_mut(|features| {
             features.clear();
             features.push("default".to_string());
@@ -300,7 +315,25 @@ div {
             }
         });
         
+        // Clear the preset selection (this represents "custom" state)
         selected_preset.set(None);
+        debug!("Set selected_preset to None (custom mode)");
+        
+        // Update installation to save the custom state
+        if let Ok(mut installation) = crate::installation::load_installation(&installation_id_for_apply) {
+            installation.base_preset_id = None; // None = custom mode
+            installation.base_preset_version = None;
+            installation.enabled_features = enabled_features.read().clone();
+            installation.custom_features.clear();
+            installation.removed_features.clear();
+            installation.modified = true;
+            
+            if let Err(e) = installation.save() {
+                error!("Failed to save installation after switching to custom: {}", e);
+            } else {
+                debug!("Successfully saved custom configuration to installation");
+            }
+        }
     },
     
     div { class: "preset-card-overlay" }
@@ -388,6 +421,7 @@ div {
                                     String::new()
                                 },
                                 onclick: move |_| {
+                                    debug!("Preset clicked: {}", preset_id);
                                     apply_preset_clone(preset_id.clone());
                                 },
                                 
