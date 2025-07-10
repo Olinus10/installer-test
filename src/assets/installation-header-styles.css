@@ -1507,7 +1507,7 @@ body:has(.installation-management-container) {
     }
 }
 
-/* Group the three main tabs (excluding back button) - FIXED */
+/* FIXED: Tab group container sizing - more precise positioning */
 .installation-page .header-center::after,
 .installation-management-container ~ * .header-center::after,
 .installation-page-content ~ * .header-center::after {
@@ -1519,24 +1519,54 @@ body:has(.installation-management-container) {
     backdrop-filter: blur(10px);
     top: 50%;
     transform: translateY(-50%);
-    /* Fix positioning and sizing */
-    left: 120px; /* Start after back button */
-    width: calc(100% - 140px - 120px); /* Full width minus back button space and right padding */
+    /* FIXED: Calculate exact width needed for 3 tabs */
+    left: 140px; /* Start after back button (width + margin) */
+    width: calc(3 * 120px + 2 * 8px + 32px); /* 3 tabs * 120px width + 2 gaps * 8px + padding */
     height: calc(100% + 16px);
     z-index: -1;
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
     pointer-events: none;
 }
 
-/* Ensure tabs are properly positioned */
+/* FIXED: Ensure tabs have consistent width */
 .installation-page .nav-tab:not(.back-tab),
 .installation-management-container ~ * .nav-tab:not(.back-tab) {
-    margin: 0 8px;
+    width: 120px; /* Fixed width for all tabs */
+    text-align: center;
+    margin: 0 4px;
     z-index: 1;
     position: relative;
 }
 
-/* First tab after back button */
+/* FIXED: First tab positioning */
 .installation-page .nav-tab:nth-of-type(2) {
-    margin-left: 140px; /* Align with container start */
+    margin-left: 156px; /* Back button width (100px) + gap (20px) + container padding (16px) + tab margin (4px) */
+}
+
+/* Alternative approach: Use flexbox container for better control */
+.installation-page .header-center,
+.installation-management-container ~ * .header-center {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    position: relative;
+    padding-left: 140px; /* Space for back button */
+    gap: 0;
+}
+
+/* Create a nested container for the grouped tabs */
+.installation-page .header-center .tab-group-container {
+    display: flex;
+    gap: 4px;
+    background: rgba(0, 0, 0, 0.5);
+    border: 2px solid rgba(255, 255, 255, 0.15);
+    border-radius: 16px;
+    backdrop-filter: blur(10px);
+    padding: 8px 16px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+}
+
+/* Remove the old ::after positioning when using the container approach */
+.installation-page .header-center.use-container::after {
+    display: none;
 }
