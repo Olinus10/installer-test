@@ -1314,12 +1314,17 @@ async fn download_helper<T: Downloadable + Debug, F: FnMut() + Clone>(
     loader_type: &str,
     http_client: &CachedHttpClient,
     progress_callback: F,
-    is_update: bool,  // NEW: Add parameter to know if this is an update
-    ignore_update_items: &std::collections::HashSet<String>,  // NEW: Items to ignore during updates
+    is_update: bool,
+    ignore_update_items: &std::collections::HashSet<String>,
 ) -> Result<Vec<T>, DownloadError> {
     let results = futures::stream::iter(items.into_iter().map(|item| async {
         // Always include items with "default" ID or items that are in enabled_features
-        let should_include = item.get_id() == "default" || enabled_features.contains(item.get_id());
+        // Since Mod doesn't have optional field, we treat all mods as required unless
+        // they're explicitly in the features list as optional
+        let should_include = item.get_id() == "default" || 
+                           enabled_features.contains(item.get_id()) ||
+                           // If it's not in any feature list, it's a core component
+                           !item.get_id().starts_with("optional_");
         
         // NEW: Check if we should ignore this item during updates
         let should_ignore_update = is_update && ignore_update_items.contains(item.get_id());
@@ -1444,26 +1449,26 @@ async fn install<F: FnMut() + Clone>(installer_profile: &InstallerProfile, mut p
     info!("Installing modpack");
     
     // Calculate total items correctly - count actual items to be downloaded
-    let mut total_items = 0;
-    
-    // Count enabled mods
-    total_items += installer_profile.manifest.mods.iter()
+// Calculate total items correctly - count actual items to be downloaded
+let mut total_items = 0;
+
+// Count all mods that should be installed
+total_items += installer_profile.manifest.mods.iter()
     .filter(|m| {
-        installer_profile.enabled_features.contains(&m.id) || 
-        m.id == "default" || 
-        !m.optional
+        // Include if it's in enabled_features OR it's "default"
+        installer_profile.enabled_features.contains(&m.id) || m.id == "default"
     })
     .count();
-    
-    // Count enabled shaderpacks
-    total_items += installer_profile.manifest.shaderpacks.iter()
-        .filter(|s| installer_profile.enabled_features.contains(&s.id) || s.id == "default")
-        .count();
-    
-    // Count enabled resourcepacks
-    total_items += installer_profile.manifest.resourcepacks.iter()
-        .filter(|r| installer_profile.enabled_features.contains(&r.id) || r.id == "default")
-        .count();
+
+// Count enabled shaderpacks
+total_items += installer_profile.manifest.shaderpacks.iter()
+    .filter(|s| installer_profile.enabled_features.contains(&s.id) || s.id == "default")
+    .count();
+
+// Count enabled resourcepacks
+total_items += installer_profile.manifest.resourcepacks.iter()
+    .filter(|r| installer_profile.enabled_features.contains(&r.id) || r.id == "default")
+    .count();
     
     // Count enabled includes
     total_items += installer_profile.manifest.include.iter()
