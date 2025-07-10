@@ -3,7 +3,6 @@ use crate::universal::{ModComponent, UniversalManifest, IncludeComponent}; // Ad
 use crate::preset::{Preset, find_preset_by_id};
 use log::{debug, error}; // Add error macro import
 
-
 #[component]
 pub fn FeaturesTab(
     universal_manifest: Option<UniversalManifest>,
@@ -612,12 +611,9 @@ div {
         // Create a signal to track if included section is expanded
         let mut included_expanded = use_signal(|| false); // Start collapsed by default
         
-        // Build a vector of elements to render
-        let mut elements_to_render = Vec::new();
-        
-        // First render the included features section if there are any
-        if !included_components.is_empty() {
-            elements_to_render.push(rsx! {
+        rsx! {
+            // First render the included features section if there are any
+            if !included_components.is_empty() {
                 // Included Features Section (expandable)
                 div { class: "feature-category",
                     // Category header - clickable
@@ -658,7 +654,6 @@ div {
                             for component in included_components {
                                 {
                                     let component_id = component.id.clone();
-                                    let is_enabled = enabled_features.read().contains(&component_id);
                                     
                                     rsx! {
                                         div { 
@@ -719,14 +714,9 @@ div {
                         }
                     }
                 }
-            });
-        }
-        
-        // Then add the regular features by category - FIXED: Pass includes parameter
-        elements_to_render.push(render_features_by_category(all_components, enabled_features.clone(), filter_text.clone(), toggle_feature, includes));
-        
-        // Return all elements
-        rsx! {
+            }
+            
+            // Then add the regular features by category
             {render_features_by_category(all_components, enabled_features.clone(), filter_text.clone(), toggle_feature, includes)}
         }
     } else {
@@ -744,13 +734,13 @@ div {
     } 
 }
 
-// Helper function to render features by category - FIXED: Add includes parameter
+// Helper function to render features by category - FIXED: Use references instead of taking ownership
 fn render_features_by_category(
     components: Vec<ModComponent>,
     enabled_features: Signal<Vec<String>>,
     filter_text: Signal<String>,
     toggle_feature: impl FnMut(String) + Clone + 'static,
-    includes: Vec<IncludeComponent>, // FIXED: Add includes parameter
+    includes: Vec<IncludeComponent>,
 ) -> Element {
     // Apply current filter
     let filter = filter_text.read().to_lowercase();
