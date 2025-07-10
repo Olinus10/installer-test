@@ -17,6 +17,12 @@ pub fn FeaturesTab(
     let installation_id_for_toggle = installation_id.clone();
     let installation_id_for_memo = installation_id.clone();
     let installation_id_for_rsx = installation_id.clone();
+    let installation_id_for_custom = installation_id.clone(); // Add separate clone for custom preset
+    
+    // Clone universal_manifest for different uses
+    let universal_manifest_for_init = universal_manifest.clone();
+    let universal_manifest_for_custom = universal_manifest.clone();
+    let universal_manifest_for_toggle = universal_manifest.clone();
     
     // FIXED: Load the installation to check its preset AND enabled features
     let installation_data = use_memo(move || {
@@ -31,6 +37,7 @@ pub fn FeaturesTab(
     use_effect({
         let mut selected_preset = selected_preset.clone();
         let mut enabled_features = enabled_features.clone();
+        let universal_manifest_for_init = universal_manifest_for_init.clone();
         
         move || {
             if let Some((preset_id, features)) = installation_data() {
@@ -53,7 +60,7 @@ pub fn FeaturesTab(
                     features.push("default".to_string());
                     
                     // Add any default-enabled features from the universal manifest
-                    if let Some(manifest) = &universal_manifest {
+                    if let Some(manifest) = &universal_manifest_for_init {
                         for component in &manifest.mods {
                             if component.default_enabled && !features.contains(&component.id) {
                                 features.push(component.id.clone());
@@ -143,7 +150,6 @@ pub fn FeaturesTab(
     
     // Clone presets again for toggle_feature
     let presets_for_toggle = presets.clone();
-    let universal_manifest_for_toggle = universal_manifest.clone();
     
     // FIXED: Enhanced toggle_feature with better preset tracking
     let toggle_feature = move |feature_id: String| {
@@ -296,7 +302,7 @@ div {
             features.push("default".to_string());
             
             // Add any default-enabled features from the universal manifest
-            if let Some(manifest) = &universal_manifest {
+            if let Some(manifest) = &universal_manifest_for_custom {
                 for component in &manifest.mods {
                     if component.default_enabled && !features.contains(&component.id) {
                         features.push(component.id.clone());
@@ -320,7 +326,7 @@ div {
         debug!("Set selected_preset to None (custom mode)");
         
         // Update installation to save the custom state
-        if let Ok(mut installation) = crate::installation::load_installation(&installation_id_for_apply) {
+        if let Ok(mut installation) = crate::installation::load_installation(&installation_id_for_custom) {
             installation.base_preset_id = None; // None = custom mode
             installation.base_preset_version = None;
             installation.enabled_features = enabled_features.read().clone();
