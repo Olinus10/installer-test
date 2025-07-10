@@ -36,6 +36,24 @@ pub fn FeaturesTab(
             }
         }
     };
+
+    
+    // Load the installation to check its preset
+    let installation_preset_id = use_memo(move || {
+        if let Ok(installation) = crate::installation::load_installation(&installation_id) {
+            installation.base_preset_id
+        } else {
+            None
+        }
+    });
+    
+    // Update selected_preset to use the loaded value
+    use_effect(move || {
+        if let Some(preset_id) = installation_preset_id() {
+            selected_preset.set(Some(preset_id));
+        }
+    });
+        
     
     // Clone presets again for toggle_feature
     let presets_for_toggle = presets.clone();
