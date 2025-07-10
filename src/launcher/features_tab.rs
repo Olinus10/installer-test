@@ -12,10 +12,29 @@ pub fn FeaturesTab(
     filter_text: Signal<String>,
     installation_id: String,
 ) -> Element {
-    // Clone for closures
     let presets_for_closure = presets.clone();
     let installation_id_for_apply = installation_id.clone();
     let installation_id_for_toggle = installation_id.clone();
+    let installation_id_for_memo = installation_id.clone(); // Add this clone
+    let installation_id_for_rsx = installation_id.clone(); // Add this clone
+    
+    // Load the installation to check its preset
+    let installation_preset_id = use_memo(move || {
+        if let Ok(installation) = crate::installation::load_installation(&installation_id_for_memo) {
+            installation.base_preset_id
+        } else {
+            None
+        }
+    });
+
+    use_effect({
+        let selected_preset = selected_preset.clone();
+        move || {
+            if let Some(preset_id) = installation_preset_id() {
+                selected_preset.set(Some(preset_id));
+            }
+        }
+    });
     
     // Handle changing a preset
     let apply_preset = move |preset_id: String| {
@@ -36,16 +55,6 @@ pub fn FeaturesTab(
             }
         }
     };
-
-    
-    // Load the installation to check its preset
-    let installation_preset_id = use_memo(move || {
-        if let Ok(installation) = crate::installation::load_installation(&installation_id) {
-            installation.base_preset_id
-        } else {
-            None
-        }
-    });
     
     // Update selected_preset to use the loaded value
     use_effect(move || {
@@ -265,7 +274,7 @@ div {
                         
                         // Check if preset is updated
                         let is_updated = {
-                            if let Ok(current_installation) = crate::installation::load_installation(&installation_id) {
+                            if let Ok(current_installation) = crate::installation::load_installation(&installation_id_for_rsx) {
                                 if let Some(base_preset_id) = &current_installation.base_preset_id {
                                     if base_preset_id == &preset.id {
                                         if let (Some(preset_ver), Some(inst_ver)) = 
