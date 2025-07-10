@@ -573,174 +573,208 @@ div {
                     }
                     
 // Features content - only render if we have a universal manifest
-{
-    if let Some(manifest) = &universal_manifest {
-        // Get all optional mods for the main categories
-        let optional_mods: Vec<ModComponent> = manifest.mods.iter()
-            .filter(|m| m.optional)
-            .cloned()
-            .collect();
-        
-        let optional_shaderpacks: Vec<ModComponent> = manifest.shaderpacks.iter()
-            .filter(|m| m.optional)
-            .cloned()
-            .collect();
-        
-        let optional_resourcepacks: Vec<ModComponent> = manifest.resourcepacks.iter()
-            .filter(|m| m.optional)
-            .cloned()
-            .collect();
-        
-        // FIXED: Get optional includes
-        let optional_includes: Vec<IncludeComponent> = manifest.include.iter()
-            .filter(|i| i.optional && !i.id.is_empty())
-            .cloned()
-            .collect();
-        
-        // Combine all optional components
-        let mut all_components = Vec::new();
-        all_components.extend(optional_mods);
-        all_components.extend(optional_shaderpacks);
-        all_components.extend(optional_resourcepacks);
-        
-        // Convert optional includes to components for unified handling
-        for include in &optional_includes {
-            all_components.push(ModComponent {
-                id: include.id.clone(),
-                name: include.name.clone().unwrap_or_else(|| include.location.clone()),
-                description: Some(format!("Configuration: {}", include.location)),
-                source: "include".to_string(),
-                location: include.location.clone(),
-                version: "1.0".to_string(),
-                path: None,
-                optional: include.optional,
-                default_enabled: include.default_enabled,
-                authors: include.authors.clone().unwrap_or_default(),
-                category: Some("Configuration".to_string()), // Group includes in Configuration category
-                dependencies: None,
-                incompatibilities: None,
-                ignore_update: include.ignore_update,
-            });
-        }
-        
-        // Get includes from manifest - FIXED: Pass the includes to the render function
-        let includes = manifest.include.clone();
-        
-        // NEW: Get ALL default-enabled components (both optional and non-optional)
-        let included_mods: Vec<ModComponent> = manifest.mods.iter()
-            .filter(|m| m.default_enabled)
-            .cloned()
-            .collect();
-            
-        let included_shaderpacks: Vec<ModComponent> = manifest.shaderpacks.iter()
-            .filter(|m| m.default_enabled)
-            .cloned()
-            .collect();
-            
-        let included_resourcepacks: Vec<ModComponent> = manifest.resourcepacks.iter()
-            .filter(|m| m.default_enabled)
-            .cloned()
-            .collect();
-            
-        // Combine all included components
-        let mut included_components = Vec::new();
-        included_components.extend(included_mods);
-        included_components.extend(included_shaderpacks);
-        included_components.extend(included_resourcepacks);
-        
-        // Create a signal to track if included section is expanded
-        let mut included_expanded = use_signal(|| false); // Start collapsed by default
-        
-        rsx! {
-            // First render the included features section if there are any
-            if !included_components.is_empty() {
-                // Included Features Section (expandable)
-                div { class: "feature-category",
-                    // Category header - clickable
-                    div { 
-                        class: "category-header",
-                        onclick: move |_| {
-                            included_expanded.with_mut(|expanded| *expanded = !*expanded);
-                        },
-                        
-                        div { class: "category-title-section",
-                            h3 { class: "category-name", "INCLUDED MODS" }
-                            span { class: "category-count included-count", 
-                                "{included_components.len()} included" 
+                    {
+                        if let Some(manifest) = &universal_manifest {
+                            // Get all optional mods for the main categories
+                            let optional_mods: Vec<ModComponent> = manifest.mods.iter()
+                                .filter(|m| m.optional)
+                                .cloned()
+                                .collect();
+                            
+                            let optional_shaderpacks: Vec<ModComponent> = manifest.shaderpacks.iter()
+                                .filter(|m| m.optional)
+                                .cloned()
+                                .collect();
+                            
+                            let optional_resourcepacks: Vec<ModComponent> = manifest.resourcepacks.iter()
+                                .filter(|m| m.optional)
+                                .cloned()
+                                .collect();
+                            
+                            // Get optional includes
+                            let optional_includes: Vec<IncludeComponent> = manifest.include.iter()
+                                .filter(|i| i.optional && !i.id.is_empty())
+                                .cloned()
+                                .collect();
+                            
+                            // NEW: Get optional remote includes
+                            let optional_remote_includes: Vec<crate::universal::RemoteIncludeComponent> = manifest.remote_include.iter()
+                                .filter(|r| r.optional)
+                                .cloned()
+                                .collect();
+                            
+                            // Combine all optional components
+                            let mut all_components = Vec::new();
+                            all_components.extend(optional_mods);
+                            all_components.extend(optional_shaderpacks);
+                            all_components.extend(optional_resourcepacks);
+                            
+                            // Convert optional includes to components for unified handling
+                            for include in &optional_includes {
+                                all_components.push(ModComponent {
+                                    id: include.id.clone(),
+                                    name: include.name.clone().unwrap_or_else(|| include.location.clone()),
+                                    description: Some(format!("Configuration: {}", include.location)),
+                                    source: "include".to_string(),
+                                    location: include.location.clone(),
+                                    version: "1.0".to_string(),
+                                    path: None,
+                                    optional: include.optional,
+                                    default_enabled: include.default_enabled,
+                                    authors: include.authors.clone().unwrap_or_default(),
+                                    category: Some("Configuration".to_string()),
+                                    dependencies: None,
+                                    incompatibilities: None,
+                                    ignore_update: include.ignore_update,
+                                });
                             }
-                        }
-                        
-                        // Expand/collapse indicator
-                        div { 
-                            class: if *included_expanded.read() {
-                                "category-toggle-indicator expanded"
-                            } else {
-                                "category-toggle-indicator"
-                            },
-                            "▼"
-                        }
-                    }
-                    
-                    // Category content (expandable)
-                    div { 
-                        class: if *included_expanded.read() {
-                            "category-content expanded"
-                        } else {
-                            "category-content"
-                        },
-                        
-                        // Feature cards grid
-                        div { class: "feature-cards-grid",
-                            for component in included_components {
-                                {
-                                    let component_id = component.id.clone();
-                                    
-                                    rsx! {
+                            
+                            // NEW: Convert optional remote includes to components for unified handling
+                            for remote in &optional_remote_includes {
+                                all_components.push(ModComponent {
+                                    id: remote.id.clone(),
+                                    name: remote.name.clone().unwrap_or_else(|| remote.id.clone()),
+                                    description: remote.description.clone(),
+                                    source: "remote_include".to_string(),
+                                    location: remote.location.clone(),
+                                    version: remote.version.clone(),
+                                    path: remote.path.as_ref().map(|p| std::path::PathBuf::from(p)),
+                                    optional: remote.optional,
+                                    default_enabled: remote.default_enabled,
+                                    authors: remote.authors.clone(),
+                                    category: remote.category.clone().unwrap_or_else(|| "Downloads".to_string()),
+                                    dependencies: remote.dependencies.clone(),
+                                    incompatibilities: None,
+                                    ignore_update: remote.ignore_update,
+                                });
+                            }
+                            
+                            // Get includes from manifest
+                            let includes = manifest.include.clone();
+                            
+                            // NEW: Get remote includes from manifest
+                            let remote_includes = manifest.remote_include.clone();
+                            
+                            // Get all default-enabled components
+                            let included_mods: Vec<ModComponent> = manifest.mods.iter()
+                                .filter(|m| m.default_enabled)
+                                .cloned()
+                                .collect();
+                                
+                            let included_shaderpacks: Vec<ModComponent> = manifest.shaderpacks.iter()
+                                .filter(|m| m.default_enabled)
+                                .cloned()
+                                .collect();
+                                
+                            let included_resourcepacks: Vec<ModComponent> = manifest.resourcepacks.iter()
+                                .filter(|m| m.default_enabled)
+                                .cloned()
+                                .collect();
+                                
+                            // Combine all included components
+                            let mut included_components = Vec::new();
+                            included_components.extend(included_mods);
+                            included_components.extend(included_shaderpacks);
+                            included_components.extend(included_resourcepacks);
+                            
+                            // Create a signal to track if included section is expanded
+                            let mut included_expanded = use_signal(|| false);
+                            
+                            rsx! {
+                                // First render the included features section if there are any
+                                if !included_components.is_empty() {
+                                    // Included Features Section (expandable)
+                                    div { class: "feature-category",
+                                        // Category header - clickable
                                         div { 
-                                            class: "feature-card feature-included",
+                                            class: "category-header",
+                                            onclick: move |_| {
+                                                included_expanded.with_mut(|expanded| *expanded = !*expanded);
+                                            },
                                             
-                                            div { class: "feature-card-header",
-                                                h3 { class: "feature-card-title", "{component.name}" }
-                                                
-                                                span {
-                                                    class: "feature-toggle-button included-component",
-                                                    "Included"
+                                            div { class: "category-title-section",
+                                                h3 { class: "category-name", "INCLUDED MODS" }
+                                                span { class: "category-count included-count", 
+                                                    "{included_components.len()} included" 
                                                 }
                                             }
                                             
-                                            // Description display
-                                            if let Some(description) = &component.description {
-                                                div { class: "feature-card-description", "{description}" }
+                                            // Expand/collapse indicator
+                                            div { 
+                                                class: if *included_expanded.read() {
+                                                    "category-toggle-indicator expanded"
+                                                } else {
+                                                    "category-toggle-indicator"
+                                                },
+                                                "▼"
                                             }
+                                        }
+                                        
+                                        // Category content (expandable)
+                                        div { 
+                                            class: if *included_expanded.read() {
+                                                "category-content expanded"
+                                            } else {
+                                                "category-content"
+                                            },
                                             
-                                            // Dependencies display
-                                            if let Some(deps) = &component.dependencies {
-                                                if !deps.is_empty() {
-                                                    div { class: "feature-dependencies",
-                                                        "Requires: ", 
-                                                        span { class: "dependency-list", 
-                                                            {deps.join(", ")}
-                                                        }
-                                                    }
-                                                }
-                                            }
-                                            
-                                            // Authors display (credits)
-                                            if !component.authors.is_empty() {
-                                                div { class: "feature-authors",
-                                                    "By: ",
-                                                    for (i, author) in component.authors.iter().enumerate() {
-                                                        {
-                                                            let is_last = i == component.authors.len() - 1;
-                                                            rsx! {
-                                                                a {
-                                                                    class: "author-link",
-                                                                    href: "{author.link}",
-                                                                    target: "_blank",
-                                                                    "{author.name}"
+                                            // Feature cards grid
+                                            div { class: "feature-cards-grid",
+                                                for component in included_components {
+                                                    {
+                                                        let component_id = component.id.clone();
+                                                        
+                                                        rsx! {
+                                                            div { 
+                                                                class: "feature-card feature-included",
+                                                                
+                                                                div { class: "feature-card-header",
+                                                                    h3 { class: "feature-card-title", "{component.name}" }
+                                                                    
+                                                                    span {
+                                                                        class: "feature-toggle-button included-component",
+                                                                        "Included"
+                                                                    }
                                                                 }
-                                                                if !is_last {
-                                                                    ", "
+                                                                
+                                                                // Description display
+                                                                if let Some(description) = &component.description {
+                                                                    div { class: "feature-card-description", "{description}" }
+                                                                }
+                                                                
+                                                                // Dependencies display
+                                                                if let Some(deps) = &component.dependencies {
+                                                                    if !deps.is_empty() {
+                                                                        div { class: "feature-dependencies",
+                                                                            "Requires: ", 
+                                                                            span { class: "dependency-list", 
+                                                                                {deps.join(", ")}
+                                                                            }
+                                                                        }
+                                                                    }
+                                                                }
+                                                                
+                                                                // Authors display (credits)
+                                                                if !component.authors.is_empty() {
+                                                                    div { class: "feature-authors",
+                                                                        "By: ",
+                                                                        for (i, author) in component.authors.iter().enumerate() {
+                                                                            {
+                                                                                let is_last = i == component.authors.len() - 1;
+                                                                                rsx! {
+                                                                                    a {
+                                                                                        class: "author-link",
+                                                                                        href: "{author.link}",
+                                                                                        target: "_blank",
+                                                                                        "{author.name}"
+                                                                                    }
+                                                                                    if !is_last {
+                                                                                        ", "
+                                                                                    }
+                                                                                }
+                                                                            }
+                                                                        }
+                                                                    }
                                                                 }
                                                             }
                                                         }
@@ -750,20 +784,15 @@ div {
                                         }
                                     }
                                 }
+                                
+                                // Then add the regular features by category - NOW WITH REMOTE INCLUDES
+                                {render_features_by_category(all_components, enabled_features.clone(), filter_text.clone(), toggle_feature, includes, remote_includes)}
                             }
-                        }
-                    }
-                }
-            }
-            
-            // Then add the regular features by category
-            {render_features_by_category(all_components, enabled_features.clone(), filter_text.clone(), toggle_feature, includes)}
-        }
-    } else {
-        rsx! {
-            div { class: "loading-container",
-                div { class: "loading-spinner" }
-                div { class: "loading-text", "Loading features..." }
+                        } else {
+                            rsx! {
+                                div { class: "loading-container",
+                                    div { class: "loading-spinner" }
+                                    div { class: "loading-text", "Loading features..." }
                                 }
                             }
                         }
@@ -781,11 +810,12 @@ fn render_features_by_category(
     filter_text: Signal<String>,
     toggle_feature: impl FnMut(String) + Clone + 'static,
     includes: Vec<IncludeComponent>,
+    remote_includes: Vec<crate::universal::RemoteIncludeComponent>, // NEW: Add remote includes parameter
 ) -> Element {
     // Apply current filter
     let filter = filter_text.read().to_lowercase();
     
-    // FIXED: Combine components with optional includes
+    // Combine components with optional includes AND remote includes
     let mut all_components = components;
     
     // Convert optional includes to ModComponent-like structure for display
@@ -797,15 +827,37 @@ fn render_features_by_category(
                 description: Some(format!("Include: {}", include.location)),
                 source: "include".to_string(),
                 location: include.location,
-                version: "1.0".to_string(), // Default version for includes
+                version: "1.0".to_string(),
                 path: None,
                 optional: include.optional,
                 default_enabled: include.default_enabled,
                 authors: include.authors.unwrap_or_default(),
-                category: Some("Configuration".to_string()), // Default category for includes
+                category: Some("Configuration".to_string()),
                 dependencies: None,
                 incompatibilities: None,
                 ignore_update: include.ignore_update,
+            });
+        }
+    }
+    
+    // NEW: Convert optional remote includes to ModComponent-like structure for display
+    for remote in remote_includes {
+        if remote.optional {
+            all_components.push(ModComponent {
+                id: remote.id.clone(),
+                name: remote.name.clone().unwrap_or_else(|| remote.id.clone()),
+                description: remote.description.clone(),
+                source: "remote_include".to_string(),
+                location: remote.location.clone(),
+                version: remote.version.clone(),
+                path: remote.path.as_ref().map(|p| std::path::PathBuf::from(p)),
+                optional: remote.optional,
+                default_enabled: remote.default_enabled,
+                authors: remote.authors.clone(),
+                category: remote.category.clone().unwrap_or_else(|| "Downloads".to_string()),
+                dependencies: remote.dependencies.clone(),
+                incompatibilities: None,
+                ignore_update: remote.ignore_update,
             });
         }
     }
@@ -823,7 +875,7 @@ fn render_features_by_category(
             .collect()
     };
     
-    // Group components by category (including includes)
+    // Group components by category (including remote includes)
     let mut categories: std::collections::BTreeMap<String, Vec<ModComponent>> = std::collections::BTreeMap::new();
     
     for component in filtered_components {
