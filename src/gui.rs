@@ -1591,38 +1591,53 @@ rsx! {
                         div { class: "footer-divider" }
                         
                         div { class: "footer-info-item",
-                            span { class: "footer-info-label", "LOADER" }
-                            span { class: "footer-info-value", "{installation.loader_type} {installation.loader_version}" }
-                        }
-                        
-                        div { class: "footer-divider" }
-                        
-                        div { class: "footer-info-item",
-                            span { class: "footer-info-label", "MEMORY" }
-                            span { class: "footer-info-value", "{installation.memory_allocation} MB" }
-                        }
-                        
-                        // Add feature counter here
-                        div { class: "footer-divider" }
-                        
-                        div { class: "footer-info-item",
                             span { class: "footer-info-label", "FEATURES" }
                             span { class: "footer-info-value", 
                                 {
                                     let enabled_count = enabled_features.read().len();
                                     if let Some(Some(manifest)) = universal_manifest.read().as_ref() {
+                                        // Count actual components, not just feature IDs
+                                        let mut actual_count = 0;
+                                        
+                                        // Count enabled mods
+                                        actual_count += manifest.mods.iter()
+                                            .filter(|m| enabled_features.read().contains(&m.id) || (!m.optional && m.id == "default"))
+                                            .count();
+                                        
+                                        // Count enabled shaderpacks
+                                        actual_count += manifest.shaderpacks.iter()
+                                            .filter(|s| enabled_features.read().contains(&s.id) || (!s.optional && s.id == "default"))
+                                            .count();
+                                        
+                                        // Count enabled resourcepacks
+                                        actual_count += manifest.resourcepacks.iter()
+                                            .filter(|r| enabled_features.read().contains(&r.id) || (!r.optional && r.id == "default"))
+                                            .count();
+                                        
+                                        // Count enabled includes
+                                        actual_count += manifest.include.iter()
+                                            .filter(|i| {
+                                                if i.id.is_empty() || i.id == "default" || !i.optional {
+                                                    true
+                                                } else {
+                                                    enabled_features.read().contains(&i.id)
+                                                }
+                                            })
+                                            .count();
+                                        
                                         let total_components = manifest.mods.len() + 
                                                              manifest.shaderpacks.len() + 
                                                              manifest.resourcepacks.len() + 
                                                              manifest.include.len();
-                                        format!("{}/{}", enabled_count, total_components)
+                                        
+                                        format!("{}/{}", actual_count, total_components)
                                     } else {
                                         format!("{} enabled", enabled_count)
                                     }
                                 }
                             }
                         }
-                        
+                                                
                         if installation.update_available {
                             Fragment {
                                 div { class: "footer-divider" }
@@ -1766,6 +1781,22 @@ fn ProgressView(
     // Add completion detection
     let is_complete = percentage >= 100 || status.contains("complete") || status.contains("Complete");
     
+    // Rotating messages for user patience
+    let patience_messages = vec![
+        "Crunching the bits...",
+        "Some files take a while to install, please be patient",
+        "Downloading the magic...",
+        "This may take a few moments",
+        "Setting up your adventure...",
+        "Almost there, hang tight!",
+        "Processing mod files...",
+        "Good things take time!"
+    ];
+    
+    // Select message based on progress
+    let message_index = ((percentage / 12) as usize).min(patience_messages.len() - 1);
+    let patience_message = patience_messages[message_index];
+    
     // Determine current step based on percentage
     let current_step = if is_complete {
         "complete"
@@ -1797,10 +1828,11 @@ fn ProgressView(
     let display_status = if is_complete {
         "Installation completed successfully!".to_string()
     } else if status.is_empty() {
-        format!("Processing... {}%", percentage)
+        format!("{} - {}%", patience_message, percentage)
     } else {
-        status
+        format!("{} - {}", status, patience_message)
     };
+    
     
     rsx! {
         div { 
