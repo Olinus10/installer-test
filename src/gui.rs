@@ -1246,9 +1246,9 @@ let mut proceed_with_update = {
                     
                     match installation_clone.install_or_update_with_progress(&http_client, progress_callback).await {
                         Ok(_) => {
-                            // Set to complete
-                            status.set("Installation completed!".to_string());
-                            progress.set(*total.read());
+                            // FIXED: Set completion status and ensure progress reaches 100%
+                            status.set("Installation completed successfully!".to_string());
+                            progress.set(*total.read()); // Ensure 100% completion
                             
                             // Mark as installed and update version
                             installation_clone.installed = true;
@@ -1290,14 +1290,16 @@ let mut proceed_with_update = {
                                 features_modified_clone.set(false);
                                 performance_modified_clone.set(false);
                                 
-                                // Keep showing complete status for a moment
+                                // FIXED: Auto-close progress window after 2 seconds
                                 tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
+                                is_installing_clone.set(false); // This will close the progress window
                             }
                         },
                         Err(e) => {
                             error!("Installation failed: {}", e);
                             installation_error_clone.set(Some(format!("Installation failed: {}", e)));
                             status.set("Installation failed!".to_string());
+                            // Don't auto-close on failure - user needs to see the error
                         }
                     }
                 },
@@ -1308,8 +1310,10 @@ let mut proceed_with_update = {
                 }
             }
             
-            // Always stop installing state
-            is_installing_clone.set(false);
+            // Only stop installing state if not already stopped by successful completion
+            if *installation_error_clone.read().is_some() {
+                is_installing_clone.set(false);
+            }
         });
     }
 };
