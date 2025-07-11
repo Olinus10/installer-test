@@ -96,39 +96,7 @@ pub fn FeaturesTab(
         }
     };
     
-    // FIXED: Only detect preset for display purposes, don't auto-update selection
-    let detect_current_preset = use_memo({
-        let enabled_features = enabled_features.clone();
-        let presets = presets.clone();
-        
-        move || {
-            // Skip detection if we're in the middle of applying a preset
-            if *is_applying_preset.read() {
-                return selected_preset.read().clone();
-            }
-            
-            let current_features = enabled_features.read();
-            
-            // Find a preset that exactly matches current features
-            for preset in &presets {
-                let mut preset_features = preset.enabled_features.clone();
-                let mut current_features_vec = current_features.clone();
-                
-                // Sort both for comparison
-                preset_features.sort();
-                current_features_vec.sort();
-                
-                if preset_features == current_features_vec {
-                    debug!("Detected matching preset: {} for features: {:?}", preset.name, current_features_vec);
-                    return Some(preset.id.clone());
-                }
-            }
-            
-            debug!("No matching preset found for features: {:?}", current_features);
-            None
-        }
-    });
-    
+ 
     // REMOVED: Auto-update selected preset logic that was causing issues
     // The preset selection should only change when user explicitly clicks a preset
     
