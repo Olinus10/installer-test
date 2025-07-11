@@ -17,12 +17,15 @@ pub fn FeaturesTab(
     let installation_id_for_toggle = installation_id.clone();
     let installation_id_for_memo = installation_id.clone();
     let installation_id_for_rsx = installation_id.clone();
-    let installation_id_for_custom = installation_id.clone(); // Add separate clone for custom preset
+    let installation_id_for_custom = installation_id.clone();
     
     // Clone universal_manifest for different uses
     let universal_manifest_for_init = universal_manifest.clone();
     let universal_manifest_for_custom = universal_manifest.clone();
     let universal_manifest_for_toggle = universal_manifest.clone();
+    
+    // Add this signal here, before any closures that use it
+    let mut is_applying_preset = use_signal(|| false);
     
     // FIXED: Load the installation to check its preset AND enabled features
     let installation_data = use_memo(move || {
@@ -32,6 +35,7 @@ pub fn FeaturesTab(
             None
         }
     });
+    
 
     // FIXED: Initialize both preset selection and enabled features from installation
 use_effect({
@@ -85,11 +89,13 @@ use_effect({
 });
     
     // FIXED: Enhanced apply_preset function that properly updates features and saves selection
-let apply_preset = move |preset_id: String| {
-    debug!("Applying preset: {}", preset_id);
-    
-    // Set flag to indicate we're applying a preset
-    is_applying_preset.set(true);
+let apply_preset = {
+    let mut is_applying_preset = is_applying_preset.clone();
+    move |preset_id: String| {
+        debug!("Applying preset: {}", preset_id);
+        
+        // Set flag to indicate we're applying a preset
+        is_applying_preset.set(true);
     
     if let Some(preset) = find_preset_by_id(&presets_for_closure, &preset_id) {
         // Update enabled features immediately and completely
@@ -118,15 +124,13 @@ let apply_preset = move |preset_id: String| {
         }
     }
     
-    // Clear the flag after a short delay
-    spawn(async move {
-        tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
-        is_applying_preset.set(false);
-    });
+        let mut is_applying_preset_for_spawn = is_applying_preset.clone();
+        spawn(async move {
+            tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
+            is_applying_preset_for_spawn.set(false);
+        });
+    }
 };
-    
-    // Track whether changes are user-initiated or preset-initiated
-    let mut is_applying_preset = use_signal(|| false);
     
     // FIXED: Only detect preset for display purposes, don't auto-update selection
     let detect_current_preset = use_memo({
@@ -309,11 +313,13 @@ div {
             String::new()
         }
     },
-onclick: move |_| {
-    debug!("Custom preset clicked - switching to custom configuration");
-    
-    // Set flag to indicate we're applying a preset change
-    is_applying_preset.set(true);
+onclick: {
+    let mut is_applying_preset = is_applying_preset.clone();
+    move |_| {
+        debug!("Custom preset clicked - switching to custom configuration");
+        
+        // Set flag to indicate we're applying a preset change
+        is_applying_preset.set(true);
     
     // When selecting custom preset, keep current features unless this is the initial state
     if !enabled_features.read().is_empty() && enabled_features.read().len() > 1 {
@@ -366,11 +372,13 @@ onclick: move |_| {
         }
     }
     
-    // Clear the flag after a short delay
-    spawn(async move {
-        tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
-        is_applying_preset.set(false);
-    });
+        // Clear the flag after a short delay
+        let mut is_applying_preset_for_spawn = is_applying_preset.clone();
+        spawn(async move {
+            tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
+            is_applying_preset_for_spawn.set(false);
+        });
+    }
 },
     
     div { class: "preset-card-overlay" }
