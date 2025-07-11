@@ -875,15 +875,40 @@ pub fn SimplifiedInstallationWizard(props: InstallationCreationProps) -> Element
             let loader_type = unwrapped_manifest.loader.r#type.clone();
             let loader_version = unwrapped_manifest.loader.version.clone();
             
-            // Create a basic installation
-let installation = Installation::new_custom(
-    installation_name.clone(),  // Use the validated name
+// Create a basic installation with minimal features
+let mut installation = Installation::new_custom(
+    installation_name.clone(),
     minecraft_version,
     loader_type,
     loader_version,
     "vanilla".to_string(),
     unwrapped_manifest.version.clone(),
 );
+
+// Start with only required features
+installation.enabled_features.clear();
+installation.enabled_features.push("default".to_string());
+
+// Add only non-optional features
+for component in &unwrapped_manifest.mods {
+    if !component.optional && component.id != "default" {
+        installation.enabled_features.push(component.id.clone());
+    }
+}
+for component in &unwrapped_manifest.shaderpacks {
+    if !component.optional && component.id != "default" {
+        installation.enabled_features.push(component.id.clone());
+    }
+}
+for component in &unwrapped_manifest.resourcepacks {
+    if !component.optional && component.id != "default" {
+        installation.enabled_features.push(component.id.clone());
+    }
+}
+
+// Ensure we're starting with custom preset (no preset selected)
+installation.base_preset_id = None;
+installation.base_preset_version = None;
             
             // Register the installation
             if let Err(e) = crate::installation::register_installation(&installation) {
@@ -1348,17 +1373,19 @@ let (action_button_label, button_class, button_disabled) = {
     if is_installing {
         ("INSTALLING...", "footer-action-button installing", true)
     } else if !installed {
+        // Not installed - always allow installation
         ("INSTALL", "footer-action-button install", false)
     } else if update_available || preset_update_available {
-        // Show update for either modpack or preset updates
+        // Update available - show update button
         ("UPDATE", "footer-action-button update", false)
     } else if has_changes {
+        // User made changes - allow modification
         ("MODIFY", "footer-action-button modify", false)
     } else {
+        // Installed and up-to-date with no changes
         ("INSTALLED", "footer-action-button up-to-date", true)
     }
-};
-        
+};  
     // Handle launch
     let handle_launch = {
         let mut installation_error_clone = installation_error.clone();
