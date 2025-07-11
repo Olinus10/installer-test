@@ -1060,26 +1060,6 @@
     padding: 0;
 }
 
-/* Group the three main tabs (excluding back button) */
-.installation-page .header-center::after,
-.installation-management-container ~ * .header-center::after,
-.installation-page-content ~ * .header-center::after {
-    content: '';
-    position: absolute;
-    background: rgba(0, 0, 0, 0.3);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 16px;
-    backdrop-filter: blur(10px);
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: auto;
-    height: calc(100% + 8px);
-    z-index: -1;
-    /* Calculate width to fit the three tabs */
-    padding: 0 calc(100px + 10px); /* Account for back button width + gap */
-}
-
 /* Position back button absolutely */
 .installation-page .nav-tab.back-tab,
 .installation-management-container ~ * .nav-tab.back-tab {
@@ -1163,35 +1143,6 @@
     color: white !important;
     border-color: rgba(33, 150, 243, 0.6) !important;
     box-shadow: 0 0 20px rgba(33, 150, 243, 0.3) !important;
-}
-
-/* Alternative approach using flexbox for tab grouping */
-.installation-page .header-center,
-.installation-management-container ~ * .header-center {
-    display: flex;
-    gap: 0;
-    position: relative;
-    padding-left: 120px; /* Space for back button */
-}
-
-/* Create visual grouping box */
-.installation-page .header-center .nav-tab:nth-of-type(2),
-.installation-management-container ~ * .header-center .nav-tab:nth-of-type(2) {
-    border-radius: 12px 0 0 12px !important;
-    margin-left: 12px;
-}
-
-.installation-page .header-center .nav-tab:nth-of-type(4),
-.installation-management-container ~ * .header-center .nav-tab:nth-of-type(4) {
-    border-radius: 0 12px 12px 0 !important;
-    margin-right: 12px;
-}
-
-.installation-page .header-center .nav-tab:nth-of-type(3),
-.installation-management-container ~ * .header-center .nav-tab:nth-of-type(3) {
-    border-radius: 0 !important;
-    border-left: none !important;
-    border-right: none !important;
 }
 
 /* 3. UPDATE WARNING DIALOG - Smaller buttons */
@@ -1415,38 +1366,73 @@ body:has(.installation-management-container) {
     }
 }
 
-/* FIXED: Tab group container sizing - more precise positioning */
-.installation-page .header-center::after,
-.installation-management-container ~ * .header-center::after,
-.installation-page-content ~ * .header-center::after {
+
+/* FINAL APPROACH: Simpler and more reliable */
+/* Remove all the complex positioning and use a simpler approach */
+
+.installation-page .header-center,
+.installation-management-container ~ * .header-center,
+.installation-page-content ~ * .header-center {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    flex: 1;
+    gap: 0;
+    padding: 0;
+}
+
+/* Style the back button */
+.installation-page .nav-tab.back-tab,
+.installation-management-container ~ * .nav-tab.back-tab,
+.installation-page-content ~ * .nav-tab.back-tab {
+    position: absolute;
+    left: 20px;
+    background: rgba(60, 60, 60, 0.5) !important;
+    z-index: 3;
+}
+
+/* Create a simple grouped appearance */
+.installation-page .nav-tab:nth-of-type(2),
+.installation-management-container ~ * .nav-tab:nth-of-type(2),
+.installation-page-content ~ * .nav-tab:nth-of-type(2) {
+    border-top-right-radius: 0 !important;
+    border-bottom-right-radius: 0 !important;
+    margin-right: 0;
+}
+
+.installation-page .nav-tab:nth-of-type(3),
+.installation-management-container ~ * .nav-tab:nth-of-type(3),
+.installation-page-content ~ * .nav-tab:nth-of-type(3) {
+    border-radius: 0 !important;
+    margin: 0;
+    border-left: none !important;
+    border-right: none !important;
+}
+
+.installation-page .nav-tab:nth-of-type(4),
+.installation-management-container ~ * .nav-tab:nth-of-type(4),
+.installation-page-content ~ * .nav-tab:nth-of-type(4) {
+    border-top-left-radius: 0 !important;
+    border-bottom-left-radius: 0 !important;
+    margin-left: 0;
+    border-left: none !important;
+}
+
+/* Add a subtle background to the group */
+.installation-page .nav-tab:nth-of-type(2)::before,
+.installation-management-container ~ * .nav-tab:nth-of-type(2)::before,
+.installation-page-content ~ * .nav-tab:nth-of-type(2)::before {
     content: '';
     position: absolute;
-    background: rgba(0, 0, 0, 0.5);
-    border: 2px solid rgba(255, 255, 255, 0.15);
+    top: -6px;
+    bottom: -6px;
+    left: -8px;
+    right: calc(-100% - 12px); /* Extend to cover all three tabs */
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 16px;
     backdrop-filter: blur(10px);
-    top: 50%;
-    transform: translateY(-50%);
-    /* FIXED: Calculate exact width needed for 3 tabs */
-    left: 140px; /* Start after back button (width + margin) */
-    width: calc(3 * 120px + 2 * 8px + 32px); /* 3 tabs * 120px width + 2 gaps * 8px + padding */
-    height: calc(100% + 16px);
     z-index: -1;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
-    pointer-events: none;
-}
-
-/* FIXED: Ensure tabs have consistent width */
-.installation-page .nav-tab:not(.back-tab),
-.installation-management-container ~ * .nav-tab:not(.back-tab) {
-    width: 120px; /* Fixed width for all tabs */
-    text-align: center;
-    margin: 0 4px;
-    z-index: 1;
-    position: relative;
-}
-
-/* FIXED: First tab positioning */
-.installation-page .nav-tab:nth-of-type(2) {
-    margin-left: 156px; /* Back button width (100px) + gap (20px) + container padding (16px) + tab margin (4px) */
+    width: calc(300px + 16px); /* Approximate width for 3 tabs */
 }
