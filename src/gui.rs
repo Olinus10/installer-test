@@ -885,28 +885,8 @@ let mut installation = Installation::new_custom(
     unwrapped_manifest.version.clone(),
 );
 
-// Start with only required features
-installation.enabled_features.clear();
-installation.enabled_features.push("default".to_string());
-
-// Add only non-optional features
-for component in &unwrapped_manifest.mods {
-    if !component.optional && component.id != "default" {
-        installation.enabled_features.push(component.id.clone());
-    }
-}
-for component in &unwrapped_manifest.shaderpacks {
-    if !component.optional && component.id != "default" {
-        installation.enabled_features.push(component.id.clone());
-    }
-}
-for component in &unwrapped_manifest.resourcepacks {
-    if !component.optional && component.id != "default" {
-        installation.enabled_features.push(component.id.clone());
-    }
-}
-
-// Ensure we're starting with custom preset (no preset selected)
+// Clear and set minimal features
+installation.enabled_features = vec!["default".to_string()];
 installation.base_preset_id = None;
 installation.base_preset_version = None;
             
