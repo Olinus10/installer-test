@@ -64,7 +64,7 @@ pub fn FeaturesTab(
         }
     });
     
-   // FIXED: Enhanced apply_preset function that properly updates features and saves selection
+    // Directly continue with the apply_preset function...
     let apply_preset = move |preset_id: String| {
         debug!("Applying preset: {}", preset_id);
         
