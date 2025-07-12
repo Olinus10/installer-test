@@ -224,6 +224,9 @@ pub fn new_custom(
     }
 }
 
+
+
+    
     pub async fn check_preset_updates(&self, presets: &[Preset]) -> Option<String> {
         if let Some(base_preset_id) = &self.base_preset_id {
             if let Some(current_preset) = presets.iter().find(|p| p.id == *base_preset_id) {
@@ -419,6 +422,99 @@ pub fn new_custom(
         self.last_used = chrono::Utc::now();
         
         self.save()
+    }
+
+        pub fn has_preset_modifications(&self, presets: &[crate::preset::Preset]) -> bool {
+        if let Some(base_preset_id) = &self.base_preset_id {
+            if let Some(preset) = presets.iter().find(|p| p.id == *base_preset_id) {
+                // Check if current features differ from preset's original features
+                let preset_features = &preset.enabled_features;
+                let current_features = &self.enabled_features;
+                
+                // Simple comparison - if they're different, user has modified
+                preset_features != current_features
+            } else {
+                // Preset not found, consider it modified
+                true
+            }
+        } else {
+            // No preset selected, so it's custom
+            false
+        }
+    }
+
+    // Update the installation to track that it's freshly created
+    pub fn mark_as_fresh(&mut self) {
+        self.installed = false;
+        self.modified = false;
+        self.update_available = false;
+        self.preset_update_available = false;
+    }
+
+    // Update the installation when a preset is applied
+    pub fn apply_preset(&mut self, preset: &crate::preset::Preset) {
+        self.base_preset_id = Some(preset.id.clone());
+        self.base_preset_version = preset.preset_version.clone();
+        self.enabled_features = preset.enabled_features.clone();
+        
+        // Clear custom modifications since we're applying a fresh preset
+        self.custom_features.clear();
+        self.removed_features.clear();
+        
+        self.modified = true;
+        
+        // Apply performance settings if provided
+        if let Some(memory) = preset.recommended_memory {
+            self.memory_allocation = memory;
+        }
+        
+        if let Some(java_args) = &preset.recommended_java_args {
+            self.java_args = java_args.clone();
+        }
+    }
+
+    // Update when switching to custom configuration
+    pub fn switch_to_custom(&mut self) {
+        // Keep current features but clear preset tracking
+        self.base_preset_id = None;
+        self.base_preset_version = None;
+        
+        // Keep existing features as-is
+        // Clear tracking since we're now in custom mode
+        self.custom_features.clear();
+        self.removed_features.clear();
+        
+        self.modified = true;
+    }
+
+    // Helper to check if this installation should show update button
+    pub fn should_show_update_button(&self) -> bool {
+        if !self.installed {
+            // Not installed yet - show install button
+            false
+        } else if self.update_available || self.preset_update_available {
+            // Updates available - show update button
+            true
+        } else if self.modified {
+            // User made changes - show modify button  
+            true
+        } else {
+            // Installed and up-to-date with no changes
+            false
+        }
+    }
+
+    // Get the appropriate button label
+    pub fn get_action_button_label(&self) -> &'static str {
+        if !self.installed {
+            "INSTALL"
+        } else if self.update_available || self.preset_update_available {
+            "UPDATE"
+        } else if self.modified {
+            "MODIFY"
+        } else {
+            "INSTALLED"
+        }
     }
 }
 
