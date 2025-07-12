@@ -209,44 +209,44 @@ impl UniversalManifest {
         );
         
         // Convert optional includes to ModComponent format
-        for include in self.get_optional_includes() {
-            components.push(ModComponent {
-                id: include.id.clone(),
-                name: include.name.clone().unwrap_or_else(|| include.location.clone()),
-                description: Some(format!("Configuration file: {}", include.location)),
-                source: "include".to_string(),
-                location: include.location.clone(),
-                version: "1.0".to_string(),
-                path: None,
-                optional: include.optional,
-                default_enabled: include.default_enabled,
-                authors: include.authors.clone().unwrap_or_default(),
-                category: Some("Configuration".to_string()),
-                dependencies: None,
-                incompatibilities: None,
-                ignore_update: include.ignore_update,
-            });
-        }
-        
-        // NEW: Convert optional remote includes to ModComponent format
-        for remote in self.get_optional_remote_includes() {
-            components.push(ModComponent {
-                id: remote.id.clone(),
-                name: remote.name.clone().unwrap_or_else(|| remote.id.clone()),
-                description: remote.description.clone(),
-                source: "remote_include".to_string(),
-                location: remote.location.clone(),
-                version: remote.version.clone(),
-                path: remote.path.as_ref().map(|p| PathBuf::from(p)),
-                optional: remote.optional,
-                default_enabled: remote.default_enabled,
-                authors: remote.authors.clone(),
-                category: remote.category.clone(),
-                dependencies: remote.dependencies.clone(),
-                incompatibilities: None,
-                ignore_update: remote.ignore_update,
-            });
-        }
+            for include in self.get_optional_includes() {
+                components.push(ModComponent {
+                    id: include.id.clone(),
+                    name: include.name.clone().unwrap_or_else(|| include.location.clone()),
+                    description: Some(format!("Configuration file: {}", include.location)),
+                    source: "include".to_string(),
+                    location: include.location.clone(),
+                    version: "1.0".to_string(),
+                    path: None,
+                    optional: include.optional,
+                    default_enabled: include.default_enabled,
+                    authors: include.authors.clone().unwrap_or_default(),
+                    category: None, // Don't hardcode category
+                    dependencies: None,
+                    incompatibilities: None,
+                    ignore_update: include.ignore_update,
+                });
+            }
+            
+            // NEW: Convert optional remote includes to ModComponent format
+            for remote in self.get_optional_remote_includes() {
+                components.push(ModComponent {
+                    id: remote.id.clone(),
+                    name: remote.name.clone().unwrap_or_else(|| remote.id.clone()),
+                    description: remote.description.clone(),
+                    source: "remote_include".to_string(),
+                    location: remote.location.clone(),
+                    version: remote.version.clone(),
+                    path: remote.path.as_ref().map(|p| PathBuf::from(p)),
+                    optional: remote.optional,
+                    default_enabled: remote.default_enabled,
+                    authors: remote.authors.clone(),
+                    category: remote.category.clone(), // Use actual category
+                    dependencies: remote.dependencies.clone(),
+                    incompatibilities: None,
+                    ignore_update: remote.ignore_update,
+                });
+            }
         
         components
     }
