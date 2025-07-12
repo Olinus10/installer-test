@@ -1023,8 +1023,13 @@ fn create_launcher_profile(
         .expect("Asked to create launcher profile without knowing launcher!")
     {
         Launcher::Vanilla(_) => {
-            let icon = if manifest.icon && icon_img.is_some() {
-                image_to_base64(icon_img.as_ref().unwrap())
+            // Use the downloaded icon if available, otherwise use base64 from assets
+            let icon = if let Some(icon_img) = icon_img {
+                image_to_base64(&icon_img)
+            } else if manifest.icon {
+                // Fallback to embedded icon if manifest says we should have one
+                let embedded_icon = image::load_from_memory(include_bytes!("assets/icon.png")).unwrap();
+                image_to_base64(&embedded_icon)
             } else {
                 String::from("Furnace")
             };
@@ -1138,6 +1143,23 @@ fn create_launcher_profile(
             // MultiMC/Prism Launcher profile creation
             let instance_path = root.join("instances").join(&manifest.uuid);
             fs::create_dir_all(&instance_path)?;
+            
+            // Save icon if available
+            if let Some(icon_img) = icon_img {
+                let icon_path = instance_path.join("icon.png");
+                match icon_img.save(&icon_path) {
+                    Ok(_) => debug!("Saved instance icon to: {:?}", icon_path),
+                    Err(e) => debug!("Failed to save instance icon: {}", e),
+                }
+            } else if manifest.icon {
+                // Use embedded icon as fallback
+                let embedded_icon = image::load_from_memory(include_bytes!("assets/icon.png")).unwrap();
+                let icon_path = instance_path.join("icon.png");
+                match embedded_icon.save(&icon_path) {
+                    Ok(_) => debug!("Saved embedded icon to: {:?}", icon_path),
+                    Err(e) => debug!("Failed to save embedded icon: {}", e),
+                }
+            }
             
             // Create instance.cfg for MultiMC/Prism
             let instance_cfg = format!(
@@ -1448,7 +1470,7 @@ async fn download_zip(name: &str, http_client: &CachedHttpClient, url: &str, pat
 async fn install<F: FnMut() + Clone>(installer_profile: &InstallerProfile, mut progress_callback: F) -> Result<(), String> {
     info!("Installing modpack");
     
-    // Calculate total items correctly - count actual items to be downloaded
+    // Calculate total items correctly - count actual items to be downloaded + overhead tasks
     let mut total_items = 0;
     
     // Count all mods that should be installed
@@ -1481,7 +1503,7 @@ async fn install<F: FnMut() + Clone>(installer_profile: &InstallerProfile, mut p
         })
         .count();
     
-    // NEW: Count enabled remote includes
+    // Count enabled remote includes
     if let Some(remote_includes) = &installer_profile.manifest.remote_include {
         total_items += remote_includes.iter()
             .filter(|r| {
@@ -1494,10 +1516,13 @@ async fn install<F: FnMut() + Clone>(installer_profile: &InstallerProfile, mut p
             .count();
     }
     
-    // Add extra items for progress tracking (manifest write, icon, profile, loader, final save)
-    total_items += 5;
+    // Add overhead tasks for progress tracking (but don't count them in the main progress)
+    // We'll handle these separately at the end
+    let overhead_tasks = 4; // manifest write, icon, profile, loader
+    let actual_download_items = total_items;
+    total_items += overhead_tasks;
     
-    debug!("Total items to install: {}", total_items);
+    debug!("Total download items: {}, Total items with overhead: {}", actual_download_items, total_items);
     
     let modpack_root = &get_modpack_root(
         installer_profile
@@ -1518,7 +1543,7 @@ async fn install<F: FnMut() + Clone>(installer_profile: &InstallerProfile, mut p
     
     // Check universal manifest for ignore_update flags
     if let Ok(universal_manifest) = crate::universal::load_universal_manifest(http_client, None).await {
-        // Add mods with ignore_update=true
+        // Add items with ignore_update=true
         for mod_component in &universal_manifest.mods {
             if mod_component.ignore_update {
                 ignore_update_items.insert(mod_component.id.clone());
@@ -1526,7 +1551,6 @@ async fn install<F: FnMut() + Clone>(installer_profile: &InstallerProfile, mut p
             }
         }
         
-        // Add shaderpacks with ignore_update=true
         for shader in &universal_manifest.shaderpacks {
             if shader.ignore_update {
                 ignore_update_items.insert(shader.id.clone());
@@ -1534,7 +1558,6 @@ async fn install<F: FnMut() + Clone>(installer_profile: &InstallerProfile, mut p
             }
         }
         
-        // Add resourcepacks with ignore_update=true
         for resource in &universal_manifest.resourcepacks {
             if resource.ignore_update {
                 ignore_update_items.insert(resource.id.clone());
@@ -1542,7 +1565,6 @@ async fn install<F: FnMut() + Clone>(installer_profile: &InstallerProfile, mut p
             }
         }
         
-        // Add includes with ignore_update=true
         for include in &universal_manifest.include {
             if include.ignore_update {
                 ignore_update_items.insert(include.id.clone());
@@ -1550,7 +1572,6 @@ async fn install<F: FnMut() + Clone>(installer_profile: &InstallerProfile, mut p
             }
         }
         
-        // NEW: Add remote includes with ignore_update=true
         for remote in &universal_manifest.remote_include {
             if remote.ignore_update {
                 ignore_update_items.insert(remote.id.clone());
@@ -1568,6 +1589,16 @@ async fn install<F: FnMut() + Clone>(installer_profile: &InstallerProfile, mut p
         Launcher::MultiMC(_) => None,
     };
     
+    // Create a progress callback that tracks only download items (not overhead)
+    let mut download_progress = 0;
+    let download_progress_callback = {
+        let mut progress_callback = progress_callback.clone();
+        move || {
+            download_progress += 1;
+            progress_callback();
+        }
+    };
+    
     // Download mods, shaderpacks, and resourcepacks with ignore_update support
     let mods_w_path = match download_helper(
         manifest.mods.clone(),
@@ -1575,7 +1606,7 @@ async fn install<F: FnMut() + Clone>(installer_profile: &InstallerProfile, mut p
         modpack_root.as_path(),
         &manifest.loader.r#type,
         http_client,
-        progress_callback.clone(),
+        download_progress_callback.clone(),
         is_update,
         &ignore_update_items,
     )
@@ -1591,7 +1622,7 @@ async fn install<F: FnMut() + Clone>(installer_profile: &InstallerProfile, mut p
         modpack_root.as_path(),
         &manifest.loader.r#type,
         http_client,
-        progress_callback.clone(),
+        download_progress_callback.clone(),
         is_update,
         &ignore_update_items,
     )
@@ -1607,7 +1638,7 @@ async fn install<F: FnMut() + Clone>(installer_profile: &InstallerProfile, mut p
         modpack_root.as_path(),
         &manifest.loader.r#type,
         http_client,
-        progress_callback.clone(),
+        download_progress_callback.clone(),
         is_update,
         &ignore_update_items,
     )
@@ -1648,7 +1679,6 @@ async fn install<F: FnMut() + Clone>(installer_profile: &InstallerProfile, mut p
             debug!("Processing include: {} (location: {}, optional: {}, default_enabled: {})", 
                    inc.id, inc.location, inc.optional, inc.default_enabled);
             
-            // [Include processing logic remains the same as before...]
             let github_url = format!(
                 "https://raw.githubusercontent.com/Wynncraft-Overhaul/majestic-overhaul/master/{}",
                 inc.location
@@ -1690,7 +1720,7 @@ async fn install<F: FnMut() + Clone>(installer_profile: &InstallerProfile, mut p
                                                     files: vec![target_path.to_string_lossy().to_string()],
                                                 }
                                             );
-                                            progress_callback();
+                                            download_progress_callback();
                                         },
                                         Err(e) => {
                                             error!("Failed to write include file {}: {}", inc.location, e);
@@ -1733,7 +1763,7 @@ async fn install<F: FnMut() + Clone>(installer_profile: &InstallerProfile, mut p
                                 files,
                             }
                         );
-                        progress_callback();
+                        download_progress_callback();
                     },
                     Err(e) => {
                         error!("Failed to download include directory {}: {}", inc.location, e);
@@ -1747,7 +1777,7 @@ async fn install<F: FnMut() + Clone>(installer_profile: &InstallerProfile, mut p
         debug!("No includes to process");
     }
     
-    // NEW: Handle remote includes
+    // Handle remote includes
     if let Some(remote_includes) = &manifest.remote_include {
         debug!("Processing {} remote includes from manifest", remote_includes.len());
         
@@ -1794,7 +1824,7 @@ async fn install<F: FnMut() + Clone>(installer_profile: &InstallerProfile, mut p
                             files,
                         }
                     );
-                    progress_callback();
+                    download_progress_callback();
                 },
                 Err(e) => {
                     error!("Failed to download remote include {}: {:?}", name, e);
@@ -1805,128 +1835,125 @@ async fn install<F: FnMut() + Clone>(installer_profile: &InstallerProfile, mut p
     } else {
         debug!("No remote includes to process");
     }
-    
-// Don't mark progress as complete yet - we still have work to do
-progress_callback(); // Progress for manifest write preparation
 
-// Save local manifest
-let local_manifest = Manifest {
-    mods: mods_w_path,
-    shaderpacks: shaderpacks_w_path,
-    resourcepacks: resourcepacks_w_path,
-    enabled_features: installer_profile.enabled_features.clone(),
-    included_files: Some(included_files),
-    source: Some(format!(
-        "{}{}",
-        installer_profile.modpack_source, installer_profile.modpack_branch
-    )),
-    installer_path: Some(
-        env::current_exe()
-            .unwrap()
-            .canonicalize()
-            .unwrap()
-            .to_str()
-            .unwrap()
-            .to_owned()
-            .replace("\\\\?\\", ""),
-    ),
-    ..manifest.clone()
-};
+    // Now handle overhead tasks (these show progress but are quick)
+    debug!("Starting overhead tasks - progress will show 99% until completely done");
 
-fs::write(
-    modpack_root.join(Path::new("manifest.json")),
-    serde_json::to_string(&local_manifest).expect("Failed to parse 'manifest.json'!"),
-)
-.expect("Failed to save a local copy of 'manifest.json'!");
+    // Save local manifest
+    let local_manifest = Manifest {
+        mods: mods_w_path,
+        shaderpacks: shaderpacks_w_path,
+        resourcepacks: resourcepacks_w_path,
+        enabled_features: installer_profile.enabled_features.clone(),
+        included_files: Some(included_files),
+        source: Some(format!(
+            "{}{}",
+            installer_profile.modpack_source, installer_profile.modpack_branch
+        )),
+        installer_path: Some(
+            env::current_exe()
+                .unwrap()
+                .canonicalize()
+                .unwrap()
+                .to_str()
+                .unwrap()
+                .to_owned()
+                .replace("\\\\?\\", ""),
+        ),
+        ..manifest.clone()
+    };
 
-progress_callback(); // Progress for manifest write
+    fs::write(
+        modpack_root.join(Path::new("manifest.json")),
+        serde_json::to_string(&local_manifest).expect("Failed to parse 'manifest.json'!"),
+    )
+    .expect("Failed to save a local copy of 'manifest.json'!");
 
-// Download icon if needed
-let icon_img = if manifest.icon {
-    let icon_url = format!(
-        "{}{}{}src/assets/icon.png",
-        GH_RAW,
-        installer_profile.modpack_source,
-        installer_profile.modpack_branch
-    );
-    
-    match http_client.get_async(&icon_url).await {
-        Ok(mut resp) => {
-            match resp.bytes().await {
-                Ok(bytes) => {
-                    match ImageReader::new(Cursor::new(bytes))
-                        .with_guessed_format() {
-                        Ok(reader) => {
-                            match reader.decode() {
-                                Ok(img) => {
-                                    progress_callback(); // Progress for icon download
-                                    Some(img)
-                                },
-                                Err(e) => {
-                                    error!("Failed to decode icon: {}", e);
-                                    None
+    progress_callback(); // Overhead task 1
+
+    // Download icon if needed
+    let icon_img = if manifest.icon {
+        let icon_url = format!(
+            "{}{}{}src/assets/icon.png",
+            GH_RAW,
+            installer_profile.modpack_source,
+            installer_profile.modpack_branch
+        );
+        
+        match http_client.get_async(&icon_url).await {
+            Ok(mut resp) => {
+                match resp.bytes().await {
+                    Ok(bytes) => {
+                        match ImageReader::new(Cursor::new(bytes))
+                            .with_guessed_format() {
+                            Ok(reader) => {
+                                match reader.decode() {
+                                    Ok(img) => Some(img),
+                                    Err(e) => {
+                                        error!("Failed to decode icon: {}", e);
+                                        None
+                                    }
                                 }
+                            },
+                            Err(e) => {
+                                error!("Failed to guess icon format: {}", e);
+                                None
                             }
-                        },
-                        Err(e) => {
-                            error!("Failed to guess icon format: {}", e);
-                            None
                         }
+                    },
+                    Err(e) => {
+                        error!("Failed to read icon bytes: {}", e);
+                        None
                     }
-                },
-                Err(e) => {
-                    error!("Failed to read icon bytes: {}", e);
-                    None
                 }
+            },
+            Err(e) => {
+                error!("Failed to download icon: {}", e);
+                None
             }
-        },
-        Err(e) => {
-            error!("Failed to download icon: {}", e);
-            None
         }
-    }
-} else {
-    None
-};
-
-match create_launcher_profile(installer_profile, icon_img) {
-    Ok(_) => {
-        progress_callback(); // Progress for launcher profile creation
-    },
-    Err(e) => return Err(e.to_string()),
-};
-
-if loader_future.is_some() {
-    loader_future.unwrap().await;
-    progress_callback(); // Progress for loader installation
-}
-
-// Mark installation as complete - do this ONCE at the very end
-if let Ok(mut installation) = crate::installation::load_installation(&installer_profile.manifest.uuid) {
-    installation.installed = true;
-    installation.update_available = false;
-    installation.modified = false;
-    installation.universal_version = installer_profile.manifest.modpack_version.clone();
-    
-    if let Err(e) = installation.save() {
-        error!("Failed to update installation state: {}", e);
-        return Err(format!("Failed to save installation state: {}", e));
     } else {
-        debug!("Successfully marked installation as complete");
-        progress_callback(); // Final progress callback - this should be 100%
+        None
+    };
+
+    progress_callback(); // Overhead task 2
+
+    match create_launcher_profile(installer_profile, icon_img) {
+        Ok(_) => {
+            debug!("Launcher profile created successfully");
+        },
+        Err(e) => return Err(e.to_string()),
+    };
+
+    progress_callback(); // Overhead task 3
+
+    if loader_future.is_some() {
+        loader_future.unwrap().await;
     }
-} else {
-    error!("Failed to load installation after install");
-    return Err("Failed to load installation after install".to_string());
-}
 
-info!("Installed modpack!");
+    progress_callback(); // Overhead task 4
 
-// Small delay to ensure UI updates properly
-tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
+    // FINAL STEP: Mark installation as complete and update installation state
+    // This is where we actually reach 100% completion
+    if let Ok(mut installation) = crate::installation::load_installation(&installer_profile.manifest.uuid) {
+        installation.installed = true;
+        installation.update_available = false;
+        installation.modified = false;
+        installation.universal_version = installer_profile.manifest.modpack_version.clone();
+        
+        if let Err(e) = installation.save() {
+            error!("Failed to update installation state: {}", e);
+            return Err(format!("Failed to save installation state: {}", e));
+        } else {
+            debug!("Successfully marked installation as complete");
+        }
+    } else {
+        error!("Failed to load installation after install");
+        return Err("Failed to load installation after install".to_string());
+    }
 
-Ok(())
-
+    info!("Modpack installation completed successfully!");
+    Ok(())
 }
 
 // Add these helper functions for downloading includes
