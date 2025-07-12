@@ -904,10 +904,13 @@ let mut installation = Installation::new_custom(
     unwrapped_manifest.version.clone(),
 );
 
-// Clear and set minimal features
+// Clear and set minimal features - ONLY default
 installation.enabled_features = vec!["default".to_string()];
 installation.base_preset_id = None;
 installation.base_preset_version = None;
+
+// Mark as fresh installation
+installation.mark_as_fresh();
             
             // Register the installation
             if let Err(e) = crate::installation::register_installation(&installation) {
@@ -1314,8 +1317,12 @@ let mut proceed_with_update = {
                                 features_modified_clone.set(false);
                                 performance_modified_clone.set(false);
                                 
-                                // FIXED: Auto-close progress window after 2 seconds
-                                tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
+                                // Force 100% completion in UI
+                                progress.set(*total.read());
+                                status.set("Installation completed successfully!".to_string());
+                                
+                                // Wait briefly for UI update before closing
+                                tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
                                 is_installing_clone.set(false); // This will close the progress window
                             }
                         },
