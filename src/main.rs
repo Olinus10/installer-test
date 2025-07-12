@@ -1892,7 +1892,7 @@ if let Ok(mut installation) = crate::installation::load_installation(&installer_
     installation.installed = true;
     installation.update_available = false;
     installation.modified = false;
-    installation.universal_version = universal.modpack_version.clone();
+    installation.universal_version = installer_profile.manifest.modpack_version.clone();
     
     if let Err(e) = installation.save() {
         error!("Failed to update installation state: {}", e);
