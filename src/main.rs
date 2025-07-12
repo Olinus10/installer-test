@@ -1450,19 +1450,19 @@ async fn install<F: FnMut() + Clone>(installer_profile: &InstallerProfile, mut p
     
     // Calculate total items correctly - count actual items to be downloaded
     let mut total_items = 0;
-
+    
     // Count all mods that should be installed
     total_items += installer_profile.manifest.mods.iter()
         .filter(|m| {
             installer_profile.enabled_features.contains(&m.id) || m.id == "default"
         })
         .count();
-
+    
     // Count enabled shaderpacks
     total_items += installer_profile.manifest.shaderpacks.iter()
         .filter(|s| installer_profile.enabled_features.contains(&s.id) || s.id == "default")
         .count();
-
+    
     // Count enabled resourcepacks
     total_items += installer_profile.manifest.resourcepacks.iter()
         .filter(|r| installer_profile.enabled_features.contains(&r.id) || r.id == "default")
@@ -1493,6 +1493,9 @@ async fn install<F: FnMut() + Clone>(installer_profile: &InstallerProfile, mut p
             })
             .count();
     }
+    
+    // Add extra items for progress tracking (manifest write, icon, profile, loader, final save)
+    total_items += 5;
     
     debug!("Total items to install: {}", total_items);
     
