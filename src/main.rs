@@ -1591,7 +1591,7 @@ async fn install<F: FnMut() + Clone>(installer_profile: &InstallerProfile, mut p
     
     // Create a progress callback that tracks only download items (not overhead)
     let mut download_progress = 0;
-    let download_progress_callback = {
+    let mut download_progress_callback = {
         let mut progress_callback = progress_callback.clone();
         move || {
             download_progress += 1;
