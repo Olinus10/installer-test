@@ -1806,32 +1806,61 @@ fn ProgressView(
     status: String,
     title: String
 ) -> Element {
-    let percentage = if max > 0 { 
+    // Calculate percentage - but cap at 99% until we're actually done
+    let raw_percentage = if max > 0 { 
         ((value as f64 / max as f64) * 100.0) as i64 
     } else { 
         0 
     };
     
-    // Clamp percentage to 0-100
-    let percentage = percentage.clamp(0, 100);
+    // Key fix: Don't show 100% until the status indicates completion
+    let percentage = if status.contains("completed") || status.contains("Complete") || status.contains("successfully") {
+        100 // Only show 100% when actually complete
+    } else {
+        raw_percentage.clamp(0, 99) // Cap at 99% for all other cases
+    };
     
-    // Add completion detection
-    let is_complete = percentage >= 100 || status.contains("complete") || status.contains("Complete");
+    // Detection for actual completion
+    let is_complete = percentage >= 100 && (
+        status.contains("completed") || 
+        status.contains("Complete") || 
+        status.contains("successfully")
+    );
     
-    // Rotating messages for user patience
-    let patience_messages = vec![
-        "Crunching the bits...",
-        "Some files take a while to install, please be patient",
-        "Downloading the magic...",
-        "This may take a few moments",
-        "Setting up your adventure...",
-        "Almost there, hang tight!",
-        "Processing mod files...",
-        "Good things take time!"
-    ];
+    // Auto-close after showing 100% for a brief moment
+    if is_complete {
+        let mut is_installing = use_context::<Signal<bool>>();
+        use_effect(move || {
+            spawn(async move {
+                // Show 100% for a brief moment so user sees completion
+                tokio::time::sleep(tokio::time::Duration::from_millis(800)).await;
+                is_installing.set(false); // This will close the progress window
+            });
+        });
+    }
+    
+    // Rotating messages for user patience (only when not complete)
+    let patience_messages = if is_complete {
+        vec!["Installation completed successfully!"]
+    } else {
+        vec![
+            "Crunching the bits...",
+            "Some files take a while to install, please be patient",
+            "Downloading the magic...",
+            "This may take a few moments",
+            "Setting up your adventure...",
+            "Almost there, hang tight!",
+            "Processing mod files...",
+            "Good things take time!"
+        ]
+    };
     
     // Select message based on progress
-    let message_index = ((percentage / 12) as usize).min(patience_messages.len() - 1);
+    let message_index = if is_complete {
+        0
+    } else {
+        ((percentage / 12) as usize).min(patience_messages.len() - 1)
+    };
     let patience_message = patience_messages[message_index];
     
     // Determine current step based on percentage
@@ -1861,15 +1890,16 @@ fn ProgressView(
     // Find current step index
     let active_step_index = steps.iter().position(|(id, _)| id == &current_step).unwrap_or(0);
     
-    // Display status
+    // Display status with proper completion handling
     let display_status = if is_complete {
         "Installation completed successfully!".to_string()
     } else if status.is_empty() {
         format!("{} - {}%", patience_message, percentage)
+    } else if percentage >= 99 && !is_complete {
+        "Finalizing installation... Almost done!".to_string()
     } else {
         format!("{} - {}", status, patience_message)
     };
-    
     
     rsx! {
         div { 
@@ -1920,12 +1950,19 @@ fn ProgressView(
                 
                 p { class: "progress-status", "{display_status}" }
                 
+                // Success indicator when complete
+                if is_complete {
+                    div { class: "completion-indicator",
+                        "✓ Ready to play!"
+                    }
+                }
+                
                 // Debug info (remove in production)
                 if cfg!(debug_assertions) {
                     p { 
                         class: "progress-debug",
                         style: "color: rgba(255, 255, 255, 0.5); font-size: 0.8rem; margin-top: 10px;",
-                        "Debug: {value}/{max} items"
+                        "Debug: {value}/{max} items, raw: {raw_percentage}%, display: {percentage}%"
                     }
                 }
             }
