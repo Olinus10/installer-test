@@ -311,55 +311,63 @@ pub fn FeaturesTab(
                             String::new()
                         }
                     },
-                    onclick: move |_| {
-                                        debug!("Custom preset clicked - switching to custom configuration");
-                                        
-                                        // When switching to custom, RESET to only default features
-                                        let mut new_features = vec!["default".to_string()];
-                                        
-                                        // If universal manifest is available, add any non-optional default components
-                                        if let Some(manifest) = &universal_manifest_for_custom {
-                                            // Add default-enabled features from the manifest
-                                            for mod_comp in &manifest.mods {
-                                                if !mod_comp.optional && mod_comp.id != "default" {
-                                                    new_features.push(mod_comp.id.clone());
-                                                }
-                                            }
-                                            for shader in &manifest.shaderpacks {
-                                                if !shader.optional && shader.id != "default" {
-                                                    new_features.push(shader.id.clone());
-                                                }
-                                            }
-                                            for resource in &manifest.resourcepacks {
-                                                if !resource.optional && resource.id != "default" {
-                                                    new_features.push(resource.id.clone());
-                                                }
-                                            }
-                                        }
-                                        
-                                        // Set the minimal features
-                                        enabled_features.set(new_features.clone());
-                                        selected_preset.set(None);
-                                        debug!("Set selected_preset to None (custom mode) with features: {:?}", new_features);
-                                        
-                                        // Update installation to save the custom state
-                                        if let Ok(mut installation) = crate::installation::load_installation(&installation_id_for_custom) {
-                                            installation.base_preset_id = None; // None = custom mode
-                                            installation.base_preset_version = None;
-                                            installation.enabled_features = enabled_features.read().clone();
-                                            installation.modified = true;
-                                            
-                                            // Clear any previous custom modifications since we're resetting
-                                            installation.custom_features.clear();
-                                            installation.removed_features.clear();
-                                            
-                                            if let Err(e) = installation.save() {
-                                                error!("Failed to save installation after switching to custom: {}", e);
-                                            } else {
-                                                debug!("Successfully saved custom configuration to installation");
-                                            }
-                                        }
-                                    },
+                        onclick: move |_| {
+                            debug!("Custom preset clicked - switching to custom configuration");
+                            
+                            // When switching to custom, ONLY include default and non-optional features
+                            let mut new_features = vec!["default".to_string()];
+                            
+                            // If universal manifest is available, add any non-optional components
+                            if let Some(manifest) = &universal_manifest_for_custom {
+                                // Add non-optional mods
+                                for mod_comp in &manifest.mods {
+                                    if !mod_comp.optional && mod_comp.id != "default" {
+                                        new_features.push(mod_comp.id.clone());
+                                    }
+                                }
+                                // Add non-optional shaders
+                                for shader in &manifest.shaderpacks {
+                                    if !shader.optional && shader.id != "default" {
+                                        new_features.push(shader.id.clone());
+                                    }
+                                }
+                                // Add non-optional resourcepacks
+                                for resource in &manifest.resourcepacks {
+                                    if !resource.optional && resource.id != "default" {
+                                        new_features.push(resource.id.clone());
+                                    }
+                                }
+                                // Add non-optional includes
+                                for include in &manifest.include {
+                                    if !include.optional && include.id != "default" && !include.id.is_empty() {
+                                        new_features.push(include.id.clone());
+                                    }
+                                }
+                            }
+                            
+                            // Set the minimal features
+                            enabled_features.set(new_features.clone());
+                            selected_preset.set(None);
+                            debug!("Set selected_preset to None (custom mode) with features: {:?}", new_features);
+                            
+                            // Update installation to save the custom state
+                            if let Ok(mut installation) = crate::installation::load_installation(&installation_id_for_custom) {
+                                installation.base_preset_id = None; // None = custom mode
+                                installation.base_preset_version = None;
+                                installation.enabled_features = enabled_features.read().clone();
+                                installation.modified = true;
+                                
+                                // Clear any previous custom modifications since we're resetting
+                                installation.custom_features.clear();
+                                installation.removed_features.clear();
+                                
+                                if let Err(e) = installation.save() {
+                                    error!("Failed to save installation after switching to custom: {}", e);
+                                } else {
+                                    debug!("Successfully saved custom configuration to installation");
+                                }
+                            }
+                        },
                     
                                 div { class: "preset-card-overlay" }
                                 
@@ -851,7 +859,7 @@ fn render_features_by_category(
                 optional: include.optional,
                 default_enabled: include.default_enabled,
                 authors: include.authors.unwrap_or_default(),
-                category: Some("Configuration".to_string()),
+                category: None, // Let it use the default categorization
                 dependencies: None,
                 incompatibilities: None,
                 ignore_update: include.ignore_update,
@@ -873,7 +881,7 @@ fn render_features_by_category(
                 optional: remote.optional,
                 default_enabled: remote.default_enabled,
                 authors: remote.authors.clone(),
-                category: Some(remote.category.clone().unwrap_or_else(|| "Downloads".to_string())),
+                category: remote.category.clone(), // Use the actual category from remote include
                 dependencies: remote.dependencies.clone(),
                 incompatibilities: None,
                 ignore_update: remote.ignore_update,
