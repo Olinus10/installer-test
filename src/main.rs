@@ -1806,88 +1806,99 @@ async fn install<F: FnMut() + Clone>(installer_profile: &InstallerProfile, mut p
         debug!("No remote includes to process");
     }
     
-    // Save local manifest
-    let local_manifest = Manifest {
-        mods: mods_w_path,
-        shaderpacks: shaderpacks_w_path,
-        resourcepacks: resourcepacks_w_path,
-        enabled_features: installer_profile.enabled_features.clone(),
-        included_files: Some(included_files),
-        source: Some(format!(
-            "{}{}",
-            installer_profile.modpack_source, installer_profile.modpack_branch
-        )),
-        installer_path: Some(
-            env::current_exe()
-                .unwrap()
-                .canonicalize()
-                .unwrap()
-                .to_str()
-                .unwrap()
-                .to_owned()
-                .replace("\\\\?\\", ""),
-        ),
-        ..manifest.clone()
-    };
+// Don't mark progress as complete yet - we still have work to do
+progress_callback(); // Progress for manifest write preparation
+
+// Save local manifest
+let local_manifest = Manifest {
+    mods: mods_w_path,
+    shaderpacks: shaderpacks_w_path,
+    resourcepacks: resourcepacks_w_path,
+    enabled_features: installer_profile.enabled_features.clone(),
+    included_files: Some(included_files),
+    source: Some(format!(
+        "{}{}",
+        installer_profile.modpack_source, installer_profile.modpack_branch
+    )),
+    installer_path: Some(
+        env::current_exe()
+            .unwrap()
+            .canonicalize()
+            .unwrap()
+            .to_str()
+            .unwrap()
+            .to_owned()
+            .replace("\\\\?\\", ""),
+    ),
+    ..manifest.clone()
+};
+
+fs::write(
+    modpack_root.join(Path::new("manifest.json")),
+    serde_json::to_string(&local_manifest).expect("Failed to parse 'manifest.json'!"),
+)
+.expect("Failed to save a local copy of 'manifest.json'!");
+
+progress_callback(); // Progress for manifest write
+
+// Download icon if needed
+let icon_img = if manifest.icon {
+    let icon_url = format!(
+        "{}{}{}src/assets/icon.png",
+        GH_RAW,
+        installer_profile.modpack_source,
+        installer_profile.modpack_branch
+    );
     
-    fs::write(
-        modpack_root.join(Path::new("manifest.json")),
-        serde_json::to_string(&local_manifest).expect("Failed to parse 'manifest.json'!"),
-    )
-    .expect("Failed to save a local copy of 'manifest.json'!");
-    
-    // Download icon if needed
-    let icon_img = if manifest.icon {
-        let icon_url = format!(
-            "{}{}{}src/assets/icon.png",
-            GH_RAW,
-            installer_profile.modpack_source,
-            installer_profile.modpack_branch
-        );
-        
-        match http_client.get_async(&icon_url).await {
-            Ok(mut resp) => {
-                match resp.bytes().await {
-                    Ok(bytes) => {
-                        match ImageReader::new(Cursor::new(bytes))
-                            .with_guessed_format() {
-                            Ok(reader) => {
-                                match reader.decode() {
-                                    Ok(img) => Some(img),
-                                    Err(e) => {
-                                        error!("Failed to decode icon: {}", e);
-                                        None
-                                    }
+    match http_client.get_async(&icon_url).await {
+        Ok(mut resp) => {
+            match resp.bytes().await {
+                Ok(bytes) => {
+                    match ImageReader::new(Cursor::new(bytes))
+                        .with_guessed_format() {
+                        Ok(reader) => {
+                            match reader.decode() {
+                                Ok(img) => {
+                                    progress_callback(); // Progress for icon download
+                                    Some(img)
+                                },
+                                Err(e) => {
+                                    error!("Failed to decode icon: {}", e);
+                                    None
                                 }
-                            },
-                            Err(e) => {
-                                error!("Failed to guess icon format: {}", e);
-                                None
                             }
+                        },
+                        Err(e) => {
+                            error!("Failed to guess icon format: {}", e);
+                            None
                         }
-                    },
-                    Err(e) => {
-                        error!("Failed to read icon bytes: {}", e);
-                        None
                     }
+                },
+                Err(e) => {
+                    error!("Failed to read icon bytes: {}", e);
+                    None
                 }
-            },
-            Err(e) => {
-                error!("Failed to download icon: {}", e);
-                None
             }
+        },
+        Err(e) => {
+            error!("Failed to download icon: {}", e);
+            None
         }
-    } else {
-        None
-    };
-    
-    match create_launcher_profile(installer_profile, icon_img) {
-        Ok(_) => {},
-        Err(e) => return Err(e.to_string()),
-    };
-    
+    }
+} else {
+    None
+};
+
+match create_launcher_profile(installer_profile, icon_img) {
+    Ok(_) => {
+        progress_callback(); // Progress for launcher profile creation
+    },
+    Err(e) => return Err(e.to_string()),
+};
+
 if loader_future.is_some() {
     loader_future.unwrap().await;
+    progress_callback(); // Progress for loader installation
 }
 
 // Mark installation as complete - do this ONCE at the very end
@@ -1902,6 +1913,7 @@ if let Ok(mut installation) = crate::installation::load_installation(&installer_
         return Err(format!("Failed to save installation state: {}", e));
     } else {
         debug!("Successfully marked installation as complete");
+        progress_callback(); // Final progress callback - this should be 100%
     }
 } else {
     error!("Failed to load installation after install");
