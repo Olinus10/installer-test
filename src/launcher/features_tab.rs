@@ -42,83 +42,86 @@ pub fn FeaturesTab(
 
     // Initialize state properly based on installation status
     use_effect({
-        let mut selected_preset = selected_preset.clone();
-        let mut enabled_features = enabled_features.clone();
-        let universal_manifest_for_init = universal_manifest_for_init.clone();
-        let mut is_initialized = is_initialized.clone();
-        let presets = presets.clone();
-        
-        move || {
-            // Only initialize once
-            if *is_initialized.read() {
-                return;
-            }
-            
-            if let Some((preset_id, features, is_installed)) = installation_data() {
-                debug!("Initializing features tab - installed: {}, preset: {:?}", is_installed, preset_id);
-                
-                if is_installed {
-                    // This is an existing installation - restore previous choices
-                    debug!("Restoring previous installation state");
-                    selected_preset.set(preset_id.clone());
-                    enabled_features.set(features);
-                    
-                    // Check if the preset still matches or if user modified it
-                    if let Some(preset_id) = &preset_id {
-                        if let Some(preset) = find_preset_by_id(&presets, preset_id) {
-                            let preset_features = &preset.enabled_features;
-                            let current_features = &features;
-                            
-                            // If features don't match the preset exactly, the user modified them
-                            if preset_features != current_features {
-                                debug!("User has modified features from preset '{}', keeping modifications", preset_id);
-                            }
-                        }
-                    }
-                    
-                    debug!("Restored preset: {:?}", preset_id);
-                    debug!("Restored features: {:?}", enabled_features.read());
-                } else {
-                    // This is a fresh installation - start with custom preset (minimal)
-                    debug!("Fresh installation - setting minimal defaults");
-                    selected_preset.set(None); // Start with custom preset (None)
-                    
-                    // Only enable truly required features (just default)
-                    let mut minimal_features = vec!["default".to_string()];
-                    
-                    // Add any non-optional components if we have the manifest
-                    if let Some(manifest) = &universal_manifest_for_init {
-                        for mod_comp in &manifest.mods {
-                            if !mod_comp.optional && mod_comp.id != "default" {
-                                minimal_features.push(mod_comp.id.clone());
-                            }
-                        }
-                        for shader in &manifest.shaderpacks {
-                            if !shader.optional && shader.id != "default" {
-                                minimal_features.push(shader.id.clone());
-                            }
-                        }
-                        for resource in &manifest.resourcepacks {
-                            if !resource.optional && resource.id != "default" {
-                                minimal_features.push(resource.id.clone());
-                            }
-                        }
-                    }
-                    
-                    enabled_features.set(minimal_features);
-                    
-                    debug!("Fresh installation - defaulting to custom preset with minimal features");
-                }
-            } else {
-                // Fallback for completely new installations
-                debug!("No installation data found - using fallback defaults");
-                selected_preset.set(None);
-                enabled_features.set(vec!["default".to_string()]);
-            }
-            
-            is_initialized.set(true);
+    let mut selected_preset = selected_preset.clone();
+    let mut enabled_features = enabled_features.clone();
+    let universal_manifest_for_init = universal_manifest_for_init.clone();
+    let mut is_initialized = is_initialized.clone();
+    let presets = presets.clone();
+    
+    move || {
+        // Only initialize once
+        if *is_initialized.read() {
+            return;
         }
-    });
+        
+        if let Some((preset_id, features, is_installed)) = installation_data() {
+            debug!("Initializing features tab - installed: {}, preset: {:?}", is_installed, preset_id);
+            
+            if is_installed {
+                // This is an existing installation - restore previous choices
+                debug!("Restoring previous installation state");
+                selected_preset.set(preset_id.clone());
+                
+                // Clone features before using it multiple times
+                let features_clone = features.clone();
+                enabled_features.set(features_clone);
+                
+                // Check if the preset still matches or if user modified it
+                if let Some(preset_id) = &preset_id {
+                    if let Some(preset) = find_preset_by_id(&presets, preset_id) {
+                        let preset_features = &preset.enabled_features;
+                        let current_features = &features;
+                        
+                        // If features don't match the preset exactly, the user modified them
+                        if preset_features != current_features {
+                            debug!("User has modified features from preset '{}', keeping modifications", preset_id);
+                        }
+                    }
+                }
+                
+                debug!("Restored preset: {:?}", preset_id);
+                debug!("Restored features: {:?}", enabled_features.read());
+            } else {
+                // This is a fresh installation - start with custom preset (minimal)
+                debug!("Fresh installation - setting minimal defaults");
+                selected_preset.set(None); // Start with custom preset (None)
+                
+                // Only enable truly required features (just default)
+                let mut minimal_features = vec!["default".to_string()];
+                
+                // Add any non-optional components if we have the manifest
+                if let Some(manifest) = &universal_manifest_for_init {
+                    for mod_comp in &manifest.mods {
+                        if !mod_comp.optional && mod_comp.id != "default" {
+                            minimal_features.push(mod_comp.id.clone());
+                        }
+                    }
+                    for shader in &manifest.shaderpacks {
+                        if !shader.optional && shader.id != "default" {
+                            minimal_features.push(shader.id.clone());
+                        }
+                    }
+                    for resource in &manifest.resourcepacks {
+                        if !resource.optional && resource.id != "default" {
+                            minimal_features.push(resource.id.clone());
+                        }
+                    }
+                }
+                
+                enabled_features.set(minimal_features);
+                
+                debug!("Fresh installation - defaulting to custom preset with minimal features");
+            }
+        } else {
+            // Fallback for completely new installations
+            debug!("No installation data found - using fallback defaults");
+            selected_preset.set(None);
+            enabled_features.set(vec!["default".to_string()]);
+        }
+        
+        is_initialized.set(true);
+    }
+});
     
     // Apply preset function - this should completely replace current selection
     let apply_preset = move |preset_id: String| {
