@@ -856,6 +856,25 @@ pub fn SimplifiedInstallationWizard(props: InstallationCreationProps) -> Element
     // Function to create the installation
     let create_installation = move |_| {
         debug!("Creating installation with name: {}", name.read());
+
+        fn create_installation_properly(name: String, universal_manifest: &crate::universal::UniversalManifest) -> crate::installation::Installation {
+    let mut installation = crate::installation::Installation::new_custom(
+        name,
+        universal_manifest.minecraft_version.clone(),
+        universal_manifest.loader.r#type.clone(),
+        universal_manifest.loader.version.clone(),
+        "vanilla".to_string(), // or get from config
+        universal_manifest.version.clone(),
+    );
+
+    // Important: Mark as fresh installation
+    installation.mark_as_fresh();
+    
+    // Set minimal features for fresh installation
+    installation.enabled_features = vec!["default".to_string()];
+    
+    installation
+}
         
         // Validate name length
         let installation_name = name.read().trim().to_string();
