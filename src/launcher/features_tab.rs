@@ -42,86 +42,84 @@ pub fn FeaturesTab(
 
     // Initialize state properly based on installation status
     use_effect({
-    let mut selected_preset = selected_preset.clone();
-    let mut enabled_features = enabled_features.clone();
-    let universal_manifest_for_init = universal_manifest_for_init.clone();
-    let mut is_initialized = is_initialized.clone();
-    let presets = presets.clone();
-    
-    move || {
-        // Only initialize once
-        if *is_initialized.read() {
-            return;
-        }
+        let mut selected_preset = selected_preset.clone();
+        let mut enabled_features = enabled_features.clone();
+        let universal_manifest_for_init = universal_manifest_for_init.clone();
+        let mut is_initialized = is_initialized.clone();
+        let presets = presets.clone();
         
-        if let Some((preset_id, features, is_installed)) = installation_data() {
-            debug!("Initializing features tab - installed: {}, preset: {:?}", is_installed, preset_id);
-            
-            if is_installed {
-                // This is an existing installation - restore previous choices
-                debug!("Restoring previous installation state");
-                selected_preset.set(preset_id.clone());
-                
-                // Clone features before using it multiple times
-                let features_clone = features.clone();
-                enabled_features.set(features_clone);
-                
-                // Check if the preset still matches or if user modified it
-                if let Some(preset_id) = &preset_id {
-                    if let Some(preset) = find_preset_by_id(&presets, preset_id) {
-                        let preset_features = &preset.enabled_features;
-                        let current_features = &features;
-                        
-                        // If features don't match the preset exactly, the user modified them
-                        if preset_features != current_features {
-                            debug!("User has modified features from preset '{}', keeping modifications", preset_id);
-                        }
-                    }
-                }
-                
-                debug!("Restored preset: {:?}", preset_id);
-                debug!("Restored features: {:?}", enabled_features.read());
-            } else {
-                // This is a fresh installation - start with custom preset (minimal)
-                debug!("Fresh installation - setting minimal defaults");
-                selected_preset.set(None); // Start with custom preset (None)
-                
-                // Only enable truly required features (just default)
-                let mut minimal_features = vec!["default".to_string()];
-                
-                // Add any non-optional components if we have the manifest
-                if let Some(manifest) = &universal_manifest_for_init {
-                    for mod_comp in &manifest.mods {
-                        if !mod_comp.optional && mod_comp.id != "default" {
-                            minimal_features.push(mod_comp.id.clone());
-                        }
-                    }
-                    for shader in &manifest.shaderpacks {
-                        if !shader.optional && shader.id != "default" {
-                            minimal_features.push(shader.id.clone());
-                        }
-                    }
-                    for resource in &manifest.resourcepacks {
-                        if !resource.optional && resource.id != "default" {
-                            minimal_features.push(resource.id.clone());
-                        }
-                    }
-                }
-                
-                enabled_features.set(minimal_features);
-                
-                debug!("Fresh installation - defaulting to custom preset with minimal features");
+        move || {
+            // Only initialize once
+            if *is_initialized.read() {
+                return;
             }
-        } else {
-            // Fallback for completely new installations
-            debug!("No installation data found - using fallback defaults");
-            selected_preset.set(None);
-            enabled_features.set(vec!["default".to_string()]);
+            
+            if let Some((preset_id, features, is_installed)) = installation_data() {
+                debug!("Initializing features tab - installed: {}, preset: {:?}", is_installed, preset_id);
+                
+                if is_installed {
+                    // This is an existing installation - restore EXACTLY what was chosen before
+                    debug!("Restoring previous installation state");
+                    selected_preset.set(preset_id.clone());
+                    
+                    // IMPORTANT: Use the exact features that were saved, don't regenerate
+                    enabled_features.set(features.clone());
+                    
+                    debug!("Restored preset: {:?}", preset_id);
+                    debug!("Restored features: {:?}", enabled_features.read());
+                } else {
+                    // This is a fresh installation - start with minimal defaults (custom preset)
+                    debug!("Fresh installation - setting minimal defaults");
+                    selected_preset.set(None); // Start with custom preset (None)
+                    
+                    // Only enable truly required features (just default)
+                    let mut minimal_features = vec!["default".to_string()];
+                    
+                    // Add any non-optional components if we have the manifest
+                    if let Some(manifest) = &universal_manifest_for_init {
+                        for mod_comp in &manifest.mods {
+                            if !mod_comp.optional && mod_comp.id != "default" {
+                                minimal_features.push(mod_comp.id.clone());
+                            }
+                        }
+                        for shader in &manifest.shaderpacks {
+                            if !shader.optional && shader.id != "default" {
+                                minimal_features.push(shader.id.clone());
+                            }
+                        }
+                        for resource in &manifest.resourcepacks {
+                            if !resource.optional && resource.id != "default" {
+                                minimal_features.push(resource.id.clone());
+                            }
+                        }
+                        // Add non-optional includes
+                        for include in &manifest.include {
+                            if !include.optional && !include.id.is_empty() && include.id != "default" {
+                                minimal_features.push(include.id.clone());
+                            }
+                        }
+                        // Add non-optional remote includes
+                        for remote in &manifest.remote_include {
+                            if !remote.optional && remote.id != "default" {
+                                minimal_features.push(remote.id.clone());
+                            }
+                        }
+                    }
+                    
+                    enabled_features.set(minimal_features);
+                    
+                    debug!("Fresh installation - defaulting to custom preset with minimal features");
+                }
+            } else {
+                // Fallback for completely new installations
+                debug!("No installation data found - using fallback defaults");
+                selected_preset.set(None);
+                enabled_features.set(vec!["default".to_string()]);
+            }
+            
+            is_initialized.set(true);
         }
-        
-        is_initialized.set(true);
-    }
-});
+    });
     
     // Apply preset function - this should completely replace current selection
     let apply_preset = move |preset_id: String| {
@@ -222,7 +220,6 @@ pub fn FeaturesTab(
     
         // Update installation with new feature state and track custom changes
         if let Ok(mut installation) = crate::installation::load_installation(&installation_id_for_toggle) {
-            let old_features = installation.enabled_features.clone();
             installation.enabled_features = enabled_features.read().clone();
             installation.modified = true;
             
@@ -311,70 +308,76 @@ pub fn FeaturesTab(
                             String::new()
                         }
                     },
-                        onclick: move |_| {
-                            debug!("Custom preset clicked - switching to custom configuration");
-                            
-                            // When switching to custom, ONLY include default and non-optional features
-                            let mut new_features = vec!["default".to_string()];
-                            
-                            // If universal manifest is available, add any non-optional components
-                            if let Some(manifest) = &universal_manifest_for_custom {
-                                // Add non-optional mods
-                                for mod_comp in &manifest.mods {
-                                    if !mod_comp.optional && mod_comp.id != "default" {
-                                        new_features.push(mod_comp.id.clone());
-                                    }
-                                }
-                                // Add non-optional shaders
-                                for shader in &manifest.shaderpacks {
-                                    if !shader.optional && shader.id != "default" {
-                                        new_features.push(shader.id.clone());
-                                    }
-                                }
-                                // Add non-optional resourcepacks
-                                for resource in &manifest.resourcepacks {
-                                    if !resource.optional && resource.id != "default" {
-                                        new_features.push(resource.id.clone());
-                                    }
-                                }
-                                // Add non-optional includes
-                                for include in &manifest.include {
-                                    if !include.optional && include.id != "default" && !include.id.is_empty() {
-                                        new_features.push(include.id.clone());
-                                    }
+                    onclick: move |_| {
+                        debug!("Custom preset clicked - switching to custom configuration");
+                        
+                        // When switching to custom, ONLY include default and non-optional features
+                        let mut new_features = vec!["default".to_string()];
+                        
+                        // If universal manifest is available, add any non-optional components
+                        if let Some(manifest) = &universal_manifest_for_custom {
+                            // Add non-optional mods
+                            for mod_comp in &manifest.mods {
+                                if !mod_comp.optional && mod_comp.id != "default" {
+                                    new_features.push(mod_comp.id.clone());
                                 }
                             }
-                            
-                            // Set the minimal features
-                            enabled_features.set(new_features.clone());
-                            selected_preset.set(None);
-                            debug!("Set selected_preset to None (custom mode) with features: {:?}", new_features);
-                            
-                            // Update installation to save the custom state
-                            if let Ok(mut installation) = crate::installation::load_installation(&installation_id_for_custom) {
-                                installation.base_preset_id = None; // None = custom mode
-                                installation.base_preset_version = None;
-                                installation.enabled_features = enabled_features.read().clone();
-                                installation.modified = true;
-                                
-                                // Clear any previous custom modifications since we're resetting
-                                installation.custom_features.clear();
-                                installation.removed_features.clear();
-                                
-                                if let Err(e) = installation.save() {
-                                    error!("Failed to save installation after switching to custom: {}", e);
-                                } else {
-                                    debug!("Successfully saved custom configuration to installation");
+                            // Add non-optional shaders
+                            for shader in &manifest.shaderpacks {
+                                if !shader.optional && shader.id != "default" {
+                                    new_features.push(shader.id.clone());
                                 }
                             }
-                        },
+                            // Add non-optional resourcepacks
+                            for resource in &manifest.resourcepacks {
+                                if !resource.optional && resource.id != "default" {
+                                    new_features.push(resource.id.clone());
+                                }
+                            }
+                            // Add non-optional includes
+                            for include in &manifest.include {
+                                if !include.optional && include.id != "default" && !include.id.is_empty() {
+                                    new_features.push(include.id.clone());
+                                }
+                            }
+                            // Add non-optional remote includes
+                            for remote in &manifest.remote_include {
+                                if !remote.optional && remote.id != "default" {
+                                    new_features.push(remote.id.clone());
+                                }
+                            }
+                        }
+                        
+                        // Set the minimal features
+                        enabled_features.set(new_features.clone());
+                        selected_preset.set(None);
+                        debug!("Set selected_preset to None (custom mode) with features: {:?}", new_features);
+                        
+                        // Update installation to save the custom state
+                        if let Ok(mut installation) = crate::installation::load_installation(&installation_id_for_custom) {
+                            installation.base_preset_id = None; // None = custom mode
+                            installation.base_preset_version = None;
+                            installation.enabled_features = enabled_features.read().clone();
+                            installation.modified = true;
+                            
+                            // Clear any previous custom modifications since we're resetting
+                            installation.custom_features.clear();
+                            installation.removed_features.clear();
+                            
+                            if let Err(e) = installation.save() {
+                                error!("Failed to save installation after switching to custom: {}", e);
+                            } else {
+                                debug!("Successfully saved custom configuration to installation");
+                            }
+                        }
+                    },
                     
-                                div { class: "preset-card-overlay" }
-                                
-                                div { class: "preset-card-content",
-                                    h4 { "CUSTOM OVERHAUL" }
-                                    p { "Start with default features and customize everything yourself." }
-                                }
+                    div { class: "preset-card-overlay" }
+                    
+                    div { class: "preset-card-content",
+                        h4 { "CUSTOM OVERHAUL" }
+                        p { "Start with default features and customize everything yourself." }
+                    }
                     
                     // Select/Selected button
                     button {
@@ -618,26 +621,35 @@ pub fn FeaturesTab(
                                 .cloned()
                                 .collect();
                             
-                            // Get optional includes
+                            // Get optional includes - use their actual category if present
                             let optional_includes: Vec<IncludeComponent> = manifest.include.iter()
                                 .filter(|i| i.optional && !i.id.is_empty())
                                 .cloned()
                                 .collect();
                             
-                            // Get optional remote includes
+                            // Get optional remote includes - use their actual category
                             let optional_remote_includes: Vec<crate::universal::RemoteIncludeComponent> = manifest.remote_include.iter()
                                 .filter(|r| r.optional)
                                 .cloned()
                                 .collect();
                             
-                            // Combine all optional components
+                            // Combine all optional components with proper categorization
                             let mut all_components = Vec::new();
                             all_components.extend(optional_mods);
                             all_components.extend(optional_shaderpacks);
                             all_components.extend(optional_resourcepacks);
                             
-                            // Convert optional includes to components for unified handling
+                            // Convert optional includes to components using their actual categories
                             for include in &optional_includes {
+                                // For includes, use a sensible default category if none provided
+                                let category = if include.location.contains("config") {
+                                    "Configuration".to_string()
+                                } else if include.location.ends_with(".txt") {
+                                    "Settings".to_string()
+                                } else {
+                                    "Customization".to_string()
+                                };
+                                
                                 all_components.push(ModComponent {
                                     id: include.id.clone(),
                                     name: include.name.clone().unwrap_or_else(|| include.location.clone()),
@@ -649,14 +661,14 @@ pub fn FeaturesTab(
                                     optional: include.optional,
                                     default_enabled: include.default_enabled,
                                     authors: include.authors.clone().unwrap_or_default(),
-                                    category: Some("Configuration".to_string()),
+                                    category: Some(category),
                                     dependencies: None,
                                     incompatibilities: None,
                                     ignore_update: include.ignore_update,
                                 });
                             }
                             
-                            // Convert optional remote includes to components for unified handling
+                            // Convert optional remote includes to components using their actual categories
                             for remote in &optional_remote_includes {
                                 all_components.push(ModComponent {
                                     id: remote.id.clone(),
@@ -669,40 +681,78 @@ pub fn FeaturesTab(
                                     optional: remote.optional,
                                     default_enabled: remote.default_enabled,
                                     authors: remote.authors.clone(),
-                                    category: Some(remote.category.clone().unwrap_or_else(|| "Downloads".to_string())),
+                                    category: remote.category.clone(), // Use the actual category from manifest
                                     dependencies: remote.dependencies.clone(),
                                     incompatibilities: None,
                                     ignore_update: remote.ignore_update,
                                 });
                             }
                             
-                            // Get includes from manifest
-                            let includes = manifest.include.clone();
-                            
-                            // Get remote includes from manifest
-                            let remote_includes = manifest.remote_include.clone();
-                            
-                            // Get all default-enabled components
+                            // Get included (default/non-optional) components
                             let included_mods: Vec<ModComponent> = manifest.mods.iter()
-                                .filter(|m| m.default_enabled)
+                                .filter(|m| m.default_enabled || !m.optional)
                                 .cloned()
                                 .collect();
                                 
                             let included_shaderpacks: Vec<ModComponent> = manifest.shaderpacks.iter()
-                                .filter(|m| m.default_enabled)
+                                .filter(|m| m.default_enabled || !m.optional)
                                 .cloned()
                                 .collect();
                                 
                             let included_resourcepacks: Vec<ModComponent> = manifest.resourcepacks.iter()
-                                .filter(|m| m.default_enabled)
+                                .filter(|m| m.default_enabled || !m.optional)
                                 .cloned()
                                 .collect();
-                                
-                            // Combine all included components
+                            
+                            // Add default/non-optional includes to included components
                             let mut included_components = Vec::new();
                             included_components.extend(included_mods);
                             included_components.extend(included_shaderpacks);
                             included_components.extend(included_resourcepacks);
+                            
+                            // Add non-optional includes
+                            for include in &manifest.include {
+                                if !include.optional || include.default_enabled {
+                                    included_components.push(ModComponent {
+                                        id: if include.id.is_empty() { "default".to_string() } else { include.id.clone() },
+                                        name: include.name.clone().unwrap_or_else(|| include.location.clone()),
+                                        description: Some(format!("Include: {}", include.location)),
+                                        source: "include".to_string(),
+                                        location: include.location.clone(),
+                                        version: "1.0".to_string(),
+                                        path: None,
+                                        optional: include.optional,
+                                        default_enabled: include.default_enabled,
+                                        authors: include.authors.clone().unwrap_or_default(),
+                                        category: Some("Configuration".to_string()),
+                                        dependencies: None,
+                                        incompatibilities: None,
+                                        ignore_update: include.ignore_update,
+                                    });
+                                }
+                            }
+                            
+                            // Add non-optional remote includes
+                            for remote in &manifest.remote_include {
+                                if !remote.optional || remote.default_enabled {
+                                    included_components.push(ModComponent {
+                                        id: remote.id.clone(),
+                                        name: remote.name.clone().unwrap_or_else(|| remote.id.clone()),
+                                        description: remote.description.clone(),
+                                        source: "remote_include".to_string(),
+                                        location: remote.location.clone(),
+                                        version: remote.version.clone(),
+                                        path: remote.path.as_ref().map(|p| std::path::PathBuf::from(p)),
+                                        optional: remote.optional,
+                                        default_enabled: remote.default_enabled,
+                                        authors: remote.authors.clone(),
+                                        category: remote.category.clone(),
+                                        dependencies: remote.dependencies.clone(),
+                                        incompatibilities: None,
+                                        ignore_update: remote.ignore_update,
+                                    });
+                                }
+                            }
                             
                             // Create a signal to track if included section is expanded
                             let mut included_expanded = use_signal(|| false);
@@ -812,8 +862,8 @@ pub fn FeaturesTab(
                                     }
                                 }
                                 
-                                // Then add the regular features by category - NOW WITH REMOTE INCLUDES
-                                {render_features_by_category(all_components, enabled_features.clone(), filter_text.clone(), toggle_feature, includes, remote_includes)}
+                                // Then add the regular features by category
+                                {render_features_by_category(all_components, enabled_features.clone(), filter_text.clone(), toggle_feature, manifest.include.clone(), manifest.remote_include.clone())}
                             }
                         } else {
                             rsx! {
@@ -848,6 +898,15 @@ fn render_features_by_category(
     // Convert optional includes to ModComponent-like structure for display
     for include in includes {
         if include.optional && !include.id.is_empty() {
+            // Use a sensible category for includes
+            let category = if include.location.contains("config") {
+                "Configuration".to_string()
+            } else if include.location.ends_with(".txt") {
+                "Settings".to_string()
+            } else {
+                "Customization".to_string()
+            };
+            
             all_components.push(ModComponent {
                 id: include.id.clone(),
                 name: include.name.clone().unwrap_or_else(|| include.location.clone()),
@@ -859,7 +918,7 @@ fn render_features_by_category(
                 optional: include.optional,
                 default_enabled: include.default_enabled,
                 authors: include.authors.unwrap_or_default(),
-                category: None, // Let it use the default categorization
+                category: Some(category),
                 dependencies: None,
                 incompatibilities: None,
                 ignore_update: include.ignore_update,
