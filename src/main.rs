@@ -1883,31 +1883,35 @@ async fn install<F: FnMut() + Clone>(installer_profile: &InstallerProfile, mut p
         Err(e) => return Err(e.to_string()),
     };
     
-    if loader_future.is_some() {
-        loader_future.unwrap().await;
-    }
+if loader_future.is_some() {
+    loader_future.unwrap().await;
+}
 
-    if let Ok(mut installation) = crate::installation::load_installation(&installer_profile.manifest.uuid) {
-        if let Err(e) = installation.complete_installation(http_client).await {
-            error!("Failed to update installation state: {}", e);
-        } else {
-            debug!("Successfully marked installation as complete");
-        }
-    }
-
-    if let Ok(mut installation) = crate::installation::load_installation(&installer_profile.manifest.uuid) {
-        installation.installed = true;
-        installation.update_available = false;
-        installation.modified = false;
-        if let Err(e) = installation.save() {
-            error!("Failed to update installation state: {}", e);
-        } else {
-            debug!("Successfully marked installation as complete");
-        }
-    }
+// Mark installation as complete - do this ONCE at the very end
+if let Ok(mut installation) = crate::installation::load_installation(&installer_profile.manifest.uuid) {
+    installation.installed = true;
+    installation.update_available = false;
+    installation.modified = false;
+    installation.universal_version = universal.modpack_version.clone();
     
-    info!("Installed modpack!");
-    Ok(())
+    if let Err(e) = installation.save() {
+        error!("Failed to update installation state: {}", e);
+        return Err(format!("Failed to save installation state: {}", e));
+    } else {
+        debug!("Successfully marked installation as complete");
+    }
+} else {
+    error!("Failed to load installation after install");
+    return Err("Failed to load installation after install".to_string());
+}
+
+info!("Installed modpack!");
+
+// Small delay to ensure UI updates properly
+tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
+
+Ok(())
+
 }
 
 // Add these helper functions for downloading includes
