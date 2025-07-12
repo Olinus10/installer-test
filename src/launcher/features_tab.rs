@@ -46,6 +46,7 @@ pub fn FeaturesTab(
         let mut enabled_features = enabled_features.clone();
         let universal_manifest_for_init = universal_manifest_for_init.clone();
         let mut is_initialized = is_initialized.clone();
+        let presets = presets.clone();
         
         move || {
             // Only initialize once
@@ -62,15 +63,49 @@ pub fn FeaturesTab(
                     selected_preset.set(preset_id.clone());
                     enabled_features.set(features);
                     
+                    // Check if the preset still matches or if user modified it
+                    if let Some(preset_id) = &preset_id {
+                        if let Some(preset) = find_preset_by_id(&presets, preset_id) {
+                            let preset_features = &preset.enabled_features;
+                            let current_features = &features;
+                            
+                            // If features don't match the preset exactly, the user modified them
+                            if preset_features != current_features {
+                                debug!("User has modified features from preset '{}', keeping modifications", preset_id);
+                            }
+                        }
+                    }
+                    
                     debug!("Restored preset: {:?}", preset_id);
                     debug!("Restored features: {:?}", enabled_features.read());
                 } else {
-                    // This is a fresh installation - start with minimal defaults
+                    // This is a fresh installation - start with custom preset (minimal)
                     debug!("Fresh installation - setting minimal defaults");
                     selected_preset.set(None); // Start with custom preset (None)
                     
                     // Only enable truly required features (just default)
-                    enabled_features.set(vec!["default".to_string()]);
+                    let mut minimal_features = vec!["default".to_string()];
+                    
+                    // Add any non-optional components if we have the manifest
+                    if let Some(manifest) = &universal_manifest_for_init {
+                        for mod_comp in &manifest.mods {
+                            if !mod_comp.optional && mod_comp.id != "default" {
+                                minimal_features.push(mod_comp.id.clone());
+                            }
+                        }
+                        for shader in &manifest.shaderpacks {
+                            if !shader.optional && shader.id != "default" {
+                                minimal_features.push(shader.id.clone());
+                            }
+                        }
+                        for resource in &manifest.resourcepacks {
+                            if !resource.optional && resource.id != "default" {
+                                minimal_features.push(resource.id.clone());
+                            }
+                        }
+                    }
+                    
+                    enabled_features.set(minimal_features);
                     
                     debug!("Fresh installation - defaulting to custom preset with minimal features");
                 }
@@ -181,9 +216,10 @@ pub fn FeaturesTab(
                 }
             }
         });
-
+    
         // Update installation with new feature state and track custom changes
         if let Ok(mut installation) = crate::installation::load_installation(&installation_id_for_toggle) {
+            let old_features = installation.enabled_features.clone();
             installation.enabled_features = enabled_features.read().clone();
             installation.modified = true;
             
@@ -211,11 +247,14 @@ pub fn FeaturesTab(
                         installation.custom_features.retain(|f| f != &feature_id);
                         installation.removed_features.retain(|f| f != &feature_id);
                     }
+                    
+                    debug!("Custom features: {:?}, Removed features: {:?}", 
+                           installation.custom_features, installation.removed_features);
                 }
             }
             
-            // If user manually toggles features, we're no longer strictly following a preset
-            // but we keep the preset selection to show what they started with
+            // Note: We keep the preset selection even when user modifies features
+            // This allows us to track that they started with a preset but customized it
             
             if let Err(e) = installation.save() {
                 error!("Failed to save installation after feature toggle: {}", e);
@@ -270,33 +309,61 @@ pub fn FeaturesTab(
                         }
                     },
                     onclick: move |_| {
-                        debug!("Custom preset clicked - switching to custom configuration");
-                        
-                        // When switching to custom, keep current features but clear preset selection
-                        selected_preset.set(None);
-                        debug!("Set selected_preset to None (custom mode)");
-                        
-                        // Update installation to save the custom state
-                        if let Ok(mut installation) = crate::installation::load_installation(&installation_id_for_custom) {
-                            installation.base_preset_id = None; // None = custom mode
-                            installation.base_preset_version = None;
-                            installation.enabled_features = enabled_features.read().clone();
-                            installation.modified = true;
-                            
-                            if let Err(e) = installation.save() {
-                                error!("Failed to save installation after switching to custom: {}", e);
-                            } else {
-                                debug!("Successfully saved custom configuration to installation");
-                            }
-                        }
-                    },
+                                        debug!("Custom preset clicked - switching to custom configuration");
+                                        
+                                        // When switching to custom, RESET to only default features
+                                        let mut new_features = vec!["default".to_string()];
+                                        
+                                        // If universal manifest is available, add any non-optional default components
+                                        if let Some(manifest) = &universal_manifest_for_custom {
+                                            // Add default-enabled features from the manifest
+                                            for mod_comp in &manifest.mods {
+                                                if !mod_comp.optional && mod_comp.id != "default" {
+                                                    new_features.push(mod_comp.id.clone());
+                                                }
+                                            }
+                                            for shader in &manifest.shaderpacks {
+                                                if !shader.optional && shader.id != "default" {
+                                                    new_features.push(shader.id.clone());
+                                                }
+                                            }
+                                            for resource in &manifest.resourcepacks {
+                                                if !resource.optional && resource.id != "default" {
+                                                    new_features.push(resource.id.clone());
+                                                }
+                                            }
+                                        }
+                                        
+                                        // Set the minimal features
+                                        enabled_features.set(new_features.clone());
+                                        selected_preset.set(None);
+                                        debug!("Set selected_preset to None (custom mode) with features: {:?}", new_features);
+                                        
+                                        // Update installation to save the custom state
+                                        if let Ok(mut installation) = crate::installation::load_installation(&installation_id_for_custom) {
+                                            installation.base_preset_id = None; // None = custom mode
+                                            installation.base_preset_version = None;
+                                            installation.enabled_features = enabled_features.read().clone();
+                                            installation.modified = true;
+                                            
+                                            // Clear any previous custom modifications since we're resetting
+                                            installation.custom_features.clear();
+                                            installation.removed_features.clear();
+                                            
+                                            if let Err(e) = installation.save() {
+                                                error!("Failed to save installation after switching to custom: {}", e);
+                                            } else {
+                                                debug!("Successfully saved custom configuration to installation");
+                                            }
+                                        }
+                                    },
                     
-                    div { class: "preset-card-overlay" }
-                    
-                    div { class: "preset-card-content",
-                        h4 { "CUSTOM OVERHAUL" }
-                        p { "Start with default features and customize everything yourself." }
-                    }
+                                div { class: "preset-card-overlay" }
+                                
+                                div { class: "preset-card-content",
+                                    h4 { "CUSTOM OVERHAUL" }
+                                    p { "Start with default features and customize everything yourself." }
+                                }
                     
                     // Select/Selected button
                     button {
