@@ -1213,6 +1213,7 @@ pub fn InstallationManagementPage(
     let installation_for_update_clone = installation_for_update.clone();
 
     // Define the actual update process
+// Updated proceed_with_update function with proper progress tracking
 let mut proceed_with_update = {
     let installation_for_update_clone = installation_for_update_clone.clone();
     let enabled_features = enabled_features.clone();
@@ -1258,22 +1259,31 @@ let mut proceed_with_update = {
         let installation_id = installation_clone.id.clone();
 
         spawn(async move {
-            // Calculate total items
+            // Calculate total items for accurate progress tracking
             match crate::universal::load_universal_manifest(&http_client, None).await {
                 Ok(manifest) => {
-                    // Count only enabled items for accurate progress
                     let enabled_features = installation_clone.enabled_features.clone();
                     
-                    let enabled_mods = manifest.mods.iter()
-                        .filter(|m| enabled_features.contains(&m.id) || !m.optional || m.default_enabled)
+                    // Count all components that will be processed
+                    let mut total_items = 0;
+                    
+                    // Count mods
+                    total_items += manifest.mods.iter()
+                        .filter(|m| enabled_features.contains(&m.id) || m.default_enabled || m.id == "default")
                         .count();
-                    let enabled_shaders = manifest.shaderpacks.iter()
-                        .filter(|s| enabled_features.contains(&s.id) || !s.optional || s.default_enabled)
+                    
+                    // Count shaderpacks
+                    total_items += manifest.shaderpacks.iter()
+                        .filter(|s| enabled_features.contains(&s.id) || s.default_enabled || s.id == "default")
                         .count();
-                    let enabled_resources = manifest.resourcepacks.iter()
-                        .filter(|r| enabled_features.contains(&r.id) || !r.optional || r.default_enabled)
+                    
+                    // Count resourcepacks
+                    total_items += manifest.resourcepacks.iter()
+                        .filter(|r| enabled_features.contains(&r.id) || r.default_enabled || r.id == "default")
                         .count();
-                    let enabled_includes = manifest.include.iter()
+                    
+                    // Count includes
+                    total_items += manifest.include.iter()
                         .filter(|i| {
                             if i.id.is_empty() || i.id == "default" || !i.optional {
                                 true
@@ -1283,21 +1293,34 @@ let mut proceed_with_update = {
                         })
                         .count();
                     
-                    let total_items = enabled_mods + enabled_shaders + enabled_resources + enabled_includes + 4; // +4 for overhead
+                    // Count remote includes
+                    total_items += manifest.remote_include.iter()
+                        .filter(|r| {
+                            if r.id == "default" || !r.optional {
+                                true
+                            } else {
+                                enabled_features.contains(&r.id)
+                            }
+                        })
+                        .count();
+                    
+                    // Add overhead tasks (manifest save, icon, profile creation, etc.)
+                    total_items += 4;
                     
                     total.set(total_items as i64);
                     progress.set(0);
                     status.set("Starting installation...".to_string());
                     
-                    // Create a more detailed progress callback
-                    let mut completed_items = 0;
+                    debug!("Total installation items: {}", total_items);
+                    
+                    // Create progress callback that properly increments
+                    let mut completed_items = 0i64;
                     let progress_callback = move || {
                         completed_items += 1;
                         progress.set(completed_items);
                         let current = completed_items;
                         let total_val = *total.read();
                         
-                        // Update status with more detailed info
                         let percent = if total_val > 0 {
                             ((current as f64 / total_val as f64) * 100.0) as i64
                         } else {
@@ -1305,97 +1328,101 @@ let mut proceed_with_update = {
                         };
                         
                         // Update status based on progress
-                        if percent < 30 {
-                            status.set(format!("Downloading... {}/{} ({}%)", current, total_val, percent));
-                        } else if percent < 60 {
-                            status.set(format!("Extracting files... {}/{} ({}%)", current, total_val, percent));
-                        } else if percent < 90 {
-                            status.set(format!("Configuring mods... {}/{} ({}%)", current, total_val, percent));
+                        if percent < 20 {
+                            status.set(format!("Downloading components... {}/{}", current, total_val));
+                        } else if percent < 50 {
+                            status.set(format!("Installing mods... {}/{}", current, total_val));
+                        } else if percent < 80 {
+                            status.set(format!("Configuring installation... {}/{}", current, total_val));
                         } else if percent < 100 {
-                            status.set(format!("Finalizing... {}/{} ({}%)", current, total_val, percent));
-                        } else {
-                            status.set("Installation completed successfully!".to_string());
+                            status.set(format!("Finalizing installation... {}/{}", current, total_val));
                         }
+                        
+                        debug!("Progress update: {}/{} ({}%)", current, total_val, percent);
                     };
                     
-match installation_clone.install_or_update_with_progress(&http_client, progress_callback).await {
-    Ok(_) => {
-        // CRITICAL: Set progress to actual completion
-        progress.set(*total.read());
-        status.set("Installation completed successfully!".to_string());
-        
-        debug!("Installation completed, progress: {}/{}", *progress.read(), *total.read());
-        
-        // Mark as installed and update version
-        installation_clone.installed = true;
-        installation_clone.update_available = false;
-        installation_clone.preset_update_available = false;
-        installation_clone.modified = false;
-        
-        // CRITICAL: Update the universal version to the newly installed version
-        if let Ok(manifest) = crate::universal::load_universal_manifest(&http_client, None).await {
-            installation_clone.universal_version = manifest.modpack_version;
-        }
-        
-        // CRITICAL: Preserve the user's enabled features and preset selection
-        installation_clone.enabled_features = enabled_features.clone();
-        
-        // Update preset version if it was updated
-        if let Some(base_preset_id) = &installation_clone.base_preset_id {
-            if let Ok(presets) = crate::preset::load_presets(&http_client, None).await {
-                if let Some(preset) = presets.iter().find(|p| p.id == *base_preset_id) {
-                    installation_clone.base_preset_version = preset.preset_version.clone();
-                }
-            }
-        }
-        
-        // Save the installation BEFORE updating UI state
-        if let Err(e) = installation_clone.save() {
-            error!("Failed to save installation: {}", e);
-            installation_error_clone.set(Some(format!("Failed to save installation: {}", e)));
-        } else {
-            debug!("Successfully saved installation state");
-            
-            // ONLY update UI state after successful save
-            installation_state.set(installation_clone.clone());
-            
-            // Update the installations list
-            installations.with_mut(|list| {
-                if let Some(index) = list.iter().position(|i| i.id == installation_id) {
-                    list[index] = installation_clone;
-                }
-            });
-            
-            // Clear modification flags
-            has_changes_clone.set(false);
-            features_modified_clone.set(false);
-            performance_modified_clone.set(false);
-            
-            debug!("Installation state updated successfully");
-        }
-        
-        // Wait a moment to show completion, then close
-        tokio::time::sleep(tokio::time::Duration::from_millis(1000)).await;
-        debug!("Closing progress window");
-        is_installing_clone.set(false);
-    },
-    Err(e) => {
-        error!("Installation failed: {}", e);
-        installation_error_clone.set(Some(format!("Installation failed: {}", e)));
-        status.set("Installation failed!".to_string());
-        // Don't auto-close on failure
-    }
-}
+                    // Run the installation
+                    match installation_clone.install_or_update_with_progress(&http_client, progress_callback).await {
+                        Ok(_) => {
+                            // CRITICAL: Ensure we're at 100% completion
+                            let total_val = *total.read();
+                            progress.set(total_val);
+                            status.set("Installation completed successfully!".to_string());
+                            
+                            debug!("Installation completed successfully, progress: {}/{}", total_val, total_val);
+                            
+                            // Update installation state
+                            installation_clone.installed = true;
+                            installation_clone.update_available = false;
+                            installation_clone.preset_update_available = false;
+                            installation_clone.modified = false;
+                            
+                            // Update the universal version
+                            if let Ok(manifest) = crate::universal::load_universal_manifest(&http_client, None).await {
+                                installation_clone.universal_version = manifest.modpack_version;
+                            }
+                            
+                            // Preserve user's enabled features
+                            installation_clone.enabled_features = enabled_features.clone();
+                            
+                            // Update preset version if needed
+                            if let Some(base_preset_id) = &installation_clone.base_preset_id {
+                                if let Ok(presets) = crate::preset::load_presets(&http_client, None).await {
+                                    if let Some(preset) = presets.iter().find(|p| p.id == *base_preset_id) {
+                                        installation_clone.base_preset_version = preset.preset_version.clone();
+                                    }
+                                }
+                            }
+                            
+                            // Save the installation
+                            if let Err(e) = installation_clone.save() {
+                                error!("Failed to save installation: {}", e);
+                                installation_error_clone.set(Some(format!("Failed to save installation: {}", e)));
+                            } else {
+                                debug!("Successfully saved installation state");
+                                
+                                // Update UI state only after successful save
+                                installation_state.set(installation_clone.clone());
+                                
+                                // Update the installations list
+                                installations.with_mut(|list| {
+                                    if let Some(index) = list.iter().position(|i| i.id == installation_id) {
+                                        list[index] = installation_clone;
+                                    }
+                                });
+                                
+                                // Clear modification flags
+                                has_changes_clone.set(false);
+                                features_modified_clone.set(false);
+                                performance_modified_clone.set(false);
+                                
+                                debug!("Installation UI state updated successfully");
+                            }
+                            
+                            // Wait a moment to show completion before closing
+                            tokio::time::sleep(tokio::time::Duration::from_millis(1500)).await;
+                            debug!("Closing progress window after successful installation");
+                            is_installing_clone.set(false);
+                        },
+                        Err(e) => {
+                            error!("Installation failed: {}", e);
+                            installation_error_clone.set(Some(format!("Installation failed: {}", e)));
+                            status.set("Installation failed!".to_string());
+                            // Don't auto-close on failure - let user see the error
+                        }
+                    }
                 },
                 Err(e) => {
                     error!("Failed to load manifest: {}", e);
                     installation_error_clone.set(Some(format!("Failed to load manifest: {}", e)));
                     status.set("Failed to load manifest!".to_string());
+                    is_installing_clone.set(false);
                 }
             }
         });
     }
 };
+
 
     // Handle update function
     let handle_update = {
