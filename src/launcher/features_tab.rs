@@ -68,7 +68,7 @@ pub fn FeaturesTab(
                     debug!("Restored preset: {:?}", preset_id);
                     debug!("Restored features: {:?}", enabled_features.read());
                 } else {
-                    // This is a fresh installation - start with minimal defaults (custom preset)
+                    // This is a fresh installation - start with custom preset (minimal defaults)
                     debug!("Fresh installation - setting minimal defaults");
                     selected_preset.set(None); // Start with custom preset (None)
                     
@@ -606,7 +606,14 @@ pub fn FeaturesTab(
                     {
                         if let Some(manifest) = &universal_manifest {
                             // FIXED: Proper separation of included vs optional features
-                            {render_features_properly(manifest, enabled_features.clone(), filter_text.clone(), toggle_feature)}
+                            {render_features_by_category(
+                                manifest.get_all_optional_components(),
+                                enabled_features.clone(), 
+                                filter_text.clone(), 
+                                toggle_feature,
+                                manifest.include.clone(),
+                                manifest.remote_include.clone()
+                            )}
                         } else {
                             rsx! {
                                 div { class: "loading-container",
@@ -676,14 +683,14 @@ fn render_features_by_category(
                 name: remote.name.clone().unwrap_or_else(|| remote.id.clone()),
                 description: remote.description.clone(),
                 source: "remote_include".to_string(),
-                location: remote.location.clone(),
-                version: remote.version.clone(),
+                location: remote.location,
+                version: remote.version,
                 path: remote.path.as_ref().map(|p| std::path::PathBuf::from(p)),
                 optional: remote.optional,
                 default_enabled: remote.default_enabled,
-                authors: remote.authors.clone(),
-                category: remote.category.clone(), // Use the actual category from remote include
-                dependencies: remote.dependencies.clone(),
+                authors: remote.authors,
+                category: remote.category, // Use the actual category from remote include
+                dependencies: remote.dependencies,
                 incompatibilities: None,
                 ignore_update: remote.ignore_update,
             });
