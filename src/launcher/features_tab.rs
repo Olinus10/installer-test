@@ -616,7 +616,7 @@ fn render_all_features_sections(
                 optional: remote.optional,
                 default_enabled: remote.default_enabled,
                 authors: remote.authors.clone(),
-                category: remote.category.clone().unwrap_or_else(|| "Remote Content".to_string()),
+                category: Some(remote.category.clone().unwrap_or_else(|| "Remote Content".to_string())),
                 dependencies: remote.dependencies.clone(),
                 incompatibilities: None,
                 ignore_update: remote.ignore_update,
