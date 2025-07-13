@@ -3,6 +3,11 @@ use crate::universal::{ModComponent, UniversalManifest};
 use crate::preset::{Preset, find_preset_by_id};
 use log::debug;
 
+use dioxus::prelude::*;
+use crate::universal::{ModComponent, UniversalManifest};
+use crate::preset::{Preset, find_preset_by_id};
+use log::debug;
+
 #[component]
 pub fn FeaturesTab(
     universal_manifest: Option<UniversalManifest>,
@@ -16,12 +21,13 @@ pub fn FeaturesTab(
     let presets_for_closure = presets.clone();
     let installation_id_for_apply = installation_id.clone();
     let installation_id_for_toggle = installation_id.clone();
+    let universal_manifest_clone = universal_manifest.clone();
     
     // Initialize preset state based on installation
     use_effect({
         let installation_id = installation_id.clone();
-        let selected_preset = selected_preset.clone();
-        let enabled_features = enabled_features.clone();
+        let mut selected_preset = selected_preset.clone();
+        let mut enabled_features = enabled_features.clone();
         
         move || {
             // Load installation and set initial state
@@ -39,7 +45,7 @@ pub fn FeaturesTab(
     });
     
     // Handle changing a preset
-    let apply_preset = move |preset_id: String| {
+    let mut apply_preset = move |preset_id: String| {
         debug!("Applying preset: {}", preset_id);
         
         if preset_id == "custom" {
@@ -47,7 +53,7 @@ pub fn FeaturesTab(
             let mut default_features = vec!["default".to_string()];
             
             // Add any default-enabled features from the universal manifest
-            if let Some(manifest) = &universal_manifest {
+            if let Some(manifest) = &universal_manifest_clone {
                 for component in &manifest.mods {
                     if component.default_enabled && !default_features.contains(&component.id) {
                         default_features.push(component.id.clone());
@@ -110,7 +116,7 @@ pub fn FeaturesTab(
     
     // Clone presets again for toggle_feature
     let presets_for_toggle = presets.clone();
-    let universal_manifest_for_toggle = universal_manifest.clone();
+    let universal_manifest_for_toggle = universal_manifest_clone.clone();
     
     // Handle toggling a feature with dependency checking
     let toggle_feature = move |feature_id: String| {
@@ -247,7 +253,30 @@ pub fn FeaturesTab(
                         }
                     },
                     onclick: move |_| {
-                        apply_preset("custom".to_string());
+                        let universal_manifest_for_custom = universal_manifest_clone.clone();
+                        let mut default_features = vec!["default".to_string()];
+                        
+                        // Add any default-enabled features from the universal manifest
+                        if let Some(manifest) = &universal_manifest_for_custom {
+                            for component in &manifest.mods {
+                                if component.default_enabled && !default_features.contains(&component.id) {
+                                    default_features.push(component.id.clone());
+                                }
+                            }
+                            for component in &manifest.shaderpacks {
+                                if component.default_enabled && !default_features.contains(&component.id) {
+                                    default_features.push(component.id.clone());
+                                }
+                            }
+                            for component in &manifest.resourcepacks {
+                                if component.default_enabled && !default_features.contains(&component.id) {
+                                    default_features.push(component.id.clone());
+                                }
+                            }
+                        }
+                        
+                        enabled_features.set(default_features);
+                        selected_preset.set(None);
                     },
                     
                     div { class: "preset-card-overlay" }
@@ -427,7 +456,7 @@ pub fn FeaturesTab(
                 div { class: "features-count-container",
                     span { class: "features-count-badge",
                         {
-                            if let Some(manifest) = &universal_manifest {
+                            if let Some(manifest) = &universal_manifest_clone {
                                 let mut total_components = 0;
                                 let mut enabled_components = 0;
                                 
@@ -544,7 +573,7 @@ pub fn FeaturesTab(
                     
                     // Features content
                     {
-                        if let Some(manifest) = &universal_manifest {
+                        if let Some(manifest) = &universal_manifest_clone {
                             render_all_features_sections(
                                 manifest.clone(),
                                 enabled_features.clone(),
