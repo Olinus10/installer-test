@@ -1883,7 +1883,8 @@ fn ProgressView(
     value: i64,
     max: i64,
     status: String,
-    title: String
+    title: String,
+    on_complete: Option<EventHandler<()>>, // Add callback for completion
 ) -> Element {
     // Calculate percentage accurately
     let percentage = if max > 0 { 
@@ -1892,53 +1893,45 @@ fn ProgressView(
         0 
     };
     
-    // FIXED: Proper completion detection
-    let is_complete = value >= max && max > 0 && (
+    // FIXED: Proper completion detection - must be exact match and status indicates completion
+    let is_complete = value >= max && max > 0 && value > 0 && (
         status.contains("completed") || 
         status.contains("Complete") || 
         status.contains("successfully") ||
-        percentage >= 100
+        status.contains("Installation completed successfully!") ||
+        (percentage >= 100 && status.contains("success"))
     );
     
     debug!("Progress: {}/{}, {}%, complete: {}, status: '{}'", value, max, percentage, is_complete, status);
     
     // Auto-close when actually complete
     if is_complete {
-        use_effect(move || {
-            debug!("Installation complete, scheduling auto-close");
-            spawn(async move {
-                // Brief delay to show completion
-                tokio::time::sleep(tokio::time::Duration::from_millis(800)).await;
-                debug!("Auto-closing progress window");
-                // This should close the progress window by setting installing to false
-                // You'll need to pass the installing signal or use a callback here
-            });
+        use_effect({
+            let on_complete = on_complete.clone();
+            move || {
+                debug!("Installation complete, scheduling auto-close");
+                spawn(async move {
+                    // Brief delay to show completion
+                    tokio::time::sleep(tokio::time::Duration::from_millis(800)).await;
+                    debug!("Auto-closing progress window");
+                    if let Some(callback) = on_complete {
+                        callback.call(());
+                    }
+                });
+            }
         });
     }
     
-    // Rotating messages for user patience (only when not complete)
-    let patience_messages = if is_complete {
-        vec!["Installation completed successfully!"]
+    // Display status with proper completion handling
+    let display_status = if is_complete {
+        "Installation completed successfully!".to_string()
+    } else if status.is_empty() {
+        format!("Processing... {}%", percentage)
+    } else if percentage >= 99 && !is_complete {
+        format!("{} - Finalizing...", status)
     } else {
-        vec![
-            "Crunching the bits...",
-            "Some files take a while to install, please be patient",
-            "Downloading the magic...",
-            "This may take a few moments",
-            "Setting up your adventure...",
-            "Almost there, hang tight!",
-            "Processing mod files...",
-            "Good things take time!"
-        ]
+        status.clone()
     };
-    
-    // Select message based on progress
-    let message_index = if is_complete {
-        0
-    } else {
-        ((percentage / 12) as usize).min(patience_messages.len() - 1)
-    };
-    let patience_message = patience_messages[message_index];
     
     // Determine current step based on percentage
     let current_step = if is_complete {
@@ -1967,17 +1960,6 @@ fn ProgressView(
     // Find current step index
     let active_step_index = steps.iter().position(|(id, _)| id == &current_step).unwrap_or(0);
     
-    // Display status with proper completion handling
-    let display_status = if is_complete {
-        "Installation completed successfully!".to_string()
-    } else if status.is_empty() {
-        format!("{} - {}%", patience_message, percentage)
-    } else if percentage >= 99 && !is_complete {
-        "Finalizing installation... Almost done!".to_string()
-    } else {
-        format!("{} - {}", status, patience_message)
-    };
-    
     rsx! {
         div { 
             class: "progress-container",
@@ -2003,7 +1985,6 @@ fn ProgressView(
                             rsx! {
                                 div { 
                                     class: "{step_class}",
-                                    
                                     div { class: "step-dot" }
                                     div { class: "step-label", "{step_label}" }
                                 }
@@ -2039,7 +2020,7 @@ fn ProgressView(
                     p { 
                         class: "progress-debug",
                         style: "color: rgba(255, 255, 255, 0.5); font-size: 0.8rem; margin-top: 10px;",
-                        "Debug: {value}/{max} items, percentage: {percentage}%"
+                        "Debug: {value}/{max} items, percentage: {percentage}%, complete: {is_complete}"
                     }
                 }
             }
