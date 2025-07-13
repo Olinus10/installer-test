@@ -18,6 +18,7 @@ pub fn FeaturesTab(
     let installation_id_for_memo = installation_id.clone();
     let installation_id_for_rsx = installation_id.clone();
     let installation_id_for_custom = installation_id.clone();
+    let installation_id_for_verification = installation_id.clone();
     
     // Clone universal_manifest for different uses
     let universal_manifest_for_init = universal_manifest.clone();
@@ -47,6 +48,7 @@ use_effect({
     let universal_manifest_for_init = universal_manifest_for_init.clone();
     let mut is_initialized = is_initialized.clone();
     let presets = presets.clone();
+    let installation_id_for_verification = installation_id_for_verification.clone();
     
     move || {
         // Only initialize once
