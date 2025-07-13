@@ -385,16 +385,19 @@ pub fn universal_to_manifest(universal: &UniversalManifest, enabled_features: Ve
     let remote_include: Option<Vec<crate::RemoteInclude>> = if universal.remote_include.is_empty() {
         None
     } else {
-        Some(universal.remote_include.iter().map(|remote| {
-            crate::RemoteInclude {
-                location: remote.location.clone(),
-                path: remote.path.clone(),
-                id: remote.id.clone(),
-                version: remote.version.clone(),
-                name: remote.name.clone(),
-                authors: Some(remote.authors.clone()),
-            }
-        }).collect())
+            Some(universal.remote_include.iter().map(|remote| {
+                crate::RemoteInclude {
+                    location: remote.location.clone(),
+                    path: remote.path.clone(),
+                    id: remote.id.clone(),
+                    version: remote.version.clone(),
+                    name: remote.name.clone(),
+                    authors: Some(remote.authors.clone()),
+                    // ADD THESE TWO LINES:
+                    optional: remote.optional,
+                    default_enabled: remote.default_enabled,
+                }
+            }).collect())
     };
     
     // Build the manifest
