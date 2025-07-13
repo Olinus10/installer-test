@@ -46,10 +46,10 @@ pub struct RemoteIncludeComponent {
     pub name: Option<String>,
     #[serde(default)]
     pub description: Option<String>,
-    pub source: String, // Should be "ddl" for direct download
-    pub location: String, // The download URL
+    pub source: String,
+    pub location: String,
     #[serde(default)]
-    pub path: Option<String>, // Optional path to extract to
+    pub path: Option<String>,
     pub version: String,
     #[serde(default = "default_false")]
     pub optional: bool,
