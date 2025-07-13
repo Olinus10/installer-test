@@ -1367,72 +1367,295 @@ body:has(.installation-management-container) {
 }
 
 
-/* FINAL APPROACH: Simpler and more reliable */
-/* Remove all the complex positioning and use a simpler approach */
-
-.installation-page .header-center,
-.installation-management-container ~ * .header-center,
-.installation-page-content ~ * .header-center {
-    display: flex;
-    align-items: center;
-    justify-content: center;
+/* IMPROVED INSTALLATION TABS - Enhanced hover effects */
+.installation-page .nav-tab:not(.back-tab) {
     position: relative;
-    flex: 1;
-    gap: 0;
-    padding: 0;
+    overflow: hidden;
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    border: 2px solid transparent;
+    backdrop-filter: blur(10px);
 }
 
-/* Style the back button */
-.installation-page .nav-tab.back-tab,
-.installation-management-container ~ * .nav-tab.back-tab,
-.installation-page-content ~ * .nav-tab.back-tab {
-    position: absolute;
-    left: 20px;
-    background: rgba(60, 60, 60, 0.5) !important;
-    z-index: 3;
+/* Enhanced glow ring effect on hover */
+.installation-page .nav-tab:not(.back-tab):hover {
+    transform: translateY(-3px) scale(1.02);
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 
+        0 8px 25px rgba(0, 0, 0, 0.4),
+        0 0 30px currentColor,
+        inset 0 1px 0 rgba(255, 255, 255, 0.1);
 }
 
-/* Create a simple grouped appearance */
-.installation-page .nav-tab:nth-of-type(2),
-.installation-management-container ~ * .nav-tab:nth-of-type(2),
-.installation-page-content ~ * .nav-tab:nth-of-type(2) {
-    border-top-right-radius: 0 !important;
-    border-bottom-right-radius: 0 !important;
-    margin-right: 0;
-}
-
-.installation-page .nav-tab:nth-of-type(3),
-.installation-management-container ~ * .nav-tab:nth-of-type(3),
-.installation-page-content ~ * .nav-tab:nth-of-type(3) {
-    border-radius: 0 !important;
-    margin: 0;
-    border-left: none !important;
-    border-right: none !important;
-}
-
-.installation-page .nav-tab:nth-of-type(4),
-.installation-management-container ~ * .nav-tab:nth-of-type(4),
-.installation-page-content ~ * .nav-tab:nth-of-type(4) {
-    border-top-left-radius: 0 !important;
-    border-bottom-left-radius: 0 !important;
-    margin-left: 0;
-    border-left: none !important;
-}
-
-/* Add a subtle background to the group */
-.installation-page .nav-tab:nth-of-type(2)::before,
-.installation-management-container ~ * .nav-tab:nth-of-type(2)::before,
-.installation-page-content ~ * .nav-tab:nth-of-type(2)::before {
+/* Animated border sweep effect */
+.installation-page .nav-tab:not(.back-tab)::before {
     content: '';
     position: absolute;
-    top: -6px;
-    bottom: -6px;
-    left: -8px;
-    right: calc(-100% - 12px); /* Extend to cover all three tabs */
-    background: rgba(0, 0, 0, 0.3);
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+        90deg,
+        transparent,
+        rgba(255, 255, 255, 0.1),
+        rgba(255, 255, 255, 0.2),
+        rgba(255, 255, 255, 0.1),
+        transparent
+    );
+    border-radius: inherit;
+    transition: left 0.6s ease;
+    z-index: 1;
+}
+
+.installation-page .nav-tab:not(.back-tab):hover::before {
+    left: 100%;
+}
+
+/* Animated bottom border */
+.installation-page .nav-tab:not(.back-tab)::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    width: 0;
+    height: 3px;
+    background: currentColor;
+    transform: translateX(-50%);
+    transition: width 0.4s ease;
+    border-radius: 2px 2px 0 0;
+    z-index: 2;
+}
+
+.installation-page .nav-tab:not(.back-tab):hover::after {
+    width: 80%;
+}
+
+/* Features tab (Green) - Enhanced */
+.installation-page .nav-tab:nth-of-type(2) {
+    background: linear-gradient(135deg, 
+        rgba(76, 175, 80, 0.12), 
+        rgba(76, 175, 80, 0.08));
+    border: 1px solid rgba(76, 175, 80, 0.25);
+    color: rgba(255, 255, 255, 0.9);
+    position: relative;
+}
+
+.installation-page .nav-tab:nth-of-type(2):hover {
+    background: linear-gradient(135deg, 
+        rgba(76, 175, 80, 0.3), 
+        rgba(76, 175, 80, 0.2));
+    border-color: rgba(76, 175, 80, 0.6);
+    color: white;
+    text-shadow: 0 0 10px rgba(76, 175, 80, 0.5);
+    box-shadow: 
+        0 8px 25px rgba(0, 0, 0, 0.4),
+        0 0 30px rgba(76, 175, 80, 0.4),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+.installation-page .nav-tab:nth-of-type(2)::after {
+    background: linear-gradient(90deg, 
+        rgba(76, 175, 80, 0.8), 
+        rgba(129, 199, 132, 1), 
+        rgba(76, 175, 80, 0.8));
+}
+
+.installation-page .nav-tab:nth-of-type(2).active {
+    background: linear-gradient(135deg, 
+        rgba(76, 175, 80, 0.4), 
+        rgba(60, 150, 64, 0.4));
+    color: white;
+    border-color: rgba(76, 175, 80, 0.8);
+    box-shadow: 
+        0 0 25px rgba(76, 175, 80, 0.5),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    transform: translateY(-2px);
+}
+
+/* Performance tab (Red) - Enhanced */
+.installation-page .nav-tab:nth-of-type(3) {
+    background: linear-gradient(135deg, 
+        rgba(244, 67, 54, 0.12), 
+        rgba(244, 67, 54, 0.08));
+    border: 1px solid rgba(244, 67, 54, 0.25);
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.installation-page .nav-tab:nth-of-type(3):hover {
+    background: linear-gradient(135deg, 
+        rgba(244, 67, 54, 0.3), 
+        rgba(244, 67, 54, 0.2));
+    border-color: rgba(244, 67, 54, 0.6);
+    color: white;
+    text-shadow: 0 0 10px rgba(244, 67, 54, 0.5);
+    box-shadow: 
+        0 8px 25px rgba(0, 0, 0, 0.4),
+        0 0 30px rgba(244, 67, 54, 0.4),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+.installation-page .nav-tab:nth-of-type(3)::after {
+    background: linear-gradient(90deg, 
+        rgba(244, 67, 54, 0.8), 
+        rgba(239, 83, 80, 1), 
+        rgba(244, 67, 54, 0.8));
+}
+
+.installation-page .nav-tab:nth-of-type(3).active {
+    background: linear-gradient(135deg, 
+        rgba(244, 67, 54, 0.4), 
+        rgba(211, 47, 47, 0.4));
+    color: white;
+    border-color: rgba(244, 67, 54, 0.8);
+    box-shadow: 
+        0 0 25px rgba(244, 67, 54, 0.5),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    transform: translateY(-2px);
+}
+
+/* Settings tab (Blue) - Enhanced */
+.installation-page .nav-tab:nth-of-type(4) {
+    background: linear-gradient(135deg, 
+        rgba(33, 150, 243, 0.12), 
+        rgba(33, 150, 243, 0.08));
+    border: 1px solid rgba(33, 150, 243, 0.25);
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.installation-page .nav-tab:nth-of-type(4):hover {
+    background: linear-gradient(135deg, 
+        rgba(33, 150, 243, 0.3), 
+        rgba(33, 150, 243, 0.2));
+    border-color: rgba(33, 150, 243, 0.6);
+    color: white;
+    text-shadow: 0 0 10px rgba(33, 150, 243, 0.5);
+    box-shadow: 
+        0 8px 25px rgba(0, 0, 0, 0.4),
+        0 0 30px rgba(33, 150, 243, 0.4),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+.installation-page .nav-tab:nth-of-type(4)::after {
+    background: linear-gradient(90deg, 
+        rgba(33, 150, 243, 0.8), 
+        rgba(66, 165, 245, 1), 
+        rgba(33, 150, 243, 0.8));
+}
+
+.installation-page .nav-tab:nth-of-type(4).active {
+    background: linear-gradient(135deg, 
+        rgba(33, 150, 243, 0.4), 
+        rgba(21, 101, 192, 0.4));
+    color: white;
+    border-color: rgba(33, 150, 243, 0.8);
+    box-shadow: 
+        0 0 25px rgba(33, 150, 243, 0.5),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    transform: translateY(-2px);
+}
+
+/* Back button - Enhanced but subtle */
+.installation-page .nav-tab.back-tab {
+    background: linear-gradient(135deg, 
+        rgba(90, 90, 90, 0.6), 
+        rgba(70, 70, 70, 0.7)) !important;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.installation-page .nav-tab.back-tab:hover {
+    background: linear-gradient(135deg, 
+        rgba(110, 110, 110, 0.8), 
+        rgba(90, 90, 90, 0.9)) !important;
+    border-color: rgba(255, 255, 255, 0.3);
+    transform: translateY(-2px) translateX(-2px);
+    box-shadow: 
+        0 6px 20px rgba(0, 0, 0, 0.4),
+        0 0 15px rgba(255, 255, 255, 0.1);
+}
+
+.installation-page .nav-tab.back-tab::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+        90deg,
+        transparent,
+        rgba(255, 255, 255, 0.1),
+        transparent
+    );
+    transition: left 0.5s ease;
+}
+
+.installation-page .nav-tab.back-tab:hover::before {
+    left: 100%;
+}
+
+/* Tab group container enhancement */
+.installation-page .header-center {
+    position: relative;
+    background: rgba(0, 0, 0, 0.4);
     border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 16px;
-    backdrop-filter: blur(10px);
-    z-index: -1;
-    width: calc(300px + 16px); /* Approximate width for 3 tabs */
+    padding: 8px;
+    backdrop-filter: blur(15px);
+    box-shadow: 
+        0 8px 30px rgba(0, 0, 0, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.05);
 }
+
+/* Pulse effect for active tabs */
+@keyframes tabActivePulse {
+    0%, 100% {
+        box-shadow: 
+            0 0 25px currentColor,
+            inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    }
+    50% {
+        box-shadow: 
+            0 0 35px currentColor,
+            inset 0 1px 0 rgba(255, 255, 255, 0.3);
+    }
+}
+
+.installation-page .nav-tab.active {
+    animation: tabActivePulse 3s ease-in-out infinite;
+}
+
+/* Smooth transitions for all tab states */
+.installation-page .nav-tab {
+    text-align: center;
+    font-weight: 500;
+    position: relative;
+    z-index: 1;
+}
+
+.installation-page .nav-tab:active {
+    transform: translateY(-1px) scale(0.98);
+    transition: all 0.1s ease;
+}
+
+/* Responsive adjustments for tabs */
+@media (max-width: 768px) {
+    .installation-page .nav-tab:not(.back-tab):hover {
+        transform: translateY(-2px) scale(1.01);
+    }
+    
+    .installation-page .header-center {
+        padding: 6px;
+        border-radius: 12px;
+    }
+    
+    .installation-page .nav-tab {
+        padding: 8px 12px;
+        font-size: 0.85rem;
+    }
+}
+
+
+
