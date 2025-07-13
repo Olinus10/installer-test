@@ -41,85 +41,95 @@ pub fn FeaturesTab(
     });
 
     // Initialize state properly based on installation status
-    use_effect({
-        let mut selected_preset = selected_preset.clone();
-        let mut enabled_features = enabled_features.clone();
-        let universal_manifest_for_init = universal_manifest_for_init.clone();
-        let mut is_initialized = is_initialized.clone();
-        let presets = presets.clone();
+use_effect({
+    let mut selected_preset = selected_preset.clone();
+    let mut enabled_features = enabled_features.clone();
+    let universal_manifest_for_init = universal_manifest_for_init.clone();
+    let mut is_initialized = is_initialized.clone();
+    let presets = presets.clone();
+    
+    move || {
+        // Only initialize once
+        if *is_initialized.read() {
+            return;
+        }
         
-        move || {
-            // Only initialize once
-            if *is_initialized.read() {
-                return;
-            }
+        if let Some((preset_id, features, is_installed)) = installation_data() {
+            debug!("Initializing features tab - installed: {}, preset: {:?}", is_installed, preset_id);
+            debug!("Features from installation: {:?}", features);
             
-            if let Some((preset_id, features, is_installed)) = installation_data() {
-                debug!("Initializing features tab - installed: {}, preset: {:?}", is_installed, preset_id);
+            if is_installed {
+                // This is an existing installation - restore EXACTLY what was chosen before
+                debug!("Restoring previous installation state");
                 
-                if is_installed {
-                    // This is an existing installation - restore EXACTLY what was chosen before
-                    debug!("Restoring previous installation state");
-                    selected_preset.set(preset_id.clone());
-                    
-                    // IMPORTANT: Use the exact features that were saved, don't regenerate
-                    enabled_features.set(features.clone());
-                    
-                    debug!("Restored preset: {:?}", preset_id);
-                    debug!("Restored features: {:?}", enabled_features.read());
-                } else {
-                    // This is a fresh installation - start with custom preset (minimal defaults)
-                    debug!("Fresh installation - setting minimal defaults");
-                    selected_preset.set(None); // Start with custom preset (None)
-                    
-                    // Only enable truly required features (just default)
-                    let mut minimal_features = vec!["default".to_string()];
-                    
-                    // Add any non-optional components if we have the manifest
-                    if let Some(manifest) = &universal_manifest_for_init {
-                        for mod_comp in &manifest.mods {
-                            if !mod_comp.optional && mod_comp.id != "default" {
-                                minimal_features.push(mod_comp.id.clone());
-                            }
-                        }
-                        for shader in &manifest.shaderpacks {
-                            if !shader.optional && shader.id != "default" {
-                                minimal_features.push(shader.id.clone());
-                            }
-                        }
-                        for resource in &manifest.resourcepacks {
-                            if !resource.optional && resource.id != "default" {
-                                minimal_features.push(resource.id.clone());
-                            }
-                        }
-                        // Add non-optional includes
-                        for include in &manifest.include {
-                            if !include.optional && !include.id.is_empty() && include.id != "default" {
-                                minimal_features.push(include.id.clone());
-                            }
-                        }
-                        // Add non-optional remote includes
-                        for remote in &manifest.remote_include {
-                            if !remote.optional && remote.id != "default" {
-                                minimal_features.push(remote.id.clone());
-                            }
-                        }
-                    }
-                    
-                    enabled_features.set(minimal_features);
-                    
-                    debug!("Fresh installation - defaulting to custom preset with minimal features");
+                // CRITICAL: Set the preset selection first
+                selected_preset.set(preset_id.clone());
+                
+                // CRITICAL: Use the exact features that were saved, don't regenerate
+                enabled_features.set(features.clone());
+                
+                debug!("Restored preset: {:?}", preset_id);
+                debug!("Restored features: {:?}", enabled_features.read());
+                
+                // IMPORTANT: Verify the installation has the correct data
+                if let Ok(installation) = crate::installation::load_installation(&installation_id_for_memo) {
+                    debug!("Verification - Installation preset: {:?}", installation.base_preset_id);
+                    debug!("Verification - Installation features: {:?}", installation.enabled_features);
+                    debug!("Verification - Installation installed: {}", installation.installed);
                 }
             } else {
-                // Fallback for completely new installations
-                debug!("No installation data found - using fallback defaults");
-                selected_preset.set(None);
-                enabled_features.set(vec!["default".to_string()]);
+                // This is a fresh installation - start with custom preset (minimal defaults)
+                debug!("Fresh installation - setting minimal defaults");
+                selected_preset.set(None); // Start with custom preset (None)
+                
+                // Only enable truly required features (just default)
+                let mut minimal_features = vec!["default".to_string()];
+                
+                // Add any non-optional components if we have the manifest
+                if let Some(manifest) = &universal_manifest_for_init {
+                    for mod_comp in &manifest.mods {
+                        if !mod_comp.optional && mod_comp.id != "default" {
+                            minimal_features.push(mod_comp.id.clone());
+                        }
+                    }
+                    for shader in &manifest.shaderpacks {
+                        if !shader.optional && shader.id != "default" {
+                            minimal_features.push(shader.id.clone());
+                        }
+                    }
+                    for resource in &manifest.resourcepacks {
+                        if !resource.optional && resource.id != "default" {
+                            minimal_features.push(resource.id.clone());
+                        }
+                    }
+                    // Add non-optional includes
+                    for include in &manifest.include {
+                        if !include.optional && !include.id.is_empty() && include.id != "default" {
+                            minimal_features.push(include.id.clone());
+                        }
+                    }
+                    // Add non-optional remote includes
+                    for remote in &manifest.remote_include {
+                        if !remote.optional && remote.id != "default" {
+                            minimal_features.push(remote.id.clone());
+                        }
+                    }
+                }
+                
+                enabled_features.set(minimal_features);
+                
+                debug!("Fresh installation - defaulting to custom preset with minimal features");
             }
-            
-            is_initialized.set(true);
+        } else {
+            // Fallback for completely new installations
+            debug!("No installation data found - using fallback defaults");
+            selected_preset.set(None);
+            enabled_features.set(vec!["default".to_string()]);
         }
-    });
+        
+        is_initialized.set(true);
+    }
+});
     
     // Apply preset function - this should completely replace current selection
     let apply_preset = move |preset_id: String| {
