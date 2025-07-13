@@ -457,8 +457,15 @@ struct RemoteInclude {
     #[serde(default = "default_id")]
     pub id: String,
     pub version: String,
+    #[serde(default)]
     pub name: Option<String>,
+    #[serde(default)]
     pub authors: Option<Vec<Author>>,
+    // ADD MISSING FIELDS:
+    #[serde(default = "default_false")]
+    pub optional: bool,
+    #[serde(default = "default_false")]
+    pub default_enabled: bool,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone, PartialEq)]
@@ -1533,21 +1540,22 @@ async fn install<F: FnMut() + Clone>(installer_profile: &InstallerProfile, mut p
         .count();
     
     // Count remote includes that the USER has enabled
-    if let Some(remote_includes) = &installer_profile.manifest.remote_include {
-        total_items += remote_includes.iter()
-            .filter(|r| {
-                let should_include = if r.id == "default" {
-                    true
-                } else {
-                    // Since RemoteInclude doesn't have optional field, check if it's in user features
-                    user_enabled_features.contains(&r.id)
-                };
-                debug!("Remote include '{}' (ID: {}) - should_include: {}", r.id, r.id, should_include);
-                should_include
-            })
-            .count();
-    }
-    
+        if let Some(remote_includes) = &installer_profile.manifest.remote_include {
+            total_items += remote_includes.iter()
+                .filter(|r| {
+                    let should_include = if r.id == "default" {
+                        true
+                    } else if !r.optional {  // Now this will work
+                        true
+                    } else {
+                        user_enabled_features.contains(&r.id)
+                    };
+                    debug!("Remote include '{}' (ID: {}) - should_include: {}", r.id, r.id, should_include);
+                    should_include
+                })
+                .count();
+        }
+            
     // Add overhead tasks
     let overhead_tasks = 4;
     total_items += overhead_tasks;
@@ -1804,8 +1812,9 @@ async fn install<F: FnMut() + Clone>(installer_profile: &InstallerProfile, mut p
             // CRITICAL: Check if this remote include should be installed based on USER'S choices
             let should_install = if remote.id == "default" {
                 true
+            } else if !remote.optional {
+                true
             } else {
-                // Since RemoteInclude doesn't have optional field, check user features
                 user_enabled_features.contains(&remote.id)
             };
             
