@@ -836,7 +836,7 @@ pub fn SimplifiedInstallationWizard(props: InstallationCreationProps) -> Element
             debug!("Loading universal manifest...");
             match crate::universal::load_universal_manifest(
                 &crate::CachedHttpClient::new(), 
-                Some("https://raw.githubusercontent.com/Olinus10/installer-test/master/universal.json")
+                Some("https://raw.githubusercontent.com/Wynncraft-Overhaul/majestic-overhaul/master/universal.json")
             ).await {
                 Ok(manifest) => {
                     debug!("Successfully loaded universal manifest: {}", manifest.name);
@@ -854,132 +854,127 @@ pub fn SimplifiedInstallationWizard(props: InstallationCreationProps) -> Element
     });
     
     // Function to create the installation
-let create_installation = move |_| {
-    debug!("Creating installation with name: {}", name.read());
+    let create_installation = move |_| {
+        debug!("Creating installation with name: {}", name.read());
 
-    // Validate name length
-    let installation_name = name.read().trim().to_string();
-    if installation_name.is_empty() {
-        installation_error.set(Some("Installation name cannot be empty.".to_string()));
-        return;
-    }
-    
-    if installation_name.len() > MAX_NAME_LENGTH {
-        installation_error.set(Some(format!("Installation name cannot exceed {} characters.", MAX_NAME_LENGTH)));
-        return;
-    }
-    
-    // Get the universal manifest for Minecraft version and loader information
-    if let Some(unwrapped_manifest) = universal_manifest.read().as_ref().and_then(|opt| opt.as_ref()) {
-        let minecraft_version = unwrapped_manifest.minecraft_version.clone();
-        let loader_type = unwrapped_manifest.loader.r#type.clone();
-        let loader_version = unwrapped_manifest.loader.version.clone();
-        
-        // Create a basic installation with PROPER defaults
-        let mut installation = Installation::new_custom(
-            installation_name.clone(),
-            minecraft_version,
-            loader_type,
-            loader_version,
-            "vanilla".to_string(),
-            unwrapped_manifest.version.clone(),
-        );
-
-        // CRITICAL FIX: Set up proper enabled_features including ALL non-optional components
-        let mut enabled_features = vec!["default".to_string()];
-        
-        // Add all non-optional mods
-        for mod_comp in &unwrapped_manifest.mods {
-            if !mod_comp.optional && mod_comp.id != "default" {
-                enabled_features.push(mod_comp.id.clone());
-                debug!("Added non-optional mod: {}", mod_comp.id);
-            }
-        }
-        
-        // Add all non-optional shaderpacks
-        for shader in &unwrapped_manifest.shaderpacks {
-            if !shader.optional && shader.id != "default" {
-                enabled_features.push(shader.id.clone());
-                debug!("Added non-optional shader: {}", shader.id);
-            }
-        }
-        
-        // Add all non-optional resourcepacks
-        for resource in &unwrapped_manifest.resourcepacks {
-            if !resource.optional && resource.id != "default" {
-                enabled_features.push(resource.id.clone());
-                debug!("Added non-optional resourcepack: {}", resource.id);
-            }
-        }
-        
-        // Add all non-optional includes
-        for include in &unwrapped_manifest.include {
-            if !include.optional && !include.id.is_empty() && include.id != "default" {
-                enabled_features.push(include.id.clone());
-                debug!("Added non-optional include: {}", include.id);
-            }
-        }
-        
-        // Add all non-optional remote includes
-        for remote in &unwrapped_manifest.remote_include {
-            if !remote.optional && remote.id != "default" {
-                enabled_features.push(remote.id.clone());
-                debug!("Added non-optional remote include: {}", remote.id);
-            }
-        }
-        
-        // Set the enabled features
-        installation.enabled_features = enabled_features.clone();
-        
-        // Clear preset info since this is custom
-        installation.base_preset_id = None;
-        installation.base_preset_version = None;
-        installation.custom_features.clear();
-        installation.removed_features.clear();
-
-        // Mark as fresh installation
-        installation.mark_as_fresh();
-        
-        debug!("Created installation with enabled_features: {:?}", installation.enabled_features);
-        
-        // Register the installation
-        if let Err(e) = crate::installation::register_installation(&installation) {
-            error!("Failed to register installation: {}", e);
-            installation_error.set(Some(format!("Failed to register installation: {}", e)));
+        // Validate name length
+        let installation_name = name.read().trim().to_string();
+        if installation_name.is_empty() {
+            installation_error.set(Some("Installation name cannot be empty.".to_string()));
             return;
         }
         
-        // Save the installation
-        if let Err(e) = installation.save() {
-            error!("Failed to save installation: {}", e);
-            installation_error.set(Some(format!("Failed to save installation: {}", e)));
+        if installation_name.len() > MAX_NAME_LENGTH {
+            installation_error.set(Some(format!("Installation name cannot exceed {} characters.", MAX_NAME_LENGTH)));
             return;
         }
         
-        debug!("Successfully created installation: {}", installation.id);
-        debug_installation_state(&installation, "After Creation");
-        
-        // Call the oncreate handler to finalize
-        props.oncreate.call(installation);
-    } else {
-        error!("Universal manifest not available");
-        installation_error.set(Some("Failed to load modpack information. Please try again.".to_string()));
-    }
-};
-    fn debug_installation_state(installation: &crate::installation::Installation, context: &str) {
-    debug!("=== INSTALLATION STATE DEBUG ({}) ===", context);
-    debug!("ID: {}", installation.id);
-    debug!("Name: {}", installation.name);
-    debug!("Installed: {}", installation.installed);
-    debug!("Modified: {}", installation.modified);
-    debug!("Update Available: {}", installation.update_available);
-    debug!("Preset ID: {:?}", installation.base_preset_id);
-    debug!("Preset Version: {:?}", installation.base_preset_version);
-    debug!("Enabled Features: {:?}", installation.enabled_features);
-    debug!("Custom Features: {:?}", installation.custom_features);
-    debug!("Removed Features: {:?}", installation.removed_features);
-    debug!("========================================");
-}
+        // Get the universal manifest for Minecraft version and loader information
+        if let Some(unwrapped_manifest) = universal_manifest.read().as_ref().and_then(|opt| opt.as_ref()) {
+            let minecraft_version = unwrapped_manifest.minecraft_version.clone();
+            let loader_type = unwrapped_manifest.loader.r#type.clone();
+            let loader_version = unwrapped_manifest.loader.version.clone();
+            
+            // Create a basic custom installation with proper defaults
+            let mut installation = Installation::new_custom(
+                installation_name.clone(),
+                minecraft_version,
+                loader_type,
+                loader_version,
+                "vanilla".to_string(),
+                unwrapped_manifest.modpack_version.clone(),
+            );
+
+            // CRITICAL FIX: Initialize with default-enabled features from universal manifest
+            let http_client = crate::CachedHttpClient::new();
+            let unwrapped_manifest_clone = unwrapped_manifest.clone();
+            
+            spawn(async move {
+                // Initialize default features properly
+                let mut default_features = vec!["default".to_string()];
+                
+                // Add all default-enabled components from universal manifest
+                for component in &unwrapped_manifest_clone.mods {
+                    if component.default_enabled && component.id != "default" 
+                       && !default_features.contains(&component.id) {
+                        default_features.push(component.id.clone());
+                        debug!("Added default mod: {}", component.id);
+                    }
+                }
+                
+                for component in &unwrapped_manifest_clone.shaderpacks {
+                    if component.default_enabled && component.id != "default" 
+                       && !default_features.contains(&component.id) {
+                        default_features.push(component.id.clone());
+                        debug!("Added default shaderpack: {}", component.id);
+                    }
+                }
+                
+                for component in &unwrapped_manifest_clone.resourcepacks {
+                    if component.default_enabled && component.id != "default" 
+                       && !default_features.contains(&component.id) {
+                        default_features.push(component.id.clone());
+                        debug!("Added default resourcepack: {}", component.id);
+                    }
+                }
+                
+                for include in &unwrapped_manifest_clone.include {
+                    if include.default_enabled && !include.id.is_empty() && include.id != "default" 
+                       && !default_features.contains(&include.id) {
+                        default_features.push(include.id.clone());
+                        debug!("Added default include: {}", include.id);
+                    }
+                }
+                
+                for remote in &unwrapped_manifest_clone.remote_include {
+                    if remote.default_enabled && remote.id != "default" 
+                       && !default_features.contains(&remote.id) {
+                        default_features.push(remote.id.clone());
+                        debug!("Added default remote include: {}", remote.id);
+                    }
+                }
+                
+                // Set the properly initialized features
+                installation.enabled_features = default_features.clone();
+                
+                // Clear preset info since this is custom
+                installation.base_preset_id = None;
+                installation.base_preset_version = None;
+                installation.custom_features.clear();
+                installation.removed_features.clear();
+
+                // Mark as fresh installation
+                installation.mark_as_fresh();
+                
+                debug!("Created custom installation with features: {:?}", installation.enabled_features);
+                
+                // Register the installation
+                if let Err(e) = crate::installation::register_installation(&installation) {
+                    error!("Failed to register installation: {}", e);
+                    installation_error.set(Some(format!("Failed to register installation: {}", e)));
+                    return;
+                }
+                
+                // Save the installation
+                if let Err(e) = installation.save() {
+                    error!("Failed to save installation: {}", e);
+                    installation_error.set(Some(format!("Failed to save installation: {}", e)));
+                    return;
+                }
+                
+                debug!("Successfully created installation: {}", installation.id);
+                debug!("Installation features: {:?}", installation.enabled_features);
+                debug!("Installation preset: {:?}", installation.base_preset_id);
+                
+                // Call the oncreate handler to finalize
+                props.oncreate.call(installation);
+            });
+        } else {
+            error!("Universal manifest not available");
+            installation_error.set(Some("Failed to load modpack information. Please try again.".to_string()));
+        }
+    };
+    
     rsx! {
         div { class: "wizard-overlay",
             div { class: "installation-wizard",
@@ -1065,6 +1060,14 @@ let create_installation = move |_| {
                                 div { class: "info-item",
                                     span { class: "info-label", "Loader:" }
                                     span { class: "info-value", "{unwrapped_manifest.loader.r#type} {unwrapped_manifest.loader.version}" }
+                                }
+                            }
+                            
+                            // Show what will be included by default
+                            div { class: "default-features-info",
+                                p { class: "info-description", 
+                                    "This will create a custom installation with core components included. "
+                                    "You can customize features after creation."
                                 }
                             }
                         }
