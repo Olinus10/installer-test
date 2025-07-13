@@ -854,88 +854,132 @@ pub fn SimplifiedInstallationWizard(props: InstallationCreationProps) -> Element
     });
     
     // Function to create the installation
-    let create_installation = move |_| {
-        debug!("Creating installation with name: {}", name.read());
+let create_installation = move |_| {
+    debug!("Creating installation with name: {}", name.read());
 
-        fn create_installation_properly(name: String, universal_manifest: &crate::universal::UniversalManifest) -> crate::installation::Installation {
-    let mut installation = crate::installation::Installation::new_custom(
-        name,
-        universal_manifest.minecraft_version.clone(),
-        universal_manifest.loader.r#type.clone(),
-        universal_manifest.loader.version.clone(),
-        "vanilla".to_string(), // or get from config
-        universal_manifest.version.clone(),
-    );
+    // Validate name length
+    let installation_name = name.read().trim().to_string();
+    if installation_name.is_empty() {
+        installation_error.set(Some("Installation name cannot be empty.".to_string()));
+        return;
+    }
+    
+    if installation_name.len() > MAX_NAME_LENGTH {
+        installation_error.set(Some(format!("Installation name cannot exceed {} characters.", MAX_NAME_LENGTH)));
+        return;
+    }
+    
+    // Get the universal manifest for Minecraft version and loader information
+    if let Some(unwrapped_manifest) = universal_manifest.read().as_ref().and_then(|opt| opt.as_ref()) {
+        let minecraft_version = unwrapped_manifest.minecraft_version.clone();
+        let loader_type = unwrapped_manifest.loader.r#type.clone();
+        let loader_version = unwrapped_manifest.loader.version.clone();
+        
+        // Create a basic installation with PROPER defaults
+        let mut installation = Installation::new_custom(
+            installation_name.clone(),
+            minecraft_version,
+            loader_type,
+            loader_version,
+            "vanilla".to_string(),
+            unwrapped_manifest.version.clone(),
+        );
 
-    // Important: Mark as fresh installation
-    installation.mark_as_fresh();
-    
-    // Set minimal features for fresh installation
-    installation.enabled_features = vec!["default".to_string()];
-    
-    installation
+        // CRITICAL FIX: Set up proper enabled_features including ALL non-optional components
+        let mut enabled_features = vec!["default".to_string()];
+        
+        // Add all non-optional mods
+        for mod_comp in &unwrapped_manifest.mods {
+            if !mod_comp.optional && mod_comp.id != "default" {
+                enabled_features.push(mod_comp.id.clone());
+                debug!("Added non-optional mod: {}", mod_comp.id);
+            }
+        }
+        
+        // Add all non-optional shaderpacks
+        for shader in &unwrapped_manifest.shaderpacks {
+            if !shader.optional && shader.id != "default" {
+                enabled_features.push(shader.id.clone());
+                debug!("Added non-optional shader: {}", shader.id);
+            }
+        }
+        
+        // Add all non-optional resourcepacks
+        for resource in &unwrapped_manifest.resourcepacks {
+            if !resource.optional && resource.id != "default" {
+                enabled_features.push(resource.id.clone());
+                debug!("Added non-optional resourcepack: {}", resource.id);
+            }
+        }
+        
+        // Add all non-optional includes
+        for include in &unwrapped_manifest.include {
+            if !include.optional && !include.id.is_empty() && include.id != "default" {
+                enabled_features.push(include.id.clone());
+                debug!("Added non-optional include: {}", include.id);
+            }
+        }
+        
+        // Add all non-optional remote includes
+        for remote in &unwrapped_manifest.remote_include {
+            if !remote.optional && remote.id != "default" {
+                enabled_features.push(remote.id.clone());
+                debug!("Added non-optional remote include: {}", remote.id);
+            }
+        }
+        
+        // Set the enabled features
+        installation.enabled_features = enabled_features.clone();
+        
+        // Clear preset info since this is custom
+        installation.base_preset_id = None;
+        installation.base_preset_version = None;
+        installation.custom_features.clear();
+        installation.removed_features.clear();
+
+        // Mark as fresh installation
+        installation.mark_as_fresh();
+        
+        debug!("Created installation with enabled_features: {:?}", installation.enabled_features);
+        
+        // Register the installation
+        if let Err(e) = crate::installation::register_installation(&installation) {
+            error!("Failed to register installation: {}", e);
+            installation_error.set(Some(format!("Failed to register installation: {}", e)));
+            return;
+        }
+        
+        // Save the installation
+        if let Err(e) = installation.save() {
+            error!("Failed to save installation: {}", e);
+            installation_error.set(Some(format!("Failed to save installation: {}", e)));
+            return;
+        }
+        
+        debug!("Successfully created installation: {}", installation.id);
+        debug_installation_state(&installation, "After Creation");
+        
+        // Call the oncreate handler to finalize
+        props.oncreate.call(installation);
+    } else {
+        error!("Universal manifest not available");
+        installation_error.set(Some("Failed to load modpack information. Please try again.".to_string()));
+    }
+};
+    fn debug_installation_state(installation: &crate::installation::Installation, context: &str) {
+    debug!("=== INSTALLATION STATE DEBUG ({}) ===", context);
+    debug!("ID: {}", installation.id);
+    debug!("Name: {}", installation.name);
+    debug!("Installed: {}", installation.installed);
+    debug!("Modified: {}", installation.modified);
+    debug!("Update Available: {}", installation.update_available);
+    debug!("Preset ID: {:?}", installation.base_preset_id);
+    debug!("Preset Version: {:?}", installation.base_preset_version);
+    debug!("Enabled Features: {:?}", installation.enabled_features);
+    debug!("Custom Features: {:?}", installation.custom_features);
+    debug!("Removed Features: {:?}", installation.removed_features);
+    debug!("========================================");
 }
-        
-        // Validate name length
-        let installation_name = name.read().trim().to_string();
-        if installation_name.is_empty() {
-            installation_error.set(Some("Installation name cannot be empty.".to_string()));
-            return;
-        }
-        
-        if installation_name.len() > MAX_NAME_LENGTH {
-            installation_error.set(Some(format!("Installation name cannot exceed {} characters.", MAX_NAME_LENGTH)));
-            return;
-        }
-        
-        // Get the universal manifest for Minecraft version and loader information
-        if let Some(unwrapped_manifest) = universal_manifest.read().as_ref().and_then(|opt| opt.as_ref()) {
-            let minecraft_version = unwrapped_manifest.minecraft_version.clone();
-            let loader_type = unwrapped_manifest.loader.r#type.clone();
-            let loader_version = unwrapped_manifest.loader.version.clone();
-            
-// Create a basic installation with minimal features
-let mut installation = Installation::new_custom(
-    installation_name.clone(),
-    minecraft_version,
-    loader_type,
-    loader_version,
-    "vanilla".to_string(),
-    unwrapped_manifest.version.clone(),
-);
-
-// Clear and set minimal features - ONLY default
-installation.enabled_features = vec!["default".to_string()];
-installation.base_preset_id = None;
-installation.base_preset_version = None;
-
-// Mark as fresh installation
-installation.mark_as_fresh();
-            
-            // Register the installation
-            if let Err(e) = crate::installation::register_installation(&installation) {
-                error!("Failed to register installation: {}", e);
-                installation_error.set(Some(format!("Failed to register installation: {}", e)));
-                return;
-            }
-            
-            // Save the installation
-            if let Err(e) = installation.save() {
-                error!("Failed to save installation: {}", e);
-                installation_error.set(Some(format!("Failed to save installation: {}", e)));
-                return;
-            }
-            
-            debug!("Successfully created installation: {}", installation.id);
-            
-            // Call the oncreate handler to finalize
-            props.oncreate.call(installation);
-        } else {
-            error!("Universal manifest not available");
-            installation_error.set(Some("Failed to load modpack information. Please try again.".to_string()));
-        }
-    };
-    
     rsx! {
         div { class: "wizard-overlay",
             div { class: "installation-wizard",
@@ -1271,69 +1315,74 @@ let mut proceed_with_update = {
                         }
                     };
                     
-                    match installation_clone.install_or_update_with_progress(&http_client, progress_callback).await {
-                        Ok(_) => {
-                            // CRITICAL FIX: Ensure we show 100% completion
-                            progress.set(*total.read()); // Set to actual total
-                            status.set("Installation completed successfully!".to_string());
-                            
-                            debug!("Installation completed, progress: {}/{}", *progress.read(), *total.read());
-                            
-                            // Mark as installed and update version
-                            installation_clone.installed = true;
-                            installation_clone.update_available = false;
-                            installation_clone.preset_update_available = false;
-                            installation_clone.modified = false;
-                            
-                            // Update the universal version to the newly installed version
-                            if let Ok(manifest) = crate::universal::load_universal_manifest(&http_client, None).await {
-                                installation_clone.universal_version = manifest.modpack_version;
-                            }
-                            
-                            // Update preset version if it was updated
-                            if let Some(base_preset_id) = &installation_clone.base_preset_id {
-                                if let Ok(presets) = crate::preset::load_presets(&http_client, None).await {
-                                    if let Some(preset) = presets.iter().find(|p| p.id == *base_preset_id) {
-                                        installation_clone.base_preset_version = preset.preset_version.clone();
-                                    }
-                                }
-                            }
-                            
-                            // Save the installation
-                            if let Err(e) = installation_clone.save() {
-                                error!("Failed to save installation: {}", e);
-                                installation_error_clone.set(Some(format!("Failed to save installation: {}", e)));
-                            } else {
-                                // Update installation state
-                                installation_state.set(installation_clone.clone());
-                                
-                                // Update the installations list
-                                installations.with_mut(|list| {
-                                    if let Some(index) = list.iter().position(|i| i.id == installation_id) {
-                                        list[index] = installation_clone;
-                                    }
-                                });
-                                
-                                // Clear modification flags
-                                has_changes_clone.set(false);
-                                features_modified_clone.set(false);
-                                performance_modified_clone.set(false);
-                                
-                                debug!("Installation state updated successfully");
-                            }
-                            
-                            // Wait a moment to show completion, then close
-                            tokio::time::sleep(tokio::time::Duration::from_millis(1000)).await;
-                            debug!("Closing progress window");
-                            is_installing_clone.set(false);
-                        },
-                        Err(e) => {
-                            error!("Installation failed: {}", e);
-                            installation_error_clone.set(Some(format!("Installation failed: {}", e)));
-                            status.set("Installation failed!".to_string());
-                            // Don't auto-close on failure - user needs to see the error
-                        }
-                    }
+match installation_clone.install_or_update_with_progress(&http_client, progress_callback).await {
+    Ok(_) => {
+        // CRITICAL: Set progress to actual completion
+        progress.set(*total.read());
+        status.set("Installation completed successfully!".to_string());
+        
+        debug!("Installation completed, progress: {}/{}", *progress.read(), *total.read());
+        
+        // Mark as installed and update version
+        installation_clone.installed = true;
+        installation_clone.update_available = false;
+        installation_clone.preset_update_available = false;
+        installation_clone.modified = false;
+        
+        // CRITICAL: Update the universal version to the newly installed version
+        if let Ok(manifest) = crate::universal::load_universal_manifest(&http_client, None).await {
+            installation_clone.universal_version = manifest.modpack_version;
+        }
+        
+        // CRITICAL: Preserve the user's enabled features and preset selection
+        installation_clone.enabled_features = enabled_features.read().clone();
+        
+        // Update preset version if it was updated
+        if let Some(base_preset_id) = &installation_clone.base_preset_id {
+            if let Ok(presets) = crate::preset::load_presets(&http_client, None).await {
+                if let Some(preset) = presets.iter().find(|p| p.id == *base_preset_id) {
+                    installation_clone.base_preset_version = preset.preset_version.clone();
+                }
+            }
+        }
+        
+        // Save the installation BEFORE updating UI state
+        if let Err(e) = installation_clone.save() {
+            error!("Failed to save installation: {}", e);
+            installation_error_clone.set(Some(format!("Failed to save installation: {}", e)));
+        } else {
+            debug!("Successfully saved installation state");
+            
+            // ONLY update UI state after successful save
+            installation_state.set(installation_clone.clone());
+            
+            // Update the installations list
+            installations.with_mut(|list| {
+                if let Some(index) = list.iter().position(|i| i.id == installation_id) {
+                    list[index] = installation_clone;
+                }
+            });
+            
+            // Clear modification flags
+            has_changes_clone.set(false);
+            features_modified_clone.set(false);
+            performance_modified_clone.set(false);
+            
+            debug!("Installation state updated successfully");
+        }
+        
+        // Wait a moment to show completion, then close
+        tokio::time::sleep(tokio::time::Duration::from_millis(1000)).await;
+        debug!("Closing progress window");
+        is_installing_clone.set(false);
+    },
+    Err(e) => {
+        error!("Installation failed: {}", e);
+        installation_error_clone.set(Some(format!("Installation failed: {}", e)));
+        status.set("Installation failed!".to_string());
+        // Don't auto-close on failure
+    }
+}
                 },
                 Err(e) => {
                     error!("Failed to load manifest: {}", e);
