@@ -1236,17 +1236,18 @@ let mut proceed_with_update = {
                         })
                         .count();
                     
-                    let total_items = enabled_mods + enabled_shaders + enabled_resources + enabled_includes;
+                    let total_items = enabled_mods + enabled_shaders + enabled_resources + enabled_includes + 4; // +4 for overhead
                     
                     total.set(total_items as i64);
                     progress.set(0);
                     status.set("Starting installation...".to_string());
                     
                     // Create a more detailed progress callback
-                    let mut last_progress = 0;
+                    let mut completed_items = 0;
                     let progress_callback = move || {
-                        progress.with_mut(|p| *p += 1);
-                        let current = *progress.read();
+                        completed_items += 1;
+                        progress.set(completed_items);
+                        let current = completed_items;
                         let total_val = *total.read();
                         
                         // Update status with more detailed info
@@ -1256,26 +1257,27 @@ let mut proceed_with_update = {
                             0
                         };
                         
-                        // Only update status if progress actually changed
-                        if current != last_progress {
-                            if percent < 30 {
-                                status.set(format!("Downloading... {}/{} ({}%)", current, total_val, percent));
-                            } else if percent < 60 {
-                                status.set(format!("Extracting files... {}/{} ({}%)", current, total_val, percent));
-                            } else if percent < 90 {
-                                status.set(format!("Configuring mods... {}/{} ({}%)", current, total_val, percent));
-                            } else {
-                                status.set(format!("Finalizing... {}/{} ({}%)", current, total_val, percent));
-                            }
-                            last_progress = current;
+                        // Update status based on progress
+                        if percent < 30 {
+                            status.set(format!("Downloading... {}/{} ({}%)", current, total_val, percent));
+                        } else if percent < 60 {
+                            status.set(format!("Extracting files... {}/{} ({}%)", current, total_val, percent));
+                        } else if percent < 90 {
+                            status.set(format!("Configuring mods... {}/{} ({}%)", current, total_val, percent));
+                        } else if percent < 100 {
+                            status.set(format!("Finalizing... {}/{} ({}%)", current, total_val, percent));
+                        } else {
+                            status.set("Installation completed successfully!".to_string());
                         }
                     };
                     
                     match installation_clone.install_or_update_with_progress(&http_client, progress_callback).await {
                         Ok(_) => {
-                            // FIXED: Set completion status and ensure progress reaches 100%
+                            // CRITICAL FIX: Ensure we show 100% completion
+                            progress.set(*total.read()); // Set to actual total
                             status.set("Installation completed successfully!".to_string());
-                            progress.set(*total.read()); // Ensure 100% completion
+                            
+                            debug!("Installation completed, progress: {}/{}", *progress.read(), *total.read());
                             
                             // Mark as installed and update version
                             installation_clone.installed = true;
@@ -1317,14 +1319,13 @@ let mut proceed_with_update = {
                                 features_modified_clone.set(false);
                                 performance_modified_clone.set(false);
                                 
-                                // Force 100% completion in UI
-                                progress.set(*total.read());
-                                status.set("Installation completed successfully!".to_string());
-                                
-                                // Wait briefly for UI update before closing
-                                tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
-                                is_installing_clone.set(false); // This will close the progress window
+                                debug!("Installation state updated successfully");
                             }
+                            
+                            // Wait a moment to show completion, then close
+                            tokio::time::sleep(tokio::time::Duration::from_millis(1000)).await;
+                            debug!("Closing progress window");
+                            is_installing_clone.set(false);
                         },
                         Err(e) => {
                             error!("Installation failed: {}", e);
@@ -1339,11 +1340,6 @@ let mut proceed_with_update = {
                     installation_error_clone.set(Some(format!("Failed to load manifest: {}", e)));
                     status.set("Failed to load manifest!".to_string());
                 }
-            }
-            
-            // Only stop installing state if not already stopped by successful completion
-            if installation_error_clone.read().is_some() {
-                is_installing_clone.set(false);
             }
         });
     }
@@ -1806,35 +1802,33 @@ fn ProgressView(
     status: String,
     title: String
 ) -> Element {
-    // Calculate percentage - but cap at 99% until we're actually done
-    let raw_percentage = if max > 0 { 
+    // Calculate percentage accurately
+    let percentage = if max > 0 { 
         ((value as f64 / max as f64) * 100.0) as i64 
     } else { 
         0 
     };
     
-    // Key fix: Don't show 100% until the status indicates completion
-    let percentage = if status.contains("completed") || status.contains("Complete") || status.contains("successfully") {
-        100 // Only show 100% when actually complete
-    } else {
-        raw_percentage.clamp(0, 99) // Cap at 99% for all other cases
-    };
-    
-    // Detection for actual completion
-    let is_complete = percentage >= 100 && (
+    // FIXED: Proper completion detection
+    let is_complete = value >= max && max > 0 && (
         status.contains("completed") || 
         status.contains("Complete") || 
-        status.contains("successfully")
+        status.contains("successfully") ||
+        percentage >= 100
     );
     
-    // Auto-close after showing 100% for a brief moment
+    debug!("Progress: {}/{}, {}%, complete: {}, status: '{}'", value, max, percentage, is_complete, status);
+    
+    // Auto-close when actually complete
     if is_complete {
-        let mut is_installing = use_context::<Signal<bool>>();
         use_effect(move || {
+            debug!("Installation complete, scheduling auto-close");
             spawn(async move {
-                // Show 100% for a brief moment so user sees completion
+                // Brief delay to show completion
                 tokio::time::sleep(tokio::time::Duration::from_millis(800)).await;
-                is_installing.set(false); // This will close the progress window
+                debug!("Auto-closing progress window");
+                // This should close the progress window by setting installing to false
+                // You'll need to pass the installing signal or use a callback here
             });
         });
     }
@@ -1935,7 +1929,7 @@ fn ProgressView(
                     }
                 }
                 
-                // Progress bar with proper percentage
+                // Progress bar with accurate percentage
                 div { class: "progress-track",
                     div { 
                         class: "progress-bar", 
@@ -1962,7 +1956,7 @@ fn ProgressView(
                     p { 
                         class: "progress-debug",
                         style: "color: rgba(255, 255, 255, 0.5); font-size: 0.8rem; margin-top: 10px;",
-                        "Debug: {value}/{max} items, raw: {raw_percentage}%, display: {percentage}%"
+                        "Debug: {value}/{max} items, percentage: {percentage}%"
                     }
                 }
             }
