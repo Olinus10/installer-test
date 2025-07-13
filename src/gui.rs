@@ -1533,16 +1533,20 @@ rsx! {
     div { 
         class: "installation-management-container installation-page",
             // Show progress view if installing
-            if *is_installing.read() {
-    div { class: "installation-page",
-        ProgressView {
-            value: *installation_progress.read(),
-            max: *installation_total.read(),
-            status: installation_status.read().clone(),
-            title: format!("Installing {}", installation.name)
-        }
-    }
-} else {
+                if *is_installing.read() {
+                    div { class: "installation-page",
+                        ProgressView {
+                            value: *installation_progress.read(),
+                            max: *installation_total.read(),
+                            status: installation_status.read().clone(),
+                            title: format!("Installing {}", installation.name),
+                            on_complete: Some(EventHandler::new(move |_| {
+                                debug!("Progress view signaled completion");
+                                is_installing.set(false);
+                            }))
+                        }
+                    }
+                } else {
                 // Modern unified header
                 header { class: "modern-header",
                     div { class: "header-left",
