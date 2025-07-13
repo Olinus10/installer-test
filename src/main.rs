@@ -1619,7 +1619,7 @@ async fn install<F: FnMut() + Clone>(installer_profile: &InstallerProfile, mut p
     
     // Create a progress callback that tracks download items
     let mut items_completed = 0;
-    let download_progress_callback = {
+    let mut download_progress_callback = {
         let mut progress_callback = progress_callback.clone();
         move || {
             items_completed += 1;
