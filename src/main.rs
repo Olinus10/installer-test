@@ -1538,9 +1538,8 @@ async fn install<F: FnMut() + Clone>(installer_profile: &InstallerProfile, mut p
             .filter(|r| {
                 let should_include = if r.id == "default" {
                     true
-                } else if !r.optional {
-                    true
                 } else {
+                    // Since RemoteInclude doesn't have optional field, check if it's in user features
                     user_enabled_features.contains(&r.id)
                 };
                 debug!("Remote include '{}' (ID: {}) - should_include: {}", r.id, r.id, should_include);
@@ -1611,11 +1610,11 @@ async fn install<F: FnMut() + Clone>(installer_profile: &InstallerProfile, mut p
     };
     
     // Create a progress callback that tracks download items
-    let mut download_progress = 0;
+    let mut items_completed = 0;
     let download_progress_callback = {
         let mut progress_callback = progress_callback.clone();
         move || {
-            download_progress += 1;
+            items_completed += 1;
             progress_callback();
         }
     };
@@ -1805,9 +1804,8 @@ async fn install<F: FnMut() + Clone>(installer_profile: &InstallerProfile, mut p
             // CRITICAL: Check if this remote include should be installed based on USER'S choices
             let should_install = if remote.id == "default" {
                 true
-            } else if !remote.optional {
-                true
             } else {
+                // Since RemoteInclude doesn't have optional field, check user features
                 user_enabled_features.contains(&remote.id)
             };
             
@@ -1944,7 +1942,9 @@ async fn install<F: FnMut() + Clone>(installer_profile: &InstallerProfile, mut p
         loader_future.unwrap().await;
     }
 
-    progress_callback(); // Overhead task 4
+    progress_callback(); // Overhead task 4 - FINAL PROGRESS UPDATE
+
+    debug!("All installation tasks completed, updating installation state...");
 
     // FINAL STEP: Mark installation as complete and update installation state
     if let Ok(mut installation) = crate::installation::load_installation(&installer_profile.manifest.uuid) {
