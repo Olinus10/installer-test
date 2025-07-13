@@ -1335,7 +1335,7 @@ match installation_clone.install_or_update_with_progress(&http_client, progress_
         }
         
         // CRITICAL: Preserve the user's enabled features and preset selection
-        installation_clone.enabled_features = enabled_features.read().clone();
+        installation_clone.enabled_features = enabled_features.clone();
         
         // Update preset version if it was updated
         if let Some(base_preset_id) = &installation_clone.base_preset_id {
