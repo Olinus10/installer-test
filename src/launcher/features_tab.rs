@@ -156,12 +156,13 @@ pub fn FeaturesTab(
     // Clone presets again for toggle_feature
     let presets_for_toggle = presets.clone();
     
-    // Enhanced toggle_feature with better preset tracking
+    // FIXED: Enhanced toggle_feature that properly updates the installation
     let toggle_feature = move |feature_id: String| {
         debug!("Toggling feature: {}", feature_id);
         
         let manifest_for_deps = universal_manifest_for_toggle.clone();
         
+        // Update the enabled_features signal
         enabled_features.with_mut(|features| {
             let is_enabling = !features.contains(&feature_id);
             
@@ -218,8 +219,9 @@ pub fn FeaturesTab(
             }
         });
     
-        // Update installation with new feature state and track custom changes
+        // CRITICAL FIX: Update installation with new feature state immediately
         if let Ok(mut installation) = crate::installation::load_installation(&installation_id_for_toggle) {
+            // Update the installation's enabled features to match the UI
             installation.enabled_features = enabled_features.read().clone();
             installation.modified = true;
             
@@ -253,9 +255,7 @@ pub fn FeaturesTab(
                 }
             }
             
-            // Note: We keep the preset selection even when user modifies features
-            // This allows us to track that they started with a preset but customized it
-            
+            // Save the installation immediately
             if let Err(e) = installation.save() {
                 error!("Failed to save installation after feature toggle: {}", e);
             } else {
@@ -484,7 +484,7 @@ pub fn FeaturesTab(
                                     p { "{preset.description}" }
                                 }
                                 
-                                // Select/Selected button with comprehensive inline styling
+                                // Select/Selected button
                                 button {
                                     class: "select-preset-button",
                                     style: {
@@ -605,266 +605,8 @@ pub fn FeaturesTab(
                     // Features content - only render if we have a universal manifest
                     {
                         if let Some(manifest) = &universal_manifest {
-                            // Get all optional mods for the main categories
-                            let optional_mods: Vec<ModComponent> = manifest.mods.iter()
-                                .filter(|m| m.optional)
-                                .cloned()
-                                .collect();
-                            
-                            let optional_shaderpacks: Vec<ModComponent> = manifest.shaderpacks.iter()
-                                .filter(|m| m.optional)
-                                .cloned()
-                                .collect();
-                            
-                            let optional_resourcepacks: Vec<ModComponent> = manifest.resourcepacks.iter()
-                                .filter(|m| m.optional)
-                                .cloned()
-                                .collect();
-                            
-                            // Get optional includes - use their actual category if present
-                            let optional_includes: Vec<IncludeComponent> = manifest.include.iter()
-                                .filter(|i| i.optional && !i.id.is_empty())
-                                .cloned()
-                                .collect();
-                            
-                            // Get optional remote includes - use their actual category
-                            let optional_remote_includes: Vec<crate::universal::RemoteIncludeComponent> = manifest.remote_include.iter()
-                                .filter(|r| r.optional)
-                                .cloned()
-                                .collect();
-                            
-                            // Combine all optional components with proper categorization
-                            let mut all_components = Vec::new();
-                            all_components.extend(optional_mods);
-                            all_components.extend(optional_shaderpacks);
-                            all_components.extend(optional_resourcepacks);
-                            
-                            // Convert optional includes to components using their actual categories
-                            for include in &optional_includes {
-                                // For includes, use a sensible default category if none provided
-                                let category = if include.location.contains("config") {
-                                    "Configuration".to_string()
-                                } else if include.location.ends_with(".txt") {
-                                    "Settings".to_string()
-                                } else {
-                                    "Customization".to_string()
-                                };
-                                
-                                all_components.push(ModComponent {
-                                    id: include.id.clone(),
-                                    name: include.name.clone().unwrap_or_else(|| include.location.clone()),
-                                    description: Some(format!("Configuration: {}", include.location)),
-                                    source: "include".to_string(),
-                                    location: include.location.clone(),
-                                    version: "1.0".to_string(),
-                                    path: None,
-                                    optional: include.optional,
-                                    default_enabled: include.default_enabled,
-                                    authors: include.authors.clone().unwrap_or_default(),
-                                    category: Some(category),
-                                    dependencies: None,
-                                    incompatibilities: None,
-                                    ignore_update: include.ignore_update,
-                                });
-                            }
-                            
-                            // Convert optional remote includes to components using their actual categories
-                            for remote in &optional_remote_includes {
-                                all_components.push(ModComponent {
-                                    id: remote.id.clone(),
-                                    name: remote.name.clone().unwrap_or_else(|| remote.id.clone()),
-                                    description: remote.description.clone(),
-                                    source: "remote_include".to_string(),
-                                    location: remote.location.clone(),
-                                    version: remote.version.clone(),
-                                    path: remote.path.as_ref().map(|p| std::path::PathBuf::from(p)),
-                                    optional: remote.optional,
-                                    default_enabled: remote.default_enabled,
-                                    authors: remote.authors.clone(),
-                                    category: remote.category.clone(), // Use the actual category from manifest
-                                    dependencies: remote.dependencies.clone(),
-                                    incompatibilities: None,
-                                    ignore_update: remote.ignore_update,
-                                });
-                            }
-                            
-                            // Get included (default/non-optional) components
-                            let included_mods: Vec<ModComponent> = manifest.mods.iter()
-                                .filter(|m| m.default_enabled || !m.optional)
-                                .cloned()
-                                .collect();
-                                
-                            let included_shaderpacks: Vec<ModComponent> = manifest.shaderpacks.iter()
-                                .filter(|m| m.default_enabled || !m.optional)
-                                .cloned()
-                                .collect();
-                                
-                            let included_resourcepacks: Vec<ModComponent> = manifest.resourcepacks.iter()
-                                .filter(|m| m.default_enabled || !m.optional)
-                                .cloned()
-                                .collect();
-                            
-                            // Add default/non-optional includes to included components
-                            let mut included_components = Vec::new();
-                            included_components.extend(included_mods);
-                            included_components.extend(included_shaderpacks);
-                            included_components.extend(included_resourcepacks);
-                            
-                            // Add non-optional includes
-                            for include in &manifest.include {
-                                if !include.optional || include.default_enabled {
-                                    included_components.push(ModComponent {
-                                        id: if include.id.is_empty() { "default".to_string() } else { include.id.clone() },
-                                        name: include.name.clone().unwrap_or_else(|| include.location.clone()),
-                                        description: Some(format!("Include: {}", include.location)),
-                                        source: "include".to_string(),
-                                        location: include.location.clone(),
-                                        version: "1.0".to_string(),
-                                        path: None,
-                                        optional: include.optional,
-                                        default_enabled: include.default_enabled,
-                                        authors: include.authors.clone().unwrap_or_default(),
-                                        category: Some("Configuration".to_string()),
-                                        dependencies: None,
-                                        incompatibilities: None,
-                                        ignore_update: include.ignore_update,
-                                    });
-                                }
-                            }
-                            
-                            // Add non-optional remote includes
-                            for remote in &manifest.remote_include {
-                                if !remote.optional || remote.default_enabled {
-                                    included_components.push(ModComponent {
-                                        id: remote.id.clone(),
-                                        name: remote.name.clone().unwrap_or_else(|| remote.id.clone()),
-                                        description: remote.description.clone(),
-                                        source: "remote_include".to_string(),
-                                        location: remote.location.clone(),
-                                        version: remote.version.clone(),
-                                        path: remote.path.as_ref().map(|p| std::path::PathBuf::from(p)),
-                                        optional: remote.optional,
-                                        default_enabled: remote.default_enabled,
-                                        authors: remote.authors.clone(),
-                                        category: remote.category.clone(),
-                                        dependencies: remote.dependencies.clone(),
-                                        incompatibilities: None,
-                                        ignore_update: remote.ignore_update,
-                                    });
-                                }
-                            }
-                            
-                            // Create a signal to track if included section is expanded
-                            let mut included_expanded = use_signal(|| false);
-                            
-                            rsx! {
-                                // First render the included features section if there are any
-                                if !included_components.is_empty() {
-                                    // Included Features Section (expandable)
-                                    div { class: "feature-category",
-                                        // Category header - clickable
-                                        div { 
-                                            class: "category-header",
-                                            onclick: move |_| {
-                                                included_expanded.with_mut(|expanded| *expanded = !*expanded);
-                                            },
-                                            
-                                            div { class: "category-title-section",
-                                                h3 { class: "category-name", "INCLUDED MODS" }
-                                                span { class: "category-count included-count", 
-                                                    "{included_components.len()} included" 
-                                                }
-                                            }
-                                            
-                                            // Expand/collapse indicator
-                                            div { 
-                                                class: if *included_expanded.read() {
-                                                    "category-toggle-indicator expanded"
-                                                } else {
-                                                    "category-toggle-indicator"
-                                                },
-                                                "▼"
-                                            }
-                                        }
-                                        
-                                        // Category content (expandable)
-                                        div { 
-                                            class: if *included_expanded.read() {
-                                                "category-content expanded"
-                                            } else {
-                                                "category-content"
-                                            },
-                                            
-                                            // Feature cards grid
-                                            div { class: "feature-cards-grid",
-                                                for component in included_components {
-                                                    {
-                                                        let component_id = component.id.clone();
-                                                        
-                                                        rsx! {
-                                                            div { 
-                                                                class: "feature-card feature-included",
-                                                                
-                                                                div { class: "feature-card-header",
-                                                                    h3 { class: "feature-card-title", "{component.name}" }
-                                                                    
-                                                                    span {
-                                                                        class: "feature-toggle-button included-component",
-                                                                        "Included"
-                                                                    }
-                                                                }
-                                                                
-                                                                // Description display
-                                                                if let Some(description) = &component.description {
-                                                                    div { class: "feature-card-description", "{description}" }
-                                                                }
-                                                                
-                                                                // Dependencies display
-                                                                if let Some(deps) = &component.dependencies {
-                                                                    if !deps.is_empty() {
-                                                                        div { class: "feature-dependencies",
-                                                                            "Requires: ", 
-                                                                            span { class: "dependency-list", 
-                                                                                {deps.join(", ")}
-                                                                            }
-                                                                        }
-                                                                    }
-                                                                }
-                                                                
-                                                                // Authors display (credits)
-                                                                if !component.authors.is_empty() {
-                                                                    div { class: "feature-authors",
-                                                                        "By: ",
-                                                                        for (i, author) in component.authors.iter().enumerate() {
-                                                                            {
-                                                                                let is_last = i == component.authors.len() - 1;
-                                                                                rsx! {
-                                                                                    a {
-                                                                                        class: "author-link",
-                                                                                        href: "{author.link}",
-                                                                                        target: "_blank",
-                                                                                        "{author.name}"
-                                                                                    }
-                                                                                    if !is_last {
-                                                                                        ", "
-                                                                                    }
-                                                                                }
-                                                                            }
-                                                                        }
-                                                                    }
-                                                                }
-                                                            }
-                                                        }
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                                
-                                // Then add the regular features by category
-                                {render_features_by_category(all_components, enabled_features.clone(), filter_text.clone(), toggle_feature, manifest.include.clone(), manifest.remote_include.clone())}
-                            }
+                            // FIXED: Proper separation of included vs optional features
+                            {render_features_properly(manifest, enabled_features.clone(), filter_text.clone(), toggle_feature)}
                         } else {
                             rsx! {
                                 div { class: "loading-container",
