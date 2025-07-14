@@ -591,9 +591,9 @@ fn render_all_features_sections(
                     // Better name extraction
                     remote.id.replace('_', " ").replace('-', " ")
                 }),
-                description: remote.description.clone().unwrap_or_else(|| {
-                    format!("Remote content: {}", remote.location)
-                }),
+description: remote.description.clone().or_else(|| {
+    Some(format!("Remote content: {}", remote.location))
+}),
                 source: "remote_include".to_string(),
                 location: remote.location.clone(),
                 version: remote.version.clone(),
