@@ -890,63 +890,18 @@ pub fn SimplifiedInstallationWizard(props: InstallationCreationProps) -> Element
             let unwrapped_manifest_clone = unwrapped_manifest.clone();
             
             spawn(async move {
-                // Initialize default features properly
-                let mut default_features = vec!["default".to_string()];
-                
-                // Add all default-enabled components from universal manifest
-                for component in &unwrapped_manifest_clone.mods {
-                    if component.default_enabled && component.id != "default" 
-                       && !default_features.contains(&component.id) {
-                        default_features.push(component.id.clone());
-                        debug!("Added default mod: {}", component.id);
-                    }
+                // Use the new initialization method instead of duplicating the logic
+                if let Err(e) = installation.initialize_with_universal_defaults(&http_client).await {
+                    error!("Failed to initialize default features: {}", e);
+                    installation_error.set(Some(format!("Failed to initialize features: {}", e)));
+                    return;
                 }
                 
-                for component in &unwrapped_manifest_clone.shaderpacks {
-                    if component.default_enabled && component.id != "default" 
-                       && !default_features.contains(&component.id) {
-                        default_features.push(component.id.clone());
-                        debug!("Added default shaderpack: {}", component.id);
-                    }
-                }
-                
-                for component in &unwrapped_manifest_clone.resourcepacks {
-                    if component.default_enabled && component.id != "default" 
-                       && !default_features.contains(&component.id) {
-                        default_features.push(component.id.clone());
-                        debug!("Added default resourcepack: {}", component.id);
-                    }
-                }
-                
-                for include in &unwrapped_manifest_clone.include {
-                    if include.default_enabled && !include.id.is_empty() && include.id != "default" 
-                       && !default_features.contains(&include.id) {
-                        default_features.push(include.id.clone());
-                        debug!("Added default include: {}", include.id);
-                    }
-                }
-                
-                for remote in &unwrapped_manifest_clone.remote_include {
-                    if remote.default_enabled && remote.id != "default" 
-                       && !default_features.contains(&remote.id) {
-                        default_features.push(remote.id.clone());
-                        debug!("Added default remote include: {}", remote.id);
-                    }
-                }
-                
-                // Set the properly initialized features
-                installation.enabled_features = default_features.clone();
-                
-                // Clear preset info since this is custom
-                installation.base_preset_id = None;
-                installation.base_preset_version = None;
-                installation.custom_features.clear();
-                installation.removed_features.clear();
-
                 // Mark as fresh installation
                 installation.mark_as_fresh();
                 
                 debug!("Created custom installation with features: {:?}", installation.enabled_features);
+                debug!("Installation preset: {:?}", installation.base_preset_id);
                 
                 // Register the installation
                 if let Err(e) = crate::installation::register_installation(&installation) {
@@ -963,8 +918,6 @@ pub fn SimplifiedInstallationWizard(props: InstallationCreationProps) -> Element
                 }
                 
                 debug!("Successfully created installation: {}", installation.id);
-                debug!("Installation features: {:?}", installation.enabled_features);
-                debug!("Installation preset: {:?}", installation.base_preset_id);
                 
                 // Call the oncreate handler to finalize
                 props.oncreate.call(installation);
