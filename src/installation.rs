@@ -447,7 +447,7 @@ impl Installation {
         
         // Store previous state for comparison
         let previous_features = self.enabled_features.clone();
-        let _previous_preset = self.base_preset_id.clone();
+        let previous_preset = self.base_preset_id.clone();
         
         // Apply the preset
         self.base_preset_id = Some(preset.id.clone());
@@ -470,6 +470,8 @@ impl Installation {
         }
         
         debug!("Applied preset - features changed from {:?} to {:?}", previous_features, self.enabled_features);
+        debug!("Preset tracking: base_preset_id = {:?}, base_preset_version = {:?}", 
+               self.base_preset_id, self.base_preset_version);
     }
 
     // Method to switch to custom configuration
@@ -492,6 +494,7 @@ impl Installation {
         self.modified = true;
         
         debug!("Switched to custom - current features: {:?}", self.enabled_features);
+        debug!("Preset tracking cleared: base_preset_id = None");
     }
 
     // Method to track individual feature changes
@@ -507,7 +510,7 @@ impl Installation {
             self.enabled_features.retain(|id| id != feature_id);
         }
         
-        // Track changes relative to base preset
+        // Track changes relative to base preset if we have one
         if let Some(base_preset_id) = &self.base_preset_id {
             if let Some(base_preset) = presets.iter().find(|p| p.id == *base_preset_id) {
                 let was_in_preset = base_preset.enabled_features.iter().any(|id| id == feature_id);
@@ -529,15 +532,113 @@ impl Installation {
                     self.custom_features.retain(|id| id != feature_id);
                     self.removed_features.retain(|id| id != feature_id);
                 }
+                
+                debug!("Feature tracking for preset '{}': custom={:?}, removed={:?}", 
+                       base_preset_id, self.custom_features, self.removed_features);
             }
         }
+        // If no preset is selected (custom mode), no special tracking needed
         
         self.modified = true;
         
-        debug!("Feature toggle complete - enabled: {:?}, custom: {:?}, removed: {:?}", 
-               self.enabled_features, self.custom_features, self.removed_features);
+        debug!("Feature toggle complete - enabled: {:?}", self.enabled_features);
     }
 
+        // Enhanced method to properly initialize from universal manifest  
+    pub async fn initialize_with_universal_defaults(&mut self, http_client: &crate::CachedHttpClient) -> Result<(), String> {
+        debug!("Initializing installation '{}' with universal defaults", self.name);
+        
+        let universal_manifest = crate::universal::load_universal_manifest(http_client, None).await
+            .map_err(|e| format!("Failed to load universal manifest: {}", e))?;
+        
+        let mut features = vec!["default".to_string()];
+        
+        // Add all default-enabled components from universal manifest
+        for component in &universal_manifest.mods {
+            if component.default_enabled && component.id != "default" && !features.contains(&component.id) {
+                features.push(component.id.clone());
+                debug!("Added default mod: {}", component.id);
+            }
+        }
+        
+        for component in &universal_manifest.shaderpacks {
+            if component.default_enabled && component.id != "default" && !features.contains(&component.id) {
+                features.push(component.id.clone());
+                debug!("Added default shaderpack: {}", component.id);
+            }
+        }
+        
+        for component in &universal_manifest.resourcepacks {
+            if component.default_enabled && component.id != "default" && !features.contains(&component.id) {
+                features.push(component.id.clone());
+                debug!("Added default resourcepack: {}", component.id);
+            }
+        }
+        
+        for include in &universal_manifest.include {
+            if include.default_enabled && !include.id.is_empty() && include.id != "default" 
+               && !features.contains(&include.id) {
+                features.push(include.id.clone());
+                debug!("Added default include: {}", include.id);
+            }
+        }
+        
+        for remote in &universal_manifest.remote_include {
+            if remote.default_enabled && remote.id != "default" 
+               && !features.contains(&remote.id) {
+                features.push(remote.id.clone());
+                debug!("Added default remote include: {}", remote.id);
+            }
+        }
+        
+        // Set features and ensure we're in custom mode for new installations
+        self.enabled_features = features;
+        self.base_preset_id = None; // Start as custom
+        self.base_preset_version = None;
+        self.custom_features.clear();
+        self.removed_features.clear();
+        
+        debug!("Initialized installation with {} default features: {:?}", 
+               self.enabled_features.len(), self.enabled_features);
+        
+        Ok(())
+    }
+
+    // Check if the current configuration matches a specific preset exactly
+    pub fn matches_preset(&self, preset: &crate::preset::Preset) -> bool {
+        // Simple comparison - does our enabled_features exactly match the preset's?
+        let mut our_features = self.enabled_features.clone();
+        let mut preset_features = preset.enabled_features.clone();
+        
+        our_features.sort();
+        preset_features.sort();
+        
+        our_features == preset_features
+    }
+
+
+        pub fn get_effective_preset_id(&self, presets: &[crate::preset::Preset]) -> Option<String> {
+        // If we have a base preset ID and no modifications, return it
+        if let Some(base_id) = &self.base_preset_id {
+            if self.custom_features.is_empty() && self.removed_features.is_empty() {
+                return Some(base_id.clone());
+            }
+            // If we have modifications but still based on a preset, return the base
+            return Some(base_id.clone());
+        }
+        
+        // If no base preset, check if we exactly match any preset
+        for preset in presets {
+            if self.matches_preset(preset) {
+                debug!("Installation exactly matches preset: {}", preset.id);
+                return Some(preset.id.clone());
+            }
+        }
+        
+        // No preset match - this is custom
+        None
+    }
+    
     // Enhanced completion method that preserves user choices
     pub async fn complete_installation_with_choices(&mut self, http_client: &crate::CachedHttpClient) -> Result<(), String> {
         debug!("Completing installation for '{}' while preserving user choices", self.name);
@@ -585,36 +686,51 @@ impl Installation {
         
         let mut features = vec!["default".to_string()];
         
-        // Add all default-enabled components
+        debug!("Initializing default features from universal manifest");
+        
+        // Add all default-enabled components AND ensure all their IDs are in enabled_features
         for component in &universal_manifest.mods {
-            if component.default_enabled && !features.contains(&component.id) {
-                features.push(component.id.clone());
+            if component.default_enabled || component.id == "default" {
+                if !features.contains(&component.id) {
+                    features.push(component.id.clone());
+                    debug!("Added default mod: {}", component.id);
+                }
             }
         }
         
         for component in &universal_manifest.shaderpacks {
-            if component.default_enabled && !features.contains(&component.id) {
-                features.push(component.id.clone());
+            if component.default_enabled || component.id == "default" {
+                if !features.contains(&component.id) {
+                    features.push(component.id.clone());
+                    debug!("Added default shaderpack: {}", component.id);
+                }
             }
         }
         
         for component in &universal_manifest.resourcepacks {
-            if component.default_enabled && !features.contains(&component.id) {
-                features.push(component.id.clone());
+            if component.default_enabled || component.id == "default" {
+                if !features.contains(&component.id) {
+                    features.push(component.id.clone());
+                    debug!("Added default resourcepack: {}", component.id);
+                }
             }
         }
         
         for include in &universal_manifest.include {
-            if include.default_enabled && !include.id.is_empty() && include.id != "default" 
-               && !features.contains(&include.id) {
-                features.push(include.id.clone());
+            if (include.default_enabled || include.id == "default") && !include.id.is_empty() {
+                if !features.contains(&include.id) {
+                    features.push(include.id.clone());
+                    debug!("Added default include: {}", include.id);
+                }
             }
         }
         
         for remote in &universal_manifest.remote_include {
-            if remote.default_enabled && remote.id != "default" 
-               && !features.contains(&remote.id) {
-                features.push(remote.id.clone());
+            if remote.default_enabled || remote.id == "default" {
+                if !features.contains(&remote.id) {
+                    features.push(remote.id.clone());
+                    debug!("Added default remote include: {}", remote.id);
+                }
             }
         }
         
