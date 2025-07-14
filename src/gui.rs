@@ -1267,19 +1267,37 @@ let mut proceed_with_update = {
                     // Count all components that will be processed
                     let mut total_items = 0;
                     
-                    // Count mods
+                    // Count mods (including default ones)
                     total_items += manifest.mods.iter()
-                        .filter(|m| enabled_features.contains(&m.id) || m.default_enabled || m.id == "default")
+                        .filter(|m| {
+                            if m.id == "default" || !m.optional {
+                                true
+                            } else {
+                                enabled_features.contains(&m.id)
+                            }
+                        })
                         .count();
                     
                     // Count shaderpacks
                     total_items += manifest.shaderpacks.iter()
-                        .filter(|s| enabled_features.contains(&s.id) || s.default_enabled || s.id == "default")
+                        .filter(|s| {
+                            if s.id == "default" || !s.optional {
+                                true
+                            } else {
+                                enabled_features.contains(&s.id)
+                            }
+                        })
                         .count();
                     
                     // Count resourcepacks
                     total_items += manifest.resourcepacks.iter()
-                        .filter(|r| enabled_features.contains(&r.id) || r.default_enabled || r.id == "default")
+                        .filter(|r| {
+                            if r.id == "default" || !r.optional {
+                                true
+                            } else {
+                                enabled_features.contains(&r.id)
+                            }
+                        })
                         .count();
                     
                     // Count includes
@@ -1304,16 +1322,15 @@ let mut proceed_with_update = {
                         })
                         .count();
                     
-                    // Add overhead tasks (manifest save, icon, profile creation, etc.)
-                    total_items += 4;
-                    
-                    total.set(total_items as i64);
+                    // Add overhead tasks (BUT DON'T INCLUDE THEM IN PROGRESS UNTIL THEY'RE DONE)
+                    let overhead_tasks = 4;
+                    total.set(total_items as i64); // Don't add overhead to total yet
                     progress.set(0);
                     status.set("Starting installation...".to_string());
                     
                     debug!("Total installation items: {}", total_items);
                     
-                    // Create progress callback that properly increments
+                    // Create progress callback that properly tracks component downloads
                     let mut completed_items = 0i64;
                     let progress_callback = move || {
                         completed_items += 1;
@@ -1328,14 +1345,14 @@ let mut proceed_with_update = {
                         };
                         
                         // Update status based on progress
-                        if percent < 20 {
+                        if percent < 30 {
                             status.set(format!("Downloading components... {}/{}", current, total_val));
-                        } else if percent < 50 {
+                        } else if percent < 60 {
                             status.set(format!("Installing mods... {}/{}", current, total_val));
-                        } else if percent < 80 {
+                        } else if percent < 90 {
                             status.set(format!("Configuring installation... {}/{}", current, total_val));
-                        } else if percent < 100 {
-                            status.set(format!("Finalizing installation... {}/{}", current, total_val));
+                        } else {
+                            status.set(format!("Nearly finished... {}/{}", current, total_val));
                         }
                         
                         debug!("Progress update: {}/{} ({}%)", current, total_val, percent);
@@ -1344,12 +1361,33 @@ let mut proceed_with_update = {
                     // Run the installation
                     match installation_clone.install_or_update_with_progress(&http_client, progress_callback).await {
                         Ok(_) => {
-                            // CRITICAL: Ensure we're at 100% completion
-                            let total_val = *total.read();
-                            progress.set(total_val);
+                            // NOW handle overhead tasks with proper progress updates
+                            status.set("Finalizing installation...".to_string());
+                            
+                            // Update total to include overhead
+                            let new_total = total_items as i64 + overhead_tasks;
+                            total.set(new_total);
+                            
+                            // Complete overhead tasks one by one
+                            for i in 1..=overhead_tasks {
+                                progress.set(total_items as i64 + i);
+                                match i {
+                                    1 => status.set("Saving configuration...".to_string()),
+                                    2 => status.set("Creating launcher profile...".to_string()),
+                                    3 => status.set("Setting up game files...".to_string()),
+                                    4 => status.set("Completing installation...".to_string()),
+                                    _ => {}
+                                }
+                                
+                                // Small delay to show each step
+                                tokio::time::sleep(tokio::time::Duration::from_millis(200)).await;
+                            }
+                            
+                            // FINAL: Set to 100% and mark as complete
+                            progress.set(new_total);
                             status.set("Installation completed successfully!".to_string());
                             
-                            debug!("Installation completed successfully, progress: {}/{}", total_val, total_val);
+                            debug!("Installation completed successfully, progress: {}/{}", new_total, new_total);
                             
                             // Update installation state
                             installation_clone.installed = true;
@@ -1399,7 +1437,7 @@ let mut proceed_with_update = {
                                 debug!("Installation UI state updated successfully");
                             }
                             
-                            // Wait a moment to show completion before closing
+                            // Wait a moment to show completion, then close
                             tokio::time::sleep(tokio::time::Duration::from_millis(1500)).await;
                             debug!("Closing progress window after successful installation");
                             is_installing_clone.set(false);
@@ -1408,7 +1446,7 @@ let mut proceed_with_update = {
                             error!("Installation failed: {}", e);
                             installation_error_clone.set(Some(format!("Installation failed: {}", e)));
                             status.set("Installation failed!".to_string());
-                            // Don't auto-close on failure - let user see the error
+                            // Don't auto-close on failure
                         }
                     }
                 },
