@@ -1338,7 +1338,7 @@ fn uninstall(launcher: &Launcher, uuid: &str) -> Result<(), std::io::Error> {
 
 async fn download_helper<T: Downloadable + Debug, F: FnMut() + Clone>(
     items: Vec<T>,
-    enabled_features: &Vec<String>, // This should be the USER'S enabled features, not preset defaults
+    enabled_features: &Vec<String>,
     modpack_root: &Path,
     loader_type: &str,
     http_client: &CachedHttpClient,
@@ -1351,14 +1351,20 @@ async fn download_helper<T: Downloadable + Debug, F: FnMut() + Clone>(
         let should_include = if item.get_id() == "default" {
             // Always include the "default" item
             true
-        } else if !item.get_id().starts_with("optional_") && !item.get_id().contains("_optional") {
-            // Check if this is actually an optional item by looking at enabled_features
-            // If the item ID is in enabled_features, it should be included
-            // If it's not in enabled_features, it should NOT be included (even if it's not marked as optional)
-            enabled_features.contains(item.get_id())
         } else {
-            // For items clearly marked as optional, only include if in enabled_features
-            enabled_features.contains(item.get_id())
+            // Check if this item should be included based on:
+            // 1. It's in the user's enabled_features list, OR
+            // 2. It's a default_enabled component (from universal manifest)
+            enabled_features.contains(item.get_id()) || {
+                // For default_enabled items, we need to check the universal manifest
+                // This is a bit of a hack since we don't have direct access to default_enabled here
+                // But we can infer it from the enabled_features containing "default"
+                enabled_features.contains(&"default".to_string()) && {
+                    // If this is likely a default component (based on naming or other heuristics)
+                    // we should include it. But better to be explicit via enabled_features.
+                    false // For now, rely on enabled_features being properly set
+                }
+            }
         };
         
         debug!("Item '{}' (ID: {}) - should_include: {}, in_enabled_features: {}", 
