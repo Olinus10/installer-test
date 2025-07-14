@@ -12,8 +12,10 @@ pub fn FeaturesTab(
     filter_text: Signal<String>,
     installation_id: String,
 ) -> Element {
-    // Clone for closures
+    // Clone for closures - create all the clones we need upfront
     let presets_for_closure = presets.clone();
+    let presets_for_toggle = presets.clone(); // Separate clone for toggle_feature
+    let presets_for_custom_check = presets.clone(); // Separate clone for custom preset check
     let installation_id_for_apply = installation_id.clone();
     let installation_id_for_toggle = installation_id.clone();
     let universal_manifest_for_apply = universal_manifest.clone();
@@ -21,12 +23,12 @@ pub fn FeaturesTab(
     let universal_manifest_for_count = universal_manifest.clone();
     let universal_manifest_for_render = universal_manifest.clone();
     
-    // Initialize state based on current installation
+    // Initialize preset state based on installation
     use_effect({
         let installation_id = installation_id.clone();
         let mut selected_preset = selected_preset.clone();
         let mut enabled_features = enabled_features.clone();
-        let presets = presets.clone();
+        let presets_for_effect = presets.clone(); // Another clone for the effect
         
         move || {
             // Load installation and set initial state
@@ -35,105 +37,87 @@ pub fn FeaturesTab(
                 enabled_features.set(installation.enabled_features.clone());
                 
                 // Determine which preset is selected based on installation state
-                let effective_preset_id = installation.get_effective_preset_id(&presets);
+                let effective_preset_id = installation.get_effective_preset_id(&presets_for_effect);
                 selected_preset.set(effective_preset_id.clone());
                 
-                debug!("Initialized features tab:");
-                debug!("  Installation: {}", installation.name);
-                debug!("  Base preset ID: {:?}", installation.base_preset_id);
-                debug!("  Effective preset ID: {:?}", effective_preset_id);
-                debug!("  Enabled features: {:?}", installation.enabled_features);
-                debug!("  Custom features: {:?}", installation.custom_features);
-                debug!("  Removed features: {:?}", installation.removed_features);
-            } else {
-                debug!("Could not load installation {}", installation_id);
+                debug!("Initialized features tab with preset: {:?}, features: {:?}", 
+                       effective_preset_id, installation.enabled_features);
             }
         }
     });
     
-    // Handle changing a preset - UPDATED VERSION
-let mut apply_preset = move |preset_id: String| {
-    debug!("Applying preset: {}", preset_id);
+    // Handle changing a preset
+    let mut apply_preset = move |preset_id: String| {
+        debug!("Applying preset: {}", preset_id);
+        
+        if preset_id == "custom" {
+            // Custom preset: reset to only default components
+            let mut default_features = vec!["default".to_string()];
+            
+            // Add any default-enabled features from the universal manifest
+            if let Some(manifest) = &universal_manifest_for_apply {
+                for component in &manifest.mods {
+                    if component.default_enabled && component.id != "default" && !default_features.contains(&component.id) {
+                        default_features.push(component.id.clone());
+                    }
+                }
+                for component in &manifest.shaderpacks {
+                    if component.default_enabled && component.id != "default" && !default_features.contains(&component.id) {
+                        default_features.push(component.id.clone());
+                    }
+                }
+                for component in &manifest.resourcepacks {
+                    if component.default_enabled && component.id != "default" && !default_features.contains(&component.id) {
+                        default_features.push(component.id.clone());
+                    }
+                }
+                for include in &manifest.include {
+                    if include.default_enabled && !include.id.is_empty() && include.id != "default" 
+                       && !default_features.contains(&include.id) {
+                        default_features.push(include.id.clone());
+                    }
+                }
+                for remote in &manifest.remote_include {
+                    if remote.default_enabled && remote.id != "default" 
+                       && !default_features.contains(&remote.id) {
+                        default_features.push(remote.id.clone());
+                    }
+                }
+            }
+            
+            enabled_features.set(default_features);
+            selected_preset.set(None); // Custom = no preset
+            
+            // Update installation
+            if let Ok(mut installation) = crate::installation::load_installation(&installation_id_for_apply) {
+                installation.switch_to_custom_with_tracking();
+                installation.enabled_features = enabled_features.read().clone();
+                installation.modified = true;
+                let _ = installation.save();
+            }
+        } else if let Some(preset) = find_preset_by_id(&presets_for_closure, &preset_id) {
+            // Apply preset features
+            enabled_features.set(preset.enabled_features.clone());
+            selected_preset.set(Some(preset_id.clone()));
+            
+            // Update installation
+            if let Ok(mut installation) = crate::installation::load_installation(&installation_id_for_apply) {
+                installation.apply_preset_with_tracking(&preset);
+                installation.enabled_features = preset.enabled_features.clone();
+                installation.modified = true;
+                let _ = installation.save();
+            }
+        }
+    };
     
-    if preset_id == "custom" {
-        // Custom preset: reset to ONLY default components from universal manifest
-        let mut default_features = vec!["default".to_string()];
-        
-        // Add ONLY the default-enabled features from the universal manifest
-        if let Some(manifest) = &universal_manifest_for_apply {
-            // Only add components that are explicitly marked as default_enabled
-            for component in &manifest.mods {
-                if component.default_enabled && component.id != "default" && !default_features.contains(&component.id) {
-                    default_features.push(component.id.clone());
-                    debug!("Added default mod to custom preset: {}", component.id);
-                }
-            }
-            for component in &manifest.shaderpacks {
-                if component.default_enabled && component.id != "default" && !default_features.contains(&component.id) {
-                    default_features.push(component.id.clone());
-                    debug!("Added default shaderpack to custom preset: {}", component.id);
-                }
-            }
-            for component in &manifest.resourcepacks {
-                if component.default_enabled && component.id != "default" && !default_features.contains(&component.id) {
-                    default_features.push(component.id.clone());
-                    debug!("Added default resourcepack to custom preset: {}", component.id);
-                }
-            }
-            for include in &manifest.include {
-                if include.default_enabled && !include.id.is_empty() && include.id != "default" 
-                   && !default_features.contains(&include.id) {
-                    default_features.push(include.id.clone());
-                    debug!("Added default include to custom preset: {}", include.id);
-                }
-            }
-            for remote in &manifest.remote_include {
-                if remote.default_enabled && remote.id != "default" 
-                   && !default_features.contains(&remote.id) {
-                    default_features.push(remote.id.clone());
-                    debug!("Added default remote include to custom preset: {}", remote.id);
-                }
-            }
-        }
-        
-        debug!("Custom preset features: {:?}", default_features);
-        enabled_features.set(default_features);
-        selected_preset.set(None); // Custom = no preset
-        
-        // Update installation - SWITCH TO CUSTOM
-        if let Ok(mut installation) = crate::installation::load_installation(&installation_id_for_apply) {
-            installation.switch_to_custom_with_tracking(); // Use the new method
-            installation.enabled_features = enabled_features.read().clone();
-            installation.modified = true;
-            let _ = installation.save();
-            debug!("Switched installation to custom configuration");
-        }
-    } else if let Some(preset) = find_preset_by_id(&presets_for_closure, &preset_id) {
-        // Apply preset features
-        enabled_features.set(preset.enabled_features.clone());
-        selected_preset.set(Some(preset_id.clone()));
-        
-        // Update installation - APPLY PRESET
-        if let Ok(mut installation) = crate::installation::load_installation(&installation_id_for_apply) {
-            installation.apply_preset_with_tracking(&preset); // Use the new method
-            installation.enabled_features = preset.enabled_features.clone();
-            installation.modified = true;
-            let _ = installation.save();
-            debug!("Applied preset '{}' to installation", preset.name);
-        }
-    }
-};
-    
-    // Handle toggling a feature with dependency checking - UPDATED VERSION
+    // Handle toggling a feature with dependency checking
     let toggle_feature = move |feature_id: String| {
         let manifest_for_deps = universal_manifest_for_toggle.clone();
-        let presets_for_toggle = presets.clone();
         
         enabled_features.with_mut(|features| {
             let is_enabling = !features.contains(&feature_id);
             
             if is_enabling {
-                // Add the feature
                 if !features.contains(&feature_id) {
                     features.push(feature_id.clone());
                 }
@@ -157,7 +141,6 @@ let mut apply_preset = move |preset_id: String| {
                     }
                 }
             } else {
-                // Remove the feature
                 features.retain(|id| id != &feature_id);
                 
                 // Check if any enabled features depend on this one
@@ -183,21 +166,13 @@ let mut apply_preset = move |preset_id: String| {
             }
         });
 
-        // Update installation with proper tracking
+        // Update installation with modification tracking
         if let Ok(mut installation) = crate::installation::load_installation(&installation_id_for_toggle) {
             let is_enabled = enabled_features.read().contains(&feature_id);
-            
-            // Use the new tracking method
             installation.toggle_feature_with_tracking(&feature_id, is_enabled, &presets_for_toggle);
             installation.enabled_features = enabled_features.read().clone();
             installation.modified = true;
-            
             let _ = installation.save();
-            
-            debug!("Feature '{}' toggled to {}. Installation state:", feature_id, is_enabled);
-            debug!("  Base preset: {:?}", installation.base_preset_id);
-            debug!("  Custom features: {:?}", installation.custom_features);
-            debug!("  Removed features: {:?}", installation.removed_features);
         }
     };
     
@@ -209,8 +184,8 @@ let mut apply_preset = move |preset_id: String| {
     // Features section expanded state
     let mut features_expanded = use_signal(|| false);
     
-    // Find custom preset for the "Custom Configuration" card
-    let custom_preset = presets.iter().find(|p| p.id == "custom");
+    // Find custom preset for the "Custom Configuration" card - use the separate clone
+    let custom_preset = presets_for_custom_check.iter().find(|p| p.id == "custom");
     
     rsx! {
         div { class: "features-tab",
