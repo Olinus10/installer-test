@@ -2032,3 +2032,388 @@ body:has(.installation-management-container) {
     right: unset !important;
 }
 
+
+
+/* COMPLETE CLEAN INSTALLATION TABS SOLUTION */
+/* This replaces ALL existing tab CSS - add this at the END of your CSS file */
+
+/* 1. RESET ALL CONFLICTING RULES */
+.installation-page .header-center,
+.installation-page-content .header-center,
+.installation-management-container .header-center,
+.installation-page .nav-tab,
+.installation-page-content .nav-tab,
+.installation-management-container .nav-tab,
+.installation-page .nav-tab:nth-child(2),
+.installation-page .nav-tab:nth-child(3), 
+.installation-page .nav-tab:nth-child(4),
+.installation-page-content .nav-tab:nth-child(2),
+.installation-page-content .nav-tab:nth-child(3),
+.installation-page-content .nav-tab:nth-child(4),
+.installation-page .nav-tab:nth-of-type(2),
+.installation-page .nav-tab:nth-of-type(3),
+.installation-page .nav-tab:nth-of-type(4),
+.installation-page-content .nav-tab:nth-of-type(2),
+.installation-page-content .nav-tab:nth-of-type(3),
+.installation-page-content .nav-tab:nth-of-type(4) {
+    all: revert !important;
+}
+
+/* 2. CLEAN HEADER CENTER CONTAINER */
+.installation-page .header-center,
+.installation-page-content .header-center,
+.installation-management-container .header-center {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    position: relative !important;
+    flex: 1 !important;
+    padding: 0 !important;
+    gap: 0 !important;
+    background: none !important;
+    border: none !important;
+    border-radius: 0 !important;
+    backdrop-filter: none !important;
+    box-shadow: none !important;
+    max-width: none !important;
+    margin: 0 !important;
+    width: auto !important;
+}
+
+/* 3. TAB GROUP WRAPPER */
+.installation-page .header-center > *:not(.back-tab),
+.installation-page-content .header-center > *:not(.back-tab),
+.installation-management-container .header-center > *:not(.back-tab) {
+    display: flex !important;
+    background: rgba(0, 0, 0, 0.3) !important;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    border-radius: 12px !important;
+    padding: 4px !important;
+    gap: 2px !important;
+    backdrop-filter: blur(10px) !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2) !important;
+    width: fit-content !important;
+    margin: 0 auto !important;
+}
+
+/* If tabs are direct children, wrap them in a container effect */
+.installation-page .header-center,
+.installation-page-content .header-center,
+.installation-management-container .header-center {
+    background: rgba(0, 0, 0, 0.3) !important;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    border-radius: 12px !important;
+    padding: 4px 80px 4px 4px !important; /* Leave space for back button */
+    gap: 2px !important;
+    backdrop-filter: blur(10px) !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2) !important;
+    width: fit-content !important;
+    margin: 0 auto !important;
+}
+
+/* 4. BACK BUTTON - CLEAN POSITIONING */
+.installation-page .nav-tab.back-tab,
+.installation-page-content .nav-tab.back-tab,
+.installation-management-container .nav-tab.back-tab {
+    position: absolute !important;
+    left: 15px !important;
+    top: 50% !important;
+    transform: translateY(-50%) !important;
+    background: linear-gradient(135deg, rgba(90, 90, 90, 0.7), rgba(70, 70, 70, 0.8)) !important;
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+    border-radius: 10px !important;
+    padding: 10px 16px !important;
+    font-family: "REGULAR_FONT" !important;
+    font-size: 0.9rem !important;
+    color: rgba(255, 255, 255, 0.8) !important;
+    cursor: pointer !important;
+    transition: all 0.3s ease !important;
+    z-index: 15 !important;
+    white-space: nowrap !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3) !important;
+    backdrop-filter: blur(5px) !important;
+    margin: 0 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    text-align: center !important;
+    height: auto !important;
+    width: auto !important;
+    min-width: auto !important;
+}
+
+.installation-page .nav-tab.back-tab:hover,
+.installation-page-content .nav-tab.back-tab:hover,
+.installation-management-container .nav-tab.back-tab:hover {
+    background: linear-gradient(135deg, rgba(110, 110, 110, 0.9), rgba(90, 90, 90, 0.95)) !important;
+    border-color: rgba(255, 255, 255, 0.4) !important;
+    color: white !important;
+    transform: translateY(-50%) translateX(-1px) !important;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4) !important;
+}
+
+/* 5. MAIN TABS - CLEAN BASE STYLES */
+.installation-page .nav-tab:not(.back-tab),
+.installation-page-content .nav-tab:not(.back-tab),
+.installation-management-container .nav-tab:not(.back-tab) {
+    background: rgba(255, 255, 255, 0.05) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    border-radius: 8px !important;
+    padding: 8px 16px !important;
+    font-family: "REGULAR_FONT" !important;
+    font-size: 0.9rem !important;
+    color: rgba(255, 255, 255, 0.8) !important;
+    cursor: pointer !important;
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important;
+    position: relative !important;
+    overflow: hidden !important;
+    white-space: nowrap !important;
+    z-index: 1 !important;
+    margin: 0 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    text-align: center !important;
+    height: auto !important;
+    width: auto !important;
+    min-width: 80px !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+}
+
+/* 6. HOVER EFFECTS - FULL HEIGHT */
+.installation-page .nav-tab:not(.back-tab):hover,
+.installation-page-content .nav-tab:not(.back-tab):hover,
+.installation-management-container .nav-tab:not(.back-tab):hover {
+    transform: translateY(-2px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.3) !important;
+    color: white !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
+}
+
+/* 7. SWEEP ANIMATION */
+.installation-page .nav-tab:not(.back-tab)::before,
+.installation-page-content .nav-tab:not(.back-tab)::before,
+.installation-management-container .nav-tab:not(.back-tab)::before {
+    content: '' !important;
+    position: absolute !important;
+    top: 0 !important;
+    left: -100% !important;
+    width: 100% !important;
+    height: 100% !important;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.15), transparent) !important;
+    border-radius: inherit !important;
+    transition: left 0.5s ease !important;
+    z-index: 1 !important;
+}
+
+.installation-page .nav-tab:not(.back-tab):hover::before,
+.installation-page-content .nav-tab:not(.back-tab):hover::before,
+.installation-management-container .nav-tab:not(.back-tab):hover::before {
+    left: 100% !important;
+}
+
+/* 8. BOTTOM BORDER ANIMATION */
+.installation-page .nav-tab:not(.back-tab)::after,
+.installation-page-content .nav-tab:not(.back-tab)::after,
+.installation-management-container .nav-tab:not(.back-tab)::after {
+    content: '' !important;
+    position: absolute !important;
+    bottom: 0 !important;
+    left: 50% !important;
+    width: 0 !important;
+    height: 2px !important;
+    background: currentColor !important;
+    transform: translateX(-50%) !important;
+    transition: width 0.3s ease !important;
+    border-radius: 1px 1px 0 0 !important;
+    z-index: 2 !important;
+}
+
+.installation-page .nav-tab:not(.back-tab):hover::after,
+.installation-page-content .nav-tab:not(.back-tab):hover::after,
+.installation-management-container .nav-tab:not(.back-tab):hover::after {
+    width: 70% !important;
+}
+
+/* 9. FEATURES TAB - GREEN */
+.installation-page .nav-tab:nth-of-type(2),
+.installation-page-content .nav-tab:nth-of-type(2),
+.installation-management-container .nav-tab:nth-of-type(2) {
+    background: linear-gradient(135deg, rgba(76, 175, 80, 0.1), rgba(76, 175, 80, 0.05)) !important;
+    border-color: rgba(76, 175, 80, 0.2) !important;
+    color: rgba(255, 255, 255, 0.9) !important;
+}
+
+.installation-page .nav-tab:nth-of-type(2):hover,
+.installation-page-content .nav-tab:nth-of-type(2):hover,
+.installation-management-container .nav-tab:nth-of-type(2):hover {
+    background: linear-gradient(135deg, rgba(76, 175, 80, 0.25), rgba(76, 175, 80, 0.15)) !important;
+    border-color: rgba(76, 175, 80, 0.5) !important;
+    box-shadow: 0 4px 12px rgba(76, 175, 80, 0.2) !important;
+    text-shadow: 0 0 8px rgba(76, 175, 80, 0.4) !important;
+}
+
+.installation-page .nav-tab:nth-of-type(2).active,
+.installation-page-content .nav-tab:nth-of-type(2).active,
+.installation-management-container .nav-tab:nth-of-type(2).active {
+    background: linear-gradient(135deg, rgba(76, 175, 80, 0.3), rgba(60, 150, 64, 0.3)) !important;
+    border-color: rgba(76, 175, 80, 0.7) !important;
+    color: white !important;
+    box-shadow: 0 0 15px rgba(76, 175, 80, 0.4) !important;
+}
+
+/* 10. PERFORMANCE TAB - RED */
+.installation-page .nav-tab:nth-of-type(3),
+.installation-page-content .nav-tab:nth-of-type(3),
+.installation-management-container .nav-tab:nth-of-type(3) {
+    background: linear-gradient(135deg, rgba(244, 67, 54, 0.1), rgba(244, 67, 54, 0.05)) !important;
+    border-color: rgba(244, 67, 54, 0.2) !important;
+    color: rgba(255, 255, 255, 0.9) !important;
+}
+
+.installation-page .nav-tab:nth-of-type(3):hover,
+.installation-page-content .nav-tab:nth-of-type(3):hover,
+.installation-management-container .nav-tab:nth-of-type(3):hover {
+    background: linear-gradient(135deg, rgba(244, 67, 54, 0.25), rgba(244, 67, 54, 0.15)) !important;
+    border-color: rgba(244, 67, 54, 0.5) !important;
+    box-shadow: 0 4px 12px rgba(244, 67, 54, 0.2) !important;
+    text-shadow: 0 0 8px rgba(244, 67, 54, 0.4) !important;
+}
+
+.installation-page .nav-tab:nth-of-type(3).active,
+.installation-page-content .nav-tab:nth-of-type(3).active,
+.installation-management-container .nav-tab:nth-of-type(3).active {
+    background: linear-gradient(135deg, rgba(244, 67, 54, 0.3), rgba(211, 47, 47, 0.3)) !important;
+    border-color: rgba(244, 67, 54, 0.7) !important;
+    color: white !important;
+    box-shadow: 0 0 15px rgba(244, 67, 54, 0.4) !important;
+}
+
+/* 11. SETTINGS TAB - BLUE */
+.installation-page .nav-tab:nth-of-type(4),
+.installation-page-content .nav-tab:nth-of-type(4),
+.installation-management-container .nav-tab:nth-of-type(4) {
+    background: linear-gradient(135deg, rgba(33, 150, 243, 0.1), rgba(33, 150, 243, 0.05)) !important;
+    border-color: rgba(33, 150, 243, 0.2) !important;
+    color: rgba(255, 255, 255, 0.9) !important;
+}
+
+.installation-page .nav-tab:nth-of-type(4):hover,
+.installation-page-content .nav-tab:nth-of-type(4):hover,
+.installation-management-container .nav-tab:nth-of-type(4):hover {
+    background: linear-gradient(135deg, rgba(33, 150, 243, 0.25), rgba(33, 150, 243, 0.15)) !important;
+    border-color: rgba(33, 150, 243, 0.5) !important;
+    box-shadow: 0 4px 12px rgba(33, 150, 243, 0.2) !important;
+    text-shadow: 0 0 8px rgba(33, 150, 243, 0.4) !important;
+}
+
+.installation-page .nav-tab:nth-of-type(4).active,
+.installation-page-content .nav-tab:nth-of-type(4).active,
+.installation-management-container .nav-tab:nth-of-type(4).active {
+    background: linear-gradient(135deg, rgba(33, 150, 243, 0.3), rgba(21, 101, 192, 0.3)) !important;
+    border-color: rgba(33, 150, 243, 0.7) !important;
+    color: white !important;
+    box-shadow: 0 0 15px rgba(33, 150, 243, 0.4) !important;
+}
+
+/* 12. ACTIVE TAB PULSE */
+@keyframes tabPulse {
+    0%, 100% { box-shadow: 0 0 15px currentColor; }
+    50% { box-shadow: 0 0 25px currentColor; }
+}
+
+.installation-page .nav-tab.active,
+.installation-page-content .nav-tab.active,
+.installation-management-container .nav-tab.active {
+    animation: tabPulse 2s ease-in-out infinite !important;
+}
+
+/* 13. CLICK ANIMATION */
+.installation-page .nav-tab:active,
+.installation-page-content .nav-tab:active,
+.installation-management-container .nav-tab:active {
+    transform: translateY(-1px) scale(0.98) !important;
+    transition: all 0.1s ease !important;
+}
+
+/* 14. RESPONSIVE */
+@media (max-width: 768px) {
+    .installation-page .header-center,
+    .installation-page-content .header-center,
+    .installation-management-container .header-center {
+        padding: 4px 60px 4px 4px !important;
+    }
+    
+    .installation-page .nav-tab.back-tab,
+    .installation-page-content .nav-tab.back-tab,
+    .installation-management-container .nav-tab.back-tab {
+        left: 8px !important;
+        padding: 8px 12px !important;
+        font-size: 0.85rem !important;
+    }
+    
+    .installation-page .nav-tab:not(.back-tab),
+    .installation-page-content .nav-tab:not(.back-tab),
+    .installation-management-container .nav-tab:not(.back-tab) {
+        padding: 6px 12px !important;
+        font-size: 0.85rem !important;
+        min-width: 60px !important;
+    }
+}
+
+/* 15. FORCE OVERRIDE ANY REMAINING CONFLICTS */
+.installation-page .nav-tab,
+.installation-page-content .nav-tab,
+.installation-management-container .nav-tab {
+    all: unset !important;
+}
+
+/* Then reapply the working styles */
+.installation-page .nav-tab:not(.back-tab),
+.installation-page-content .nav-tab:not(.back-tab),
+.installation-management-container .nav-tab:not(.back-tab) {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    background: rgba(255, 255, 255, 0.05) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    border-radius: 8px !important;
+    padding: 8px 16px !important;
+    font-family: "REGULAR_FONT" !important;
+    font-size: 0.9rem !important;
+    color: rgba(255, 255, 255, 0.8) !important;
+    cursor: pointer !important;
+    transition: all 0.3s ease !important;
+    position: relative !important;
+    overflow: hidden !important;
+    white-space: nowrap !important;
+    min-width: 80px !important;
+    text-align: center !important;
+    font-weight: 500 !important;
+}
+
+.installation-page .nav-tab.back-tab,
+.installation-page-content .nav-tab.back-tab,
+.installation-management-container .nav-tab.back-tab {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    position: absolute !important;
+    left: 15px !important;
+    top: 50% !important;
+    transform: translateY(-50%) !important;
+    background: linear-gradient(135deg, rgba(90, 90, 90, 0.7), rgba(70, 70, 70, 0.8)) !important;
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+    border-radius: 10px !important;
+    padding: 10px 16px !important;
+    font-family: "REGULAR_FONT" !important;
+    font-size: 0.9rem !important;
+    color: rgba(255, 255, 255, 0.8) !important;
+    cursor: pointer !important;
+    transition: all 0.3s ease !important;
+    z-index: 15 !important;
+    white-space: nowrap !important;
+    text-align: center !important;
+    font-weight: 500 !important;
+}
