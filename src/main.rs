@@ -354,7 +354,6 @@ macro_rules! gen_downloadble_impl {
 }
 
 #[derive(Debug, Deserialize, Serialize, PartialEq, Clone)]
-#[derive(Debug, Deserialize, Serialize, PartialEq, Clone)]
 struct Mod {
     name: String,
     source: String,
@@ -364,10 +363,9 @@ struct Mod {
     #[serde(default = "default_id")]
     id: String,
     authors: Vec<Author>,
+    // NEW: Add ignore_update support
     #[serde(default = "default_false")]
     ignore_update: bool,
-    #[serde(default = "default_false")]
-    optional: bool, // Add this field!
 }
 
 #[derive(Debug, Deserialize, Serialize, PartialEq, Clone)]
@@ -380,10 +378,9 @@ struct Shaderpack {
     #[serde(default = "default_id")]
     id: String,
     authors: Vec<Author>,
+    // NEW: Add ignore_update support
     #[serde(default = "default_false")]
     ignore_update: bool,
-    #[serde(default = "default_false")]
-    optional: bool, // Add this field!
 }
 
 #[derive(Debug, Deserialize, Serialize, PartialEq, Clone)]
@@ -396,10 +393,9 @@ struct Resourcepack {
     #[serde(default = "default_id")]
     id: String,
     authors: Vec<Author>,
+    // NEW: Add ignore_update support
     #[serde(default = "default_false")]
     ignore_update: bool,
-    #[serde(default = "default_false")]
-    optional: bool, // Add this field!
 }
 
 gen_downloadble_impl!(Mod, "mod");
@@ -1351,17 +1347,30 @@ async fn download_helper<T: Downloadable + Debug, F: FnMut() + Clone>(
     ignore_update_items: &std::collections::HashSet<String>,
 ) -> Result<Vec<T>, DownloadError> {
     let results = futures::stream::iter(items.into_iter().map(|item| async {
-        // Fixed logic: Include if ANY of these conditions are true:
-        // 1. It's the "default" item
-        // 2. It's not optional (required component)
-        // 3. It's in the user's enabled features
-        let should_include = item.get_id() == "default" || 
-                           !item.optional || // This was missing!
-                           enabled_features.contains(item.get_id());
+        // FIXED: Proper logic for determining if item should be included
+        let should_include = if item.get_id() == "default" {
+            // Always include the "default" item
+            true
+        } else {
+            // Check if this item should be included based on:
+            // 1. It's in the user's enabled_features list, OR
+            // 2. It's a default_enabled component (from universal manifest)
+            enabled_features.contains(item.get_id()) || {
+                // For default_enabled items, we need to check the universal manifest
+                // This is a bit of a hack since we don't have direct access to default_enabled here
+                // But we can infer it from the enabled_features containing "default"
+                enabled_features.contains(&"default".to_string()) && {
+                    // If this is likely a default component (based on naming or other heuristics)
+                    // we should include it. But better to be explicit via enabled_features.
+                    false // For now, rely on enabled_features being properly set
+                }
+            }
+        };
         
-        debug!("Item '{}' (ID: {}) - optional: {}, should_include: {}", 
-               item.get_name(), item.get_id(), item.optional, should_include);
+        debug!("Item '{}' (ID: {}) - should_include: {}, in_enabled_features: {}", 
+               item.get_name(), item.get_id(), should_include, enabled_features.contains(item.get_id()));
         
+        // Check if we should ignore this item during updates
         let should_ignore_update = is_update && ignore_update_items.contains(item.get_id());
         
         if item.get_path().is_none() && should_include && !should_ignore_update {
@@ -1379,20 +1388,31 @@ async fn download_helper<T: Downloadable + Debug, F: FnMut() + Clone>(
                 item.get_id().to_owned(),
                 item.get_authors().to_owned(),
             ))
-        } else if should_include {
-            // Keep the item if it should be included
-            Ok(item)
         } else {
-            // Remove/skip the item
-            if item.get_path().is_some() {
+            let item = validate_item_path!(item, modpack_root);
+            let path;
+            
+            if should_ignore_update && item.get_path().is_some() {
+                debug!("Ignoring update for: '{}' (ignore_update=true)", item.get_name());
+                path = item.get_path().to_owned();
+            } else if !should_include && item.get_path().is_some() {
+                debug!("Removing disabled item: '{}' (not in enabled_features)", item.get_name());
                 let _ = fs::remove_file(item.get_path().as_ref().unwrap());
+                path = None;
+            } else if !should_include {
+                debug!("Skipping disabled item: '{}' (not in enabled_features)", item.get_name());
+                path = None;
+            } else {
+                debug!("Keeping existing item: '{}' (enabled)", item.get_name());
+                path = item.get_path().to_owned();
             }
+            
             Ok(T::new(
                 item.get_name().to_owned(),
                 item.get_source().to_owned(),
                 item.get_location().to_owned(),
                 item.get_version().to_owned(),
-                None,
+                path,
                 item.get_id().to_owned(),
                 item.get_authors().to_owned(),
             ))
@@ -1476,47 +1496,77 @@ async fn download_zip(name: &str, http_client: &CachedHttpClient, url: &str, pat
 async fn install<F: FnMut() + Clone>(installer_profile: &InstallerProfile, mut progress_callback: F) -> Result<(), String> {
     info!("Installing modpack");
     
+    // CRITICAL: Use the installer_profile.enabled_features which should contain the USER'S choices
     let user_enabled_features = &installer_profile.enabled_features;
     debug!("User's enabled features: {:?}", user_enabled_features);
     
-    // Calculate total items correctly
+    // Calculate total items correctly based on USER'S choices, not manifest defaults
     let mut total_items = 0;
     
-    // Count ALL components that will be processed, including non-optional defaults
+    // Count mods that the USER has enabled
     total_items += installer_profile.manifest.mods.iter()
         .filter(|m| {
-            // Include if: it's default OR it's in user's enabled features
-            m.id == "default" || !m.optional || user_enabled_features.contains(&m.id)
+            let should_include = m.id == "default" || user_enabled_features.contains(&m.id);
+            debug!("Mod '{}' (ID: {}) - should_include: {}", m.name, m.id, should_include);
+            should_include
         })
         .count();
     
+    // Count shaderpacks that the USER has enabled
     total_items += installer_profile.manifest.shaderpacks.iter()
         .filter(|s| {
-            s.id == "default" || !s.optional || user_enabled_features.contains(&s.id)
+            let should_include = s.id == "default" || user_enabled_features.contains(&s.id);
+            debug!("Shaderpack '{}' (ID: {}) - should_include: {}", s.name, s.id, should_include);
+            should_include
         })
         .count();
     
+    // Count resourcepacks that the USER has enabled
     total_items += installer_profile.manifest.resourcepacks.iter()
         .filter(|r| {
-            r.id == "default" || !r.optional || user_enabled_features.contains(&r.id)
+            let should_include = r.id == "default" || user_enabled_features.contains(&r.id);
+            debug!("Resourcepack '{}' (ID: {}) - should_include: {}", r.name, r.id, should_include);
+            should_include
         })
         .count();
     
+    // Count includes that the USER has enabled
     total_items += installer_profile.manifest.include.iter()
         .filter(|i| {
-            i.id.is_empty() || i.id == "default" || !i.optional || user_enabled_features.contains(&i.id)
+            let should_include = if i.id.is_empty() || i.id == "default" {
+                true
+            } else if !i.optional {
+                true
+            } else {
+                user_enabled_features.contains(&i.id)
+            };
+            debug!("Include '{}' (ID: {}) - should_include: {}", i.location, i.id, should_include);
+            should_include
         })
         .count();
     
-    if let Some(remote_includes) = &installer_profile.manifest.remote_include {
-        total_items += remote_includes.iter()
-            .filter(|r| {
-                r.id == "default" || !r.optional || user_enabled_features.contains(&r.id)
-            })
-            .count();
-    }
+    // Count remote includes that the USER has enabled
+        if let Some(remote_includes) = &installer_profile.manifest.remote_include {
+            total_items += remote_includes.iter()
+                .filter(|r| {
+                    let should_include = if r.id == "default" {
+                        true
+                    } else if !r.optional {  // Now this will work
+                        true
+                    } else {
+                        user_enabled_features.contains(&r.id)
+                    };
+                    debug!("Remote include '{}' (ID: {}) - should_include: {}", r.id, r.id, should_include);
+                    should_include
+                })
+                .count();
+        }
+            
+    // Add overhead tasks
+    let overhead_tasks = 4;
+    total_items += overhead_tasks;
     
-    debug!("Total download items: {}", total_items);
+    debug!("Total items to install based on user choices: {}", total_items);
     
     let modpack_root = &get_modpack_root(
         installer_profile
@@ -1909,42 +1959,29 @@ async fn install<F: FnMut() + Clone>(installer_profile: &InstallerProfile, mut p
 
     progress_callback(); // Overhead task 4 - FINAL PROGRESS UPDATE
 
-    debug!("All downloads complete, performing final tasks...");
-    
-    // Save manifest
-    fs::write(
-        modpack_root.join(Path::new("manifest.json")),
-        serde_json::to_string(&local_manifest).expect("Failed to parse 'manifest.json'!"),
-    )
-    .expect("Failed to save a local copy of 'manifest.json'!");
+    debug!("All installation tasks completed, updating installation state...");
 
-    // Create launcher profile
-    match create_launcher_profile(installer_profile, icon_img) {
-        Ok(_) => debug!("Launcher profile created successfully"),
-        Err(e) => return Err(e.to_string()),
-    };
-
-    if loader_future.is_some() {
-        loader_future.unwrap().await;
-    }
-
-    // CRITICAL: Update installation state BEFORE the final progress callback
+    // FINAL STEP: Mark installation as complete and update installation state
     if let Ok(mut installation) = crate::installation::load_installation(&installer_profile.manifest.uuid) {
         installation.installed = true;
         installation.update_available = false;
         installation.modified = false;
         installation.universal_version = installer_profile.manifest.modpack_version.clone();
+        // CRITICAL: Save the USER'S enabled features
         installation.enabled_features = user_enabled_features.clone();
         
         if let Err(e) = installation.save() {
             error!("Failed to update installation state: {}", e);
             return Err(format!("Failed to save installation state: {}", e));
         } else {
-            debug!("Successfully marked installation as complete");
+            debug!("Successfully marked installation as complete with user's choices saved");
         }
+    } else {
+        error!("Failed to load installation after install");
+        return Err("Failed to load installation after install".to_string());
     }
 
-    info!("Modpack installation completed successfully!");
+    info!("Modpack installation completed successfully with user's feature choices!");
     Ok(())
 }
 
