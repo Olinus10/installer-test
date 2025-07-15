@@ -513,7 +513,7 @@ fn Footer() -> Element {
             div { class: "footer-info",
                 div { class: "footer-section",
                     p { class: "footer-text", 
-                        "Enhance your Wynncraft experience easily with modpacks made by Olinus10."
+                        "Made by Olinus10"
                     }
                 }
                 
@@ -626,7 +626,7 @@ rsx! {
                 // First-time user experience
                 div { class: "welcome-container first-time",
                     h1 { "Welcome to the MAJESTIC OVERHAUL" }
-                    p { "Enhance your Wynncraft experience with optimized performance and improved visuals." }
+                    p { "Optimized performance and improved visuals!" }
                     
                     // Statistics for first-time users too
                     StatisticsDisplay {}
@@ -778,12 +778,12 @@ fn StatisticsDisplay() -> Element {
     rsx! {
         div { class: "stats-container",
             div { class: "stat-item",
-                span { class: "stat-value", "200+" }
-                span { class: "stat-label", "FPS" }
+                span { class: "stat-value", "90+" }
+                span { class: "stat-label", "MODS" }
             }
             div { class: "stat-item",
-                span { class: "stat-value", "100+" }
-                span { class: "stat-label", "MODS" }
+                span { class: "stat-value", "200+" }
+                span { class: "stat-label", "FPS" } 
             }
             div { class: "stat-item",
                 span { class: "stat-value", "20K+" }
@@ -816,9 +816,10 @@ pub fn SimplifiedInstallationWizard(props: InstallationCreationProps) -> Element
     let suggested_names = vec![
         format!("Overhaul {}", installation_count),
         format!("Wynncraft {}", installation_count),
-        format!("Adventure {}", installation_count),
+        format!("Majestic {}", installation_count),
         "My Overhaul".to_string(),
         "Custom Build".to_string(),
+        "Wynn Go Brrr".to_string(),
     ];
     
     // Set default name based on count
@@ -971,7 +972,7 @@ pub fn SimplifiedInstallationWizard(props: InstallationCreationProps) -> Element
                                         name.set(new_value);
                                     }
                                 },
-                                placeholder: "e.g. My Wynncraft Adventure"
+                                placeholder: "e.g. My Installation"
                             }
                             
                             // Character counter
@@ -1019,8 +1020,7 @@ pub fn SimplifiedInstallationWizard(props: InstallationCreationProps) -> Element
                             // Show what will be included by default
                             div { class: "default-features-info",
                                 p { class: "info-description", 
-                                    "This will create a custom installation with core components included. "
-                                    "You can customize features after creation."
+                                    "You can customize further in the next step."
                                 }
                             }
                         }
