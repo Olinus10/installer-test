@@ -442,14 +442,16 @@ impl Installation {
     }
 
     // Apply this preset to an installation, returning the list of enabled features
-        pub fn apply_preset_with_tracking(&mut self, preset: &crate::preset::Preset) {
+    pub fn apply_preset_with_tracking(&mut self, preset: &crate::preset::Preset) {
         debug!("Applying preset '{}' to installation '{}'", preset.name, self.name);
         
-        // IMPORTANT: Set the base preset ID to track which preset was selected
+        // Store previous state for comparison
+        let previous_features = self.enabled_features.clone();
+        let previous_preset = self.base_preset_id.clone();
+        
+        // Apply the preset
         self.base_preset_id = Some(preset.id.clone());
         self.base_preset_version = preset.preset_version.clone();
-        
-        // Apply the preset's features
         self.enabled_features = preset.enabled_features.clone();
         
         // Clear modification tracking since we're applying a fresh preset
@@ -467,28 +469,34 @@ impl Installation {
             self.java_args = java_args.clone();
         }
         
-        debug!("Applied preset - base_preset_id set to: {:?}", self.base_preset_id);
+        debug!("Applied preset - features changed from {:?} to {:?}", previous_features, self.enabled_features);
+        debug!("Preset tracking: base_preset_id = {:?}, base_preset_version = {:?}", 
+               self.base_preset_id, self.base_preset_version);
     }
-    
+
+    // Method to switch to custom configuration
     pub fn switch_to_custom_with_tracking(&mut self) {
         debug!("Switching installation '{}' to custom configuration", self.name);
         
-        // IMPORTANT: When switching to custom, we should only have default features
+        // If switching from a preset, track what was changed
+        if let Some(preset_id) = &self.base_preset_id {
+            debug!("Switching from preset '{}' to custom", preset_id);
+        }
+        
+        // Clear preset tracking
         self.base_preset_id = None;
         self.base_preset_version = None;
         
-        // Reset to only default features for true custom mode
-        self.enabled_features = vec!["default".to_string()];
-        
-        // Clear tracking
+        // Keep existing features but clear change tracking
         self.custom_features.clear();
         self.removed_features.clear();
         
         self.modified = true;
         
-        debug!("Switched to custom - features reset to default only");
+        debug!("Switched to custom - current features: {:?}", self.enabled_features);
+        debug!("Preset tracking cleared: base_preset_id = None");
     }
-    
+
     // Method to track individual feature changes
     pub fn toggle_feature_with_tracking(&mut self, feature_id: &str, enable: bool, presets: &[crate::preset::Preset]) {
         debug!("Toggling feature '{}' to {} for installation '{}'", feature_id, enable, self.name);
