@@ -3,6 +3,31 @@ use crate::installation::{Installation, delete_installation};
 use log::{debug, error};
 use std::path::PathBuf;
 
+fn open_folder_in_explorer(path: &PathBuf) -> Result<(), String> {
+    #[cfg(target_os = "windows")]
+    let result = std::process::Command::new("explorer")
+        .arg(path)
+        .spawn();
+    
+    #[cfg(target_os = "macos")]
+    let result = std::process::Command::new("open")
+        .arg(path)
+        .spawn();
+    
+    #[cfg(target_os = "linux")]
+    let result = std::process::Command::new("xdg-open")
+        .arg(path)
+        .spawn();
+    
+    #[cfg(not(any(target_os = "windows", target_os = "macos", target_os = "linux")))]
+    let result = Err(std::io::Error::new(
+        std::io::ErrorKind::Other, 
+        "Unsupported platform"
+    ));
+    
+    result.map(|_| ()).map_err(|e| format!("Failed to open folder: {}", e))
+}
+
 #[component]
 pub fn SettingsTab(
     installation: Installation,
@@ -42,8 +67,10 @@ pub fn SettingsTab(
     
     // Open folder function - enhanced with debugging and path checks
     let installation_path_for_folder = installation.installation_path.clone();
-   let open_folder = move |_| {
+    let open_folder = move |_| {
     let mut path = installation_path_for_folder.clone();
+
+    let mut show_reset_cache_confirm = use_signal(|| false);
     
     // Add extensive debugging for path troubleshooting
     debug!("Opening installation folder: {:?}", path);
@@ -250,7 +277,7 @@ let handle_rename = move |_| {
             }
             
             // Advanced section
-            div { class: "settings-section advanced-settings",
+div { class: "settings-section advanced-settings",
     h3 { "Advanced" }
     
     div { class: "advanced-description",
@@ -267,83 +294,15 @@ let handle_rename = move |_| {
         button {
             class: "advanced-button reset-cache-button",
             disabled: *is_operating.read(),
-onclick: move |_| {
-    debug!("Reset cache clicked for installation: {}", installation_id_for_cache);
-    is_operating.set(true);
-    
-    let installation_path_for_cache = installation.installation_path.clone();
-    let mut operation_error_clone = operation_error.clone();
-    let mut is_operating_clone = is_operating.clone();
-    let installation_clone_for_async = installation.clone(); // Clone here
-    let onupdate_clone = onupdate.clone(); // Clone the handler too
-    
-    spawn(async move {
-        // Define the folders to clear
-        let cache_folders = [
-            installation_path_for_cache.join("mods"),
-            installation_path_for_cache.join("resourcepacks"),
-            installation_path_for_cache.join("shaderpacks")
-        ];
-        
-        debug!("Clearing cache folders: {:?}", cache_folders);
-        
-        let mut success = true;
-        
-        // Delete the content of each folder
-        for folder in &cache_folders {
-            if folder.exists() {
-                match std::fs::remove_dir_all(folder) {
-                    Ok(_) => {
-                        debug!("Removed folder: {:?}", folder);
-                        // Recreate the empty folder
-                        if let Err(e) = std::fs::create_dir_all(folder) {
-                            error!("Failed to recreate folder {:?}: {}", folder, e);
-                            operation_error_clone.set(Some(format!("Failed to recreate folder: {}", e)));
-                            success = false;
-                            break;
-                        }
-                    },
-                    Err(e) => {
-                        error!("Failed to remove folder {:?}: {}", folder, e);
-                        operation_error_clone.set(Some(format!("Failed to clear cache: {}", e)));
-                        success = false;
-                        break;
-                    }
-                }
-            } else {
-                // Create the folder if it doesn't exist
-                if let Err(e) = std::fs::create_dir_all(folder) {
-                    error!("Failed to create folder {:?}: {}", folder, e);
-                    operation_error_clone.set(Some(format!("Failed to create folder: {}", e)));
-                    success = false;
-                    break;
-                }
-            }
-        }
-        
-        is_operating_clone.set(false);
-        
-        // Display success message if everything went well
-        if success {
-            // Mark installation as not installed to force re-download
-            let mut installation_for_update = installation_clone_for_async.clone();
-            installation_for_update.installed = false;
-            
-            // Save the updated state
-            if let Err(e) = installation_for_update.save() {
-                operation_error_clone.set(Some(format!("Failed to update installation state: {}", e)));
-            } else {
-                // Update the parent component's state
-                onupdate_clone.call(installation_for_update);
-            }
-            
-            operation_error_clone.set(Some("Cache successfully reset. You'll need to reinstall the modpack next time you play.".to_string()));
-        }
-    });
-},
+            onclick: move |_| {
+                show_reset_cache_confirm.set(true);
+            },
             "Reset Cache"
         }
     }
+}
+
+                 
      }       
             // Actions section
             div { class: "settings-section actions",
@@ -463,57 +422,245 @@ div { class: "character-counter",
                     }
                 }
             }
+if *show_reset_cache_confirm.read() {
+    div { class: "modal-overlay",
+        div { class: "modal-container reset-cache-dialog",
+            div { class: "modal-header",
+                h3 { "Reset Installation Cache" }
+                button { 
+                    class: "modal-close",
+                    onclick: move |_| show_reset_cache_confirm.set(false),
+                    "×"
+                }
+            }
             
-            // Delete confirmation dialog
-            if *show_delete_confirm.read() {
-                div { class: "modal-overlay",
-                    div { class: "modal-container delete-dialog",
-                        div { class: "modal-header",
-                            h3 { "Delete Installation" }
-                            button { 
-                                class: "modal-close",
-                                disabled: *is_operating.read(),
-                                onclick: move |_| {
-                                    if !*is_operating.read() {
-                                        show_delete_confirm.set(false);
-                                    }
-                                },
-                                "×"
+            div { class: "modal-content",
+                p { 
+                    "This will delete all cached mod files and force a complete re-download next time you play."
+                }
+                
+                p { class: "warning-message",
+                    strong { "⚠️ Warning: " }
+                    "The following folders will be cleared:"
+                }
+                
+                // Show specific folders that will be affected
+                div { class: "affected-folders",
+                    {
+                        let base_path = installation.installation_path.clone();
+                        rsx! {
+                            div { class: "folder-item",
+                                code { "{base_path.join(\"mods\").display()}" }
+                            }
+                            div { class: "folder-item",
+                                code { "{base_path.join(\"resourcepacks\").display()}" }
+                            }
+                            div { class: "folder-item",
+                                code { "{base_path.join(\"shaderpacks\").display()}" }
                             }
                         }
-                        
-                        div { class: "modal-content",
-                            p { "Are you sure you want to delete this installation?" }
-                            p { class: "delete-warning", "This action cannot be undone!" }
-                            p { "Installation: ", strong { "{installation_name}" } }
-                        }
-                        
-                        div { class: "modal-footer",
-                            button { 
-                                class: "cancel-button",
-                                disabled: *is_operating.read(),
-                                onclick: move |_| {
-                                    if !*is_operating.read() {
-                                        show_delete_confirm.set(false);
-                                    }
-                                },
-                                "Cancel"
+                    }
+                }
+                
+                p { 
+                    "You'll need to reinstall the modpack before you can play again."
+                }
+            }
+            
+            div { class: "modal-footer",
+                button { 
+                    class: "cancel-button",
+                    onclick: move |_| show_reset_cache_confirm.set(false),
+                    "Cancel"
+                }
+                
+                // Open installation folder button
+                button {
+                    class: "secondary-button",
+                    onclick: {
+                        let path = installation.installation_path.clone();
+                        move |_| {
+                            if let Err(e) = open_folder_in_explorer(&path) {
+                                error!("Failed to open folder: {}", e);
+                                operation_error.set(Some(e));
                             }
+                        }
+                    },
+                    "Open Installation Folder"
+                }
+                
+                button { 
+                    class: "destructive-action-button",
+                    onclick: move |_| {
+                        show_reset_cache_confirm.set(false);
+                        debug!("Reset cache clicked for installation: {}", installation_id_for_cache);
+                        is_operating.set(true);
+                        
+                        let installation_path_for_cache = installation.installation_path.clone();
+                        let mut operation_error_clone = operation_error.clone();
+                        let mut is_operating_clone = is_operating.clone();
+                        let installation_clone_for_async = installation.clone();
+                        let onupdate_clone = onupdate.clone();
+                        
+                        spawn(async move {
+                            // Define the folders to clear
+                            let cache_folders = [
+                                installation_path_for_cache.join("mods"),
+                                installation_path_for_cache.join("resourcepacks"),
+                                installation_path_for_cache.join("shaderpacks")
+                            ];
                             
-                            button { 
-                                class: "delete-button",
-                                disabled: *is_operating.read(),
-                                onclick: handle_delete,
-                                if *is_operating.read() {
-                                    "Deleting..."
+                            debug!("Clearing cache folders: {:?}", cache_folders);
+                            
+                            let mut success = true;
+                            
+                            // Delete the content of each folder
+                            for folder in &cache_folders {
+                                if folder.exists() {
+                                    match std::fs::remove_dir_all(folder) {
+                                        Ok(_) => {
+                                            debug!("Removed folder: {:?}", folder);
+                                            // Recreate the empty folder
+                                            if let Err(e) = std::fs::create_dir_all(folder) {
+                                                error!("Failed to recreate folder {:?}: {}", folder, e);
+                                                operation_error_clone.set(Some(format!("Failed to recreate folder: {}", e)));
+                                                success = false;
+                                                break;
+                                            }
+                                        },
+                                        Err(e) => {
+                                            error!("Failed to remove folder {:?}: {}", folder, e);
+                                            operation_error_clone.set(Some(format!("Failed to clear cache: {}", e)));
+                                            success = false;
+                                            break;
+                                        }
+                                    }
                                 } else {
-                                    "Delete"
+                                    // Create the folder if it doesn't exist
+                                    if let Err(e) = std::fs::create_dir_all(folder) {
+                                        error!("Failed to create folder {:?}: {}", folder, e);
+                                        operation_error_clone.set(Some(format!("Failed to create folder: {}", e)));
+                                        success = false;
+                                        break;
+                                    }
                                 }
                             }
+                            
+                            is_operating_clone.set(false);
+                            
+                            // Display success message if everything went well
+                            if success {
+                                // Mark installation as not installed to force re-download
+                                let mut installation_for_update = installation_clone_for_async.clone();
+                                installation_for_update.installed = false;
+                                
+                                // Save the updated state
+                                if let Err(e) = installation_for_update.save() {
+                                    operation_error_clone.set(Some(format!("Failed to update installation state: {}", e)));
+                                } else {
+                                    // Update the parent component's state
+                                    onupdate_clone.call(installation_for_update);
+                                }
+                                
+                                operation_error_clone.set(Some("Cache successfully reset. You'll need to reinstall the modpack next time you play.".to_string()));
+                            }
+                        });
+                    },
+                    "Confirm Reset"
+                }
+            }
+        }
+    }
+}
+            // Delete confirmation dialog
+if *show_delete_confirm.read() {
+    div { class: "modal-overlay",
+        div { class: "modal-container delete-dialog",
+            div { class: "modal-header",
+                h3 { "Delete Installation" }
+                button { 
+                    class: "modal-close",
+                    disabled: *is_operating.read(),
+                    onclick: move |_| {
+                        if !*is_operating.read() {
+                            show_delete_confirm.set(false);
                         }
+                    },
+                    "×"
+                }
+            }
+            
+            div { class: "modal-content",
+                p { 
+                    strong { "⚠️ Warning: " }
+                    "This will permanently delete the installation and all its files."
+                }
+                
+                p { class: "delete-warning", 
+                    "This action cannot be undone!" 
+                }
+                
+                p { "Installation: ", strong { "{installation_name}" } }
+                
+                // Show the path that will be deleted
+                div { class: "affected-path-info",
+                    p { "The following folder will be deleted:" }
+                    code { class: "path-display", "{installation.installation_path.display()}" }
+                }
+            }
+            
+            div { class: "modal-footer",
+                button { 
+                    class: "cancel-button",
+                    disabled: *is_operating.read(),
+                    onclick: move |_| {
+                        if !*is_operating.read() {
+                            show_delete_confirm.set(false);
+                        }
+                    },
+                    "Cancel"
+                }
+                
+                // Open folder button
+                button {
+                    class: "secondary-button",
+                    disabled: *is_operating.read(),
+                    onclick: {
+                        let path = installation.installation_path.clone();
+                        move |_| {
+                            #[cfg(target_os = "windows")]
+                            let _ = std::process::Command::new("explorer")
+                                .arg(&path)
+                                .spawn();
+                            
+                            #[cfg(target_os = "macos")]
+                            let _ = std::process::Command::new("open")
+                                .arg(&path)
+                                .spawn();
+                            
+                            #[cfg(target_os = "linux")]
+                            let _ = std::process::Command::new("xdg-open")
+                                .arg(&path)
+                                .spawn();
+                        }
+                    },
+                    "Open Folder"
+                }
+                
+                button { 
+                    class: "delete-button confirm-delete",
+                    disabled: *is_operating.read(),
+                    onclick: handle_delete,
+                    if *is_operating.read() {
+                        "Deleting..."
+                    } else {
+                        "Confirm Delete"
                     }
                 }
             }
         }
     }
 }
+}
+}
+
