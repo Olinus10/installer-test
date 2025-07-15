@@ -854,7 +854,7 @@ pub fn SimplifiedInstallationWizard(props: InstallationCreationProps) -> Element
         }
     });
     
-    // Function to create the installation
+    // FIXED: Function to create the installation with proper default initialization
     let create_installation = move |_| {
         debug!("Creating installation with name: {}", name.read());
 
@@ -888,15 +888,17 @@ pub fn SimplifiedInstallationWizard(props: InstallationCreationProps) -> Element
 
             // CRITICAL FIX: Initialize with default-enabled features from universal manifest
             let http_client = crate::CachedHttpClient::new();
-            let unwrapped_manifest_clone = unwrapped_manifest.clone();
             
             spawn(async move {
-                // Use the new initialization method instead of duplicating the logic
+                // FIXED: Use the enhanced initialization method
                 if let Err(e) = installation.initialize_with_universal_defaults(&http_client).await {
                     error!("Failed to initialize default features: {}", e);
                     installation_error.set(Some(format!("Failed to initialize features: {}", e)));
                     return;
                 }
+                
+                debug!("Initialized installation with {} features: {:?}", 
+                       installation.enabled_features.len(), installation.enabled_features);
                 
                 // Mark as fresh installation
                 installation.mark_as_fresh();
@@ -919,6 +921,7 @@ pub fn SimplifiedInstallationWizard(props: InstallationCreationProps) -> Element
                 }
                 
                 debug!("Successfully created installation: {}", installation.id);
+                debug!("Installation enabled features: {:?}", installation.enabled_features);
                 
                 // Call the oncreate handler to finalize
                 props.oncreate.call(installation);
@@ -1020,7 +1023,7 @@ pub fn SimplifiedInstallationWizard(props: InstallationCreationProps) -> Element
                             // Show what will be included by default
                             div { class: "default-features-info",
                                 p { class: "info-description", 
-                                    "You can customize further in the next step."
+                                    "Installation will include all default components. You can customize features after creation."
                                 }
                             }
                         }
