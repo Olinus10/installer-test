@@ -1346,39 +1346,40 @@ async fn download_helper<T: Downloadable + Debug, F: FnMut() + Clone>(
     is_update: bool,
     ignore_update_items: &std::collections::HashSet<String>,
 ) -> Result<Vec<T>, DownloadError> {
+    debug!("download_helper called with {} items", items.len());
+    debug!("User enabled features: {:?}", enabled_features);
+    debug!("Is update: {}", is_update);
+    debug!("Ignore update items: {:?}", ignore_update_items);
+
     let results = futures::stream::iter(items.into_iter().map(|item| async {
-        // FIXED: Proper logic for determining if item should be included
+        // CRITICAL FIX: Proper logic for determining if item should be included
         let should_include = if item.get_id() == "default" {
             // Always include the "default" item
+            debug!("Including item '{}' (default)", item.get_name());
             true
         } else {
-            // Check if this item should be included based on:
-            // 1. It's in the user's enabled_features list, OR
-            // 2. It's a default_enabled component (from universal manifest)
-            enabled_features.contains(item.get_id()) || {
-                // For default_enabled items, we need to check the universal manifest
-                // This is a bit of a hack since we don't have direct access to default_enabled here
-                // But we can infer it from the enabled_features containing "default"
-                enabled_features.contains(&"default".to_string()) && {
-                    // If this is likely a default component (based on naming or other heuristics)
-                    // we should include it. But better to be explicit via enabled_features.
-                    false // For now, rely on enabled_features being properly set
-                }
-            }
+            // Check if this item should be included based on user's enabled_features
+            let is_in_enabled_features = enabled_features.contains(item.get_id());
+            debug!("Item '{}' (ID: {}) - in enabled_features: {}", 
+                   item.get_name(), item.get_id(), is_in_enabled_features);
+            is_in_enabled_features
         };
-        
-        debug!("Item '{}' (ID: {}) - should_include: {}, in_enabled_features: {}", 
-               item.get_name(), item.get_id(), should_include, enabled_features.contains(item.get_id()));
         
         // Check if we should ignore this item during updates
         let should_ignore_update = is_update && ignore_update_items.contains(item.get_id());
         
+        if should_ignore_update {
+            debug!("Ignoring update for item: '{}' (ignore_update=true)", item.get_name());
+        }
+        
         if item.get_path().is_none() && should_include && !should_ignore_update {
-            debug!("Downloading item: {} (ID: {})", item.get_name(), item.get_id());
-            let path = item
-                .download(modpack_root, loader_type, http_client)
-                .await?;
+            // Item needs to be downloaded
+            debug!("DOWNLOADING item: {} (ID: {}) - not cached, user enabled, not ignored", 
+                   item.get_name(), item.get_id());
+            
+            let path = item.download(modpack_root, loader_type, http_client).await?;
             (progress_callback.clone())();
+            
             Ok(T::new(
                 item.get_name().to_owned(),
                 item.get_source().to_owned(),
@@ -1389,21 +1390,22 @@ async fn download_helper<T: Downloadable + Debug, F: FnMut() + Clone>(
                 item.get_authors().to_owned(),
             ))
         } else {
+            // Item already exists or doesn't need to be downloaded
             let item = validate_item_path!(item, modpack_root);
             let path;
             
             if should_ignore_update && item.get_path().is_some() {
-                debug!("Ignoring update for: '{}' (ignore_update=true)", item.get_name());
+                debug!("KEEPING item (ignore update): '{}' (ignore_update=true)", item.get_name());
                 path = item.get_path().to_owned();
             } else if !should_include && item.get_path().is_some() {
-                debug!("Removing disabled item: '{}' (not in enabled_features)", item.get_name());
+                debug!("REMOVING disabled item: '{}' (not in user enabled features)", item.get_name());
                 let _ = fs::remove_file(item.get_path().as_ref().unwrap());
                 path = None;
             } else if !should_include {
-                debug!("Skipping disabled item: '{}' (not in enabled_features)", item.get_name());
+                debug!("SKIPPING disabled item: '{}' (not in user enabled features)", item.get_name());
                 path = None;
             } else {
-                debug!("Keeping existing item: '{}' (enabled)", item.get_name());
+                debug!("KEEPING existing item: '{}' (enabled and cached)", item.get_name());
                 path = item.get_path().to_owned();
             }
             
@@ -1425,10 +1427,19 @@ async fn download_helper<T: Downloadable + Debug, F: FnMut() + Clone>(
     let mut return_vec = vec![];
     for res in results {
         match res {
-            Ok(v) => return_vec.push(v),
-            Err(e) => return Err(e),
+            Ok(v) => {
+                debug!("Successfully processed item: {} (path: {:?})", 
+                       v.get_name(), v.get_path());
+                return_vec.push(v);
+            },
+            Err(e) => {
+                error!("Failed to process item: {:?}", e);
+                return Err(e);
+            }
         }
     }
+    
+    debug!("download_helper completed: {} items processed", return_vec.len());
     Ok(return_vec)
 }
 
