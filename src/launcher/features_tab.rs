@@ -47,36 +47,68 @@ pub fn FeaturesTab(
     });
     
     // Handle changing a preset
-let mut apply_preset = move |preset_id: String| {
-    debug!("Applying preset: {}", preset_id);
-    
-    if preset_id == "custom" {
-        // Custom preset: reset to ONLY default features
-        let default_features = vec!["default".to_string()];
+    let mut apply_preset = move |preset_id: String| {
+        debug!("Applying preset: {}", preset_id);
         
-        enabled_features.set(default_features.clone());
-        selected_preset.set(None); // Custom = no preset selected
-        
-        // Update installation
-        if let Ok(mut installation) = crate::installation::load_installation(&installation_id_for_apply) {
-            installation.switch_to_custom_with_tracking();
-            installation.enabled_features = default_features;
-            installation.modified = true;
-            let _ = installation.save();
+        if preset_id == "custom" {
+            // Custom preset: reset to only default components
+            let mut default_features = vec!["default".to_string()];
+            
+            // Add any default-enabled features from the universal manifest
+            if let Some(manifest) = &universal_manifest_for_apply {
+                for component in &manifest.mods {
+                    if component.default_enabled && component.id != "default" && !default_features.contains(&component.id) {
+                        default_features.push(component.id.clone());
+                    }
+                }
+                for component in &manifest.shaderpacks {
+                    if component.default_enabled && component.id != "default" && !default_features.contains(&component.id) {
+                        default_features.push(component.id.clone());
+                    }
+                }
+                for component in &manifest.resourcepacks {
+                    if component.default_enabled && component.id != "default" && !default_features.contains(&component.id) {
+                        default_features.push(component.id.clone());
+                    }
+                }
+                for include in &manifest.include {
+                    if include.default_enabled && !include.id.is_empty() && include.id != "default" 
+                       && !default_features.contains(&include.id) {
+                        default_features.push(include.id.clone());
+                    }
+                }
+                for remote in &manifest.remote_include {
+                    if remote.default_enabled && remote.id != "default" 
+                       && !default_features.contains(&remote.id) {
+                        default_features.push(remote.id.clone());
+                    }
+                }
+            }
+            
+            enabled_features.set(default_features);
+            selected_preset.set(None); // Custom = no preset
+            
+            // Update installation
+            if let Ok(mut installation) = crate::installation::load_installation(&installation_id_for_apply) {
+                installation.switch_to_custom_with_tracking();
+                installation.enabled_features = enabled_features.read().clone();
+                installation.modified = true;
+                let _ = installation.save();
+            }
+        } else if let Some(preset) = find_preset_by_id(&presets_for_closure, &preset_id) {
+            // Apply preset features
+            enabled_features.set(preset.enabled_features.clone());
+            selected_preset.set(Some(preset_id.clone()));
+            
+            // Update installation
+            if let Ok(mut installation) = crate::installation::load_installation(&installation_id_for_apply) {
+                installation.apply_preset_with_tracking(&preset);
+                installation.enabled_features = preset.enabled_features.clone();
+                installation.modified = true;
+                let _ = installation.save();
+            }
         }
-    } else if let Some(preset) = find_preset_by_id(&presets_for_closure, &preset_id) {
-        // Apply specific preset
-        enabled_features.set(preset.enabled_features.clone());
-        selected_preset.set(Some(preset_id.clone()));
-        
-        // Update installation
-        if let Ok(mut installation) = crate::installation::load_installation(&installation_id_for_apply) {
-            installation.apply_preset_with_tracking(&preset);
-            installation.modified = true;
-            let _ = installation.save();
-        }
-    }
-};
+    };
     
     // Handle toggling a feature with dependency checking
     let toggle_feature = move |feature_id: String| {
@@ -520,16 +552,21 @@ fn render_all_features_sections(
     all_components.extend(manifest.shaderpacks.iter().cloned());
     all_components.extend(manifest.resourcepacks.iter().cloned());
     
-    // Convert includes to ModComponent format with proper categories
+    // Convert includes to ModComponent format - FIXED VERSION
     for include in &manifest.include {
-        if !include.id.is_empty() && include.id != "default" && include.optional {
+        // Only convert includes that have an ID (non-empty) or are optional
+        if !include.id.is_empty() && include.id != "default" {
             all_components.push(ModComponent {
                 id: include.id.clone(),
                 name: include.name.clone().unwrap_or_else(|| {
-                    include.location.split('/').last().unwrap_or(&include.location)
-                        .replace('_', " ").replace('-', " ")
+                    // Better name extraction from location
+                    if include.location.contains('/') {
+                        include.location.split('/').last().unwrap_or(&include.location).to_string()
+                    } else {
+                        include.location.clone()
+                    }
                 }),
-                description: Some(format!("Include: {}", include.location)),
+                description: Some(format!("Configuration: {}", include.location)),
                 source: "include".to_string(),
                 location: include.location.clone(),
                 version: "1.0".to_string(),
@@ -537,7 +574,7 @@ fn render_all_features_sections(
                 optional: include.optional,
                 default_enabled: include.default_enabled,
                 authors: include.authors.clone().unwrap_or_default(),
-                category: None, // Let it use the default categorization
+                category: Some("Configuration".to_string()),
                 dependencies: None,
                 incompatibilities: None,
                 ignore_update: include.ignore_update,
@@ -545,17 +582,18 @@ fn render_all_features_sections(
         }
     }
     
-    // Convert remote includes with proper categories
+    // Convert remote includes to ModComponent format - FIXED VERSION
     for remote in &manifest.remote_include {
-        if remote.optional {
+        if remote.id != "default" {
             all_components.push(ModComponent {
                 id: remote.id.clone(),
                 name: remote.name.clone().unwrap_or_else(|| {
+                    // Better name extraction
                     remote.id.replace('_', " ").replace('-', " ")
                 }),
-                description: remote.description.clone().or_else(|| {
-                    Some(format!("Remote: {}", remote.id))
-                }),
+description: remote.description.clone().or_else(|| {
+    Some(format!("Remote content: {}", remote.location))
+}),
                 source: "remote_include".to_string(),
                 location: remote.location.clone(),
                 version: remote.version.clone(),
@@ -563,7 +601,7 @@ fn render_all_features_sections(
                 optional: remote.optional,
                 default_enabled: remote.default_enabled,
                 authors: remote.authors.clone(),
-                category: None, // Let it use the default categorization
+                category: remote.category.clone().or_else(|| Some("Remote Content".to_string())),
                 dependencies: remote.dependencies.clone(),
                 incompatibilities: None,
                 ignore_update: remote.ignore_update,
@@ -571,30 +609,57 @@ fn render_all_features_sections(
         }
     }
     
-    // Filter and separate components
+    debug!("Total components after includes: {}", all_components.len());
+    
+    // Filter components
     let filtered_components = if filter.is_empty() {
         all_components
     } else {
         all_components.into_iter()
             .filter(|comp| {
-                comp.name.to_lowercase().contains(&filter) ||
-                comp.description.as_ref().map_or(false, |desc| desc.to_lowercase().contains(&filter)) ||
-                comp.category.as_ref().map_or(false, |cat| cat.to_lowercase().contains(&filter))
+                let name_match = comp.name.to_lowercase().contains(&filter);
+                let desc_match = comp.description.as_ref()
+                    .map_or(false, |desc| desc.to_lowercase().contains(&filter));
+                let category_match = comp.category.as_ref()
+                    .map_or(false, |cat| cat.to_lowercase().contains(&filter));
+                name_match || desc_match || category_match
             })
             .collect()
     };
     
-    // Separate into included and optional
+    // Separate into included (default-enabled AND non-optional) and optional
     let (included_components, optional_components): (Vec<_>, Vec<_>) = filtered_components
         .into_iter()
         .partition(|comp| {
-            comp.id == "default" || (!comp.optional && comp.default_enabled)
+            // Component is included if it's default_enabled AND not optional
+            // OR if it has id "default"
+            comp.id == "default" || (comp.default_enabled && !comp.optional)
         });
     
-    // Group by category - use MISC as default, not Configuration
+    debug!("Included components: {}", included_components.len());
+    debug!("Optional components: {}", optional_components.len());
+    
+    // Group optional components by category
     let mut categories: std::collections::BTreeMap<String, Vec<ModComponent>> = std::collections::BTreeMap::new();
     for component in optional_components {
-        let category = component.category.clone().unwrap_or_else(|| "MISC".to_string());
+        let category = component.category.clone().unwrap_or_else(|| {
+            // Better category assignment based on source
+            match component.source.as_str() {
+                "include" => "Configuration".to_string(),
+                "remote_include" => "Remote Content".to_string(),
+                "modrinth" => {
+                    // Try to categorize by mod type
+                    if component.location.contains("shader") {
+                        "Shaders".to_string()
+                    } else if component.location.contains("resource") {
+                        "Resource Packs".to_string()
+                    } else {
+                        "Mods".to_string()
+                    }
+                },
+                _ => "Other".to_string(),
+            }
+        });
         categories.entry(category).or_insert_with(Vec::new).push(component);
     }
     
