@@ -687,6 +687,20 @@ pub fn save_installations_index(index: &InstallationsIndex) -> Result<(), std::i
     std::fs::write(index_path, index_json)
 }
 
+pub fn get_active_installation() -> Result<Installation, String> {
+    let index = load_installations_index()
+        .map_err(|e| format!("Failed to load installations index: {}", e))?;
+    
+    if let Some(active_id) = index.active_installation {
+        load_installation(&active_id)
+    } else {
+        // If no active installation, return the most recently used one
+        let installations = load_all_installations()?;
+        installations.into_iter().next()
+            .ok_or_else(|| "No installations found".to_string())
+    }
+}
+
 pub fn delete_installation(id: &str) -> Result<(), String> {
     debug!("Starting deletion of installation: {}", id);
     
