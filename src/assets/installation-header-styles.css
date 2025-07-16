@@ -4,7 +4,7 @@
     top: 0;
     left: 0;
     right: 0;
-        background: linear-gradient(135deg, 
+    background: linear-gradient(135deg, 
         rgba(0, 0, 0, 0.7), 
         rgba(20, 20, 20, 0.75),
         rgba(10, 10, 10, 0.8)) !important;
@@ -61,6 +61,15 @@
     white-space: nowrap;
 }
 
+@keyframes titleGlow {
+    from {
+        text-shadow: 0 2px 10px rgba(252, 232, 246, 0.3);
+    }
+    to {
+        text-shadow: 0 2px 15px rgba(252, 232, 246, 0.6);
+    }
+}
+
 /* Center section - Navigation tabs */
 .header-center {
     display: flex;
@@ -68,6 +77,48 @@
     flex: 1;
     justify-content: center;
     padding: 0 20px;
+}
+
+/* INSTALLATION PAGE HEADER CENTER - SPECIAL LAYOUT */
+.installation-page .header-center,
+.installation-page-content .header-center,
+.installation-management-container .header-center {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    position: relative !important;
+    flex: 1 !important;
+    padding: 0 !important;
+    gap: 0 !important;
+}
+
+/* TAB GROUP CONTAINER - Only for installation pages */
+.installation-page .header-center > .tab-group,
+.installation-page-content .header-center > .tab-group,
+.installation-management-container .header-center > .tab-group {
+    display: flex;
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    padding: 4px;
+    gap: 2px;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+/* If no tab-group exists, create container effect on header-center */
+.installation-page .header-center:not(:has(.tab-group)),
+.installation-page-content .header-center:not(:has(.tab-group)),
+.installation-management-container .header-center:not(:has(.tab-group)) {
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    padding: 4px;
+    gap: 2px;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    width: fit-content;
+    margin: 0 auto;
 }
 
 /* Navigation tabs (works for both home tabs and installation tabs) */
@@ -84,12 +135,6 @@
     position: relative;
     overflow: hidden;
     white-space: nowrap;
-}
-
-.nav-tab.back-tab {
-    background: rgba(255, 255, 255, 0.08);
-    padding: 10px 18px;
-    min-width: auto;
 }
 
 .nav-tab::before {
@@ -123,6 +168,236 @@
     box-shadow: 0 0 20px rgba(76, 175, 80, 0.3);
 }
 
+/* INSTALLATION PAGE BACK BUTTON */
+.installation-page .nav-tab.back-tab,
+.installation-page-content .nav-tab.back-tab,
+.installation-management-container .nav-tab.back-tab {
+    position: absolute;
+    left: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: linear-gradient(135deg, rgba(90, 90, 90, 0.7), rgba(70, 70, 70, 0.8));
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 10px;
+    padding: 10px 16px;
+    font-family: "REGULAR_FONT";
+    font-size: 0.9rem;
+    color: rgba(255, 255, 255, 0.8);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    z-index: 15;
+    white-space: nowrap;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    backdrop-filter: blur(5px);
+}
+
+.installation-page .nav-tab.back-tab:hover,
+.installation-page-content .nav-tab.back-tab:hover,
+.installation-management-container .nav-tab.back-tab:hover {
+    background: linear-gradient(135deg, rgba(110, 110, 110, 0.9), rgba(90, 90, 90, 0.95));
+    border-color: rgba(255, 255, 255, 0.4);
+    color: white;
+    transform: translateY(-50%) translateX(-1px);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+}
+
+/* INSTALLATION PAGE MAIN TABS */
+.installation-page .nav-tab:not(.back-tab),
+.installation-page-content .nav-tab:not(.back-tab),
+.installation-management-container .nav-tab:not(.back-tab) {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    padding: 8px 16px;
+    font-family: "REGULAR_FONT";
+    font-size: 0.9rem;
+    color: rgba(255, 255, 255, 0.8);
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    position: relative;
+    overflow: hidden;
+    white-space: nowrap;
+    min-width: 80px;
+    text-align: center;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.installation-page .nav-tab:not(.back-tab):hover,
+.installation-page-content .nav-tab:not(.back-tab):hover,
+.installation-management-container .nav-tab:not(.back-tab):hover {
+    transform: translateY(-2px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: white;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+/* Sweep animation for installation tabs */
+.installation-page .nav-tab:not(.back-tab)::before,
+.installation-page-content .nav-tab:not(.back-tab)::before,
+.installation-management-container .nav-tab:not(.back-tab)::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.15), transparent);
+    border-radius: inherit;
+    transition: left 0.5s ease;
+    z-index: 1;
+}
+
+.installation-page .nav-tab:not(.back-tab):hover::before,
+.installation-page-content .nav-tab:not(.back-tab):hover::before,
+.installation-management-container .nav-tab:not(.back-tab):hover::before {
+    left: 100%;
+}
+
+/* Bottom border animation for installation tabs */
+.installation-page .nav-tab:not(.back-tab)::after,
+.installation-page-content .nav-tab:not(.back-tab)::after,
+.installation-management-container .nav-tab:not(.back-tab)::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    width: 0;
+    height: 2px;
+    background: currentColor;
+    transform: translateX(-50%);
+    transition: width 0.3s ease;
+    border-radius: 1px 1px 0 0;
+    z-index: 2;
+}
+
+.installation-page .nav-tab:not(.back-tab):hover::after,
+.installation-page-content .nav-tab:not(.back-tab):hover::after,
+.installation-management-container .nav-tab:not(.back-tab):hover::after {
+    width: 70%;
+}
+
+/* FEATURES TAB - GREEN */
+.installation-page .nav-tab:nth-of-type(2),
+.installation-page-content .nav-tab:nth-of-type(2),
+.installation-management-container .nav-tab:nth-of-type(2) {
+    background: linear-gradient(135deg, rgba(76, 175, 80, 0.1), rgba(76, 175, 80, 0.05));
+    border-color: rgba(76, 175, 80, 0.2);
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.installation-page .nav-tab:nth-of-type(2):hover,
+.installation-page-content .nav-tab:nth-of-type(2):hover,
+.installation-management-container .nav-tab:nth-of-type(2):hover {
+    background: linear-gradient(135deg, rgba(76, 175, 80, 0.25), rgba(76, 175, 80, 0.15));
+    border-color: rgba(76, 175, 80, 0.5);
+    box-shadow: 0 4px 12px rgba(76, 175, 80, 0.2);
+    text-shadow: 0 0 8px rgba(76, 175, 80, 0.4);
+}
+
+.installation-page .nav-tab:nth-of-type(2).active,
+.installation-page-content .nav-tab:nth-of-type(2).active,
+.installation-management-container .nav-tab:nth-of-type(2).active {
+    background: linear-gradient(135deg, rgba(76, 175, 80, 0.3), rgba(60, 150, 64, 0.3));
+    border-color: rgba(76, 175, 80, 0.7);
+    color: white;
+    box-shadow: 0 0 15px rgba(76, 175, 80, 0.4);
+}
+
+/* PERFORMANCE TAB - RED */
+.installation-page .nav-tab:nth-of-type(3),
+.installation-page-content .nav-tab:nth-of-type(3),
+.installation-management-container .nav-tab:nth-of-type(3) {
+    background: linear-gradient(135deg, rgba(244, 67, 54, 0.1), rgba(244, 67, 54, 0.05));
+    border-color: rgba(244, 67, 54, 0.2);
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.installation-page .nav-tab:nth-of-type(3):hover,
+.installation-page-content .nav-tab:nth-of-type(3):hover,
+.installation-management-container .nav-tab:nth-of-type(3):hover {
+    background: linear-gradient(135deg, rgba(244, 67, 54, 0.25), rgba(244, 67, 54, 0.15));
+    border-color: rgba(244, 67, 54, 0.5);
+    box-shadow: 0 4px 12px rgba(244, 67, 54, 0.2);
+    text-shadow: 0 0 8px rgba(244, 67, 54, 0.4);
+}
+
+.installation-page .nav-tab:nth-of-type(3).active,
+.installation-page-content .nav-tab:nth-of-type(3).active,
+.installation-management-container .nav-tab:nth-of-type(3).active {
+    background: linear-gradient(135deg, rgba(244, 67, 54, 0.3), rgba(211, 47, 47, 0.3));
+    border-color: rgba(244, 67, 54, 0.7);
+    color: white;
+    box-shadow: 0 0 15px rgba(244, 67, 54, 0.4);
+}
+
+/* SETTINGS TAB - BLUE */
+.installation-page .nav-tab:nth-of-type(4),
+.installation-page-content .nav-tab:nth-of-type(4),
+.installation-management-container .nav-tab:nth-of-type(4) {
+    background: linear-gradient(135deg, rgba(33, 150, 243, 0.1), rgba(33, 150, 243, 0.05));
+    border-color: rgba(33, 150, 243, 0.2);
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.installation-page .nav-tab:nth-of-type(4):hover,
+.installation-page-content .nav-tab:nth-of-type(4):hover,
+.installation-management-container .nav-tab:nth-of-type(4):hover {
+    background: linear-gradient(135deg, rgba(33, 150, 243, 0.25), rgba(33, 150, 243, 0.15));
+    border-color: rgba(33, 150, 243, 0.5);
+    box-shadow: 0 4px 12px rgba(33, 150, 243, 0.2);
+    text-shadow: 0 0 8px rgba(33, 150, 243, 0.4);
+}
+
+.installation-page .nav-tab:nth-of-type(4).active,
+.installation-page-content .nav-tab:nth-of-type(4).active,
+.installation-management-container .nav-tab:nth-of-type(4).active {
+    background: linear-gradient(135deg, rgba(33, 150, 243, 0.3), rgba(21, 101, 192, 0.3));
+    border-color: rgba(33, 150, 243, 0.7);
+    color: white;
+    box-shadow: 0 0 15px rgba(33, 150, 243, 0.4);
+}
+
+/* Active tab pulse animation */
+@keyframes tabPulse {
+    0%, 100% { box-shadow: 0 0 15px currentColor; }
+    50% { box-shadow: 0 0 25px currentColor; }
+}
+
+.installation-page .nav-tab.active,
+.installation-page-content .nav-tab.active,
+.installation-management-container .nav-tab.active {
+    animation: tabPulse 2s ease-in-out infinite;
+}
+
+/* Click animation */
+.installation-page .nav-tab:active,
+.installation-page-content .nav-tab:active,
+.installation-management-container .nav-tab:active {
+    transform: translateY(-1px) scale(0.98);
+    transition: all 0.1s ease;
+}
+
+/* Tab modified indicator */
+.tab-modified-dot {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    width: 6px;
+    height: 6px;
+    background: #ffb900;
+    border-radius: 50%;
+    box-shadow: 0 0 8px rgba(255, 185, 0, 0.5);
+    animation: modifiedPulse 2s ease-in-out infinite;
+}
+
+@keyframes modifiedPulse {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.2); opacity: 0.8; }
+}
+
 /* Right section - Launch button */
 .header-right {
     display: flex;
@@ -148,60 +423,6 @@
     box-shadow: 
         0 6px 20px rgba(255, 215, 0, 0.4),
         0 0 30px rgba(255, 215, 0, 0.3),
-        inset 0 -3px 10px rgba(0, 0, 0, 0.1);
-    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    position: relative;
-    overflow: hidden;
-}
-
-/* Tab modified indicator */
-.tab-modified-dot {
-    position: absolute;
-    top: 6px;
-    right: 6px;
-    width: 6px;
-    height: 6px;
-    background: #ffb900;
-    border-radius: 50%;
-    box-shadow: 0 0 10px rgba(255, 185, 0, 0.6);
-    animation: modifiedPulse 2s ease-in-out infinite;
-}
-
-/* Additional refinements for tab modified dots */
-.tab-modified-dot {
-    background: #ffb900;
-    box-shadow: 0 0 8px rgba(255, 185, 0, 0.5);
-}
-
-@keyframes modifiedPulse {
-    0%, 100% { transform: scale(1); opacity: 1; }
-    50% { transform: scale(1.2); opacity: 0.8; }
-}
-
-/* Right section with launch button */
-.installation-header-right {
-    display: flex;
-    align-items: center;
-    gap: 15px;
-}
-
-/* Launch button in header */
-.header-launch-button {
-    background: linear-gradient(135deg, #FFD700, #FFA500);
-    border: 2px solid rgba(255, 215, 0, 0.6);
-    border-radius: 14px;
-    padding: 12px 32px;
-    font-family: "HEADER_FONT";
-    font-size: 1.2rem;
-    color: #1a1a1a;
-    cursor: pointer;
-    text-transform: uppercase;
-    letter-spacing: 2px;
-    font-weight: 700;
-    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
-    box-shadow: 
-        0 8px 25px rgba(255, 215, 0, 0.4),
-        0 0 40px rgba(255, 215, 0, 0.3),
         inset 0 -3px 10px rgba(0, 0, 0, 0.1);
     transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     position: relative;
@@ -263,7 +484,7 @@
     bottom: 0;
     left: 0;
     right: 0;
-        background: linear-gradient(135deg, 
+    background: linear-gradient(135deg, 
         rgba(0, 0, 0, 0.65), 
         rgba(20, 20, 20, 0.7),
         rgba(10, 10, 10, 0.75)) !important;
@@ -278,6 +499,17 @@
     border-radius: 25px 25px 0 0;
     margin: 0 15px;
     animation: footerSlideUp 0.5s ease-out;
+}
+
+@keyframes footerSlideUp {
+    from {
+        transform: translateY(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
 }
 
 /* Footer info section */
@@ -331,6 +563,23 @@
     box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
 }
 
+.footer-action-button.install {
+    background: linear-gradient(135deg, #4CAF50, #2E7D32);
+    color: white;
+    border: 2px solid rgba(76, 175, 80, 0.6);
+    box-shadow: 0 4px 15px rgba(76, 175, 80, 0.4), 0 0 30px rgba(76, 175, 80, 0.3);
+    animation: install-button-glow 3s ease-in-out infinite alternate;
+}
+
+@keyframes install-button-glow {
+    0% {
+        box-shadow: 0 4px 15px rgba(76, 175, 80, 0.4), 0 0 30px rgba(76, 175, 80, 0.3);
+    }
+    100% {
+        box-shadow: 0 6px 20px rgba(76, 175, 80, 0.6), 0 0 45px rgba(76, 175, 80, 0.5);
+    }
+}
+
 .footer-action-button.update {
     background: linear-gradient(135deg, #FF9800, #F57C00);
     color: white;
@@ -361,6 +610,35 @@
 
 .footer-action-button:not(.up-to-date):active {
     transform: translateY(-2px) scale(1.02);
+}
+
+.footer-action-button.install:hover {
+    background: linear-gradient(135deg, #66BB6A, #4CAF50);
+    transform: translateY(-3px) scale(1.02);
+    box-shadow: 0 8px 25px rgba(76, 175, 80, 0.6), 0 0 60px rgba(76, 175, 80, 0.7);
+}
+
+.footer-action-button.install::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+        90deg,
+        transparent,
+        rgba(255, 255, 255, 0.2),
+        rgba(255, 255, 255, 0.3),
+        rgba(255, 255, 255, 0.2),
+        transparent
+    );
+    transform: skewX(-25deg);
+    transition: left 0.6s ease;
+}
+
+.footer-action-button.install:hover::before {
+    left: 100%;
 }
 
 /* Pulsing animation for install/update buttons */
@@ -401,89 +679,167 @@
     left: 100%;
 }
 
-/* Responsive adjustments */
-@media (max-width: 1024px) {
-    .installation-header-title {
-        font-size: 1.4rem;
-    }
-    
-    .installation-tab {
-        padding: 8px 16px;
-        font-size: 0.9rem;
-    }
-    
-    .header-launch-button {
-        padding: 10px 24px;
-        font-size: 1rem;
-    }
+/* Discord button specific styling for home page footer */
+.home-container ~ .modern-footer .footer-action-button[href*="discord"],
+.modern-footer a.footer-action-button[href*="discord"] {
+    background: linear-gradient(135deg, #5865F2, #4752C4);
+    color: white;
+    border: 2px solid rgba(88, 101, 242, 0.6);
+    box-shadow: 0 4px 15px rgba(88, 101, 242, 0.3);
+    text-decoration: none;
 }
 
-@media (max-width: 768px) {
-    .installation-header {
-        height: auto;
-        padding: 15px;
-        flex-direction: column;
-        gap: 15px;
-    }
-    
-    .installation-header-left,
-    .installation-header-center,
-    .installation-header-right {
-        width: 100%;
-        justify-content: center;
-    }
-    
-    .installation-footer {
-        flex-direction: column;
-        gap: 15px;
-        padding: 15px;
-    }
-    
-    .footer-info {
-        flex-wrap: wrap;
-        justify-content: center;
-    }
+.home-container ~ .modern-footer .footer-action-button[href*="discord"]:hover,
+.modern-footer a.footer-action-button[href*="discord"]:hover {
+    background: linear-gradient(135deg, #6B7AFF, #5865F2);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(88, 101, 242, 0.4);
+    border-color: rgba(88, 101, 242, 0.8);
 }
 
-/* Main content adjustment for fixed header/footer */
-.installation-page-content {
-    padding-top: 100px; /* Space for header */
-    padding-bottom: 100px; /* Space for footer */
-    min-height: 100vh;
-    animation: contentFadeIn 0.6s ease-out;
+/* Hide Discord button on installation pages */
+.installation-page .modern-footer .footer-action-button[href*="discord"],
+.installation-management-container ~ .modern-footer .footer-action-button[href*="discord"],
+.installation-page-content ~ .modern-footer .footer-action-button[href*="discord"] {
+    display: none;
 }
 
-@keyframes contentFadeIn {
-    from {
-        opacity: 0;
-        transform: translateY(20px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
+/* Progress window improvements */
+.progress-container {
+    background: linear-gradient(145deg, 
+        rgba(20, 20, 30, 0.9), 
+        rgba(15, 15, 25, 0.95));
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
 }
 
-/* Features section improvements */
-.optional-features-wrapper {
-    background: none;
+.progress-header h1 {
+    text-shadow: 0 2px 6px rgba(0, 0, 0, 0.8);
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.6));
+    color: #fce8f6;
+}
+
+.progress-bar {
+    transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.progress-track {
+    background: linear-gradient(145deg, 
+        rgba(30, 30, 30, 0.6), 
+        rgba(40, 40, 40, 0.8));
+}
+
+/* Popups above header/footer */
+.modal-overlay,
+.wizard-overlay,
+.manifest-error-overlay,
+.update-warning-dialog {
+    z-index: 2000;
+}
+
+.modal-container,
+.installation-wizard,
+.manifest-error-container {
+    z-index: 2001;
+}
+
+.manifest-error-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+}
+
+/* Update warning dialog buttons */
+.update-warning-dialog {
+    max-width: 500px;
+}
+
+.update-warning-dialog .modal-footer {
+    justify-content: space-between;
+    gap: 15px;
+    padding: 15px 20px;
+}
+
+.update-warning-dialog .modal-footer button {
+    padding: 8px 16px;
+    font-size: 0.85rem;
+    min-width: auto;
+    white-space: nowrap;
+}
+
+.update-warning-dialog .secondary-button,
+.open-folder-button {
+    background: linear-gradient(135deg, #2196F3, #1565C0);
     border: none;
-    border-radius: 0;
-    margin: 30px auto;
-    padding: 20px 0;
-    max-width: 1200px;
+    color: white;
+    border-radius: 8px;
+    padding: 8px 16px;
+    font-family: "HEADER_FONT";
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 600;
+    box-shadow: 0 4px 15px rgba(33, 150, 243, 0.3);
 }
 
-/* Center preset cards */
-.presets-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: 25px;
-    margin: 25px auto 35px auto;
-    perspective: 1000px;
-    max-width: 1200px;
-    justify-items: center;
-    padding: 0 20px;
+.update-warning-dialog .secondary-button:hover,
+.open-folder-button:hover {
+    background: linear-gradient(135deg, #42A5F5, #2196F3);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(33, 150, 243, 0.5);
+}
+
+.update-warning-dialog .cancel-button {
+    background: linear-gradient(135deg, #f44336, #d32f2f);
+    border: none;
+    color: white;
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-family: "HEADER_FONT";
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 600;
+    box-shadow: 0 2px 8px rgba(244, 67, 54, 0.3);
+}
+
+.update-warning-dialog .cancel-button:hover {
+    background: linear-gradient(135deg, #f66356, #f44336);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(244, 67, 54, 0.4);
+}
+
+.update-proceed-button {
+    background: linear-gradient(135deg, #FFD700, #FFA500);
+    color: #000;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-family: "HEADER_FONT";
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 600;
+    box-shadow: 0 2px 8px rgba(255, 215, 0, 0.3);
+}
+
+.update-proceed-button:hover {
+    background: linear-gradient(135deg, #FFEF94, #FFD700);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(255, 215, 0, 0.4);
 }
 
 /* Hide old styled elements */
@@ -502,288 +858,13 @@
 .header-installation-meta,
 .header-tabs,
 .header-launch-section {
-    display: none !important;
-}
-
-/* Update main container spacing */
-.main-container {
-    padding-top: 100px;
-    padding-bottom: 100px;
-}
-
-.installation-page-content {
-    padding-top: 100px;
-    padding-bottom: 100px;
-    min-height: 100vh;
-    max-width: 100%;
-    animation: contentFadeIn 0.6s ease-out;
-}0.885, 0.32, 1.275);
-    position: relative;
-    overflow: hidden;
-}
-
-.header-launch-button::before {
-    content: '';
-    position: absolute;
-    top: -50%;
-    left: -50%;
-    width: 200%;
-    height: 200%;
-    background: linear-gradient(
-        45deg,
-        transparent,
-        rgba(255, 255, 255, 0.3),
-        rgba(255, 255, 255, 0.6),
-        rgba(255, 255, 255, 0.3),
-        transparent
-    );
-    transform: rotate(45deg);
-    animation: launchShimmer 3s linear infinite;
-}
-
-@keyframes launchShimmer {
-    0% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
-    100% { transform: translateX(100%) translateY(100%) rotate(45deg); }
-}
-
-.header-launch-button:hover {
-    transform: translateY(-3px) scale(1.05);
-    background: linear-gradient(135deg, #FFEF94, #FFD700);
-    box-shadow: 
-        0 12px 35px rgba(255, 215, 0, 0.6),
-        0 0 60px rgba(255, 215, 0, 0.7);
-}
-
-.header-launch-button:active {
-    transform: translateY(-1px) scale(1.02);
-}
-
-.header-launch-button:disabled {
-    background: linear-gradient(135deg, #404040, #2a2a2a);
-    border: 2px solid rgba(100, 100, 100, 0.4);
-    color: #888888;
-    cursor: not-allowed;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
-    animation: none;
-}
-
-.header-launch-button:disabled::before {
     display: none;
-}
-
-/* Installation Footer Styles */
-.installation-footer {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    background: linear-gradient(135deg, rgba(0, 0, 0, 0.95), rgba(20, 20, 20, 0.98));
-    backdrop-filter: blur(20px);
-    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.6), 0 0 40px rgba(0, 0, 0, 0.3);
-    z-index: 1000;
-    padding: 20px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 20px 20px 0 0;
-    margin: 0 10px;
-    animation: footerSlideUp 0.5s ease-out;
-}
-
-@keyframes footerSlideUp {
-    from {
-        transform: translateY(100%);
-        opacity: 0;
-    }
-    to {
-        transform: translateY(0);
-        opacity: 1;
-    }
-}
-
-/* Footer info section */
-.footer-info {
-    display: flex;
-    gap: 30px;
-    align-items: center;
-}
-
-.footer-info-item {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-}
-
-.footer-info-label {
-    font-size: 0.75rem;
-    color: rgba(255, 255, 255, 0.5);
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-}
-
-.footer-info-value {
-    font-size: 0.95rem;
-    color: white;
-    font-weight: 500;
-}
-
-/* Footer divider */
-.footer-divider {
-    width: 1px;
-    height: 30px;
-    background: linear-gradient(to bottom, transparent, rgba(255, 255, 255, 0.3), transparent);
-}
-
-/* Install/Update button in footer */
-.footer-action-button {
-    padding: 14px 40px;
-    border-radius: 14px;
-    font-family: "HEADER_FONT";
-    font-size: 1.1rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 1.5px;
-    cursor: pointer;
-    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    position: relative;
-    overflow: hidden;
-}
-
-.footer-action-button.install {
-    background: linear-gradient(135deg, #4CAF50, #2E7D32) !important;
-    color: white !important;
-    border: 2px solid rgba(76, 175, 80, 0.6) !important;
-    box-shadow: 0 4px 15px rgba(76, 175, 80, 0.4),
-                0 0 30px rgba(76, 175, 80, 0.3) !important;
-    animation: install-button-glow 3s ease-in-out infinite alternate;
-}
-
-@keyframes install-button-glow {
-    0% {
-        box-shadow: 0 4px 15px rgba(76, 175, 80, 0.4),
-                    0 0 30px rgba(76, 175, 80, 0.3);
-    }
-    100% {
-        box-shadow: 0 6px 20px rgba(76, 175, 80, 0.6),
-                    0 0 45px rgba(76, 175, 80, 0.5);
-    }
-}
-
-.footer-action-button.install:hover {
-    background: linear-gradient(135deg, #66BB6A, #4CAF50) !important;
-    transform: translateY(-3px) scale(1.02) !important;
-    box-shadow: 0 8px 25px rgba(76, 175, 80, 0.6),
-    border-color: 0 0 60px rgba(76, 175, 80, 0.7) !important;
-}
-
-.footer-action-button.install::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: -100%;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(
-        90deg,
-        transparent,
-        rgba(255, 255, 255, 0.2),
-        rgba(255, 255, 255, 0.3),
-        rgba(255, 255, 255, 0.2),
-        transparent
-    );
-    transform: skewX(-25deg);
-    transition: left 0.6s ease;
-}
-
-.footer-action-button.install:hover::before {
-    left: 100%;
-}
-
-/* Hide Discord button in installation page footer */
-.installation-page-content .footer-action-button:not(.install):not(.update):not(.modify):not(.up-to-date) {
-    display: none !important;
-}
-
-.footer-action-button.update {
-    background: linear-gradient(135deg, #FF9800, #F57C00);
-    color: white;
-    border: 2px solid rgba(255, 152, 0, 0.5);
-    box-shadow: 0 6px 20px rgba(255, 152, 0, 0.4);
-}
-
-.footer-action-button.modify {
-    background: linear-gradient(135deg, #2196F3, #1565C0);
-    color: white;
-    border: 2px solid rgba(33, 150, 243, 0.5);
-    box-shadow: 0 6px 20px rgba(33, 150, 243, 0.4);
-}
-
-.footer-action-button.up-to-date {
-    background: linear-gradient(135deg, #6a6a6a, #4a4a4a);
-    color: #cccccc;
-    border: 2px solid rgba(106, 106, 106, 0.5);
-    cursor: not-allowed;
-    opacity: 0.8;
-}
-
-.footer-action-button:not(.up-to-date):hover {
-    transform: translateY(-3px) scale(1.05);
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
-}
-
-.footer-action-button:not(.up-to-date):active {
-    transform: translateY(-1px) scale(1.02);
-}
-
-/* Responsive adjustments */
-@media (max-width: 1024px) {
-    .installation-header-title {
-        font-size: 1.4rem;
-    }
-    
-    .installation-tab {
-        padding: 8px 16px;
-        font-size: 0.9rem;
-    }
-    
-    .header-launch-button {
-        padding: 10px 24px;
-        font-size: 1rem;
-    }
-}
-
-@media (max-width: 768px) {
-    .installation-header {
-        height: auto;
-        padding: 15px;
-        flex-direction: column;
-        gap: 15px;
-    }
-    
-    .installation-header-left,
-    .installation-header-center,
-    .installation-header-right {
-        width: 100%;
-        justify-content: center;
-    }
-    
-    .installation-footer {
-        flex-direction: column;
-        gap: 15px;
-        padding: 15px;
-    }
-    
-    .footer-info {
-        flex-wrap: wrap;
-        justify-content: center;
-    }
 }
 
 /* Main content adjustment for fixed header/footer */
 .installation-page-content {
-    padding-top: 100px; /* Space for header */
-    padding-bottom: 100px; /* Space for footer */
+    padding-top: 100px;
+    padding-bottom: 100px;
     min-height: 100vh;
     animation: contentFadeIn 0.6s ease-out;
 }
@@ -799,126 +880,33 @@
     }
 }
 
-/* Footer section styling */
-.footer-section {
-    flex: 1;
-    text-align: center;
+.main-container {
+    padding-top: 100px;
+    padding-bottom: 100px;
 }
 
-.footer-heading {
-    font-family: "HEADER_FONT";
-    font-size: 1.1rem;
-    margin: 0 0 8px 0;
-    color: rgba(255, 255, 255, 0.9);
+/* Features section improvements */
+.optional-features-wrapper {
+    background: none;
+    border: none;
+    border-radius: 0;
+    margin: 30px auto;
+    padding: 20px 0;
+    max-width: 1200px;
 }
 
-.footer-text {
-    font-size: 0.9rem;
-    color: rgba(255, 255, 255, 0.7);
-    margin: 0;
-    max-width: 400px;
+.presets-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 25px;
+    margin: 25px auto 35px auto;
+    perspective: 1000px;
+    max-width: 1200px;
+    justify-items: center;
+    padding: 0 20px;
 }
 
-.copyright {
-    font-size: 0.8rem;
-    color: rgba(255, 255, 255, 0.5);
-    margin: 0;
-}
-
-.nav-tab[onclick*="settings.set(true)"],
-.header-right .nav-tab {
-    background: linear-gradient(135deg, rgba(33, 150, 243, 0.15), rgba(21, 101, 192, 0.2));
-    border: 1px solid rgba(33, 150, 243, 0.3);
-    color: rgba(255, 255, 255, 0.9);
-}
-
-.nav-tab[onclick*="settings.set(true)"]:hover,
-.header-right .nav-tab:hover {
-    background: linear-gradient(135deg, rgba(33, 150, 243, 0.25), rgba(21, 101, 192, 0.3));
-    border-color: rgba(33, 150, 243, 0.5);
-    color: white;
-    box-shadow: 0 5px 15px rgba(33, 150, 243, 0.2);
-}
-
-.installation-page-content .header-center {
-    background: rgba(0, 0, 0, 0.3);
-    border-radius: 12px;
-    padding: 6px;
-    gap: 4px;
-    max-width: fit-content;
-    margin: 0 auto;
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    backdrop-filter: blur(10px);
-}
-
-/* Keep back button separate */
-.installation-page-content .nav-tab.back-tab {
-    position: absolute;
-    left: 20px;
-    background: rgba(60, 60, 60, 0.5);
-}
-
-/* Features tab - Green */
-.installation-page-content .nav-tab:nth-child(2) {
-    background: rgba(76, 175, 80, 0.15);
-    border: 1px solid rgba(76, 175, 80, 0.3);
-    color: rgba(255, 255, 255, 0.9);
-}
-
-.installation-page-content .nav-tab:nth-child(2):hover {
-    background: rgba(76, 175, 80, 0.25);
-    border-color: rgba(76, 175, 80, 0.5);
-    box-shadow: 0 5px 15px rgba(76, 175, 80, 0.2);
-}
-
-.installation-page-content .nav-tab:nth-child(2).active {
-    background: linear-gradient(135deg, rgba(76, 175, 80, 0.35), rgba(60, 150, 64, 0.35));
-    color: white;
-    border-color: rgba(76, 175, 80, 0.6);
-    box-shadow: 0 0 20px rgba(76, 175, 80, 0.3);
-}
-
-/* Performance tab - Red */
-.installation-page-content .nav-tab:nth-child(3) {
-    background: rgba(244, 67, 54, 0.15);
-    border: 1px solid rgba(244, 67, 54, 0.3);
-    color: rgba(255, 255, 255, 0.9);
-}
-
-.installation-page-content .nav-tab:nth-child(3):hover {
-    background: rgba(244, 67, 54, 0.25);
-    border-color: rgba(244, 67, 54, 0.5);
-    box-shadow: 0 5px 15px rgba(244, 67, 54, 0.2);
-}
-
-.installation-page-content .nav-tab:nth-child(3).active {
-    background: linear-gradient(135deg, rgba(244, 67, 54, 0.35), rgba(211, 47, 47, 0.35));
-    color: white;
-    border-color: rgba(244, 67, 54, 0.6);
-    box-shadow: 0 0 20px rgba(244, 67, 54, 0.3);
-}
-
-/* Settings tab - Blue */
-.installation-page-content .nav-tab:nth-child(4) {
-    background: rgba(33, 150, 243, 0.15);
-    border: 1px solid rgba(33, 150, 243, 0.3);
-    color: rgba(255, 255, 255, 0.9);
-}
-
-.installation-page-content .nav-tab:nth-child(4):hover {
-    background: rgba(33, 150, 243, 0.25);
-    border-color: rgba(33, 150, 243, 0.5);
-    box-shadow: 0 5px 15px rgba(33, 150, 243, 0.2);
-}
-
-.installation-page-content .nav-tab:nth-child(4).active {
-    background: linear-gradient(135deg, rgba(33, 150, 243, 0.35), rgba(21, 101, 192, 0.35));
-    color: white;
-    border-color: rgba(33, 150, 243, 0.6);
-    box-shadow: 0 0 20px rgba(33, 150, 243, 0.3);
-}
-
-/* Ensure progress doesn't freeze - force GPU acceleration */
+/* Force GPU acceleration for progress elements */
 .progress-container,
 .progress-bar,
 .progress-track {
@@ -927,1493 +915,69 @@
     backface-visibility: hidden;
 }
 
-/* Fix header center alignment for installation tabs */
-.installation-page-content .modern-header .header-center {
-    position: relative;
-    justify-content: center;
-    flex: 1;
-}
-
-/* Discord button specific styling for home page footer */
-.home-container ~ .modern-footer .footer-action-button[href*="discord"] {
-    background: linear-gradient(135deg, #5865F2, #4752C4) !important;
-    margin-left: 15px;
-}
-
-/* Hide Discord button in installation page footer */
-.installation-page-content .footer-action-button:not(.install):not(.update):not(.modify):not(.up-to-date) {
-    display: none !important;
-}
-
-/* 6. PROGRESS WINDOW IMPROVEMENTS */
-.progress-container {
-    background: linear-gradient(145deg, 
-        rgba(20, 20, 30, 0.9), 
-        rgba(15, 15, 25, 0.95)) !important;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
-}
-
-.progress-header h1 {
-    text-shadow: 0 2px 6px rgba(0, 0, 0, 0.8) !important;
-    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.6)) !important;
-    color: #fce8f6 !important;
-}
-
-/* Ensure progress updates smoothly */
-.progress-bar {
-    transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1) !important;
-}
-
-.progress-track {
-    background: linear-gradient(145deg, 
-        rgba(30, 30, 30, 0.6), 
-        rgba(40, 40, 40, 0.8)) !important;
-}
-
-/* 7. POPUPS ABOVE HEADER/FOOTER */
-.modal-overlay,
-.wizard-overlay,
-.manifest-error-overlay,
-.update-warning-dialog {
-    z-index: 2000 !important;
-}
-
-.modal-container,
-.installation-wizard,
-.manifest-error-container {
-    z-index: 2001 !important;
-}
-
-/* 8. UPDATE WARNING - Add Open Directory Button */
-.update-warning-dialog .modal-footer {
-    justify-content: space-between !important;
-    gap: 15px;
-}
-
-.update-warning-dialog .secondary-button,
-.open-folder-button {
-    background: linear-gradient(135deg, #2196F3, #1565C0) !important;
-    border: none !important;
-    color: white !important;
-    border-radius: 8px !important;
-    padding: 10px 20px !important;
-    font-family: "HEADER_FONT" !important;
-    font-size: 0.95rem !important;
-    cursor: pointer !important;
-    transition: all 0.3s ease !important;
-    text-transform: uppercase !important;
-    letter-spacing: 1px !important;
-    font-weight: 600 !important;
-    box-shadow: 0 4px 15px rgba(33, 150, 243, 0.3) !important;
-}
-
-.update-warning-dialog .secondary-button:hover,
-.open-folder-button:hover {
-    background: linear-gradient(135deg, #42A5F5, #2196F3) !important;
-    transform: translateY(-2px) !important;
-    box-shadow: 0 6px 20px rgba(33, 150, 243, 0.5) !important;
-}
-
-/* Ensure footer actions spacing in installation page */
-.installation-page-content .footer-actions {
-    justify-content: center !important;
-}
-
-
-
-/* 1. DISCORD BUTTON FIXES AAAAAAAAAAAAAAAAAAA */
-
-/* Hide Discord button on installation pages - more specific selector */
-.installation-page .modern-footer .footer-action-button[href*="discord"],
-.installation-management-container ~ .modern-footer .footer-action-button[href*="discord"],
-.installation-page-content ~ .modern-footer .footer-action-button[href*="discord"] {
-    display: none !important;
-}
-
-/* Blue Discord button for home page only */
-.home-container ~ .modern-footer .footer-action-button[href*="discord"],
-.modern-footer a.footer-action-button[href*="discord"] {
-    background: linear-gradient(135deg, #5865F2, #4752C4) !important;
-    color: white !important;
-    border: 2px solid rgba(88, 101, 242, 0.6) !important;
-    box-shadow: 0 4px 15px rgba(88, 101, 242, 0.3) !important;
-    text-decoration: none !important;
-}
-
-.home-container ~ .modern-footer .footer-action-button[href*="discord"]:hover,
-.modern-footer a.footer-action-button[href*="discord"]:hover {
-    background: linear-gradient(135deg, #6B7AFF, #5865F2) !important;
-    transform: translateY(-2px) !important;
-    box-shadow: 0 6px 20px rgba(88, 101, 242, 0.4) !important;
-    border-color: rgba(88, 101, 242, 0.8) !important;
-}
-
-/* 2. INSTALLATION PAGE TABS - Grouped in box with colors */
-
-/* Create container for installation tabs */
-.installation-page .header-center,
-.installation-management-container ~ * .header-center,
-.installation-page-content ~ * .header-center {
-    position: relative;
-    justify-content: center;
-    padding: 0;
-}
-
-/* Position back button absolutely */
-.installation-page .nav-tab.back-tab,
-.installation-management-container ~ * .nav-tab.back-tab {
-    position: absolute;
-    left: 20px;
-    background: rgba(60, 60, 60, 0.5) !important;
-    z-index: 2;
-}
-
-/* Style the grouped tabs */
-.installation-page .nav-tab:not(.back-tab),
-.installation-management-container ~ * .nav-tab:not(.back-tab) {
-    margin: 0 4px;
-    z-index: 1;
-}
-
-/* Features tab - Green (1st tab after back button) */
-.installation-page .nav-tab:nth-of-type(2),
-.installation-management-container ~ * .nav-tab:nth-of-type(2) {
-    background: rgba(76, 175, 80, 0.15) !important;
-    border: 1px solid rgba(76, 175, 80, 0.3) !important;
-    color: rgba(255, 255, 255, 0.9) !important;
-}
-
-.installation-page .nav-tab:nth-of-type(2):hover,
-.installation-management-container ~ * .nav-tab:nth-of-type(2):hover {
-    background: rgba(76, 175, 80, 0.25) !important;
-    border-color: rgba(76, 175, 80, 0.5) !important;
-    box-shadow: 0 5px 15px rgba(76, 175, 80, 0.2) !important;
-}
-
-.installation-page .nav-tab:nth-of-type(2).active,
-.installation-management-container ~ * .nav-tab:nth-of-type(2).active {
-    background: linear-gradient(135deg, rgba(76, 175, 80, 0.35), rgba(60, 150, 64, 0.35)) !important;
-    color: white !important;
-    border-color: rgba(76, 175, 80, 0.6) !important;
-    box-shadow: 0 0 20px rgba(76, 175, 80, 0.3) !important;
-}
-
-/* Performance tab - Red (2nd tab after back button) */
-.installation-page .nav-tab:nth-of-type(3),
-.installation-management-container ~ * .nav-tab:nth-of-type(3) {
-    background: rgba(244, 67, 54, 0.15) !important;
-    border: 1px solid rgba(244, 67, 54, 0.3) !important;
-    color: rgba(255, 255, 255, 0.9) !important;
-}
-
-.installation-page .nav-tab:nth-of-type(3):hover,
-.installation-management-container ~ * .nav-tab:nth-of-type(3):hover {
-    background: rgba(244, 67, 54, 0.25) !important;
-    border-color: rgba(244, 67, 54, 0.5) !important;
-    box-shadow: 0 5px 15px rgba(244, 67, 54, 0.2) !important;
-}
-
-.installation-page .nav-tab:nth-of-type(3).active,
-.installation-management-container ~ * .nav-tab:nth-of-type(3).active {
-    background: linear-gradient(135deg, rgba(244, 67, 54, 0.35), rgba(211, 47, 47, 0.35)) !important;
-    color: white !important;
-    border-color: rgba(244, 67, 54, 0.6) !important;
-    box-shadow: 0 0 20px rgba(244, 67, 54, 0.3) !important;
-}
-
-/* Settings tab - Blue (3rd tab after back button) */
-.installation-page .nav-tab:nth-of-type(4),
-.installation-management-container ~ * .nav-tab:nth-of-type(4) {
-    background: rgba(33, 150, 243, 0.15) !important;
-    border: 1px solid rgba(33, 150, 243, 0.3) !important;
-    color: rgba(255, 255, 255, 0.9) !important;
-}
-
-.installation-page .nav-tab:nth-of-type(4):hover,
-.installation-management-container ~ * .nav-tab:nth-of-type(4):hover {
-    background: rgba(33, 150, 243, 0.25) !important;
-    border-color: rgba(33, 150, 243, 0.5) !important;
-    box-shadow: 0 5px 15px rgba(33, 150, 243, 0.2) !important;
-}
-
-.installation-page .nav-tab:nth-of-type(4).active,
-.installation-management-container ~ * .nav-tab:nth-of-type(4).active {
-    background: linear-gradient(135deg, rgba(33, 150, 243, 0.35), rgba(21, 101, 192, 0.35)) !important;
-    color: white !important;
-    border-color: rgba(33, 150, 243, 0.6) !important;
-    box-shadow: 0 0 20px rgba(33, 150, 243, 0.3) !important;
-}
-
-/* 3. UPDATE WARNING DIALOG - Smaller buttons */
-
-.update-warning-dialog {
-    max-width: 500px !important; /* Reduce dialog width */
-}
-
-.update-warning-dialog .modal-footer {
-    padding: 15px 20px !important;
-    gap: 10px !important;
-}
-
-.update-warning-dialog .modal-footer button {
-    padding: 8px 16px !important; /* Reduced from 10px 20px */
-    font-size: 0.85rem !important; /* Reduced from 0.95rem */
-    min-width: auto !important;
-    white-space: nowrap !important;
-}
-
-.update-warning-dialog .cancel-button {
-    padding: 8px 16px !important;
-    font-size: 0.85rem !important;
-}
-
-.update-warning-dialog .secondary-button,
-.update-warning-dialog .open-folder-button {
-    padding: 8px 16px !important;
-    font-size: 0.85rem !important;
-    letter-spacing: 0.5px !important; /* Reduced letter spacing */
-}
-
-.update-warning-dialog .update-proceed-button {
-    padding: 8px 16px !important;
-    font-size: 0.85rem !important;
-    letter-spacing: 0.5px !important;
-}
-
-/* Make buttons stack on very small screens */
-@media (max-width: 500px) {
-    .update-warning-dialog .modal-footer {
-        flex-direction: column !important;
-        gap: 8px !important;
-    }
-    
-    .update-warning-dialog .modal-footer button {
-        width: 100% !important;
+/* Responsive adjustments */
+@media (max-width: 1024px) {
+    .header-launch-button {
+        padding: 10px 24px;
+        font-size: 1rem;
     }
 }
 
-/* 4. ADDITIONAL FIXES */
-
-/* Ensure footer actions are properly spaced on installation pages */
-.installation-page .footer-actions,
-.installation-management-container ~ .modern-footer .footer-actions {
-    justify-content: center !important;
-    gap: 0 !important; /* Remove gap since Discord button is hidden */
-}
-
-/* Make sure the install button is centered when alone */
-.installation-page .footer-action-button.install:only-child,
-.installation-management-container ~ .modern-footer .footer-action-button.install:only-child {
-    margin: 0 auto !important;
-}
-
-/* Fix z-index issues with tab grouping */
-.installation-page .modern-header,
-.installation-management-container ~ * .modern-header {
-    z-index: 1000;
-}
-
-.installation-page .header-center,
-.installation-management-container ~ * .header-center {
-    z-index: 10;
-}
-
-/* Ensure proper class application */
-body:has(.installation-management-container) {
-    --is-installation-page: true;
-}
-
-/* Use CSS variable to conditionally hide Discord button */
-.modern-footer .footer-action-button[href*="discord"] {
-    display: var(--is-installation-page, block);
-}
-
-
-/* AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA /*
-
-/* Position back button absolutely */
-.installation-page .nav-tab.back-tab,
-.installation-management-container ~ * .nav-tab.back-tab {
-    position: absolute;
-    left: 20px;
-    background: rgba(60, 60, 60, 0.5) !important;
-    z-index: 2;
-    top: 50%;
-    transform: translateY(-50%); /* Center vertically */
-}
-
-/* Features tab - Green (1st tab after back button) */
-.installation-page .nav-tab:nth-of-type(2),
-.installation-management-container ~ * .nav-tab:nth-of-type(2) {
-    background: rgba(76, 175, 80, 0.15) !important;
-    border: 1px solid rgba(76, 175, 80, 0.3) !important;
-    color: rgba(255, 255, 255, 0.9) !important;
-}
-
-.installation-page .nav-tab:nth-of-type(2):hover,
-.installation-management-container ~ * .nav-tab:nth-of-type(2):hover {
-    background: rgba(76, 175, 80, 0.25) !important;
-    border-color: rgba(76, 175, 80, 0.5) !important;
-    box-shadow: 0 5px 15px rgba(76, 175, 80, 0.2) !important;
-}
-
-.installation-page .nav-tab:nth-of-type(2).active,
-.installation-management-container ~ * .nav-tab:nth-of-type(2).active {
-    background: linear-gradient(135deg, rgba(76, 175, 80, 0.35), rgba(60, 150, 64, 0.35)) !important;
-    color: white !important;
-    border-color: rgba(76, 175, 80, 0.6) !important;
-    box-shadow: 0 0 20px rgba(76, 175, 80, 0.3) !important;
-}
-
-/* Performance tab - Red (2nd tab after back button) */
-.installation-page .nav-tab:nth-of-type(3),
-.installation-management-container ~ * .nav-tab:nth-of-type(3) {
-    background: rgba(244, 67, 54, 0.15) !important;
-    border: 1px solid rgba(244, 67, 54, 0.3) !important;
-    color: rgba(255, 255, 255, 0.9) !important;
-}
-
-.installation-page .nav-tab:nth-of-type(3):hover,
-.installation-management-container ~ * .nav-tab:nth-of-type(3):hover {
-    background: rgba(244, 67, 54, 0.25) !important;
-    border-color: rgba(244, 67, 54, 0.5) !important;
-    box-shadow: 0 5px 15px rgba(244, 67, 54, 0.2) !important;
-}
-
-.installation-page .nav-tab:nth-of-type(3).active,
-.installation-management-container ~ * .nav-tab:nth-of-type(3).active {
-    background: linear-gradient(135deg, rgba(244, 67, 54, 0.35), rgba(211, 47, 47, 0.35)) !important;
-    color: white !important;
-    border-color: rgba(244, 67, 54, 0.6) !important;
-    box-shadow: 0 0 20px rgba(244, 67, 54, 0.3) !important;
-}
-
-/* Settings tab - Blue (3rd tab after back button) */
-.installation-page .nav-tab:nth-of-type(4),
-.installation-management-container ~ * .nav-tab:nth-of-type(4) {
-    background: rgba(33, 150, 243, 0.15) !important;
-    border: 1px solid rgba(33, 150, 243, 0.3) !important;
-    color: rgba(255, 255, 255, 0.9) !important;
-}
-
-.installation-page .nav-tab:nth-of-type(4):hover,
-.installation-management-container ~ * .nav-tab:nth-of-type(4):hover {
-    background: rgba(33, 150, 243, 0.25) !important;
-    border-color: rgba(33, 150, 243, 0.5) !important;
-    box-shadow: 0 5px 15px rgba(33, 150, 243, 0.2) !important;
-}
-
-.installation-page .nav-tab:nth-of-type(4).active,
-.installation-management-container ~ * .nav-tab:nth-of-type(4).active {
-    background: linear-gradient(135deg, rgba(33, 150, 243, 0.35), rgba(21, 101, 192, 0.35)) !important;
-    color: white !important;
-    border-color: rgba(33, 150, 243, 0.6) !important;
-    box-shadow: 0 0 20px rgba(33, 150, 243, 0.3) !important;
-}
-
-/* 7. POPUPS ABOVE HEADER/FOOTER */
-.modal-overlay,
-.wizard-overlay,
-.manifest-error-overlay,
-.update-warning-dialog {
-    z-index: 2000 !important;
-}
-
-.modal-container,
-.installation-wizard,
-.manifest-error-container {
-    z-index: 2001 !important;
-}
-
-/* Add this new rule for the manifest error specifically */
-.manifest-error-overlay {
-    position: fixed !important;
-    top: 0 !important;
-    left: 0 !important;
-    right: 0 !important;
-    bottom: 0 !important;
-    background-color: rgba(0, 0, 0, 0.7) !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    z-index: 9999 !important; /* Ensure it's above everything */
-}
-
-/* Update button - Golden/Orange */
-.installation-actions .update-button {
-    background: linear-gradient(135deg, #FF9800, #F57C00);
-    color: white;
-    border-color: rgba(255, 152, 0, 0.5);
-    box-shadow: 
-        0 8px 25px rgba(255, 152, 0, 0.4),
-        0 0 40px rgba(255, 152, 0, 0.3);
-    animation: update-glow 3s ease-in-out infinite alternate;
-}
-
-@keyframes update-glow {
-    0% {
-        box-shadow: 
-            0 8px 25px rgba(255, 152, 0, 0.4),
-            0 0 40px rgba(255, 152, 0, 0.3);
-        /* Remove any white glow */
-    }
-    100% {
-        box-shadow: 
-            0 12px 35px rgba(255, 152, 0, 0.6),
-            0 0 60px rgba(255, 152, 0, 0.5);
-        /* Keep it orange */
-    }
-}
-
-
-/* IMPROVED INSTALLATION TABS - Enhanced hover effects */
-.installation-page .nav-tab:not(.back-tab) {
-    position: relative;
-    overflow: hidden;
-    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    border: 2px solid transparent;
-    backdrop-filter: blur(10px);
-}
-
-/* Enhanced glow ring effect on hover */
-.installation-page .nav-tab:not(.back-tab):hover {
-    transform: translateY(-3px) scale(1.02);
-    border: 2px solid rgba(255, 255, 255, 0.2);
-    box-shadow: 
-        0 8px 25px rgba(0, 0, 0, 0.4),
-        0 0 30px currentColor,
-        inset 0 1px 0 rgba(255, 255, 255, 0.1);
-}
-
-/* Animated border sweep effect */
-.installation-page .nav-tab:not(.back-tab)::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: -100%;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(
-        90deg,
-        transparent,
-        rgba(255, 255, 255, 0.1),
-        rgba(255, 255, 255, 0.2),
-        rgba(255, 255, 255, 0.1),
-        transparent
-    );
-    border-radius: inherit;
-    transition: left 0.6s ease;
-    z-index: 1;
-}
-
-.installation-page .nav-tab:not(.back-tab):hover::before {
-    left: 100%;
-}
-
-/* Animated bottom border */
-.installation-page .nav-tab:not(.back-tab)::after {
-    content: '';
-    position: absolute;
-    bottom: 0;
-    left: 50%;
-    width: 0;
-    height: 3px;
-    background: currentColor;
-    transform: translateX(-50%);
-    transition: width 0.4s ease;
-    border-radius: 2px 2px 0 0;
-    z-index: 2;
-}
-
-.installation-page .nav-tab:not(.back-tab):hover::after {
-    width: 80%;
-}
-
-/* Features tab (Green) - Enhanced */
-.installation-page .nav-tab:nth-of-type(2) {
-    background: linear-gradient(135deg, 
-        rgba(76, 175, 80, 0.12), 
-        rgba(76, 175, 80, 0.08));
-    border: 1px solid rgba(76, 175, 80, 0.25);
-    color: rgba(255, 255, 255, 0.9);
-    position: relative;
-}
-
-.installation-page .nav-tab:nth-of-type(2):hover {
-    background: linear-gradient(135deg, 
-        rgba(76, 175, 80, 0.3), 
-        rgba(76, 175, 80, 0.2));
-    border-color: rgba(76, 175, 80, 0.6);
-    color: white;
-    text-shadow: 0 0 10px rgba(76, 175, 80, 0.5);
-    box-shadow: 
-        0 8px 25px rgba(0, 0, 0, 0.4),
-        0 0 30px rgba(76, 175, 80, 0.4),
-        inset 0 1px 0 rgba(255, 255, 255, 0.1);
-}
-
-.installation-page .nav-tab:nth-of-type(2)::after {
-    background: linear-gradient(90deg, 
-        rgba(76, 175, 80, 0.8), 
-        rgba(129, 199, 132, 1), 
-        rgba(76, 175, 80, 0.8));
-}
-
-.installation-page .nav-tab:nth-of-type(2).active {
-    background: linear-gradient(135deg, 
-        rgba(76, 175, 80, 0.4), 
-        rgba(60, 150, 64, 0.4));
-    color: white;
-    border-color: rgba(76, 175, 80, 0.8);
-    box-shadow: 
-        0 0 25px rgba(76, 175, 80, 0.5),
-        inset 0 1px 0 rgba(255, 255, 255, 0.2);
-    transform: translateY(-2px);
-}
-
-/* Performance tab (Red) - Enhanced */
-.installation-page .nav-tab:nth-of-type(3) {
-    background: linear-gradient(135deg, 
-        rgba(244, 67, 54, 0.12), 
-        rgba(244, 67, 54, 0.08));
-    border: 1px solid rgba(244, 67, 54, 0.25);
-    color: rgba(255, 255, 255, 0.9);
-}
-
-.installation-page .nav-tab:nth-of-type(3):hover {
-    background: linear-gradient(135deg, 
-        rgba(244, 67, 54, 0.3), 
-        rgba(244, 67, 54, 0.2));
-    border-color: rgba(244, 67, 54, 0.6);
-    color: white;
-    text-shadow: 0 0 10px rgba(244, 67, 54, 0.5);
-    box-shadow: 
-        0 8px 25px rgba(0, 0, 0, 0.4),
-        0 0 30px rgba(244, 67, 54, 0.4),
-        inset 0 1px 0 rgba(255, 255, 255, 0.1);
-}
-
-.installation-page .nav-tab:nth-of-type(3)::after {
-    background: linear-gradient(90deg, 
-        rgba(244, 67, 54, 0.8), 
-        rgba(239, 83, 80, 1), 
-        rgba(244, 67, 54, 0.8));
-}
-
-.installation-page .nav-tab:nth-of-type(3).active {
-    background: linear-gradient(135deg, 
-        rgba(244, 67, 54, 0.4), 
-        rgba(211, 47, 47, 0.4));
-    color: white;
-    border-color: rgba(244, 67, 54, 0.8);
-    box-shadow: 
-        0 0 25px rgba(244, 67, 54, 0.5),
-        inset 0 1px 0 rgba(255, 255, 255, 0.2);
-    transform: translateY(-2px);
-}
-
-/* Settings tab (Blue) - Enhanced */
-.installation-page .nav-tab:nth-of-type(4) {
-    background: linear-gradient(135deg, 
-        rgba(33, 150, 243, 0.12), 
-        rgba(33, 150, 243, 0.08));
-    border: 1px solid rgba(33, 150, 243, 0.25);
-    color: rgba(255, 255, 255, 0.9);
-}
-
-.installation-page .nav-tab:nth-of-type(4):hover {
-    background: linear-gradient(135deg, 
-        rgba(33, 150, 243, 0.3), 
-        rgba(33, 150, 243, 0.2));
-    border-color: rgba(33, 150, 243, 0.6);
-    color: white;
-    text-shadow: 0 0 10px rgba(33, 150, 243, 0.5);
-    box-shadow: 
-        0 8px 25px rgba(0, 0, 0, 0.4),
-        0 0 30px rgba(33, 150, 243, 0.4),
-        inset 0 1px 0 rgba(255, 255, 255, 0.1);
-}
-
-.installation-page .nav-tab:nth-of-type(4)::after {
-    background: linear-gradient(90deg, 
-        rgba(33, 150, 243, 0.8), 
-        rgba(66, 165, 245, 1), 
-        rgba(33, 150, 243, 0.8));
-}
-
-.installation-page .nav-tab:nth-of-type(4).active {
-    background: linear-gradient(135deg, 
-        rgba(33, 150, 243, 0.4), 
-        rgba(21, 101, 192, 0.4));
-    color: white;
-    border-color: rgba(33, 150, 243, 0.8);
-    box-shadow: 
-        0 0 25px rgba(33, 150, 243, 0.5),
-        inset 0 1px 0 rgba(255, 255, 255, 0.2);
-    transform: translateY(-2px);
-}
-
-/* Back button - Enhanced but subtle */
-.installation-page .nav-tab.back-tab {
-    background: linear-gradient(135deg, 
-        rgba(90, 90, 90, 0.6), 
-        rgba(70, 70, 70, 0.7)) !important;
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    transition: all 0.3s ease;
-    position: relative;
-    overflow: hidden;
-}
-
-.installation-page .nav-tab.back-tab:hover {
-    background: linear-gradient(135deg, 
-        rgba(110, 110, 110, 0.8), 
-        rgba(90, 90, 90, 0.9)) !important;
-    border-color: rgba(255, 255, 255, 0.3);
-    transform: translateY(-2px) translateX(-2px);
-    box-shadow: 
-        0 6px 20px rgba(0, 0, 0, 0.4),
-        0 0 15px rgba(255, 255, 255, 0.1);
-}
-
-.installation-page .nav-tab.back-tab::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: -100%;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(
-        90deg,
-        transparent,
-        rgba(255, 255, 255, 0.1),
-        transparent
-    );
-    transition: left 0.5s ease;
-}
-
-.installation-page .nav-tab.back-tab:hover::before {
-    left: 100%;
-}
-
-/* Tab group container enhancement */
-.installation-page .header-center {
-    position: relative;
-    background: rgba(0, 0, 0, 0.4);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 16px;
-    padding: 8px;
-    backdrop-filter: blur(15px);
-    box-shadow: 
-        0 8px 30px rgba(0, 0, 0, 0.3),
-        inset 0 1px 0 rgba(255, 255, 255, 0.05);
-}
-
-/* Pulse effect for active tabs */
-@keyframes tabActivePulse {
-    0%, 100% {
-        box-shadow: 
-            0 0 25px currentColor,
-            inset 0 1px 0 rgba(255, 255, 255, 0.2);
-    }
-    50% {
-        box-shadow: 
-            0 0 35px currentColor,
-            inset 0 1px 0 rgba(255, 255, 255, 0.3);
-    }
-}
-
-.installation-page .nav-tab.active {
-    animation: tabActivePulse 3s ease-in-out infinite;
-}
-
-/* Smooth transitions for all tab states */
-.installation-page .nav-tab {
-    text-align: center;
-    font-weight: 500;
-    position: relative;
-    z-index: 1;
-}
-
-.installation-page .nav-tab:active {
-    transform: translateY(-1px) scale(0.98);
-    transition: all 0.1s ease;
-}
-
-/* Responsive adjustments for tabs */
 @media (max-width: 768px) {
-    .installation-page .nav-tab:not(.back-tab):hover {
-        transform: translateY(-2px) scale(1.01);
+    .modern-header {
+        height: auto;
+        padding: 15px;
+        flex-direction: column;
+        gap: 15px;
     }
     
-    .installation-page .header-center {
-        padding: 6px;
-        border-radius: 12px;
+    .header-left,
+    .header-center,
+    .header-right {
+        width: 100%;
+        justify-content: center;
     }
     
-    .installation-page .nav-tab {
-        padding: 8px 12px;
-        font-size: 0.85rem;
-    }
-}
-
-/* CLEAN INSTALLATION TAB FIXES - Remove all conflicting styles */
-
-/* Remove all the messy conflicting tab rules */
-.installation-page-content .nav-tab:nth-child(2),
-.installation-page-content .nav-tab:nth-child(3),
-.installation-page-content .nav-tab:nth-child(4),
-.installation-page-content .nav-tab:nth-child(2):hover,
-.installation-page-content .nav-tab:nth-child(3):hover,
-.installation-page-content .nav-tab:nth-child(4):hover,
-.installation-page-content .nav-tab:nth-child(2).active,
-.installation-page-content .nav-tab:nth-child(3).active,
-.installation-page-content .nav-tab:nth-child(4).active,
-.installation-page-content .header-center,
-.installation-page-content .nav-tab.back-tab {
-    /* Reset all previous styles */
-    all: unset;
-}
-
-/* CLEAN INSTALLATION HEADER CENTER LAYOUT */
-.installation-page .header-center,
-.installation-management-container .header-center {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    position: relative;
-    flex: 1;
-    padding: 0 80px; /* Leave space for back button */
-    gap: 0;
-}
-
-/* BACK BUTTON - Fixed positioning */
-.installation-page .nav-tab.back-tab,
-.installation-management-container .nav-tab.back-tab {
-    position: absolute !important;
-    left: 20px !important;
-    top: 50% !important;
-    transform: translateY(-50%) !important;
-    background: linear-gradient(135deg, rgba(90, 90, 90, 0.6), rgba(70, 70, 70, 0.7)) !important;
-    border: 1px solid rgba(255, 255, 255, 0.15) !important;
-    border-radius: 12px !important;
-    padding: 10px 18px !important;
-    font-family: "REGULAR_FONT" !important;
-    font-size: 0.95rem !important;
-    color: rgba(255, 255, 255, 0.7) !important;
-    cursor: pointer !important;
-    transition: all 0.3s ease !important;
-    z-index: 10 !important;
-    white-space: nowrap !important;
-    overflow: hidden !important;
-}
-
-.installation-page .nav-tab.back-tab:hover,
-.installation-management-container .nav-tab.back-tab:hover {
-    background: linear-gradient(135deg, rgba(110, 110, 110, 0.8), rgba(90, 90, 90, 0.9)) !important;
-    border-color: rgba(255, 255, 255, 0.3) !important;
-    color: white !important;
-    transform: translateY(-50%) translateX(-2px) !important;
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4), 0 0 15px rgba(255, 255, 255, 0.1) !important;
-}
-
-/* TAB GROUP CONTAINER - Proper sizing */
-.installation-page .header-center .tab-group,
-.installation-management-container .header-center .tab-group {
-    display: flex;
-    background: rgba(0, 0, 0, 0.4);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 14px;
-    padding: 6px;
-    gap: 2px;
-    backdrop-filter: blur(15px);
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
-    width: fit-content;
-    margin: 0 auto;
-}
-
-/* If no tab-group wrapper exists, create it with direct children */
-.installation-page .header-center:not(:has(.tab-group)),
-.installation-management-container .header-center:not(:has(.tab-group)) {
-    background: rgba(0, 0, 0, 0.4);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 14px;
-    padding: 6px;
-    gap: 2px;
-    backdrop-filter: blur(15px);
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
-    width: fit-content;
-    margin: 0 auto;
-}
-
-/* INSTALLATION TABS - Clean base styles */
-.installation-page .nav-tab:not(.back-tab),
-.installation-management-container .nav-tab:not(.back-tab) {
-    background: rgba(255, 255, 255, 0.05) !important;
-    border: 2px solid rgba(255, 255, 255, 0.1) !important;
-    border-radius: 10px !important;
-    padding: 10px 20px !important;
-    font-family: "REGULAR_FONT" !important;
-    font-size: 0.95rem !important;
-    color: rgba(255, 255, 255, 0.7) !important;
-    cursor: pointer !important;
-    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important;
-    position: relative !important;
-    overflow: hidden !important;
-    white-space: nowrap !important;
-    backdrop-filter: blur(10px) !important;
-    z-index: 1 !important;
-    margin: 0 !important;
-}
-
-/* HOVER EFFECTS - Working properly now */
-.installation-page .nav-tab:not(.back-tab):hover,
-.installation-management-container .nav-tab:not(.back-tab):hover {
-    transform: translateY(-3px) scale(1.02) !important;
-    border: 2px solid rgba(255, 255, 255, 0.2) !important;
-    color: white !important;
-    box-shadow: 
-        0 8px 25px rgba(0, 0, 0, 0.4),
-        0 0 30px currentColor,
-        inset 0 1px 0 rgba(255, 255, 255, 0.1) !important;
-}
-
-/* Animated border sweep on hover */
-.installation-page .nav-tab:not(.back-tab)::before,
-.installation-management-container .nav-tab:not(.back-tab)::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: -100%;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(
-        90deg,
-        transparent,
-        rgba(255, 255, 255, 0.1),
-        rgba(255, 255, 255, 0.2),
-        rgba(255, 255, 255, 0.1),
-        transparent
-    );
-    border-radius: inherit;
-    transition: left 0.6s ease;
-    z-index: 1;
-}
-
-.installation-page .nav-tab:not(.back-tab):hover::before,
-.installation-management-container .nav-tab:not(.back-tab):hover::before {
-    left: 100%;
-}
-
-/* Bottom border animation */
-.installation-page .nav-tab:not(.back-tab)::after,
-.installation-management-container .nav-tab:not(.back-tab)::after {
-    content: '';
-    position: absolute;
-    bottom: 0;
-    left: 50%;
-    width: 0;
-    height: 3px;
-    background: currentColor;
-    transform: translateX(-50%);
-    transition: width 0.4s ease;
-    border-radius: 2px 2px 0 0;
-    z-index: 2;
-}
-
-.installation-page .nav-tab:not(.back-tab):hover::after,
-.installation-management-container .nav-tab:not(.back-tab):hover::after {
-    width: 80%;
-}
-
-/* FEATURES TAB - Green */
-.installation-page .nav-tab:nth-of-type(2),
-.installation-management-container .nav-tab:nth-of-type(2) {
-    background: linear-gradient(135deg, rgba(76, 175, 80, 0.12), rgba(76, 175, 80, 0.08)) !important;
-    border-color: rgba(76, 175, 80, 0.25) !important;
-    color: rgba(255, 255, 255, 0.9) !important;
-}
-
-.installation-page .nav-tab:nth-of-type(2):hover,
-.installation-management-container .nav-tab:nth-of-type(2):hover {
-    background: linear-gradient(135deg, rgba(76, 175, 80, 0.3), rgba(76, 175, 80, 0.2)) !important;
-    border-color: rgba(76, 175, 80, 0.6) !important;
-    text-shadow: 0 0 10px rgba(76, 175, 80, 0.5) !important;
-    box-shadow: 
-        0 8px 25px rgba(0, 0, 0, 0.4),
-        0 0 30px rgba(76, 175, 80, 0.4),
-        inset 0 1px 0 rgba(255, 255, 255, 0.1) !important;
-}
-
-.installation-page .nav-tab:nth-of-type(2)::after,
-.installation-management-container .nav-tab:nth-of-type(2)::after {
-    background: linear-gradient(90deg, rgba(76, 175, 80, 0.8), rgba(129, 199, 132, 1), rgba(76, 175, 80, 0.8)) !important;
-}
-
-.installation-page .nav-tab:nth-of-type(2).active,
-.installation-management-container .nav-tab:nth-of-type(2).active {
-    background: linear-gradient(135deg, rgba(76, 175, 80, 0.4), rgba(60, 150, 64, 0.4)) !important;
-    color: white !important;
-    border-color: rgba(76, 175, 80, 0.8) !important;
-    box-shadow: 0 0 25px rgba(76, 175, 80, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.2) !important;
-    transform: translateY(-2px) !important;
-}
-
-/* PERFORMANCE TAB - Red */
-.installation-page .nav-tab:nth-of-type(3),
-.installation-management-container .nav-tab:nth-of-type(3) {
-    background: linear-gradient(135deg, rgba(244, 67, 54, 0.12), rgba(244, 67, 54, 0.08)) !important;
-    border-color: rgba(244, 67, 54, 0.25) !important;
-    color: rgba(255, 255, 255, 0.9) !important;
-}
-
-.installation-page .nav-tab:nth-of-type(3):hover,
-.installation-management-container .nav-tab:nth-of-type(3):hover {
-    background: linear-gradient(135deg, rgba(244, 67, 54, 0.3), rgba(244, 67, 54, 0.2)) !important;
-    border-color: rgba(244, 67, 54, 0.6) !important;
-    text-shadow: 0 0 10px rgba(244, 67, 54, 0.5) !important;
-    box-shadow: 
-        0 8px 25px rgba(0, 0, 0, 0.4),
-        0 0 30px rgba(244, 67, 54, 0.4),
-        inset 0 1px 0 rgba(255, 255, 255, 0.1) !important;
-}
-
-.installation-page .nav-tab:nth-of-type(3)::after,
-.installation-management-container .nav-tab:nth-of-type(3)::after {
-    background: linear-gradient(90deg, rgba(244, 67, 54, 0.8), rgba(239, 83, 80, 1), rgba(244, 67, 54, 0.8)) !important;
-}
-
-.installation-page .nav-tab:nth-of-type(3).active,
-.installation-management-container .nav-tab:nth-of-type(3).active {
-    background: linear-gradient(135deg, rgba(244, 67, 54, 0.4), rgba(211, 47, 47, 0.4)) !important;
-    color: white !important;
-    border-color: rgba(244, 67, 54, 0.8) !important;
-    box-shadow: 0 0 25px rgba(244, 67, 54, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.2) !important;
-    transform: translateY(-2px) !important;
-}
-
-/* SETTINGS TAB - Blue */
-.installation-page .nav-tab:nth-of-type(4),
-.installation-management-container .nav-tab:nth-of-type(4) {
-    background: linear-gradient(135deg, rgba(33, 150, 243, 0.12), rgba(33, 150, 243, 0.08)) !important;
-    border-color: rgba(33, 150, 243, 0.25) !important;
-    color: rgba(255, 255, 255, 0.9) !important;
-}
-
-.installation-page .nav-tab:nth-of-type(4):hover,
-.installation-management-container .nav-tab:nth-of-type(4):hover {
-    background: linear-gradient(135deg, rgba(33, 150, 243, 0.3), rgba(33, 150, 243, 0.2)) !important;
-    border-color: rgba(33, 150, 243, 0.6) !important;
-    text-shadow: 0 0 10px rgba(33, 150, 243, 0.5) !important;
-    box-shadow: 
-        0 8px 25px rgba(0, 0, 0, 0.4),
-        0 0 30px rgba(33, 150, 243, 0.4),
-        inset 0 1px 0 rgba(255, 255, 255, 0.1) !important;
-}
-
-.installation-page .nav-tab:nth-of-type(4)::after,
-.installation-management-container .nav-tab:nth-of-type(4)::after {
-    background: linear-gradient(90deg, rgba(33, 150, 243, 0.8), rgba(66, 165, 245, 1), rgba(33, 150, 243, 0.8)) !important;
-}
-
-.installation-page .nav-tab:nth-of-type(4).active,
-.installation-management-container .nav-tab:nth-of-type(4).active {
-    background: linear-gradient(135deg, rgba(33, 150, 243, 0.4), rgba(21, 101, 192, 0.4)) !important;
-    color: white !important;
-    border-color: rgba(33, 150, 243, 0.8) !important;
-    box-shadow: 0 0 25px rgba(33, 150, 243, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.2) !important;
-    transform: translateY(-2px) !important;
-}
-
-/* ACTIVE TAB PULSE ANIMATION */
-@keyframes tabActivePulse {
-    0%, 100% {
-        box-shadow: 
-            0 0 25px currentColor,
-            inset 0 1px 0 rgba(255, 255, 255, 0.2);
-    }
-    50% {
-        box-shadow: 
-            0 0 35px currentColor,
-            inset 0 1px 0 rgba(255, 255, 255, 0.3);
-    }
-}
-
-.installation-page .nav-tab.active,
-.installation-management-container .nav-tab.active {
-    animation: tabActivePulse 3s ease-in-out infinite !important;
-}
-
-/* CLICK ANIMATION */
-.installation-page .nav-tab:active,
-.installation-management-container .nav-tab:active {
-    transform: translateY(-1px) scale(0.98) !important;
-    transition: all 0.1s ease !important;
-}
-
-/* RESPONSIVE ADJUSTMENTS */
-@media (max-width: 768px) {
-    .installation-page .header-center,
-    .installation-management-container .header-center {
-        padding: 0 60px;
-    }
-    
-    .installation-page .nav-tab:not(.back-tab):hover,
-    .installation-management-container .nav-tab:not(.back-tab):hover {
-        transform: translateY(-2px) scale(1.01) !important;
-    }
-    
-    .installation-page .nav-tab,
-    .installation-management-container .nav-tab {
-        padding: 8px 16px !important;
-        font-size: 0.85rem !important;
-    }
-    
-    .installation-page .nav-tab.back-tab,
-    .installation-management-container .nav-tab.back-tab {
-        left: 10px !important;
-        padding: 8px 14px !important;
-        font-size: 0.85rem !important;
-    }
-}
-
-/* CLEAN UP - Remove conflicting old rules */
-.installation-page-content .nav-tab:nth-child(2),
-.installation-page-content .nav-tab:nth-child(3),
-.installation-page-content .nav-tab:nth-child(4) {
-    background: unset !important;
-    border: unset !important;
-    color: unset !important;
-    box-shadow: unset !important;
-}
-
-/* Remove the broken tab group background */
-.installation-page-content .header-center {
-    background: unset !important;
-    border: unset !important;
-    border-radius: unset !important;
-    padding: unset !important;
-    gap: unset !important;
-    max-width: unset !important;
-    margin: unset !important;
-    backdrop-filter: unset !important;
-}
-
-/* Fix text alignment and positioning */
-.installation-page .nav-tab,
-.installation-management-container .nav-tab {
-    text-align: center !important;
-    font-weight: 500 !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-}
-
-/* Remove the pseudo-element box from conflicting rules */
-.installation-page .nav-tab:nth-of-type(2)::before {
-    content: '' !important;
-    position: absolute !important;
-    top: 0 !important;
-    left: -100% !important;
-    width: 100% !important;
-    height: 100% !important;
-    background: linear-gradient(
-        90deg,
-        transparent,
-        rgba(255, 255, 255, 0.1),
-        rgba(255, 255, 255, 0.2),
-        rgba(255, 255, 255, 0.1),
-        transparent
-    ) !important;
-    border-radius: inherit !important;
-    transition: left 0.6s ease !important;
-    z-index: 1 !important;
-    /* Remove the broken width calculation */
-    right: unset !important;
-}
-
-
-
-/* COMPLETE CLEAN INSTALLATION TABS SOLUTION */
-/* This replaces ALL existing tab CSS - add this at the END of your CSS file */
-
-/* 1. RESET ALL CONFLICTING RULES */
-.installation-page .header-center,
-.installation-page-content .header-center,
-.installation-management-container .header-center,
-.installation-page .nav-tab,
-.installation-page-content .nav-tab,
-.installation-management-container .nav-tab,
-.installation-page .nav-tab:nth-child(2),
-.installation-page .nav-tab:nth-child(3), 
-.installation-page .nav-tab:nth-child(4),
-.installation-page-content .nav-tab:nth-child(2),
-.installation-page-content .nav-tab:nth-child(3),
-.installation-page-content .nav-tab:nth-child(4),
-.installation-page .nav-tab:nth-of-type(2),
-.installation-page .nav-tab:nth-of-type(3),
-.installation-page .nav-tab:nth-of-type(4),
-.installation-page-content .nav-tab:nth-of-type(2),
-.installation-page-content .nav-tab:nth-of-type(3),
-.installation-page-content .nav-tab:nth-of-type(4) {
-    all: revert !important;
-}
-
-/* 2. CLEAN HEADER CENTER CONTAINER */
-.installation-page .header-center,
-.installation-page-content .header-center,
-.installation-management-container .header-center {
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    position: relative !important;
-    flex: 1 !important;
-    padding: 0 !important;
-    gap: 0 !important;
-    background: none !important;
-    border: none !important;
-    border-radius: 0 !important;
-    backdrop-filter: none !important;
-    box-shadow: none !important;
-    max-width: none !important;
-    margin: 0 !important;
-    width: auto !important;
-}
-
-/* 3. TAB GROUP WRAPPER */
-.installation-page .header-center > *:not(.back-tab),
-.installation-page-content .header-center > *:not(.back-tab),
-.installation-management-container .header-center > *:not(.back-tab) {
-    display: flex !important;
-    background: rgba(0, 0, 0, 0.3) !important;
-    border: 1px solid rgba(255, 255, 255, 0.08) !important;
-    border-radius: 12px !important;
-    padding: 4px !important;
-    gap: 2px !important;
-    backdrop-filter: blur(10px) !important;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2) !important;
-    width: fit-content !important;
-    margin: 0 auto !important;
-}
-
-/* If tabs are direct children, wrap them in a container effect */
-.installation-page .header-center,
-.installation-page-content .header-center,
-.installation-management-container .header-center {
-    background: rgba(0, 0, 0, 0.3) !important;
-    border: 1px solid rgba(255, 255, 255, 0.08) !important;
-    border-radius: 12px !important;
-    padding: 4px 80px 4px 4px !important; /* Leave space for back button */
-    gap: 2px !important;
-    backdrop-filter: blur(10px) !important;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2) !important;
-    width: fit-content !important;
-    margin: 0 auto !important;
-}
-
-/* 4. BACK BUTTON - CLEAN POSITIONING */
-.installation-page .nav-tab.back-tab,
-.installation-page-content .nav-tab.back-tab,
-.installation-management-container .nav-tab.back-tab {
-    position: absolute !important;
-    left: 15px !important;
-    top: 50% !important;
-    transform: translateY(-50%) !important;
-    background: linear-gradient(135deg, rgba(90, 90, 90, 0.7), rgba(70, 70, 70, 0.8)) !important;
-    border: 1px solid rgba(255, 255, 255, 0.2) !important;
-    border-radius: 10px !important;
-    padding: 10px 16px !important;
-    font-family: "REGULAR_FONT" !important;
-    font-size: 0.9rem !important;
-    color: rgba(255, 255, 255, 0.8) !important;
-    cursor: pointer !important;
-    transition: all 0.3s ease !important;
-    z-index: 15 !important;
-    white-space: nowrap !important;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3) !important;
-    backdrop-filter: blur(5px) !important;
-    margin: 0 !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    text-align: center !important;
-    height: auto !important;
-    width: auto !important;
-    min-width: auto !important;
-}
-
-.installation-page .nav-tab.back-tab:hover,
-.installation-page-content .nav-tab.back-tab:hover,
-.installation-management-container .nav-tab.back-tab:hover {
-    background: linear-gradient(135deg, rgba(110, 110, 110, 0.9), rgba(90, 90, 90, 0.95)) !important;
-    border-color: rgba(255, 255, 255, 0.4) !important;
-    color: white !important;
-    transform: translateY(-50%) translateX(-1px) !important;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4) !important;
-}
-
-/* 5. MAIN TABS - CLEAN BASE STYLES */
-.installation-page .nav-tab:not(.back-tab),
-.installation-page-content .nav-tab:not(.back-tab),
-.installation-management-container .nav-tab:not(.back-tab) {
-    background: rgba(255, 255, 255, 0.05) !important;
-    border: 1px solid rgba(255, 255, 255, 0.1) !important;
-    border-radius: 8px !important;
-    padding: 8px 16px !important;
-    font-family: "REGULAR_FONT" !important;
-    font-size: 0.9rem !important;
-    color: rgba(255, 255, 255, 0.8) !important;
-    cursor: pointer !important;
-    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important;
-    position: relative !important;
-    overflow: hidden !important;
-    white-space: nowrap !important;
-    z-index: 1 !important;
-    margin: 0 !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    text-align: center !important;
-    height: auto !important;
-    width: auto !important;
-    min-width: 80px !important;
-    box-shadow: none !important;
-    backdrop-filter: none !important;
-}
-
-/* 6. HOVER EFFECTS - FULL HEIGHT */
-.installation-page .nav-tab:not(.back-tab):hover,
-.installation-page-content .nav-tab:not(.back-tab):hover,
-.installation-management-container .nav-tab:not(.back-tab):hover {
-    transform: translateY(-2px) !important;
-    border: 1px solid rgba(255, 255, 255, 0.3) !important;
-    color: white !important;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
-}
-
-/* 7. SWEEP ANIMATION */
-.installation-page .nav-tab:not(.back-tab)::before,
-.installation-page-content .nav-tab:not(.back-tab)::before,
-.installation-management-container .nav-tab:not(.back-tab)::before {
-    content: '' !important;
-    position: absolute !important;
-    top: 0 !important;
-    left: -100% !important;
-    width: 100% !important;
-    height: 100% !important;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.15), transparent) !important;
-    border-radius: inherit !important;
-    transition: left 0.5s ease !important;
-    z-index: 1 !important;
-}
-
-.installation-page .nav-tab:not(.back-tab):hover::before,
-.installation-page-content .nav-tab:not(.back-tab):hover::before,
-.installation-management-container .nav-tab:not(.back-tab):hover::before {
-    left: 100% !important;
-}
-
-/* 8. BOTTOM BORDER ANIMATION */
-.installation-page .nav-tab:not(.back-tab)::after,
-.installation-page-content .nav-tab:not(.back-tab)::after,
-.installation-management-container .nav-tab:not(.back-tab)::after {
-    content: '' !important;
-    position: absolute !important;
-    bottom: 0 !important;
-    left: 50% !important;
-    width: 0 !important;
-    height: 2px !important;
-    background: currentColor !important;
-    transform: translateX(-50%) !important;
-    transition: width 0.3s ease !important;
-    border-radius: 1px 1px 0 0 !important;
-    z-index: 2 !important;
-}
-
-.installation-page .nav-tab:not(.back-tab):hover::after,
-.installation-page-content .nav-tab:not(.back-tab):hover::after,
-.installation-management-container .nav-tab:not(.back-tab):hover::after {
-    width: 70% !important;
-}
-
-/* 9. FEATURES TAB - GREEN */
-.installation-page .nav-tab:nth-of-type(2),
-.installation-page-content .nav-tab:nth-of-type(2),
-.installation-management-container .nav-tab:nth-of-type(2) {
-    background: linear-gradient(135deg, rgba(76, 175, 80, 0.1), rgba(76, 175, 80, 0.05)) !important;
-    border-color: rgba(76, 175, 80, 0.2) !important;
-    color: rgba(255, 255, 255, 0.9) !important;
-}
-
-.installation-page .nav-tab:nth-of-type(2):hover,
-.installation-page-content .nav-tab:nth-of-type(2):hover,
-.installation-management-container .nav-tab:nth-of-type(2):hover {
-    background: linear-gradient(135deg, rgba(76, 175, 80, 0.25), rgba(76, 175, 80, 0.15)) !important;
-    border-color: rgba(76, 175, 80, 0.5) !important;
-    box-shadow: 0 4px 12px rgba(76, 175, 80, 0.2) !important;
-    text-shadow: 0 0 8px rgba(76, 175, 80, 0.4) !important;
-}
-
-.installation-page .nav-tab:nth-of-type(2).active,
-.installation-page-content .nav-tab:nth-of-type(2).active,
-.installation-management-container .nav-tab:nth-of-type(2).active {
-    background: linear-gradient(135deg, rgba(76, 175, 80, 0.3), rgba(60, 150, 64, 0.3)) !important;
-    border-color: rgba(76, 175, 80, 0.7) !important;
-    color: white !important;
-    box-shadow: 0 0 15px rgba(76, 175, 80, 0.4) !important;
-}
-
-/* 10. PERFORMANCE TAB - RED */
-.installation-page .nav-tab:nth-of-type(3),
-.installation-page-content .nav-tab:nth-of-type(3),
-.installation-management-container .nav-tab:nth-of-type(3) {
-    background: linear-gradient(135deg, rgba(244, 67, 54, 0.1), rgba(244, 67, 54, 0.05)) !important;
-    border-color: rgba(244, 67, 54, 0.2) !important;
-    color: rgba(255, 255, 255, 0.9) !important;
-}
-
-.installation-page .nav-tab:nth-of-type(3):hover,
-.installation-page-content .nav-tab:nth-of-type(3):hover,
-.installation-management-container .nav-tab:nth-of-type(3):hover {
-    background: linear-gradient(135deg, rgba(244, 67, 54, 0.25), rgba(244, 67, 54, 0.15)) !important;
-    border-color: rgba(244, 67, 54, 0.5) !important;
-    box-shadow: 0 4px 12px rgba(244, 67, 54, 0.2) !important;
-    text-shadow: 0 0 8px rgba(244, 67, 54, 0.4) !important;
-}
-
-.installation-page .nav-tab:nth-of-type(3).active,
-.installation-page-content .nav-tab:nth-of-type(3).active,
-.installation-management-container .nav-tab:nth-of-type(3).active {
-    background: linear-gradient(135deg, rgba(244, 67, 54, 0.3), rgba(211, 47, 47, 0.3)) !important;
-    border-color: rgba(244, 67, 54, 0.7) !important;
-    color: white !important;
-    box-shadow: 0 0 15px rgba(244, 67, 54, 0.4) !important;
-}
-
-/* 11. SETTINGS TAB - BLUE */
-.installation-page .nav-tab:nth-of-type(4),
-.installation-page-content .nav-tab:nth-of-type(4),
-.installation-management-container .nav-tab:nth-of-type(4) {
-    background: linear-gradient(135deg, rgba(33, 150, 243, 0.1), rgba(33, 150, 243, 0.05)) !important;
-    border-color: rgba(33, 150, 243, 0.2) !important;
-    color: rgba(255, 255, 255, 0.9) !important;
-}
-
-.installation-page .nav-tab:nth-of-type(4):hover,
-.installation-page-content .nav-tab:nth-of-type(4):hover,
-.installation-management-container .nav-tab:nth-of-type(4):hover {
-    background: linear-gradient(135deg, rgba(33, 150, 243, 0.25), rgba(33, 150, 243, 0.15)) !important;
-    border-color: rgba(33, 150, 243, 0.5) !important;
-    box-shadow: 0 4px 12px rgba(33, 150, 243, 0.2) !important;
-    text-shadow: 0 0 8px rgba(33, 150, 243, 0.4) !important;
-}
-
-.installation-page .nav-tab:nth-of-type(4).active,
-.installation-page-content .nav-tab:nth-of-type(4).active,
-.installation-management-container .nav-tab:nth-of-type(4).active {
-    background: linear-gradient(135deg, rgba(33, 150, 243, 0.3), rgba(21, 101, 192, 0.3)) !important;
-    border-color: rgba(33, 150, 243, 0.7) !important;
-    color: white !important;
-    box-shadow: 0 0 15px rgba(33, 150, 243, 0.4) !important;
-}
-
-/* 12. ACTIVE TAB PULSE */
-@keyframes tabPulse {
-    0%, 100% { box-shadow: 0 0 15px currentColor; }
-    50% { box-shadow: 0 0 25px currentColor; }
-}
-
-.installation-page .nav-tab.active,
-.installation-page-content .nav-tab.active,
-.installation-management-container .nav-tab.active {
-    animation: tabPulse 2s ease-in-out infinite !important;
-}
-
-/* 13. CLICK ANIMATION */
-.installation-page .nav-tab:active,
-.installation-page-content .nav-tab:active,
-.installation-management-container .nav-tab:active {
-    transform: translateY(-1px) scale(0.98) !important;
-    transition: all 0.1s ease !important;
-}
-
-/* 14. RESPONSIVE */
-@media (max-width: 768px) {
     .installation-page .header-center,
     .installation-page-content .header-center,
     .installation-management-container .header-center {
-        padding: 4px 60px 4px 4px !important;
+        padding: 4px 60px 4px 4px;
     }
     
     .installation-page .nav-tab.back-tab,
     .installation-page-content .nav-tab.back-tab,
     .installation-management-container .nav-tab.back-tab {
-        left: 8px !important;
-        padding: 8px 12px !important;
-        font-size: 0.85rem !important;
+        left: 8px;
+        padding: 8px 12px;
+        font-size: 0.85rem;
     }
     
     .installation-page .nav-tab:not(.back-tab),
     .installation-page-content .nav-tab:not(.back-tab),
     .installation-management-container .nav-tab:not(.back-tab) {
-        padding: 6px 12px !important;
-        font-size: 0.85rem !important;
-        min-width: 60px !important;
+        padding: 6px 12px;
+        font-size: 0.85rem;
+        min-width: 60px;
     }
-}
-
-/* 15. FORCE OVERRIDE ANY REMAINING CONFLICTS */
-.installation-page .nav-tab,
-.installation-page-content .nav-tab,
-.installation-management-container .nav-tab {
-    all: unset !important;
-}
-
-/* Then reapply the working styles */
-.installation-page .nav-tab:not(.back-tab),
-.installation-page-content .nav-tab:not(.back-tab),
-.installation-management-container .nav-tab:not(.back-tab) {
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    background: rgba(255, 255, 255, 0.05) !important;
-    border: 1px solid rgba(255, 255, 255, 0.1) !important;
-    border-radius: 8px !important;
-    padding: 8px 16px !important;
-    font-family: "REGULAR_FONT" !important;
-    font-size: 0.9rem !important;
-    color: rgba(255, 255, 255, 0.8) !important;
-    cursor: pointer !important;
-    transition: all 0.3s ease !important;
-    position: relative !important;
-    overflow: hidden !important;
-    white-space: nowrap !important;
-    min-width: 80px !important;
-    text-align: center !important;
-    font-weight: 500 !important;
-}
-
-.installation-page .nav-tab.back-tab,
-.installation-page-content .nav-tab.back-tab,
-.installation-management-container .nav-tab.back-tab {
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    position: absolute !important;
-    left: 15px !important;
-    top: 50% !important;
-    transform: translateY(-50%) !important;
-    background: linear-gradient(135deg, rgba(90, 90, 90, 0.7), rgba(70, 70, 70, 0.8)) !important;
-    border: 1px solid rgba(255, 255, 255, 0.2) !important;
-    border-radius: 10px !important;
-    padding: 10px 16px !important;
-    font-family: "REGULAR_FONT" !important;
-    font-size: 0.9rem !important;
-    color: rgba(255, 255, 255, 0.8) !important;
-    cursor: pointer !important;
-    transition: all 0.3s ease !important;
-    z-index: 15 !important;
-    white-space: nowrap !important;
-    text-align: center !important;
-    font-weight: 500 !important;
+    
+    .modern-footer {
+        flex-direction: column;
+        gap: 15px;
+        padding: 15px;
+    }
+    
+    .footer-info {
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 20px;
+    }
+    
+    .update-warning-dialog .modal-footer {
+        flex-direction: column;
+        gap: 8px;
+    }
+    
+    .update-warning-dialog .modal-footer button {
+        width: 100%;
+    }
 }
