@@ -53,7 +53,7 @@ mod universal;
 
 // Update your re-exports
 pub use launcher::{launch_modpack, update_jvm_args, get_jvm_args};
-pub use installation::{Installation, get_active_installation, load_all_installations};
+pub use installation::{Installation, get_active_installation, load_all_installations, register_installation, load_installation, delete_installation};
 pub use preset::{Preset, load_presets};
 pub use universal::{UniversalManifest, load_universal_manifest, ModComponent};
 pub use universal::{ManifestError, ManifestErrorType};
