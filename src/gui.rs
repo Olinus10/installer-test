@@ -854,7 +854,7 @@ pub fn SimplifiedInstallationWizard(props: InstallationCreationProps) -> Element
         }
     });
     
-    // FIXED: Function to create the installation with proper default initialization
+    // Function to create the installation
     let create_installation = move |_| {
         debug!("Creating installation with name: {}", name.read());
 
@@ -888,17 +888,15 @@ pub fn SimplifiedInstallationWizard(props: InstallationCreationProps) -> Element
 
             // CRITICAL FIX: Initialize with default-enabled features from universal manifest
             let http_client = crate::CachedHttpClient::new();
+            let unwrapped_manifest_clone = unwrapped_manifest.clone();
             
             spawn(async move {
-                // FIXED: Use the enhanced initialization method
+                // Use the new initialization method instead of duplicating the logic
                 if let Err(e) = installation.initialize_with_universal_defaults(&http_client).await {
                     error!("Failed to initialize default features: {}", e);
                     installation_error.set(Some(format!("Failed to initialize features: {}", e)));
                     return;
                 }
-                
-                debug!("Initialized installation with {} features: {:?}", 
-                       installation.enabled_features.len(), installation.enabled_features);
                 
                 // Mark as fresh installation
                 installation.mark_as_fresh();
@@ -921,7 +919,6 @@ pub fn SimplifiedInstallationWizard(props: InstallationCreationProps) -> Element
                 }
                 
                 debug!("Successfully created installation: {}", installation.id);
-                debug!("Installation enabled features: {:?}", installation.enabled_features);
                 
                 // Call the oncreate handler to finalize
                 props.oncreate.call(installation);
@@ -1023,7 +1020,7 @@ pub fn SimplifiedInstallationWizard(props: InstallationCreationProps) -> Element
                             // Show what will be included by default
                             div { class: "default-features-info",
                                 p { class: "info-description", 
-                                    "Installation will include all default components. You can customize features after creation."
+                                    "You can customize further in the next step."
                                 }
                             }
                         }
@@ -1080,7 +1077,6 @@ pub fn InstallationManagementPage(
         use base64::{Engine, engine::general_purpose::STANDARD};
         Some(STANDARD.encode(include_bytes!("assets/icon.png")))
     };
-
     
     // State for the current tab
     let mut active_tab = use_signal(|| "features");
@@ -1215,8 +1211,6 @@ let mut proceed_with_update = {
         let mut installation_state = installation_state.clone();
         let installation_id = installation_clone.id.clone();
 
-        
-
         spawn(async move {
             // Calculate total items for accurate progress tracking
             match crate::universal::load_universal_manifest(&http_client, None).await {
@@ -1349,97 +1343,52 @@ let mut proceed_with_update = {
                             debug!("Installation completed successfully, progress: {}/{}", new_total, new_total);
                             
                             // Update installation state
-let mut has_unsaved_changes = use_signal(|| false);
-
-// When features change, don't save immediately:
-let toggle_feature = move |feature_id: String| {
-    debug!("Toggling feature: {}", feature_id);
-    
-    enabled_features.with_mut(|features| {
-        let is_enabling = !features.contains(&feature_id);
-        
-        if is_enabling {
-            if !features.contains(&feature_id) {
-                features.push(feature_id.clone());
-            }
-        } else {
-            features.retain(|id| id != &feature_id);
-        }
-    });
-    
-    // Mark as having unsaved changes
-    has_unsaved_changes.set(true);
-    has_changes.set(true);
-    
-    // Don't save to disk yet - wait for installation
-};
-
-// Only save after successful installation in proceed_with_update:
-// After successful installation:
-installation_clone.installed = true;
-installation_clone.update_available = false;
-installation_clone.preset_update_available = false;
-installation_clone.modified = false;
-
-// Save the exact state that was installed
-installation_clone.enabled_features = enabled_features.read().clone();
-installation_clone.selected_preset_id = selected_preset.read().clone();
-
-// Update base preset info if installing from a preset
-if let Some(preset_id) = selected_preset.read().as_ref() {
-    if let Ok(presets) = crate::preset::load_presets(&http_client, None).await {
-        if let Some(preset) = presets.iter().find(|p| p.id == *preset_id) {
-            installation_clone.base_preset_id = Some(preset.id.clone());
-            installation_clone.base_preset_version = preset.preset_version.clone();
-        }
-    }
-}
-
-// Now save to disk
-if let Err(e) = installation_clone.save() {
-    error!("Failed to save installation: {}", e);
-} else {
-    debug!("Saved installation with selected preset: {:?}", installation_clone.selected_preset_id);
-}
-
-// Update the universal version
-if let Ok(manifest) = crate::universal::load_universal_manifest(&http_client, None).await {
-    installation_clone.universal_version = manifest.modpack_version;
-}
-
-// CRITICAL: Preserve user's exact choices
-installation_clone.enabled_features = enabled_features.clone();
-
-// If a preset was selected, keep track of it
-if let Some(preset_id) = selected_preset.read().as_ref() {
-    installation_clone.selected_preset_id = Some(preset_id.clone());
-    
-    // Update base preset info if this is a preset installation
-    if let Ok(presets) = crate::preset::load_presets(&http_client, None).await {
-        if let Some(preset) = presets.iter().find(|p| p.id == *preset_id) {
-            installation_clone.base_preset_id = Some(preset.id.clone());
-            installation_clone.base_preset_version = preset.preset_version.clone();
-        }
-    }
-}
-
-// Save the installation with all user choices preserved
-if let Err(e) = installation_clone.save() {
-    error!("Failed to save installation: {}", e);
-    installation_error_clone.set(Some(format!("Failed to save installation: {}", e)));
-} else {
-    debug!("Successfully saved installation with user choices");
-    
-    // Update UI state
-    installation_state.set(installation_clone.clone());
-    
-    // Update the installations list
-    installations.with_mut(|list| {
-        if let Some(index) = list.iter().position(|i| i.id == installation_id) {
-            list[index] = installation_clone;
-        }
-    });
-}
+                            installation_clone.installed = true;
+                            installation_clone.update_available = false;
+                            installation_clone.preset_update_available = false;
+                            installation_clone.modified = false;
+                            
+                            // Update the universal version
+                            if let Ok(manifest) = crate::universal::load_universal_manifest(&http_client, None).await {
+                                installation_clone.universal_version = manifest.modpack_version;
+                            }
+                            
+                            // Preserve user's enabled features
+                            installation_clone.enabled_features = enabled_features.clone();
+                            
+                            // Update preset version if needed
+                            if let Some(base_preset_id) = &installation_clone.base_preset_id {
+                                if let Ok(presets) = crate::preset::load_presets(&http_client, None).await {
+                                    if let Some(preset) = presets.iter().find(|p| p.id == *base_preset_id) {
+                                        installation_clone.base_preset_version = preset.preset_version.clone();
+                                    }
+                                }
+                            }
+                            
+                            // Save the installation
+                            if let Err(e) = installation_clone.save() {
+                                error!("Failed to save installation: {}", e);
+                                installation_error_clone.set(Some(format!("Failed to save installation: {}", e)));
+                            } else {
+                                debug!("Successfully saved installation state");
+                                
+                                // Update UI state only after successful save
+                                installation_state.set(installation_clone.clone());
+                                
+                                // Update the installations list
+                                installations.with_mut(|list| {
+                                    if let Some(index) = list.iter().position(|i| i.id == installation_id) {
+                                        list[index] = installation_clone;
+                                    }
+                                });
+                                
+                                // Clear modification flags
+                                has_changes_clone.set(false);
+                                features_modified_clone.set(false);
+                                performance_modified_clone.set(false);
+                                
+                                debug!("Installation UI state updated successfully");
+                            }
                             
                             // Wait a moment to show completion, then close
                             tokio::time::sleep(tokio::time::Duration::from_millis(1500)).await;
