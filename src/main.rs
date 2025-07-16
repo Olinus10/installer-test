@@ -1506,6 +1506,30 @@ async fn install<F: FnMut() + Clone>(installer_profile: &InstallerProfile, mut p
     let user_enabled_features = &installer_profile.enabled_features;
     debug!("User's enabled features for installation: {:?}", user_enabled_features);
     
+    let modpack_root = &get_modpack_root(
+        installer_profile.launcher.as_ref().expect("Launcher not selected!"),
+        &installer_profile.manifest.uuid,
+    );
+    let manifest = &installer_profile.manifest;
+    let http_client = &installer_profile.http_client;
+    let minecraft_folder = get_minecraft_folder();
+    
+    // Load universal manifest to get complete component information
+    let universal_manifest = match crate::universal::load_universal_manifest(http_client, None).await {
+        Ok(manifest) => manifest,
+        Err(e) => {
+            error!("Failed to load universal manifest: {}", e);
+            return Err(format!("Failed to load universal manifest: {}", e));
+        }
+    };
+    
+    debug!("Loaded universal manifest with {} mods, {} shaderpacks, {} resourcepacks, {} includes, {} remote_includes",
+           universal_manifest.mods.len(),
+           universal_manifest.shaderpacks.len(), 
+           universal_manifest.resourcepacks.len(),
+           universal_manifest.include.len(),
+           universal_manifest.remote_include.len());
+    
     // Ensure "default" is always in the list
     let mut complete_features = user_enabled_features.clone();
     if !complete_features.contains(&"default".to_string()) {
