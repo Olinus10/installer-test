@@ -1347,23 +1347,19 @@ async fn download_helper<T: Downloadable + Debug, F: FnMut() + Clone>(
     ignore_update_items: &std::collections::HashSet<String>,
 ) -> Result<Vec<T>, DownloadError> {
     debug!("download_helper called with {} items", items.len());
-    debug!("User enabled features: {:?}", enabled_features);
-    debug!("Is update: {}", is_update);
-    debug!("Ignore update items: {:?}", ignore_update_items);
-
+    debug!("Enabled features for download: {:?}", enabled_features);
+    
     let results = futures::stream::iter(items.into_iter().map(|item| async {
-        // FIXED: Check if this is a default/required component
-        let is_default_component = item.get_id() == "default";
-        let is_in_enabled_features = enabled_features.contains(item.get_id());
+        // Determine if this item should be included
+        let should_include = if item.get_id() == "default" {
+            true // Always include "default" ID
+        } else {
+            // Check if in enabled features (which should already include all defaults)
+            enabled_features.contains(item.get_id())
+        };
         
-        // For universal manifest components, check if they're marked as default_enabled and non-optional
-        let is_required = false; // We'll need to pass this info from the manifest
-        
-        // Determine if item should be included
-        let should_include = is_default_component || is_in_enabled_features || is_required;
-        
-        debug!("Item '{}' (ID: {}) - default: {}, enabled: {}, should_include: {}", 
-               item.get_name(), item.get_id(), is_default_component, is_in_enabled_features, should_include);
+        debug!("Item '{}' (ID: {}) - should_include: {}", 
+               item.get_name(), item.get_id(), should_include);
         
         // Check if we should ignore this item during updates
         let should_ignore_update = is_update && ignore_update_items.contains(item.get_id());
@@ -1510,60 +1506,39 @@ async fn install<F: FnMut() + Clone>(installer_profile: &InstallerProfile, mut p
     let user_enabled_features = &installer_profile.enabled_features;
     debug!("User's enabled features for installation: {:?}", user_enabled_features);
     
-    let modpack_root = &get_modpack_root(
-        installer_profile.launcher.as_ref().expect("Launcher not selected!"),
-        &installer_profile.manifest.uuid,
-    );
-    let manifest = &installer_profile.manifest;
-    let http_client = &installer_profile.http_client;
-    let minecraft_folder = get_minecraft_folder();
-    
-    // Load universal manifest to get complete component information
-    let universal_manifest = match crate::universal::load_universal_manifest(http_client, None).await {
-        Ok(manifest) => manifest,
-        Err(e) => {
-            error!("Failed to load universal manifest: {}", e);
-            return Err(format!("Failed to load universal manifest: {}", e));
-        }
-    };
-    
-    debug!("Loaded universal manifest with {} mods, {} shaderpacks, {} resourcepacks, {} includes, {} remote_includes",
-           universal_manifest.mods.len(),
-           universal_manifest.shaderpacks.len(), 
-           universal_manifest.resourcepacks.len(),
-           universal_manifest.include.len(),
-           universal_manifest.remote_include.len());
+    // Ensure "default" is always in the list
+    let mut complete_features = user_enabled_features.clone();
+    if !complete_features.contains(&"default".to_string()) {
+        complete_features.insert(0, "default".to_string());
+    }
     
     // FIXED: Calculate total items based on what will ACTUALLY be processed
     let mut total_items = 0;
     
-    // Count components that will be downloaded based on user choices
+    // Count components that will be downloaded based on user choices AND default status
     for component in &universal_manifest.mods {
-        let should_include = if component.id == "default" {
-            true // Always include the "default" ID
-        } else if component.default_enabled && !component.optional {
-            true // Always include non-optional default-enabled components
-        } else if !component.optional {
-            true // Always include non-optional components
-        } else {
-            user_enabled_features.contains(&component.id)
-        };
+        let should_include = 
+            component.id == "default" || // Always include "default" ID
+            component.default_enabled || // Always include default_enabled components
+            !component.optional || // Always include non-optional components
+            complete_features.contains(&component.id); // Include user-selected features
         
         if should_include {
             total_items += 1;
             debug!("Will install mod: {} ({}) - default_enabled: {}, optional: {}", 
                    component.name, component.id, component.default_enabled, component.optional);
         } else {
-            debug!("Skipping optional mod: {} ({})", component.name, component.id);
+            debug!("Skipping mod: {} ({}) - not selected by user", component.name, component.id);
         }
     }
     
+    // Similar for shaderpacks
     for component in &universal_manifest.shaderpacks {
-        let should_include = if component.id == "default" || (!component.optional && component.default_enabled) {
-            true
-        } else {
-            user_enabled_features.contains(&component.id)
-        };
+        let should_include = 
+            component.id == "default" ||
+            component.default_enabled ||
+            !component.optional ||
+            complete_features.contains(&component.id);
         
         if should_include {
             total_items += 1;
@@ -1571,12 +1546,13 @@ async fn install<F: FnMut() + Clone>(installer_profile: &InstallerProfile, mut p
         }
     }
     
+    // Similar for resourcepacks
     for component in &universal_manifest.resourcepacks {
-        let should_include = if component.id == "default" || (!component.optional && component.default_enabled) {
-            true
-        } else {
-            user_enabled_features.contains(&component.id)
-        };
+        let should_include = 
+            component.id == "default" ||
+            component.default_enabled ||
+            !component.optional ||
+            complete_features.contains(&component.id);
         
         if should_include {
             total_items += 1;
@@ -1584,15 +1560,14 @@ async fn install<F: FnMut() + Clone>(installer_profile: &InstallerProfile, mut p
         }
     }
     
-    // FIXED: Count includes properly
+    // Process includes
     for include in &universal_manifest.include {
-        let should_include = if include.id.is_empty() || include.id == "default" {
-            !include.optional // Include if not optional
-        } else if !include.optional && include.default_enabled {
-            true // Always include required defaults
-        } else {
-            user_enabled_features.contains(&include.id)
-        };
+        let should_include = 
+            include.id.is_empty() || // Includes without ID are always included
+            include.id == "default" ||
+            include.default_enabled ||
+            !include.optional ||
+            complete_features.contains(&include.id);
         
         if should_include {
             total_items += 1;
@@ -1600,15 +1575,13 @@ async fn install<F: FnMut() + Clone>(installer_profile: &InstallerProfile, mut p
         }
     }
     
-    // FIXED: Count remote includes properly
+    // Process remote includes
     for remote in &universal_manifest.remote_include {
-        let should_include = if remote.id == "default" {
-            !remote.optional
-        } else if !remote.optional && remote.default_enabled {
-            true
-        } else {
-            user_enabled_features.contains(&remote.id)
-        };
+        let should_include = 
+            remote.id == "default" ||
+            remote.default_enabled ||
+            !remote.optional ||
+            complete_features.contains(&remote.id);
         
         if should_include {
             total_items += 1;
@@ -1721,7 +1694,7 @@ async fn install<F: FnMut() + Clone>(installer_profile: &InstallerProfile, mut p
     debug!("Downloading mods with user features: {:?}", user_enabled_features);
     let mods_w_path = match download_helper(
         mods_for_download,
-        user_enabled_features,
+        &complete_features, // Use complete_features
         modpack_root.as_path(),
         &manifest.loader.r#type,
         http_client,
@@ -1737,33 +1710,33 @@ async fn install<F: FnMut() + Clone>(installer_profile: &InstallerProfile, mut p
     
     let shaderpacks_w_path = match download_helper(
         shaderpacks_for_download,
-        user_enabled_features,
-        modpack_root.as_path(),
-        &manifest.loader.r#type,
-        http_client,
-        download_progress_callback.clone(),
-        is_update,
-        &ignore_update_items,
-    ).await {
-        Ok(v) => v,
-        Err(e) => return Err(e.to_string()),
-    };
+    &complete_features, // Use complete_features
+    modpack_root.as_path(),
+    &manifest.loader.r#type,
+    http_client,
+    download_progress_callback.clone(),
+    is_update,
+    &ignore_update_items,
+).await {
+    Ok(v) => v,
+    Err(e) => return Err(e.to_string()),
+};
     
     debug!("Downloaded {} shaderpacks", shaderpacks_w_path.len());
     
     let resourcepacks_w_path = match download_helper(
         resourcepacks_for_download,
-        user_enabled_features,
-        modpack_root.as_path(),
-        &manifest.loader.r#type,
-        http_client,
-        download_progress_callback.clone(),
-        is_update,
-        &ignore_update_items,
-    ).await {
-        Ok(v) => v,
-        Err(e) => return Err(e.to_string()),
-    };
+    &complete_features, // Use complete_features
+    modpack_root.as_path(),
+    &manifest.loader.r#type,
+    http_client,
+    download_progress_callback.clone(),
+    is_update,
+    &ignore_update_items,
+).await {
+    Ok(v) => v,
+    Err(e) => return Err(e.to_string()),
+};
     
     debug!("Downloaded {} resourcepacks", resourcepacks_w_path.len());
     
