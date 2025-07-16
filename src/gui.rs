@@ -1346,52 +1346,50 @@ let mut proceed_with_update = {
                             debug!("Installation completed successfully, progress: {}/{}", new_total, new_total);
                             
                             // Update installation state
-                            installation_clone.installed = true;
-                            installation_clone.update_available = false;
-                            installation_clone.preset_update_available = false;
-                            installation_clone.modified = false;
-                            
-                            // Update the universal version
-                            if let Ok(manifest) = crate::universal::load_universal_manifest(&http_client, None).await {
-                                installation_clone.universal_version = manifest.modpack_version;
-                            }
-                            
-                            // Preserve user's enabled features
-                            installation_clone.enabled_features = enabled_features.clone();
-                            
-                            // Update preset version if needed
-                            if let Some(base_preset_id) = &installation_clone.base_preset_id {
-                                if let Ok(presets) = crate::preset::load_presets(&http_client, None).await {
-                                    if let Some(preset) = presets.iter().find(|p| p.id == *base_preset_id) {
-                                        installation_clone.base_preset_version = preset.preset_version.clone();
-                                    }
-                                }
-                            }
-                            
-                            // Save the installation
-                            if let Err(e) = installation_clone.save() {
-                                error!("Failed to save installation: {}", e);
-                                installation_error_clone.set(Some(format!("Failed to save installation: {}", e)));
-                            } else {
-                                debug!("Successfully saved installation state");
-                                
-                                // Update UI state only after successful save
-                                installation_state.set(installation_clone.clone());
-                                
-                                // Update the installations list
-                                installations.with_mut(|list| {
-                                    if let Some(index) = list.iter().position(|i| i.id == installation_id) {
-                                        list[index] = installation_clone;
-                                    }
-                                });
-                                
-                                // Clear modification flags
-                                has_changes_clone.set(false);
-                                features_modified_clone.set(false);
-                                performance_modified_clone.set(false);
-                                
-                                debug!("Installation UI state updated successfully");
-                            }
+// After the installation completes successfully
+installation_clone.installed = true;
+installation_clone.update_available = false;
+installation_clone.preset_update_available = false;
+installation_clone.modified = false;
+
+// Update the universal version
+if let Ok(manifest) = crate::universal::load_universal_manifest(&http_client, None).await {
+    installation_clone.universal_version = manifest.modpack_version;
+}
+
+// CRITICAL: Preserve user's exact choices
+installation_clone.enabled_features = enabled_features.clone();
+
+// If a preset was selected, keep track of it
+if let Some(preset_id) = selected_preset.read().as_ref() {
+    installation_clone.selected_preset_id = Some(preset_id.clone());
+    
+    // Update base preset info if this is a preset installation
+    if let Ok(presets) = crate::preset::load_presets(&http_client, None).await {
+        if let Some(preset) = presets.iter().find(|p| p.id == *preset_id) {
+            installation_clone.base_preset_id = Some(preset.id.clone());
+            installation_clone.base_preset_version = preset.preset_version.clone();
+        }
+    }
+}
+
+// Save the installation with all user choices preserved
+if let Err(e) = installation_clone.save() {
+    error!("Failed to save installation: {}", e);
+    installation_error_clone.set(Some(format!("Failed to save installation: {}", e)));
+} else {
+    debug!("Successfully saved installation with user choices");
+    
+    // Update UI state
+    installation_state.set(installation_clone.clone());
+    
+    // Update the installations list
+    installations.with_mut(|list| {
+        if let Some(index) = list.iter().position(|i| i.id == installation_id) {
+            list[index] = installation_clone;
+        }
+    });
+}
                             
                             // Wait a moment to show completion, then close
                             tokio::time::sleep(tokio::time::Duration::from_millis(1500)).await;
