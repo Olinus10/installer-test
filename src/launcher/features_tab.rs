@@ -639,19 +639,19 @@ fn render_all_features_sections(
 ) -> Element {
     let filter = filter_text.read().to_lowercase();
     
-    // FIXED: Collect ALL components including includes and remote includes
+    // Collect ALL components including includes and remote includes
     let mut all_components = Vec::new();
     all_components.extend(manifest.mods.iter().cloned());
     all_components.extend(manifest.shaderpacks.iter().cloned());
     all_components.extend(manifest.resourcepacks.iter().cloned());
     
-    // FIXED: Convert includes to ModComponent format properly
+    // Convert includes to ModComponent format
     for include in &manifest.include {
         if !include.id.is_empty() && include.id != "default" {
             all_components.push(ModComponent {
                 id: include.id.clone(),
                 name: include.name.clone().unwrap_or_else(|| {
-                    // Extract name from location
+                    // Extract a friendly name from the location
                     if include.location.contains('/') {
                         include.location.split('/').last().unwrap_or(&include.location).to_string()
                     } else {
@@ -671,36 +671,52 @@ fn render_all_features_sections(
                 incompatibilities: None,
                 ignore_update: include.ignore_update,
             });
-        }
-    }
-    
-    // FIXED: Convert remote includes to ModComponent format properly
-    for remote in &manifest.remote_include {
-        if remote.id != "default" {
+        } else if include.default_enabled && !include.optional {
+            // This is a default include without an ID - still show it
             all_components.push(ModComponent {
-                id: remote.id.clone(),
-                name: remote.name.clone().unwrap_or_else(|| {
-                    remote.id.replace('_', " ").replace('-', " ")
-                }),
-                description: remote.description.clone().or_else(|| {
-                    Some(format!("Remote content: {}", remote.location))
-                }),
-                source: "remote_include".to_string(),
-                location: remote.location.clone(),
-                version: remote.version.clone(),
-                path: remote.path.as_ref().map(|p| std::path::PathBuf::from(p)),
-                optional: remote.optional,
-                default_enabled: remote.default_enabled,
-                authors: remote.authors.clone(),
-                category: remote.category.clone().or_else(|| Some("Remote Content".to_string())),
-                dependencies: remote.dependencies.clone(),
+                id: format!("include_{}", include.location.replace('/', "_")),
+                name: include.name.clone().unwrap_or_else(|| include.location.clone()),
+                description: Some(format!("Configuration: {}", include.location)),
+                source: "include".to_string(),
+                location: include.location.clone(),
+                version: "1.0".to_string(),
+                path: None,
+                optional: false,
+                default_enabled: true,
+                authors: include.authors.clone().unwrap_or_default(),
+                category: Some("Configuration".to_string()),
+                dependencies: None,
                 incompatibilities: None,
-                ignore_update: remote.ignore_update,
+                ignore_update: include.ignore_update,
             });
         }
     }
     
-    debug!("Total components after includes/remote includes: {}", all_components.len());
+    // Convert remote includes to ModComponent format
+    for remote in &manifest.remote_include {
+        all_components.push(ModComponent {
+            id: remote.id.clone(),
+            name: remote.name.clone().unwrap_or_else(|| {
+                remote.id.replace('_', " ").replace('-', " ")
+            }),
+            description: remote.description.clone().or_else(|| {
+                Some(format!("Remote content: {}", remote.location))
+            }),
+            source: "remote_include".to_string(),
+            location: remote.location.clone(),
+            version: remote.version.clone(),
+            path: remote.path.as_ref().map(|p| std::path::PathBuf::from(p)),
+            optional: remote.optional,
+            default_enabled: remote.default_enabled,
+            authors: remote.authors.clone(),
+            category: remote.category.clone().or_else(|| Some("Remote Content".to_string())),
+            dependencies: remote.dependencies.clone(),
+            incompatibilities: None,
+            ignore_update: remote.ignore_update,
+        });
+    }
+    
+    debug!("Total components including includes: {}", all_components.len());
     
     // Filter components
     let filtered_components = if filter.is_empty() {
@@ -718,34 +734,21 @@ fn render_all_features_sections(
             .collect()
     };
     
-    // FIXED: Separate into included (default/required) and optional
+    // Separate into included (default/required) and optional
     let (included_components, optional_components): (Vec<_>, Vec<_>) = filtered_components
         .into_iter()
         .partition(|comp| {
-            // Component is included if it's default_enabled AND not optional, OR if it has id "default"
-            comp.id == "default" || (comp.default_enabled && !comp.optional)
+            // Component is included if it's default_enabled AND not optional
+            comp.id == "default" || (comp.default_enabled && !comp.optional) || !comp.optional
         });
-    
-    debug!("Included components: {}", included_components.len());
-    debug!("Optional components: {}", optional_components.len());
     
     // Group optional components by category
     let mut categories: std::collections::BTreeMap<String, Vec<ModComponent>> = std::collections::BTreeMap::new();
     for component in optional_components {
         let category = component.category.clone().unwrap_or_else(|| {
-            // FIXED: Better category assignment based on source
             match component.source.as_str() {
                 "include" => "Configuration".to_string(),
                 "remote_include" => "Remote Content".to_string(),
-                "modrinth" => {
-                    if component.location.contains("shader") {
-                        "Shaders".to_string()
-                    } else if component.location.contains("resource") {
-                        "Resource Packs".to_string()
-                    } else {
-                        "Mods".to_string()
-                    }
-                },
                 _ => "Other".to_string(),
             }
         });
