@@ -433,7 +433,7 @@ impl Installation {
         let universal_manifest = crate::universal::load_universal_manifest(http_client, None).await
             .map_err(|e| format!("Failed to load universal manifest: {}", e))?;
         
-        // CRITICAL: Preserve all user state
+        // CRITICAL: Preserve ALL user state including the selected preset
         let user_features = self.enabled_features.clone();
         let user_optional = self.user_enabled_optional_features.clone();
         let user_disabled = self.user_disabled_default_features.clone();
@@ -448,7 +448,7 @@ impl Installation {
         self.universal_version = universal_manifest.modpack_version;
         self.last_used = chrono::Utc::now();
         
-        // CRITICAL: Restore user's choices
+        // CRITICAL: Restore ALL user's choices
         self.enabled_features = user_features;
         self.user_enabled_optional_features = user_optional;
         self.user_disabled_default_features = user_disabled;
@@ -456,10 +456,12 @@ impl Installation {
         self.base_preset_id = base_preset;
         self.base_preset_version = base_preset_version;
         
-        debug!("Preserved user choices - features: {:?}", self.enabled_features);
-        debug!("Optional features: {:?}", self.user_enabled_optional_features);
-        debug!("Disabled defaults: {:?}", self.user_disabled_default_features);
-        debug!("Selected preset: {:?}", self.selected_preset_id);
+        debug!("Preserved user choices:");
+        debug!("  - Enabled features: {:?}", self.enabled_features);
+        debug!("  - Optional features: {:?}", self.user_enabled_optional_features);
+        debug!("  - Disabled defaults: {:?}", self.user_disabled_default_features);
+        debug!("  - Selected preset: {:?}", self.selected_preset_id);
+        debug!("  - Base preset: {:?}", self.base_preset_id);
         
         self.save()
     }
