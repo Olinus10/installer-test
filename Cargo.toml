@@ -7,10 +7,10 @@ build = "build.rs"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [profile.release]
-opt-level = "3"  # Optimize for speed
+opt-level = 3
 debug = false
-lto = true  # Link Time Optimization
-codegen-units = 1  # Enable LTO for better optimizations
+lto = true
+codegen-units = 1  
 panic = "abort"
 strip = true
 incremental = false
