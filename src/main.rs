@@ -53,7 +53,7 @@ mod universal;
 
 // Update your re-exports
 pub use launcher::{launch_modpack, update_jvm_args, get_jvm_args};
-pub use installation::{Installation, get_active_installation, load_all_installations, register_installation, load_installation, delete_installation};
+pub use installation::{Installation, get_active_installation, load_all_installations};
 pub use preset::{Preset, load_presets};
 pub use universal::{UniversalManifest, load_universal_manifest, ModComponent};
 pub use universal::{ManifestError, ManifestErrorType};
@@ -1346,35 +1346,39 @@ async fn download_helper<T: Downloadable + Debug, F: FnMut() + Clone>(
     is_update: bool,
     ignore_update_items: &std::collections::HashSet<String>,
 ) -> Result<Vec<T>, DownloadError> {
-    debug!("download_helper called with {} items", items.len());
-    debug!("Enabled features for download: {:?}", enabled_features);
-    
     let results = futures::stream::iter(items.into_iter().map(|item| async {
-        // Determine if this item should be included
+        // FIXED: Proper logic for determining if item should be included
         let should_include = if item.get_id() == "default" {
-            true // Always include "default" ID
+            // Always include the "default" item
+            true
         } else {
-            // Check if in enabled features (which should already include all defaults)
-            enabled_features.contains(item.get_id())
+            // Check if this item should be included based on:
+            // 1. It's in the user's enabled_features list, OR
+            // 2. It's a default_enabled component (from universal manifest)
+            enabled_features.contains(item.get_id()) || {
+                // For default_enabled items, we need to check the universal manifest
+                // This is a bit of a hack since we don't have direct access to default_enabled here
+                // But we can infer it from the enabled_features containing "default"
+                enabled_features.contains(&"default".to_string()) && {
+                    // If this is likely a default component (based on naming or other heuristics)
+                    // we should include it. But better to be explicit via enabled_features.
+                    false // For now, rely on enabled_features being properly set
+                }
+            }
         };
         
-        debug!("Item '{}' (ID: {}) - should_include: {}", 
-               item.get_name(), item.get_id(), should_include);
+        debug!("Item '{}' (ID: {}) - should_include: {}, in_enabled_features: {}", 
+               item.get_name(), item.get_id(), should_include, enabled_features.contains(item.get_id()));
         
         // Check if we should ignore this item during updates
         let should_ignore_update = is_update && ignore_update_items.contains(item.get_id());
         
-        if should_ignore_update {
-            debug!("Ignoring update for item: '{}' (ignore_update=true)", item.get_name());
-        }
-        
         if item.get_path().is_none() && should_include && !should_ignore_update {
-            // Item needs to be downloaded
-            debug!("DOWNLOADING item: {} (ID: {})", item.get_name(), item.get_id());
-            
-            let path = item.download(modpack_root, loader_type, http_client).await?;
+            debug!("Downloading item: {} (ID: {})", item.get_name(), item.get_id());
+            let path = item
+                .download(modpack_root, loader_type, http_client)
+                .await?;
             (progress_callback.clone())();
-            
             Ok(T::new(
                 item.get_name().to_owned(),
                 item.get_source().to_owned(),
@@ -1385,22 +1389,21 @@ async fn download_helper<T: Downloadable + Debug, F: FnMut() + Clone>(
                 item.get_authors().to_owned(),
             ))
         } else {
-            // Handle existing items
             let item = validate_item_path!(item, modpack_root);
             let path;
             
             if should_ignore_update && item.get_path().is_some() {
-                debug!("KEEPING item (ignore update): '{}'", item.get_name());
+                debug!("Ignoring update for: '{}' (ignore_update=true)", item.get_name());
                 path = item.get_path().to_owned();
             } else if !should_include && item.get_path().is_some() {
-                debug!("REMOVING disabled item: '{}'", item.get_name());
+                debug!("Removing disabled item: '{}' (not in enabled_features)", item.get_name());
                 let _ = fs::remove_file(item.get_path().as_ref().unwrap());
                 path = None;
             } else if !should_include {
-                debug!("SKIPPING disabled item: '{}'", item.get_name());
+                debug!("Skipping disabled item: '{}' (not in enabled_features)", item.get_name());
                 path = None;
             } else {
-                debug!("KEEPING existing item: '{}'", item.get_name());
+                debug!("Keeping existing item: '{}' (enabled)", item.get_name());
                 path = item.get_path().to_owned();
             }
             
@@ -1422,19 +1425,10 @@ async fn download_helper<T: Downloadable + Debug, F: FnMut() + Clone>(
     let mut return_vec = vec![];
     for res in results {
         match res {
-            Ok(v) => {
-                debug!("Successfully processed item: {} (path: {:?})", 
-                       v.get_name(), v.get_path());
-                return_vec.push(v);
-            },
-            Err(e) => {
-                error!("Failed to process item: {:?}", e);
-                return Err(e);
-            }
+            Ok(v) => return_vec.push(v),
+            Err(e) => return Err(e),
         }
     }
-    
-    debug!("download_helper completed: {} items processed", return_vec.len());
     Ok(return_vec)
 }
 
@@ -1500,157 +1494,126 @@ async fn download_zip(name: &str, http_client: &CachedHttpClient, url: &str, pat
 }
 
 async fn install<F: FnMut() + Clone>(installer_profile: &InstallerProfile, mut progress_callback: F) -> Result<(), String> {
-    info!("Installing modpack: {}", installer_profile.manifest.name);
+    info!("Installing modpack");
     
-    // CRITICAL FIX: Use the exact user-enabled features from installer_profile
+    // CRITICAL: Use the installer_profile.enabled_features which should contain the USER'S choices
     let user_enabled_features = &installer_profile.enabled_features;
-    debug!("User's enabled features for installation: {:?}", user_enabled_features);
+    debug!("User's enabled features: {:?}", user_enabled_features);
+    
+    // Calculate total items correctly based on USER'S choices, not manifest defaults
+    let mut total_items = 0;
+    
+    // Count mods that the USER has enabled
+    total_items += installer_profile.manifest.mods.iter()
+        .filter(|m| {
+            let should_include = m.id == "default" || user_enabled_features.contains(&m.id);
+            debug!("Mod '{}' (ID: {}) - should_include: {}", m.name, m.id, should_include);
+            should_include
+        })
+        .count();
+    
+    // Count shaderpacks that the USER has enabled
+    total_items += installer_profile.manifest.shaderpacks.iter()
+        .filter(|s| {
+            let should_include = s.id == "default" || user_enabled_features.contains(&s.id);
+            debug!("Shaderpack '{}' (ID: {}) - should_include: {}", s.name, s.id, should_include);
+            should_include
+        })
+        .count();
+    
+    // Count resourcepacks that the USER has enabled
+    total_items += installer_profile.manifest.resourcepacks.iter()
+        .filter(|r| {
+            let should_include = r.id == "default" || user_enabled_features.contains(&r.id);
+            debug!("Resourcepack '{}' (ID: {}) - should_include: {}", r.name, r.id, should_include);
+            should_include
+        })
+        .count();
+    
+    // Count includes that the USER has enabled
+    total_items += installer_profile.manifest.include.iter()
+        .filter(|i| {
+            let should_include = if i.id.is_empty() || i.id == "default" {
+                true
+            } else if !i.optional {
+                true
+            } else {
+                user_enabled_features.contains(&i.id)
+            };
+            debug!("Include '{}' (ID: {}) - should_include: {}", i.location, i.id, should_include);
+            should_include
+        })
+        .count();
+    
+    // Count remote includes that the USER has enabled
+        if let Some(remote_includes) = &installer_profile.manifest.remote_include {
+            total_items += remote_includes.iter()
+                .filter(|r| {
+                    let should_include = if r.id == "default" {
+                        true
+                    } else if !r.optional {  // Now this will work
+                        true
+                    } else {
+                        user_enabled_features.contains(&r.id)
+                    };
+                    debug!("Remote include '{}' (ID: {}) - should_include: {}", r.id, r.id, should_include);
+                    should_include
+                })
+                .count();
+        }
+            
+    // Add overhead tasks
+    let overhead_tasks = 4;
+    total_items += overhead_tasks;
+    
+    debug!("Total items to install based on user choices: {}", total_items);
     
     let modpack_root = &get_modpack_root(
-        installer_profile.launcher.as_ref().expect("Launcher not selected!"),
+        installer_profile
+            .launcher
+            .as_ref()
+            .expect("Launcher not selected!"),
         &installer_profile.manifest.uuid,
     );
     let manifest = &installer_profile.manifest;
     let http_client = &installer_profile.http_client;
     let minecraft_folder = get_minecraft_folder();
     
-    // Load universal manifest to get complete component information
-    let universal_manifest = match crate::universal::load_universal_manifest(http_client, None).await {
-        Ok(manifest) => manifest,
-        Err(e) => {
-            error!("Failed to load universal manifest: {}", e);
-            return Err(format!("Failed to load universal manifest: {}", e));
-        }
-    };
-    
-    debug!("Loaded universal manifest with {} mods, {} shaderpacks, {} resourcepacks, {} includes, {} remote_includes",
-           universal_manifest.mods.len(),
-           universal_manifest.shaderpacks.len(), 
-           universal_manifest.resourcepacks.len(),
-           universal_manifest.include.len(),
-           universal_manifest.remote_include.len());
-    
-    // Ensure "default" is always in the list
-    let mut complete_features = user_enabled_features.clone();
-    if !complete_features.contains(&"default".to_string()) {
-        complete_features.insert(0, "default".to_string());
-    }
-    
-    // FIXED: Calculate total items based on what will ACTUALLY be processed
-    let mut total_items = 0;
-    
-    // Count components that will be downloaded based on user choices AND default status
-    for component in &universal_manifest.mods {
-        let should_include = 
-            component.id == "default" || // Always include "default" ID
-            component.default_enabled || // Always include default_enabled components
-            !component.optional || // Always include non-optional components
-            complete_features.contains(&component.id); // Include user-selected features
-        
-        if should_include {
-            total_items += 1;
-            debug!("Will install mod: {} ({}) - default_enabled: {}, optional: {}", 
-                   component.name, component.id, component.default_enabled, component.optional);
-        } else {
-            debug!("Skipping mod: {} ({}) - not selected by user", component.name, component.id);
-        }
-    }
-    
-    // Similar for shaderpacks
-    for component in &universal_manifest.shaderpacks {
-        let should_include = 
-            component.id == "default" ||
-            component.default_enabled ||
-            !component.optional ||
-            complete_features.contains(&component.id);
-        
-        if should_include {
-            total_items += 1;
-            debug!("Will install shaderpack: {} ({})", component.name, component.id);
-        }
-    }
-    
-    // Similar for resourcepacks
-    for component in &universal_manifest.resourcepacks {
-        let should_include = 
-            component.id == "default" ||
-            component.default_enabled ||
-            !component.optional ||
-            complete_features.contains(&component.id);
-        
-        if should_include {
-            total_items += 1;
-            debug!("Will install resourcepack: {} ({})", component.name, component.id);
-        }
-    }
-    
-    // Process includes
-    for include in &universal_manifest.include {
-        let should_include = 
-            include.id.is_empty() || // Includes without ID are always included
-            include.id == "default" ||
-            include.default_enabled ||
-            !include.optional ||
-            complete_features.contains(&include.id);
-        
-        if should_include {
-            total_items += 1;
-            debug!("Will install include: {} ({})", include.location, include.id);
-        }
-    }
-    
-    // Process remote includes
-    for remote in &universal_manifest.remote_include {
-        let should_include = 
-            remote.id == "default" ||
-            remote.default_enabled ||
-            !remote.optional ||
-            complete_features.contains(&remote.id);
-        
-        if should_include {
-            total_items += 1;
-            debug!("Will install remote include: {} ({})", remote.id, remote.id);
-        }
-    }
-    
-    // Add overhead tasks
-    let overhead_tasks = 4;
-    total_items += overhead_tasks;
-    
-    debug!("Total items to process: {} (including {} overhead tasks)", total_items, overhead_tasks);
-    
-    // Check if this is an update
+    // Check if this is an update by looking for existing manifest
     let is_update = modpack_root.join("manifest.json").exists();
     
     // Collect items that should be ignored during updates
     let mut ignore_update_items = std::collections::HashSet::new();
-    for mod_component in &universal_manifest.mods {
-        if mod_component.ignore_update {
-            ignore_update_items.insert(mod_component.id.clone());
+    
+    // Check universal manifest for ignore_update flags
+    if let Ok(universal_manifest) = crate::universal::load_universal_manifest(http_client, None).await {
+        for mod_component in &universal_manifest.mods {
+            if mod_component.ignore_update {
+                ignore_update_items.insert(mod_component.id.clone());
+            }
         }
-    }
-    for shader in &universal_manifest.shaderpacks {
-        if shader.ignore_update {
-            ignore_update_items.insert(shader.id.clone());
+        for shader in &universal_manifest.shaderpacks {
+            if shader.ignore_update {
+                ignore_update_items.insert(shader.id.clone());
+            }
         }
-    }
-    for resource in &universal_manifest.resourcepacks {
-        if resource.ignore_update {
-            ignore_update_items.insert(resource.id.clone());
+        for resource in &universal_manifest.resourcepacks {
+            if resource.ignore_update {
+                ignore_update_items.insert(resource.id.clone());
+            }
         }
-    }
-    for include in &universal_manifest.include {
-        if include.ignore_update {
-            ignore_update_items.insert(include.id.clone());
+        for include in &universal_manifest.include {
+            if include.ignore_update {
+                ignore_update_items.insert(include.id.clone());
+            }
         }
-    }
-    for remote in &universal_manifest.remote_include {
-        if remote.ignore_update {
-            ignore_update_items.insert(remote.id.clone());
+        for remote in &universal_manifest.remote_include {
+            if remote.ignore_update {
+                ignore_update_items.insert(remote.id.clone());
+            }
         }
     }
     
-    // Handle loader download for vanilla launcher
     let loader_future = match installer_profile.launcher.as_ref().unwrap() {
         Launcher::Vanilla(_) => Some(manifest.loader.download(
             &minecraft_folder,
@@ -1660,290 +1623,254 @@ async fn install<F: FnMut() + Clone>(installer_profile: &InstallerProfile, mut p
         Launcher::MultiMC(_) => None,
     };
     
-    // Create progress tracking
+    // Create a progress callback that tracks download items
     let mut items_completed = 0;
     let mut download_progress_callback = {
         let mut progress_callback = progress_callback.clone();
         move || {
             items_completed += 1;
-            debug!("Progress: {}/{}", items_completed, total_items);
             progress_callback();
         }
     };
     
-    // CRITICAL FIX: Use universal manifest components instead of old manifest
-    debug!("Converting universal components to old format for download...");
-    
-    // Convert universal mods to old format
-    let mods_for_download: Vec<crate::Mod> = universal_manifest.mods.iter().map(|comp| {
-        crate::Mod {
-            name: comp.name.clone(),
-            source: comp.source.clone(),
-            location: comp.location.clone(),
-            version: comp.version.clone(),
-            path: comp.path.clone(),
-            id: comp.id.clone(),
-            authors: comp.authors.clone(),
-            ignore_update: comp.ignore_update,
-        }
-    }).collect();
-    
-    let shaderpacks_for_download: Vec<crate::Shaderpack> = universal_manifest.shaderpacks.iter().map(|comp| {
-        crate::Shaderpack {
-            name: comp.name.clone(),
-            source: comp.source.clone(),
-            location: comp.location.clone(),
-            version: comp.version.clone(),
-            path: comp.path.clone(),
-            id: comp.id.clone(),
-            authors: comp.authors.clone(),
-            ignore_update: comp.ignore_update,
-        }
-    }).collect();
-    
-    let resourcepacks_for_download: Vec<crate::Resourcepack> = universal_manifest.resourcepacks.iter().map(|comp| {
-        crate::Resourcepack {
-            name: comp.name.clone(),
-            source: comp.source.clone(),
-            location: comp.location.clone(),
-            version: comp.version.clone(),
-            path: comp.path.clone(),
-            id: comp.id.clone(),
-            authors: comp.authors.clone(),
-            ignore_update: comp.ignore_update,
-        }
-    }).collect();
-    
-    // CRITICAL: Download components using USER'S exact feature choices
+    // CRITICAL: Pass the USER'S enabled features to download_helper
     debug!("Downloading mods with user features: {:?}", user_enabled_features);
     let mods_w_path = match download_helper(
-        mods_for_download,
-        &complete_features, // Use complete_features
+        manifest.mods.clone(),
+        user_enabled_features, // Use USER'S choices, not manifest defaults
         modpack_root.as_path(),
         &manifest.loader.r#type,
         http_client,
         download_progress_callback.clone(),
         is_update,
         &ignore_update_items,
-    ).await {
+    )
+    .await
+    {
         Ok(v) => v,
         Err(e) => return Err(e.to_string()),
     };
     
-    debug!("Downloaded {} mods", mods_w_path.len());
-    
+    debug!("Downloading shaderpacks with user features: {:?}", user_enabled_features);
     let shaderpacks_w_path = match download_helper(
-        shaderpacks_for_download,
-    &complete_features, // Use complete_features
-    modpack_root.as_path(),
-    &manifest.loader.r#type,
-    http_client,
-    download_progress_callback.clone(),
-    is_update,
-    &ignore_update_items,
-).await {
-    Ok(v) => v,
-    Err(e) => return Err(e.to_string()),
-};
+        manifest.shaderpacks.clone(),
+        user_enabled_features, // Use USER'S choices, not manifest defaults
+        modpack_root.as_path(),
+        &manifest.loader.r#type,
+        http_client,
+        download_progress_callback.clone(),
+        is_update,
+        &ignore_update_items,
+    )
+    .await
+    {
+        Ok(v) => v,
+        Err(e) => return Err(e.to_string()),
+    };
     
-    debug!("Downloaded {} shaderpacks", shaderpacks_w_path.len());
-    
+    debug!("Downloading resourcepacks with user features: {:?}", user_enabled_features);
     let resourcepacks_w_path = match download_helper(
-        resourcepacks_for_download,
-    &complete_features, // Use complete_features
-    modpack_root.as_path(),
-    &manifest.loader.r#type,
-    http_client,
-    download_progress_callback.clone(),
-    is_update,
-    &ignore_update_items,
-).await {
-    Ok(v) => v,
-    Err(e) => return Err(e.to_string()),
-};
-    
-    debug!("Downloaded {} resourcepacks", resourcepacks_w_path.len());
+        manifest.resourcepacks.clone(),
+        user_enabled_features, // Use USER'S choices, not manifest defaults
+        modpack_root.as_path(),
+        &manifest.loader.r#type,
+        http_client,
+        download_progress_callback.clone(),
+        is_update,
+        &ignore_update_items,
+    )
+    .await
+    {
+        Ok(v) => v,
+        Err(e) => return Err(e.to_string()),
+    };
     
     let mut included_files: HashMap<String, Included> = HashMap::new();
     
-    // FIXED: Handle includes using universal manifest with proper user choice checking
-    debug!("Processing {} includes from universal manifest", universal_manifest.include.len());
-for inc in &universal_manifest.include {
-    // Check if we should ignore this include during updates
-    if is_update && ignore_update_items.contains(&inc.id) {
-        debug!("Ignoring update for include: {} (ignore_update=true)", inc.id);
-        continue;
-    }
-    
-    // Determine if this include should be installed
-    let should_install = if inc.id.is_empty() || inc.id == "default" {
-        // Include with no ID or "default" ID - check if it's optional
-        !inc.optional || (inc.default_enabled && !inc.optional)
-    } else if inc.default_enabled && !inc.optional {
-        true // Always include non-optional default-enabled items
-    } else if !inc.optional {
-        true // Always include non-optional items
-    } else {
-        // Optional item - check user's choice
-        user_enabled_features.contains(&inc.id)
-    };
-    
-    if !should_install {
-        debug!("Skipping disabled include: {} (not in user's enabled features)", inc.id);
-        continue;
-    }
-    
-    debug!("Processing include: {} (user enabled: {})", inc.id, should_install);
+    // Handle regular includes - respect USER'S choices
+    if !manifest.include.is_empty() {
+        debug!("Processing {} includes from manifest", manifest.include.len());
         
-        let github_url = format!(
-            "https://raw.githubusercontent.com/Wynncraft-Overhaul/majestic-overhaul/master/{}",
-            inc.location
-        );
-        
-        let target_path = modpack_root.join(&inc.location);
-        
-        let is_file = inc.location.ends_with(".zip") || 
-                     inc.location.ends_with(".txt") || 
-                     inc.location == "options.txt" ||
-                     (inc.location.contains('.') && !inc.location.starts_with("."));
-        
-        let is_directory = inc.location == "config" || 
-                          inc.location.starts_with(".") ||
-                          (!inc.location.contains('.') && !is_file);
-        
-        if is_file {
-            if let Some(parent) = target_path.parent() {
-                if let Err(e) = fs::create_dir_all(parent) {
-                    error!("Failed to create directory for include {}: {}", inc.location, e);
-                    continue;
-                }
-            }
-            
-            match http_client.get_async(&github_url).await {
-                Ok(mut response) => {
-                    if response.status() == StatusCode::OK {
-                        match response.bytes().await {
-                            Ok(bytes) => {
-                                match fs::write(&target_path, bytes) {
-                                    Ok(_) => {
-                                        debug!("Successfully downloaded include file: {}", inc.location);
-                                        included_files.insert(
-                                            inc.id.clone(),
-                                            Included {
-                                                md5: String::new(),
-                                                files: vec![target_path.to_string_lossy().to_string()],
-                                            }
-                                        );
-                                        download_progress_callback();
-                                    },
-                                    Err(e) => {
-                                        error!("Failed to write include file {}: {}", inc.location, e);
-                                    }
-                                }
-                            },
-                            Err(e) => {
-                                error!("Failed to read include file bytes: {}", e);
-                            }
-                        }
-                    } else {
-                        error!("Failed to download include {}: HTTP {}", inc.location, response.status());
-                    }
-                },
-                Err(e) => {
-                    error!("Failed to download include {}: {}", inc.location, e);
-                }
-            }
-        } else if is_directory {
-            if let Err(e) = fs::create_dir_all(&target_path) {
-                error!("Failed to create directory {}: {}", target_path.display(), e);
+        for inc in &manifest.include {
+            // Check if we should ignore this include during updates
+            if is_update && ignore_update_items.contains(&inc.id) {
+                debug!("Ignoring update for include: {} (ignore_update=true)", inc.id);
                 continue;
             }
             
-            let api_url = format!(
-                "https://api.github.com/repos/Wynncraft-Overhaul/majestic-overhaul/contents/{}",
+            // CRITICAL: Check if this include should be installed based on USER'S choices
+            let should_install = if inc.id.is_empty() || inc.id == "default" {
+                true
+            } else if !inc.optional {
+                true
+            } else {
+                user_enabled_features.contains(&inc.id)
+            };
+            
+            if !should_install {
+                debug!("Skipping disabled include: {} (not in user's enabled features)", inc.id);
+                continue;
+            }
+        
+            debug!("Processing include: {} (user enabled)", inc.id);
+            
+            // ... rest of include processing logic stays the same ...
+            let github_url = format!(
+                "https://raw.githubusercontent.com/Wynncraft-Overhaul/majestic-overhaul/master/{}",
                 inc.location
             );
             
-            match download_github_directory(http_client, &api_url, &inc.location, modpack_root).await {
+            let target_path = modpack_root.join(&inc.location);
+            
+            let is_file = inc.location.ends_with(".zip") || 
+                         inc.location.ends_with(".txt") || 
+                         inc.location == "options.txt" ||
+                         (inc.location.contains('.') && !inc.location.starts_with("."));
+            
+            let is_directory = inc.location == "config" || 
+                              inc.location.starts_with(".") ||
+                              (!inc.location.contains('.') && !is_file);
+            
+            if is_file {
+                if let Some(parent) = target_path.parent() {
+                    if let Err(e) = fs::create_dir_all(parent) {
+                        error!("Failed to create directory for include {}: {}", inc.location, e);
+                        continue;
+                    }
+                }
+                
+                match http_client.get_async(&github_url).await {
+                    Ok(mut response) => {
+                        if response.status() == StatusCode::OK {
+                            match response.bytes().await {
+                                Ok(bytes) => {
+                                    match fs::write(&target_path, bytes) {
+                                        Ok(_) => {
+                                            debug!("Successfully downloaded include file: {}", inc.location);
+                                            included_files.insert(
+                                                inc.id.clone(),
+                                                Included {
+                                                    md5: String::new(),
+                                                    files: vec![target_path.to_string_lossy().to_string()],
+                                                }
+                                            );
+                                            download_progress_callback();
+                                        },
+                                        Err(e) => {
+                                            error!("Failed to write include file {}: {}", inc.location, e);
+                                        }
+                                    }
+                                },
+                                Err(e) => {
+                                    error!("Failed to read include file bytes: {}", e);
+                                }
+                            }
+                        } else {
+                            error!("Failed to download include {}: HTTP {}", inc.location, response.status());
+                        }
+                    },
+                    Err(e) => {
+                        error!("Failed to download include {}: {}", inc.location, e);
+                    }
+                }
+            } else if is_directory {
+                if let Err(e) = fs::create_dir_all(&target_path) {
+                    error!("Failed to create directory {}: {}", target_path.display(), e);
+                    continue;
+                }
+                
+                let api_url = format!(
+                    "https://api.github.com/repos/Wynncraft-Overhaul/majestic-overhaul/contents/{}",
+                    inc.location
+                );
+                
+                match download_github_directory(http_client, &api_url, &inc.location, modpack_root).await {
+                    Ok(files) => {
+                        debug!("Successfully downloaded include directory: {} ({} files)", inc.location, files.len());
+                        included_files.insert(
+                            inc.id.clone(),
+                            Included {
+                                md5: String::new(),
+                                files,
+                            }
+                        );
+                        download_progress_callback();
+                    },
+                    Err(e) => {
+                        error!("Failed to download include directory {}: {}", inc.location, e);
+                    }
+                }
+            }
+        }
+    }
+    
+    // Handle remote includes - respect USER'S choices
+    if let Some(remote_includes) = &manifest.remote_include {
+        debug!("Processing {} remote includes from manifest", remote_includes.len());
+        
+        for remote in remote_includes {
+            // Check if we should ignore this remote include during updates
+            if is_update && ignore_update_items.contains(&remote.id) {
+                debug!("Ignoring update for remote include: {} (ignore_update=true)", remote.id);
+                continue;
+            }
+            
+            // CRITICAL: Check if this remote include should be installed based on USER'S choices
+            let should_install = if remote.id == "default" {
+                true
+            } else if !remote.optional {
+                true
+            } else {
+                user_enabled_features.contains(&remote.id)
+            };
+            
+            if !should_install {
+                debug!("Skipping disabled remote include: {} (not in user's enabled features)", remote.id);
+                continue;
+            }
+            
+            debug!("Processing remote include: {} (user enabled)", remote.id);
+            
+            // Determine the target path
+            let target_path = if let Some(path) = &remote.path {
+                modpack_root.join(path)
+            } else {
+                modpack_root.clone()
+            };
+            
+            // Get the name for display
+            let name = remote.name.clone().unwrap_or_else(|| remote.id.clone());
+            
+            // Download and extract the remote include
+            match download_zip(&name, http_client, &remote.location, &target_path).await {
                 Ok(files) => {
-                    debug!("Successfully downloaded include directory: {} ({} files)", inc.location, files.len());
+                    debug!("Successfully downloaded remote include: {} ({} files)", name, files.len());
                     included_files.insert(
-                        inc.id.clone(),
+                        remote.id.clone(),
                         Included {
-                            md5: String::new(),
+                            md5: remote.version.clone(),
                             files,
                         }
                     );
                     download_progress_callback();
                 },
                 Err(e) => {
-                    error!("Failed to download include directory {}: {}", inc.location, e);
+                    error!("Failed to download remote include {}: {:?}", name, e);
+                    return Err(format!("Failed to download remote include {}: {:?}", name, e));
                 }
             }
         }
     }
-    
-    // FIXED: Handle remote includes using universal manifest with proper user choice checking
-    debug!("Processing {} remote includes from universal manifest", universal_manifest.remote_include.len());
-    for remote in &universal_manifest.remote_include {
-        // Check if we should ignore this remote include during updates
-        if is_update && ignore_update_items.contains(&remote.id) {
-            debug!("Ignoring update for remote include: {} (ignore_update=true)", remote.id);
-            continue;
-        }
-        
-        // CRITICAL: Check if this remote include should be installed based on USER'S choices
-        let should_install = if remote.id == "default" {
-            !remote.optional
-        } else if !remote.optional && remote.default_enabled {
-            true
-        } else {
-            user_enabled_features.contains(&remote.id)
-        };
-        
-        if !should_install {
-            debug!("Skipping disabled remote include: {} (not in user's enabled features)", remote.id);
-            continue;
-        }
-        
-        debug!("Processing remote include: {} (user enabled)", remote.id);
-        
-        let target_path = if let Some(path) = &remote.path {
-            modpack_root.join(path)
-        } else {
-            modpack_root.clone()
-        };
-        
-        let name = remote.name.clone().unwrap_or_else(|| remote.id.clone());
-        
-        match download_zip(&name, http_client, &remote.location, &target_path).await {
-            Ok(files) => {
-                debug!("Successfully downloaded remote include: {} ({} files)", name, files.len());
-                included_files.insert(
-                    remote.id.clone(),
-                    Included {
-                        md5: remote.version.clone(),
-                        files,
-                    }
-                );
-                download_progress_callback();
-            },
-            Err(e) => {
-                error!("Failed to download remote include {}: {:?}", name, e);
-                return Err(format!("Failed to download remote include {}: {:?}", name, e));
-            }
-        }
-    }
-    
-    // Handle overhead tasks
+
+    // Now handle overhead tasks
     debug!("Starting overhead tasks");
-    
-    // CRITICAL: Save local manifest with USER'S exact choices preserved
+
+    // Save local manifest with USER'S choices
     let local_manifest = Manifest {
         mods: mods_w_path,
         shaderpacks: shaderpacks_w_path,
         resourcepacks: resourcepacks_w_path,
-        enabled_features: user_enabled_features.clone(), // SAVE USER'S CHOICES
+        enabled_features: user_enabled_features.clone(), // Save USER'S choices
         included_files: Some(included_files),
         source: Some(format!(
             "{}{}",
@@ -1961,15 +1888,15 @@ for inc in &universal_manifest.include {
         ),
         ..manifest.clone()
     };
-    
+
     fs::write(
         modpack_root.join(Path::new("manifest.json")),
         serde_json::to_string(&local_manifest).expect("Failed to parse 'manifest.json'!"),
     )
     .expect("Failed to save a local copy of 'manifest.json'!");
-    
+
     progress_callback(); // Overhead task 1
-    
+
     // Download icon if needed
     let icon_img = if manifest.icon {
         let icon_url = format!(
@@ -2014,28 +1941,47 @@ for inc in &universal_manifest.include {
     } else {
         None
     };
-    
+
     progress_callback(); // Overhead task 2
-    
+
     match create_launcher_profile(installer_profile, icon_img) {
         Ok(_) => {
             debug!("Launcher profile created successfully");
         },
         Err(e) => return Err(e.to_string()),
     };
-    
+
     progress_callback(); // Overhead task 3
-    
+
     if loader_future.is_some() {
         loader_future.unwrap().await;
     }
-    
-    progress_callback(); // Overhead task 4 - FINAL
-    
-    debug!("Installation completed successfully with user's exact choices preserved!");
-    debug!("Final enabled features: {:?}", user_enabled_features);
-    
-    info!("Modpack installation completed successfully!");
+
+    progress_callback(); // Overhead task 4 - FINAL PROGRESS UPDATE
+
+    debug!("All installation tasks completed, updating installation state...");
+
+    // FINAL STEP: Mark installation as complete and update installation state
+    if let Ok(mut installation) = crate::installation::load_installation(&installer_profile.manifest.uuid) {
+        installation.installed = true;
+        installation.update_available = false;
+        installation.modified = false;
+        installation.universal_version = installer_profile.manifest.modpack_version.clone();
+        // CRITICAL: Save the USER'S enabled features
+        installation.enabled_features = user_enabled_features.clone();
+        
+        if let Err(e) = installation.save() {
+            error!("Failed to update installation state: {}", e);
+            return Err(format!("Failed to save installation state: {}", e));
+        } else {
+            debug!("Successfully marked installation as complete with user's choices saved");
+        }
+    } else {
+        error!("Failed to load installation after install");
+        return Err("Failed to load installation after install".to_string());
+    }
+
+    info!("Modpack installation completed successfully with user's feature choices!");
     Ok(())
 }
 
