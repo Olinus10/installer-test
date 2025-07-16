@@ -86,52 +86,52 @@ use_effect({
     let mut apply_preset = move |preset_id: String| {
         debug!("Applying preset: {}", preset_id);
         
-        if preset_id == "custom" {
-            // FIXED: Custom preset handling with universal manifest defaults
-            let mut default_features = vec!["default".to_string()];
-            
-            if let Some(manifest) = &universal_manifest_for_apply {
-                // Add ALL default-enabled components from universal manifest
-                for component in &manifest.mods {
-                    if (component.default_enabled || !component.optional) && component.id != "default" 
-                       && !default_features.contains(&component.id) {
-                        default_features.push(component.id.clone());
-                        debug!("Added default mod to custom: {}", component.id);
-                    }
-                }
-                for component in &manifest.shaderpacks {
-                    if (component.default_enabled || !component.optional) && component.id != "default" 
-                       && !default_features.contains(&component.id) {
-                        default_features.push(component.id.clone());
-                        debug!("Added default shaderpack to custom: {}", component.id);
-                    }
-                }
-                for component in &manifest.resourcepacks {
-                    if (component.default_enabled || !component.optional) && component.id != "default" 
-                       && !default_features.contains(&component.id) {
-                        default_features.push(component.id.clone());
-                        debug!("Added default resourcepack to custom: {}", component.id);
-                    }
-                }
-                
-                // FIXED: Handle includes properly
-                
-                    if (include.default_enabled || !include.optional) && !include.id.is_empty() 
-                       && include.id != "default" && !default_features.contains(&include.id) {
-                        default_features.push(include.id.clone());
-                        debug!("Added default include to custom: {}", include.id);
-                    }
-                }
-                
-                // FIXED: Handle remote includes properly
-                for remote in &manifest.remote_include {
-                    if (remote.default_enabled || !remote.optional) && remote.id != "default" 
-                       && !default_features.contains(&remote.id) {
-                        default_features.push(remote.id.clone());
-                        debug!("Added default remote include to custom: {}", remote.id);
-                    }
-                }
+if preset_id == "custom" {
+    // FIXED: Custom preset handling with universal manifest defaults
+    let mut default_features = vec!["default".to_string()];
+    
+    if let Some(manifest) = &universal_manifest_for_apply {
+        // Add ALL default-enabled components from universal manifest
+        for component in &manifest.mods {
+            if (component.default_enabled || !component.optional) && component.id != "default" 
+               && !default_features.contains(&component.id) {
+                default_features.push(component.id.clone());
+                debug!("Added default mod to custom: {}", component.id);
             }
+        }
+        for component in &manifest.shaderpacks {
+            if (component.default_enabled || !component.optional) && component.id != "default" 
+               && !default_features.contains(&component.id) {
+                default_features.push(component.id.clone());
+                debug!("Added default shaderpack to custom: {}", component.id);
+            }
+        }
+        for component in &manifest.resourcepacks {
+            if (component.default_enabled || !component.optional) && component.id != "default" 
+               && !default_features.contains(&component.id) {
+                default_features.push(component.id.clone());
+                debug!("Added default resourcepack to custom: {}", component.id);
+            }
+        }
+        
+        // FIXED: Handle includes properly - THIS WAS MISSING THE FOR LOOP
+        for include in &manifest.include {
+            if (include.default_enabled || !include.optional) && !include.id.is_empty() 
+               && include.id != "default" && !default_features.contains(&include.id) {
+                default_features.push(include.id.clone());
+                debug!("Added default include to custom: {}", include.id);
+            }
+        }
+        
+        // FIXED: Handle remote includes properly
+        for remote in &manifest.remote_include {
+            if (remote.default_enabled || !remote.optional) && remote.id != "default" 
+               && !default_features.contains(&remote.id) {
+                default_features.push(remote.id.clone());
+                debug!("Added default remote include to custom: {}", remote.id);
+            }
+        }
+    }
             
             debug!("Custom preset will have {} default features: {:?}", default_features.len(), default_features);
             
