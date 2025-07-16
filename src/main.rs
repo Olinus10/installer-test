@@ -1352,18 +1352,18 @@ async fn download_helper<T: Downloadable + Debug, F: FnMut() + Clone>(
     debug!("Ignore update items: {:?}", ignore_update_items);
 
     let results = futures::stream::iter(items.into_iter().map(|item| async {
-        // CRITICAL FIX: Proper logic for determining if item should be included
-        let should_include = if item.get_id() == "default" {
-            // Always include the "default" item
-            debug!("Including item '{}' (default)", item.get_name());
-            true
-        } else {
-            // Check if this item should be included based on user's enabled_features
-            let is_in_enabled_features = enabled_features.contains(item.get_id());
-            debug!("Item '{}' (ID: {}) - in enabled_features: {}", 
-                   item.get_name(), item.get_id(), is_in_enabled_features);
-            is_in_enabled_features
-        };
+        // FIXED: Check if this is a default/required component
+        let is_default_component = item.get_id() == "default";
+        let is_in_enabled_features = enabled_features.contains(item.get_id());
+        
+        // For universal manifest components, check if they're marked as default_enabled and non-optional
+        let is_required = false; // We'll need to pass this info from the manifest
+        
+        // Determine if item should be included
+        let should_include = is_default_component || is_in_enabled_features || is_required;
+        
+        debug!("Item '{}' (ID: {}) - default: {}, enabled: {}, should_include: {}", 
+               item.get_name(), item.get_id(), is_default_component, is_in_enabled_features, should_include);
         
         // Check if we should ignore this item during updates
         let should_ignore_update = is_update && ignore_update_items.contains(item.get_id());
@@ -1374,8 +1374,7 @@ async fn download_helper<T: Downloadable + Debug, F: FnMut() + Clone>(
         
         if item.get_path().is_none() && should_include && !should_ignore_update {
             // Item needs to be downloaded
-            debug!("DOWNLOADING item: {} (ID: {}) - not cached, user enabled, not ignored", 
-                   item.get_name(), item.get_id());
+            debug!("DOWNLOADING item: {} (ID: {})", item.get_name(), item.get_id());
             
             let path = item.download(modpack_root, loader_type, http_client).await?;
             (progress_callback.clone())();
@@ -1390,22 +1389,22 @@ async fn download_helper<T: Downloadable + Debug, F: FnMut() + Clone>(
                 item.get_authors().to_owned(),
             ))
         } else {
-            // Item already exists or doesn't need to be downloaded
+            // Handle existing items
             let item = validate_item_path!(item, modpack_root);
             let path;
             
             if should_ignore_update && item.get_path().is_some() {
-                debug!("KEEPING item (ignore update): '{}' (ignore_update=true)", item.get_name());
+                debug!("KEEPING item (ignore update): '{}'", item.get_name());
                 path = item.get_path().to_owned();
             } else if !should_include && item.get_path().is_some() {
-                debug!("REMOVING disabled item: '{}' (not in user enabled features)", item.get_name());
+                debug!("REMOVING disabled item: '{}'", item.get_name());
                 let _ = fs::remove_file(item.get_path().as_ref().unwrap());
                 path = None;
             } else if !should_include {
-                debug!("SKIPPING disabled item: '{}' (not in user enabled features)", item.get_name());
+                debug!("SKIPPING disabled item: '{}'", item.get_name());
                 path = None;
             } else {
-                debug!("KEEPING existing item: '{}' (enabled and cached)", item.get_name());
+                debug!("KEEPING existing item: '{}'", item.get_name());
                 path = item.get_path().to_owned();
             }
             
@@ -1540,17 +1539,22 @@ async fn install<F: FnMut() + Clone>(installer_profile: &InstallerProfile, mut p
     
     // Count components that will be downloaded based on user choices
     for component in &universal_manifest.mods {
-        let should_include = if component.id == "default" || (!component.optional && component.default_enabled) {
-            true // Always include default/required components
+        let should_include = if component.id == "default" {
+            true // Always include the "default" ID
+        } else if component.default_enabled && !component.optional {
+            true // Always include non-optional default-enabled components
+        } else if !component.optional {
+            true // Always include non-optional components
         } else {
             user_enabled_features.contains(&component.id)
         };
         
         if should_include {
             total_items += 1;
-            debug!("Will install mod: {} ({})", component.name, component.id);
+            debug!("Will install mod: {} ({}) - default_enabled: {}, optional: {}", 
+                   component.name, component.id, component.default_enabled, component.optional);
         } else {
-            debug!("Skipping mod: {} ({})", component.name, component.id);
+            debug!("Skipping optional mod: {} ({})", component.name, component.id);
         }
     }
     
@@ -1767,28 +1771,32 @@ async fn install<F: FnMut() + Clone>(installer_profile: &InstallerProfile, mut p
     
     // FIXED: Handle includes using universal manifest with proper user choice checking
     debug!("Processing {} includes from universal manifest", universal_manifest.include.len());
-    for inc in &universal_manifest.include {
-        // Check if we should ignore this include during updates
-        if is_update && ignore_update_items.contains(&inc.id) {
-            debug!("Ignoring update for include: {} (ignore_update=true)", inc.id);
-            continue;
-        }
-        
-        // CRITICAL: Check if this include should be installed based on USER'S choices
-        let should_install = if inc.id.is_empty() || inc.id == "default" {
-            !inc.optional // Include if not optional
-        } else if !inc.optional && inc.default_enabled {
-            true // Always include required defaults
-        } else {
-            user_enabled_features.contains(&inc.id)
-        };
-        
-        if !should_install {
-            debug!("Skipping disabled include: {} (not in user's enabled features)", inc.id);
-            continue;
-        }
-        
-        debug!("Processing include: {} (user enabled)", inc.id);
+for inc in &universal_manifest.include {
+    // Check if we should ignore this include during updates
+    if is_update && ignore_update_items.contains(&inc.id) {
+        debug!("Ignoring update for include: {} (ignore_update=true)", inc.id);
+        continue;
+    }
+    
+    // Determine if this include should be installed
+    let should_install = if inc.id.is_empty() || inc.id == "default" {
+        // Include with no ID or "default" ID - check if it's optional
+        !inc.optional || (inc.default_enabled && !inc.optional)
+    } else if inc.default_enabled && !inc.optional {
+        true // Always include non-optional default-enabled items
+    } else if !inc.optional {
+        true // Always include non-optional items
+    } else {
+        // Optional item - check user's choice
+        user_enabled_features.contains(&inc.id)
+    };
+    
+    if !should_install {
+        debug!("Skipping disabled include: {} (not in user's enabled features)", inc.id);
+        continue;
+    }
+    
+    debug!("Processing include: {} (user enabled: {})", inc.id, should_install);
         
         let github_url = format!(
             "https://raw.githubusercontent.com/Wynncraft-Overhaul/majestic-overhaul/master/{}",
