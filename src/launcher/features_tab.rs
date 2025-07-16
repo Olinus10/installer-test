@@ -1,7 +1,7 @@
 use dioxus::prelude::*;
 use crate::universal::{ModComponent, UniversalManifest};
 use crate::preset::{Preset, find_preset_by_id};
-use log::debug;
+use log::{debug, error};
 
 #[component]
 pub fn FeaturesTab(
