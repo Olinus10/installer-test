@@ -24,45 +24,63 @@ pub fn FeaturesTab(
     let universal_manifest_for_render = universal_manifest.clone();
     
     // FIXED: Enhanced initialization with proper state restoration
-    use_effect({
-        let installation_id = installation_id.clone();
-        let mut selected_preset = selected_preset.clone();
-        let mut enabled_features = enabled_features.clone();
-        let presets_for_effect = presets.clone();
+use_effect({
+    let installation_id = installation_id.clone();
+    let mut selected_preset = selected_preset.clone();
+    let mut enabled_features = enabled_features.clone();
+    let presets_for_effect = presets.clone();
+    
+    move || {
+        debug!("Initializing features tab for installation: {}", installation_id);
         
-        move || {
-            debug!("Initializing features tab for installation: {}", installation_id);
+        if let Ok(installation) = crate::installation::load_installation(&installation_id) {
+            debug!("Loaded installation state:");
+            debug!("  Enabled features: {:?}", installation.enabled_features);
+            debug!("  Selected preset: {:?}", installation.selected_preset_id);
+            debug!("  Base preset: {:?}", installation.base_preset_id);
             
-            if let Ok(installation) = crate::installation::load_installation(&installation_id) {
-                debug!("Loaded installation state:");
-                debug!("  Enabled features: {:?}", installation.enabled_features);
-                debug!("  Selected preset: {:?}", installation.selected_preset_id);
-                debug!("  Base preset: {:?}", installation.base_preset_id);
-                debug!("  User optional features: {:?}", installation.user_enabled_optional_features);
-                debug!("  User disabled defaults: {:?}", installation.user_disabled_default_features);
-                
-                // CRITICAL: Set enabled features to what's actually saved
-                enabled_features.set(installation.enabled_features.clone());
-                
-                // CRITICAL: Determine the correct preset selection state
-                let effective_preset_id = if installation.user_enabled_optional_features.is_empty() 
-                    && installation.user_disabled_default_features.is_empty() {
-                    // No customizations - use selected preset
-                    installation.selected_preset_id.clone()
+            // Set enabled features to what's actually saved
+            enabled_features.set(installation.enabled_features.clone());
+            
+            // Determine the correct preset selection
+            if let Some(preset_id) = &installation.selected_preset_id {
+                // Check if current features still match this preset
+                if let Some(preset) = presets_for_effect.iter().find(|p| p.id == *preset_id) {
+                    if installation.enabled_features == preset.enabled_features {
+                        // Features match the preset exactly
+                        selected_preset.set(Some(preset_id.clone()));
+                    } else {
+                        // Features have been customized
+                        selected_preset.set(None); // Custom
+                    }
                 } else {
-                    // User has made customizations - check if it matches any preset exactly
-                    installation.get_effective_preset_id(&presets_for_effect)
-                };
-                
-                selected_preset.set(effective_preset_id.clone());
-                
-                debug!("Initialized features tab with preset: {:?}, features: {:?}", 
-                       effective_preset_id, installation.enabled_features);
+                    // Preset not found, must be custom
+                    selected_preset.set(None);
+                }
             } else {
-                error!("Failed to load installation: {}", installation_id);
+                // No preset selected means custom
+                selected_preset.set(None);
             }
+            
+            debug!("Initialized with preset: {:?}, features: {} enabled", 
+                   selected_preset.read(), installation.enabled_features.len());
         }
-    });
+    }
+});
+
+    use_effect({
+    let installation_id = installation_id.clone();
+    let enabled_features = enabled_features.clone();
+    let selected_preset = selected_preset.clone();
+    
+    move || {
+        // This runs when the component unmounts
+        move || {
+            // Don't save temporary UI state - only save after actual installation
+            debug!("Features tab unmounting - not saving temporary state");
+        }
+    }
+});
     
     // FIXED: Enhanced preset application with proper tracking
     let mut apply_preset = move |preset_id: String| {
@@ -97,7 +115,7 @@ pub fn FeaturesTab(
                 }
                 
                 // FIXED: Handle includes properly
-                for include in &manifest.include {
+                
                     if (include.default_enabled || !include.optional) && !include.id.is_empty() 
                        && include.id != "default" && !default_features.contains(&include.id) {
                         default_features.push(include.id.clone());
@@ -646,75 +664,66 @@ fn render_all_features_sections(
     all_components.extend(manifest.resourcepacks.iter().cloned());
     
     // Convert includes to ModComponent format
-    for include in &manifest.include {
-        if !include.id.is_empty() && include.id != "default" {
-            all_components.push(ModComponent {
-                id: include.id.clone(),
-                name: include.name.clone().unwrap_or_else(|| {
-                    // Extract a friendly name from the location
-                    if include.location.contains('/') {
-                        include.location.split('/').last().unwrap_or(&include.location).to_string()
-                    } else {
-                        include.location.clone()
-                    }
-                }),
-                description: Some(format!("Configuration: {}", include.location)),
-                source: "include".to_string(),
-                location: include.location.clone(),
-                version: "1.0".to_string(),
-                path: None,
-                optional: include.optional,
-                default_enabled: include.default_enabled,
-                authors: include.authors.clone().unwrap_or_default(),
-                category: Some("Configuration".to_string()),
-                dependencies: None,
-                incompatibilities: None,
-                ignore_update: include.ignore_update,
-            });
-        } else if include.default_enabled && !include.optional {
-            // This is a default include without an ID - still show it
-            all_components.push(ModComponent {
-                id: format!("include_{}", include.location.replace('/', "_")),
-                name: include.name.clone().unwrap_or_else(|| include.location.clone()),
-                description: Some(format!("Configuration: {}", include.location)),
-                source: "include".to_string(),
-                location: include.location.clone(),
-                version: "1.0".to_string(),
-                path: None,
-                optional: false,
-                default_enabled: true,
-                authors: include.authors.clone().unwrap_or_default(),
-                category: Some("Configuration".to_string()),
-                dependencies: None,
-                incompatibilities: None,
-                ignore_update: include.ignore_update,
-            });
-        }
-    }
-    
-    // Convert remote includes to ModComponent format
-    for remote in &manifest.remote_include {
+for include in &manifest.include {
+    if !include.id.is_empty() && include.id != "default" {
+        // Determine the category based on the include's purpose
+        let category = if include.location.starts_with("config/") {
+            Some("Configuration".to_string())
+        } else if include.location.contains("options") {
+            Some("Settings".to_string())
+        } else {
+            // Try to use a category from the manifest if available
+            None
+        };
+        
         all_components.push(ModComponent {
-            id: remote.id.clone(),
-            name: remote.name.clone().unwrap_or_else(|| {
-                remote.id.replace('_', " ").replace('-', " ")
+            id: include.id.clone(),
+            name: include.name.clone().unwrap_or_else(|| {
+                if include.location.contains('/') {
+                    include.location.split('/').last().unwrap_or(&include.location).to_string()
+                } else {
+                    include.location.clone()
+                }
             }),
-            description: remote.description.clone().or_else(|| {
-                Some(format!("Remote content: {}", remote.location))
-            }),
-            source: "remote_include".to_string(),
-            location: remote.location.clone(),
-            version: remote.version.clone(),
-            path: remote.path.as_ref().map(|p| std::path::PathBuf::from(p)),
-            optional: remote.optional,
-            default_enabled: remote.default_enabled,
-            authors: remote.authors.clone(),
-            category: remote.category.clone().or_else(|| Some("Remote Content".to_string())),
-            dependencies: remote.dependencies.clone(),
+            description: Some(format!("Configuration: {}", include.location)),
+            source: "include".to_string(),
+            location: include.location.clone(),
+            version: "1.0".to_string(),
+            path: None,
+            optional: include.optional,
+            default_enabled: include.default_enabled,
+            authors: include.authors.clone().unwrap_or_default(),
+            category: category, // Use None to let it be grouped with other components
+            dependencies: None,
             incompatibilities: None,
-            ignore_update: remote.ignore_update,
+            ignore_update: include.ignore_update,
         });
     }
+}
+
+// For remote includes, use their actual category:
+for remote in &manifest.remote_include {
+    all_components.push(ModComponent {
+        id: remote.id.clone(),
+        name: remote.name.clone().unwrap_or_else(|| {
+            remote.id.replace('_', " ").replace('-', " ")
+        }),
+        description: remote.description.clone().or_else(|| {
+            Some(format!("Remote content: {}", remote.location))
+        }),
+        source: "remote_include".to_string(),
+        location: remote.location.clone(),
+        version: remote.version.clone(),
+        path: remote.path.as_ref().map(|p| std::path::PathBuf::from(p)),
+        optional: remote.optional,
+        default_enabled: remote.default_enabled,
+        authors: remote.authors.clone(),
+        category: remote.category.clone(), // Use the actual category from manifest
+        dependencies: remote.dependencies.clone(),
+        incompatibilities: None,
+        ignore_update: remote.ignore_update,
+    });
+}
     
     debug!("Total components including includes: {}", all_components.len());
     
