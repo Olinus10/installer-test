@@ -891,18 +891,59 @@ pub fn SimplifiedInstallationWizard(props: InstallationCreationProps) -> Element
             let unwrapped_manifest_clone = unwrapped_manifest.clone();
             
             spawn(async move {
-                // Use the new initialization method instead of duplicating the logic
-                if let Err(e) = installation.initialize_with_universal_defaults(&http_client).await {
-                    error!("Failed to initialize default features: {}", e);
-                    installation_error.set(Some(format!("Failed to initialize features: {}", e)));
-                    return;
+                // Build list of default features
+                let mut default_features = vec!["default".to_string()];
+                
+                // Add all default-enabled components
+                for component in &unwrapped_manifest_clone.mods {
+                    if component.default_enabled && component.id != "default" && !default_features.contains(&component.id) {
+                        default_features.push(component.id.clone());
+                        debug!("Added default mod to new installation: {}", component.id);
+                    }
                 }
+                
+                for component in &unwrapped_manifest_clone.shaderpacks {
+                    if component.default_enabled && component.id != "default" && !default_features.contains(&component.id) {
+                        default_features.push(component.id.clone());
+                        debug!("Added default shaderpack to new installation: {}", component.id);
+                    }
+                }
+                
+                for component in &unwrapped_manifest_clone.resourcepacks {
+                    if component.default_enabled && component.id != "default" && !default_features.contains(&component.id) {
+                        default_features.push(component.id.clone());
+                        debug!("Added default resourcepack to new installation: {}", component.id);
+                    }
+                }
+                
+                for include in &unwrapped_manifest_clone.include {
+                    if include.default_enabled && !include.id.is_empty() && include.id != "default" 
+                       && !default_features.contains(&include.id) {
+                        default_features.push(include.id.clone());
+                        debug!("Added default include to new installation: {}", include.id);
+                    }
+                }
+                
+                for remote in &unwrapped_manifest_clone.remote_include {
+                    if remote.default_enabled && remote.id != "default" 
+                       && !default_features.contains(&remote.id) {
+                        default_features.push(remote.id.clone());
+                        debug!("Added default remote include to new installation: {}", remote.id);
+                    }
+                }
+                
+                // Initialize the installation with default features
+                installation.enabled_features = default_features.clone();
+                installation.pending_features = default_features.clone();
+                installation.pre_install_features = default_features.clone();
+                installation.is_custom_configuration = true;
+                installation.selected_preset_id = None;
+                
+                debug!("Created custom installation with {} default features: {:?}", 
+                       installation.enabled_features.len(), installation.enabled_features);
                 
                 // Mark as fresh installation
                 installation.mark_as_fresh();
-                
-                debug!("Created custom installation with features: {:?}", installation.enabled_features);
-                debug!("Installation preset: {:?}", installation.base_preset_id);
                 
                 // Register the installation
                 if let Err(e) = crate::installation::register_installation(&installation) {
@@ -1167,6 +1208,7 @@ pub fn InstallationManagementPage(
 
     // Define the actual update process
 // Updated proceed_with_update function with proper progress tracking
+
 let mut proceed_with_update = {
     let installation_for_update_clone = installation_for_update_clone.clone();
     let enabled_features = enabled_features.clone();
@@ -1182,6 +1224,7 @@ let mut proceed_with_update = {
     let performance_modified = performance_modified.clone();
     let installations = installations.clone();
     let installation_state = installation_state.clone();
+    let selected_preset = selected_preset.clone();
     
     move || {
         is_installing.set(true);
@@ -1192,8 +1235,15 @@ let mut proceed_with_update = {
         
         let mut installation_clone = installation_for_update_clone.clone();
         
+        // Save the user's current selections as pending
+        let current_features = enabled_features.read().clone();
+        let current_preset = selected_preset.read().clone();
+        
+        debug!("Saving pre-install selections - preset: {:?}, features: {:?}", current_preset, current_features);
+        installation_clone.save_pre_install_selections(current_preset, current_features.clone());
+        
         // Update settings
-        installation_clone.enabled_features = enabled_features.read().clone();
+        installation_clone.enabled_features = current_features;
         installation_clone.memory_allocation = *memory_allocation.read();
         installation_clone.java_args = java_args.read().clone();
         installation_clone.modified = true;
@@ -1342,6 +1392,9 @@ let mut proceed_with_update = {
                             
                             debug!("Installation completed successfully, progress: {}/{}", new_total, new_total);
                             
+                            // Commit the installation after success
+                            installation_clone.commit_installation();
+                            
                             // Update installation state
                             installation_clone.installed = true;
                             installation_clone.update_available = false;
@@ -1352,9 +1405,6 @@ let mut proceed_with_update = {
                             if let Ok(manifest) = crate::universal::load_universal_manifest(&http_client, None).await {
                                 installation_clone.universal_version = manifest.modpack_version;
                             }
-                            
-                            // Preserve user's enabled features
-                            installation_clone.enabled_features = enabled_features.clone();
                             
                             // Update preset version if needed
                             if let Some(base_preset_id) = &installation_clone.base_preset_id {
