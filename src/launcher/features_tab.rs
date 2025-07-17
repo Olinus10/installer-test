@@ -551,16 +551,20 @@ fn render_all_features_sections(
     all_components.extend(manifest.shaderpacks.iter().cloned());
     all_components.extend(manifest.resourcepacks.iter().cloned());
     
-    // Convert includes to ModComponent format - FIXED VERSION
+    // Convert ALL includes to ModComponent format - FIXED VERSION
     for include in &manifest.include {
-        // Only convert includes that have an ID and are either optional or default-enabled
-        if !include.id.is_empty() && include.id != "default" {
+        // Process ALL includes regardless of optional status, but skip empty IDs
+        if !include.id.is_empty() {
+            debug!("Processing include: {} (optional: {}, default_enabled: {})", 
+                   include.id, include.optional, include.default_enabled);
+            
             all_components.push(ModComponent {
                 id: include.id.clone(),
                 name: include.name.clone().unwrap_or_else(|| {
                     // Better name extraction from location
                     include.location.split('/').last()
                         .unwrap_or(&include.location)
+                        .trim_end_matches(".zip")
                         .trim_end_matches(".json")
                         .trim_end_matches(".txt")
                         .replace('_', " ")
@@ -584,35 +588,37 @@ fn render_all_features_sections(
         }
     }
     
-    // Convert remote includes to ModComponent format - FIXED VERSION
+    // Convert ALL remote includes to ModComponent format - FIXED VERSION
     for remote in &manifest.remote_include {
-        if remote.id != "default" {
-            all_components.push(ModComponent {
-                id: remote.id.clone(),
-                name: remote.name.clone().unwrap_or_else(|| {
-                    remote.id.replace('_', " ").replace('-', " ")
-                }),
-                description: remote.description.clone().or_else(|| {
-                    Some(format!("Remote content from: {}", 
-                        remote.location.split('/').last().unwrap_or("remote source")))
-                }),
-                source: "remote_include".to_string(),
-                location: remote.location.clone(),
-                version: remote.version.clone(),
-                path: remote.path.as_ref().map(|p| std::path::PathBuf::from(p)),
-                optional: remote.optional,
-                default_enabled: remote.default_enabled,
-                authors: remote.authors.clone(),
-                // CRITICAL FIX: Use the actual category from the manifest
-                category: remote.category.clone(),
-                dependencies: remote.dependencies.clone(),
-                incompatibilities: None,
-                ignore_update: remote.ignore_update,
-            });
-        }
+        debug!("Processing remote include: {} (optional: {}, default_enabled: {})", 
+               remote.id, remote.optional, remote.default_enabled);
+        
+        all_components.push(ModComponent {
+            id: remote.id.clone(),
+            name: remote.name.clone().unwrap_or_else(|| {
+                remote.id.replace('_', " ").replace('-', " ")
+            }),
+            description: remote.description.clone().or_else(|| {
+                Some(format!("Remote content from: {}", 
+                    remote.location.split('/').last().unwrap_or("remote source")))
+            }),
+            source: "remote_include".to_string(),
+            location: remote.location.clone(),
+            version: remote.version.clone(),
+            path: remote.path.as_ref().map(|p| std::path::PathBuf::from(p)),
+            optional: remote.optional,
+            default_enabled: remote.default_enabled,
+            authors: remote.authors.clone(),
+            // CRITICAL FIX: Use the actual category from the manifest
+            category: remote.category.clone(),
+            dependencies: remote.dependencies.clone(),
+            incompatibilities: None,
+            ignore_update: remote.ignore_update,
+        });
     }
     
     debug!("Total components after includes: {}", all_components.len());
+    debug!("Component IDs: {:?}", all_components.iter().map(|c| &c.id).collect::<Vec<_>>());
     
     // Filter components
     let filtered_components = if filter.is_empty() {
@@ -625,7 +631,8 @@ fn render_all_features_sections(
                     .map_or(false, |desc| desc.to_lowercase().contains(&filter));
                 let category_match = comp.category.as_ref()
                     .map_or(false, |cat| cat.to_lowercase().contains(&filter));
-                name_match || desc_match || category_match
+                let id_match = comp.id.to_lowercase().contains(&filter);
+                name_match || desc_match || category_match || id_match
             })
             .collect()
     };
@@ -635,13 +642,18 @@ fn render_all_features_sections(
         .into_iter()
         .partition(|comp| {
             // Component is included if:
-            // 1. It has id "default", OR
-            // 2. It's default_enabled AND not optional
-            comp.id == "default" || (comp.default_enabled && !comp.optional)
+            // 1. It's default_enabled AND not optional
+            let is_included = comp.default_enabled && !comp.optional;
+            
+            debug!("Component {} - default_enabled: {}, optional: {}, included: {}", 
+                   comp.id, comp.default_enabled, comp.optional, is_included);
+            
+            is_included
         });
     
     debug!("Included components: {}", included_components.len());
     debug!("Optional components: {}", optional_components.len());
+    debug!("Optional component IDs: {:?}", optional_components.iter().map(|c| &c.id).collect::<Vec<_>>());
     
     // Group optional components by category
     let mut categories: std::collections::BTreeMap<String, Vec<ModComponent>> = std::collections::BTreeMap::new();
@@ -651,7 +663,7 @@ fn render_all_features_sections(
             match component.source.as_str() {
                 "modrinth" => "Mods".to_string(),
                 "ddl" | "mediafire" => {
-                    // Try to infer from component type
+                    // Try to infer from component type or location
                     if component.location.contains("shader") {
                         "Shaders".to_string()
                     } else if component.location.contains("resource") || component.location.contains("texture") {
@@ -660,11 +672,24 @@ fn render_all_features_sections(
                         "Mods".to_string()
                     }
                 },
-                // Don't assign default categories for includes - use "Other" if not specified
-                "include" | "remote_include" => "Other".to_string(),
+                // For includes, try to infer from location
+                "include" => {
+                    if component.location.contains("config") {
+                        "Configuration".to_string()
+                    } else if component.location.contains("options") {
+                        "Settings".to_string()
+                    } else if component.location.contains("shader") {
+                        "Shaders".to_string()
+                    } else {
+                        "Configuration".to_string()
+                    }
+                },
+                "remote_include" => "Remote Content".to_string(),
                 _ => "Other".to_string(),
             }
         });
+        
+        debug!("Adding component {} to category: {}", component.id, category);
         categories.entry(category).or_insert_with(Vec::new).push(component);
     }
     
