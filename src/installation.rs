@@ -92,10 +92,18 @@ pub struct Installation {
     pub created_at: DateTime<Utc>,
     pub last_used: DateTime<Utc>,
 
+    // Preset tracking - existing fields
     pub base_preset_id: Option<String>,
     pub base_preset_version: Option<String>,
     pub custom_features: Vec<String>,
     pub removed_features: Vec<String>,
+    
+    // NEW: Enhanced selection tracking
+    pub selected_preset_id: Option<String>,        // The preset the user selected (None = custom)
+    pub pre_install_features: Vec<String>,         // Features selected before first install
+    pub installed_features: Vec<String>,           // Features that were actually installed
+    pub pending_features: Vec<String>,             // Features selected but not yet installed
+    pub is_custom_configuration: bool,             // True if user is using custom (no preset)
     
     // Minecraft configuration
     pub minecraft_version: String,
@@ -116,8 +124,7 @@ pub struct Installation {
     pub installed: bool,
     pub modified: bool,
     pub update_available: bool,
-    pub preset_update_available: bool,  // Keep only this one
-    
+    pub preset_update_available: bool,
     
     // Launcher and versioning information
     pub launcher_type: String,    // "vanilla", "multimc", etc.
@@ -177,6 +184,12 @@ impl Installation {
             base_preset_version: preset.preset_version.clone(),
             custom_features: Vec::new(),
             removed_features: Vec::new(),
+            // NEW: Initialize selection tracking
+            selected_preset_id: Some(preset.id.clone()),
+            pre_install_features: preset.enabled_features.clone(),
+            installed_features: Vec::new(),
+            pending_features: preset.enabled_features.clone(),
+            is_custom_configuration: false,
         }
     }
 
@@ -222,6 +235,12 @@ impl Installation {
             base_preset_version: None,
             custom_features: Vec::new(),
             removed_features: Vec::new(),
+            // NEW: Initialize selection tracking for custom
+            selected_preset_id: None,
+            pre_install_features: vec!["default".to_string()],
+            installed_features: Vec::new(),
+            pending_features: vec!["default".to_string()],
+            is_custom_configuration: true,
         }
     }
 
@@ -247,6 +266,67 @@ impl Installation {
         self.modified = false;
         self.update_available = false;
         self.preset_update_available = false;
+    }
+
+    // NEW: Method to save user's pre-installation selections
+    pub fn save_pre_install_selections(&mut self, preset_id: Option<String>, features: Vec<String>) {
+        debug!("Saving pre-install selections - preset: {:?}, features: {:?}", preset_id, features);
+        
+        self.selected_preset_id = preset_id.clone();
+        self.pre_install_features = features.clone();
+        self.pending_features = features;
+        self.is_custom_configuration = preset_id.is_none();
+        
+        if let Some(preset_id) = preset_id {
+            self.base_preset_id = Some(preset_id);
+        } else {
+            self.base_preset_id = None;
+        }
+        
+        self.save().unwrap_or_else(|e| {
+            error!("Failed to save pre-install selections: {}", e);
+        });
+    }
+    
+    // NEW: Method to commit installation (called after successful install)
+    pub fn commit_installation(&mut self) {
+        debug!("Committing installation - pending features: {:?}", self.pending_features);
+        
+        self.installed_features = self.pending_features.clone();
+        self.enabled_features = self.pending_features.clone();
+        self.pending_features.clear();
+        self.installed = true;
+        self.modified = false;
+        
+        self.save().unwrap_or_else(|e| {
+            error!("Failed to commit installation: {}", e);
+        });
+    }
+    
+    // NEW: Method to get the effective preset for UI display
+    pub fn get_display_preset_id(&self) -> Option<String> {
+        if self.is_custom_configuration {
+            None // Custom configuration
+        } else {
+            self.selected_preset_id.clone()
+        }
+    }
+    
+    // NEW: Method to get the features that should be displayed as enabled in UI
+    pub fn get_display_features(&self) -> Vec<String> {
+        if self.installed {
+            // Show what's actually installed
+            self.installed_features.clone()
+        } else if !self.pending_features.is_empty() {
+            // Show what's pending to be installed
+            self.pending_features.clone()
+        } else if !self.pre_install_features.is_empty() {
+            // Show pre-install selections
+            self.pre_install_features.clone()
+        } else {
+            // Default to just "default"
+            vec!["default".to_string()]
+        }
     }
 
     pub async fn install_or_update_with_progress<F: FnMut() + Clone>(
@@ -454,6 +534,11 @@ impl Installation {
         self.base_preset_version = preset.preset_version.clone();
         self.enabled_features = preset.enabled_features.clone();
         
+        // NEW: Update selection tracking
+        self.selected_preset_id = Some(preset.id.clone());
+        self.pending_features = preset.enabled_features.clone();
+        self.is_custom_configuration = false;
+        
         // Clear modification tracking since we're applying a fresh preset
         self.custom_features.clear();
         self.removed_features.clear();
@@ -487,6 +572,10 @@ impl Installation {
         self.base_preset_id = None;
         self.base_preset_version = None;
         
+        // NEW: Update selection tracking
+        self.selected_preset_id = None;
+        self.is_custom_configuration = true;
+        
         // Keep existing features but clear change tracking
         self.custom_features.clear();
         self.removed_features.clear();
@@ -509,6 +598,9 @@ impl Installation {
         } else {
             self.enabled_features.retain(|id| id != feature_id);
         }
+        
+        // NEW: Update pending features
+        self.pending_features = self.enabled_features.clone();
         
         // Track changes relative to base preset if we have one
         if let Some(base_preset_id) = &self.base_preset_id {
@@ -544,7 +636,7 @@ impl Installation {
         debug!("Feature toggle complete - enabled: {:?}", self.enabled_features);
     }
 
-        // Enhanced method to properly initialize from universal manifest  
+    // Enhanced method to properly initialize from universal manifest  
     pub async fn initialize_with_universal_defaults(&mut self, http_client: &crate::CachedHttpClient) -> Result<(), String> {
         debug!("Initializing installation '{}' with universal defaults", self.name);
         
@@ -592,9 +684,13 @@ impl Installation {
         }
         
         // Set features and ensure we're in custom mode for new installations
-        self.enabled_features = features;
+        self.enabled_features = features.clone();
+        self.pending_features = features.clone();
+        self.pre_install_features = features;
         self.base_preset_id = None; // Start as custom
         self.base_preset_version = None;
+        self.selected_preset_id = None;
+        self.is_custom_configuration = true;
         self.custom_features.clear();
         self.removed_features.clear();
         
@@ -616,8 +712,7 @@ impl Installation {
         our_features == preset_features
     }
 
-
-        pub fn get_effective_preset_id(&self, presets: &[crate::preset::Preset]) -> Option<String> {
+    pub fn get_effective_preset_id(&self, presets: &[crate::preset::Preset]) -> Option<String> {
         // If we have a base preset ID and no modifications, return it
         if let Some(base_id) = &self.base_preset_id {
             if self.custom_features.is_empty() && self.removed_features.is_empty() {
@@ -852,8 +947,21 @@ pub fn load_installation(id: &str) -> Result<Installation, String> {
     let config_json = std::fs::read_to_string(&config_path)
         .map_err(|e| format!("Failed to read installation config: {}", e))?;
     
-    let installation: Installation = serde_json::from_str(&config_json)
+    let mut installation: Installation = serde_json::from_str(&config_json)
         .map_err(|e| format!("Failed to parse installation config: {}", e))?;
+    
+    // MIGRATION: Initialize new fields if they don't exist
+    if installation.selected_preset_id.is_none() && installation.base_preset_id.is_some() {
+        installation.selected_preset_id = installation.base_preset_id.clone();
+    }
+    
+    if installation.pre_install_features.is_empty() && !installation.enabled_features.is_empty() {
+        installation.pre_install_features = installation.enabled_features.clone();
+    }
+    
+    if installation.installed_features.is_empty() && installation.installed {
+        installation.installed_features = installation.enabled_features.clone();
+    }
     
     Ok(installation)
 }
