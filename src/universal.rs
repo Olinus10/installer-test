@@ -118,6 +118,8 @@ pub struct IncludeComponent {
     #[serde(default)]
     pub name: Option<String>,
     #[serde(default)]
+    pub description: Option<String>,
+    #[serde(default)]
     pub authors: Option<Vec<Author>>,
     #[serde(default = "default_false")]
     pub optional: bool,
@@ -125,6 +127,12 @@ pub struct IncludeComponent {
     pub default_enabled: bool,
     #[serde(default = "default_false")]
     pub ignore_update: bool,
+    // NEW: Add category field
+    #[serde(default)]
+    pub category: Option<String>,
+    // NEW: Add dependencies field
+    #[serde(default)]
+    pub dependencies: Option<Vec<String>>,
 }
 
 fn default_empty_string() -> String {
@@ -209,44 +217,45 @@ impl UniversalManifest {
         );
         
         // Convert optional includes to ModComponent format
-            for include in self.get_optional_includes() {
-                components.push(ModComponent {
-                    id: include.id.clone(),
-                    name: include.name.clone().unwrap_or_else(|| include.location.clone()),
-                    description: Some(format!("Configuration file: {}", include.location)),
-                    source: "include".to_string(),
-                    location: include.location.clone(),
-                    version: "1.0".to_string(),
-                    path: None,
-                    optional: include.optional,
-                    default_enabled: include.default_enabled,
-                    authors: include.authors.clone().unwrap_or_default(),
-                    category: None, // Don't hardcode category
-                    dependencies: None,
-                    incompatibilities: None,
-                    ignore_update: include.ignore_update,
-                });
-            }
-            
-            // NEW: Convert optional remote includes to ModComponent format
-            for remote in self.get_optional_remote_includes() {
-                components.push(ModComponent {
-                    id: remote.id.clone(),
-                    name: remote.name.clone().unwrap_or_else(|| remote.id.clone()),
-                    description: remote.description.clone(),
-                    source: "remote_include".to_string(),
-                    location: remote.location.clone(),
-                    version: remote.version.clone(),
-                    path: remote.path.as_ref().map(|p| PathBuf::from(p)),
-                    optional: remote.optional,
-                    default_enabled: remote.default_enabled,
-                    authors: remote.authors.clone(),
-                    category: remote.category.clone(), // Use actual category
-                    dependencies: remote.dependencies.clone(),
-                    incompatibilities: None,
-                    ignore_update: remote.ignore_update,
-                });
-            }
+        for include in self.get_optional_includes() {
+            components.push(ModComponent {
+                id: include.id.clone(),
+                name: include.name.clone().unwrap_or_else(|| include.location.clone()),
+                description: include.description.clone()
+                    .or_else(|| Some(format!("Configuration file: {}", include.location))),
+                source: "include".to_string(),
+                location: include.location.clone(),
+                version: "1.0".to_string(),
+                path: None,
+                optional: include.optional,
+                default_enabled: include.default_enabled,
+                authors: include.authors.clone().unwrap_or_default(),
+                category: include.category.clone(), // Use the actual category
+                dependencies: include.dependencies.clone(),
+                incompatibilities: None,
+                ignore_update: include.ignore_update,
+            });
+        }
+        
+        // NEW: Convert optional remote includes to ModComponent format
+        for remote in self.get_optional_remote_includes() {
+            components.push(ModComponent {
+                id: remote.id.clone(),
+                name: remote.name.clone().unwrap_or_else(|| remote.id.clone()),
+                description: remote.description.clone(),
+                source: "remote_include".to_string(),
+                location: remote.location.clone(),
+                version: remote.version.clone(),
+                path: remote.path.as_ref().map(|p| PathBuf::from(p)),
+                optional: remote.optional,
+                default_enabled: remote.default_enabled,
+                authors: remote.authors.clone(),
+                category: remote.category.clone(), // Use actual category
+                dependencies: remote.dependencies.clone(),
+                incompatibilities: None,
+                ignore_update: remote.ignore_update,
+            });
+        }
         
         components
     }
@@ -311,7 +320,8 @@ pub fn universal_to_manifest(universal: &UniversalManifest, enabled_features: Ve
                 name: include.name.clone().unwrap_or_else(|| include.location.clone()),
                 default: include.default_enabled,
                 hidden: false,
-                description: Some(format!("Include: {}", include.location)),
+                description: include.description.clone()
+                    .or_else(|| Some(format!("Include: {}", include.location))),
             });
         }
     }
@@ -385,19 +395,19 @@ pub fn universal_to_manifest(universal: &UniversalManifest, enabled_features: Ve
     let remote_include: Option<Vec<crate::RemoteInclude>> = if universal.remote_include.is_empty() {
         None
     } else {
-            Some(universal.remote_include.iter().map(|remote| {
-                crate::RemoteInclude {
-                    location: remote.location.clone(),
-                    path: remote.path.clone(),
-                    id: remote.id.clone(),
-                    version: remote.version.clone(),
-                    name: remote.name.clone(),
-                    authors: Some(remote.authors.clone()),
-                    // ADD THESE TWO LINES:
-                    optional: remote.optional,
-                    default_enabled: remote.default_enabled,
-                }
-            }).collect())
+        Some(universal.remote_include.iter().map(|remote| {
+            crate::RemoteInclude {
+                location: remote.location.clone(),
+                path: remote.path.clone(),
+                id: remote.id.clone(),
+                version: remote.version.clone(),
+                name: remote.name.clone(),
+                authors: Some(remote.authors.clone()),
+                // ADD THESE TWO LINES:
+                optional: remote.optional,
+                default_enabled: remote.default_enabled,
+            }
+        }).collect())
     };
     
     // Build the manifest
