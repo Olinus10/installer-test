@@ -46,7 +46,7 @@ pub fn FeaturesTab(
     
     // Handle changing a preset
     let mut apply_preset = move |preset_id: String| {
-        debug!("User selected preset: {}", preset_id);
+        debug!("Applying preset: {}", preset_id);
         
         if preset_id == "custom" {
             // Custom preset: build default features list
@@ -94,16 +94,28 @@ pub fn FeaturesTab(
                 let _ = installation.save();
             }
         } else if let Some(preset) = find_preset_by_id(&presets_for_closure, &preset_id) {
+            debug!("Found preset {} with features: {:?}", preset.name, preset.enabled_features);
+            
+            // Check if euphoria-settings is in the preset
+            if preset.enabled_features.contains(&"euphoria-settings".to_string()) {
+                debug!("Preset {} includes euphoria-settings", preset.name);
+            }
+            
             // Apply preset features
             enabled_features.set(preset.enabled_features.clone());
             selected_preset.set(Some(preset_id.clone()));
             
-            // Save the selection immediately
+            // Verify all features are actually being set
+            debug!("After applying preset, enabled features: {:?}", enabled_features.read());
+            
+            // Update installation
             if let Ok(mut installation) = crate::installation::load_installation(&installation_id_for_apply) {
                 installation.save_pre_install_selections(Some(preset_id.clone()), preset.enabled_features.clone());
                 installation.apply_preset_with_tracking(&preset);
                 installation.modified = true;
                 let _ = installation.save();
+                
+                debug!("Saved installation with features: {:?}", installation.enabled_features);
             }
         }
     };
