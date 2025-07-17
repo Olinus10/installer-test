@@ -1496,41 +1496,96 @@ async fn download_zip(name: &str, http_client: &CachedHttpClient, url: &str, pat
 async fn install<F: FnMut() + Clone>(installer_profile: &InstallerProfile, mut progress_callback: F) -> Result<(), String> {
     info!("Installing modpack");
     
-    // CRITICAL: Use the installer_profile.enabled_features which should contain the USER'S choices
-    let user_enabled_features = &installer_profile.enabled_features;
-    debug!("User's enabled features: {:?}", user_enabled_features);
+    // Get the universal manifest to properly determine what should be installed
+    let universal_manifest = match crate::universal::load_universal_manifest(&installer_profile.http_client, None).await {
+        Ok(manifest) => manifest,
+        Err(e) => {
+            error!("Failed to load universal manifest: {:?}", e);
+            return Err(format!("Failed to load universal manifest: {:?}", e));
+        }
+    };
     
-    // Calculate total items correctly based on USER'S choices, not manifest defaults
+    // Build the complete list of features that should be enabled
+    let mut effective_enabled_features = installer_profile.enabled_features.clone();
+    
+    // CRITICAL FIX: Add all default-enabled components that aren't already in the list
+    for component in &universal_manifest.mods {
+        if component.default_enabled && !effective_enabled_features.contains(&component.id) {
+            debug!("Adding default-enabled mod: {} ({})", component.id, component.name);
+            effective_enabled_features.push(component.id.clone());
+        }
+    }
+    
+    for component in &universal_manifest.shaderpacks {
+        if component.default_enabled && !effective_enabled_features.contains(&component.id) {
+            debug!("Adding default-enabled shaderpack: {} ({})", component.id, component.name);
+            effective_enabled_features.push(component.id.clone());
+        }
+    }
+    
+    for component in &universal_manifest.resourcepacks {
+        if component.default_enabled && !effective_enabled_features.contains(&component.id) {
+            debug!("Adding default-enabled resourcepack: {} ({})", component.id, component.name);
+            effective_enabled_features.push(component.id.clone());
+        }
+    }
+    
+    // Add default-enabled includes
+    for include in &universal_manifest.include {
+        if include.default_enabled && !include.id.is_empty() && !effective_enabled_features.contains(&include.id) {
+            debug!("Adding default-enabled include: {} ({})", include.id, include.location);
+            effective_enabled_features.push(include.id.clone());
+        }
+    }
+    
+    // Add default-enabled remote includes
+    for remote in &universal_manifest.remote_include {
+        if remote.default_enabled && !effective_enabled_features.contains(&remote.id) {
+            debug!("Adding default-enabled remote include: {} ({})", 
+                   remote.id, remote.name.as_ref().unwrap_or(&remote.id));
+            effective_enabled_features.push(remote.id.clone());
+        }
+    }
+    
+    // Always ensure "default" is in the list
+    if !effective_enabled_features.contains(&"default".to_string()) {
+        effective_enabled_features.insert(0, "default".to_string());
+    }
+    
+    debug!("Final enabled features list (including defaults): {:?}", effective_enabled_features);
+    info!("Installing with {} enabled features", effective_enabled_features.len());
+    
+    // Calculate total items correctly based on EFFECTIVE features (user + defaults)
     let mut total_items = 0;
     
-    // Count mods that the USER has enabled
+    // Count mods that should be installed
     total_items += installer_profile.manifest.mods.iter()
         .filter(|m| {
-            let should_include = m.id == "default" || user_enabled_features.contains(&m.id);
-            debug!("Mod '{}' (ID: {}) - should_include: {}", m.name, m.id, should_include);
+            let should_include = m.id == "default" || effective_enabled_features.contains(&m.id);
+            debug!("Mod '{}' (ID: {}) - will install: {}", m.name, m.id, should_include);
             should_include
         })
         .count();
     
-    // Count shaderpacks that the USER has enabled
+    // Count shaderpacks that should be installed
     total_items += installer_profile.manifest.shaderpacks.iter()
         .filter(|s| {
-            let should_include = s.id == "default" || user_enabled_features.contains(&s.id);
-            debug!("Shaderpack '{}' (ID: {}) - should_include: {}", s.name, s.id, should_include);
+            let should_include = s.id == "default" || effective_enabled_features.contains(&s.id);
+            debug!("Shaderpack '{}' (ID: {}) - will install: {}", s.name, s.id, should_include);
             should_include
         })
         .count();
     
-    // Count resourcepacks that the USER has enabled
+    // Count resourcepacks that should be installed
     total_items += installer_profile.manifest.resourcepacks.iter()
         .filter(|r| {
-            let should_include = r.id == "default" || user_enabled_features.contains(&r.id);
-            debug!("Resourcepack '{}' (ID: {}) - should_include: {}", r.name, r.id, should_include);
+            let should_include = r.id == "default" || effective_enabled_features.contains(&r.id);
+            debug!("Resourcepack '{}' (ID: {}) - will install: {}", r.name, r.id, should_include);
             should_include
         })
         .count();
     
-    // Count includes that the USER has enabled
+    // Count includes that should be installed
     total_items += installer_profile.manifest.include.iter()
         .filter(|i| {
             let should_include = if i.id.is_empty() || i.id == "default" {
@@ -1538,35 +1593,36 @@ async fn install<F: FnMut() + Clone>(installer_profile: &InstallerProfile, mut p
             } else if !i.optional {
                 true
             } else {
-                user_enabled_features.contains(&i.id)
+                effective_enabled_features.contains(&i.id)
             };
-            debug!("Include '{}' (ID: {}) - should_include: {}", i.location, i.id, should_include);
+            debug!("Include '{}' (ID: {}) - will install: {}", i.location, i.id, should_include);
             should_include
         })
         .count();
     
-    // Count remote includes that the USER has enabled
-        if let Some(remote_includes) = &installer_profile.manifest.remote_include {
-            total_items += remote_includes.iter()
-                .filter(|r| {
-                    let should_include = if r.id == "default" {
-                        true
-                    } else if !r.optional {  // Now this will work
-                        true
-                    } else {
-                        user_enabled_features.contains(&r.id)
-                    };
-                    debug!("Remote include '{}' (ID: {}) - should_include: {}", r.id, r.id, should_include);
-                    should_include
-                })
-                .count();
-        }
-            
+    // Count remote includes that should be installed
+    if let Some(remote_includes) = &installer_profile.manifest.remote_include {
+        total_items += remote_includes.iter()
+            .filter(|r| {
+                let should_include = if r.id == "default" {
+                    true
+                } else if !r.optional {
+                    true
+                } else {
+                    effective_enabled_features.contains(&r.id)
+                };
+                debug!("Remote include '{}' (ID: {}) - will install: {}", 
+                       r.name.as_ref().unwrap_or(&r.id), r.id, should_include);
+                should_include
+            })
+            .count();
+    }
+    
     // Add overhead tasks
     let overhead_tasks = 4;
     total_items += overhead_tasks;
     
-    debug!("Total items to install based on user choices: {}", total_items);
+    debug!("Total items to install: {}", total_items);
     
     let modpack_root = &get_modpack_root(
         installer_profile
@@ -1586,31 +1642,29 @@ async fn install<F: FnMut() + Clone>(installer_profile: &InstallerProfile, mut p
     let mut ignore_update_items = std::collections::HashSet::new();
     
     // Check universal manifest for ignore_update flags
-    if let Ok(universal_manifest) = crate::universal::load_universal_manifest(http_client, None).await {
-        for mod_component in &universal_manifest.mods {
-            if mod_component.ignore_update {
-                ignore_update_items.insert(mod_component.id.clone());
-            }
+    for mod_component in &universal_manifest.mods {
+        if mod_component.ignore_update {
+            ignore_update_items.insert(mod_component.id.clone());
         }
-        for shader in &universal_manifest.shaderpacks {
-            if shader.ignore_update {
-                ignore_update_items.insert(shader.id.clone());
-            }
+    }
+    for shader in &universal_manifest.shaderpacks {
+        if shader.ignore_update {
+            ignore_update_items.insert(shader.id.clone());
         }
-        for resource in &universal_manifest.resourcepacks {
-            if resource.ignore_update {
-                ignore_update_items.insert(resource.id.clone());
-            }
+    }
+    for resource in &universal_manifest.resourcepacks {
+        if resource.ignore_update {
+            ignore_update_items.insert(resource.id.clone());
         }
-        for include in &universal_manifest.include {
-            if include.ignore_update {
-                ignore_update_items.insert(include.id.clone());
-            }
+    }
+    for include in &universal_manifest.include {
+        if include.ignore_update {
+            ignore_update_items.insert(include.id.clone());
         }
-        for remote in &universal_manifest.remote_include {
-            if remote.ignore_update {
-                ignore_update_items.insert(remote.id.clone());
-            }
+    }
+    for remote in &universal_manifest.remote_include {
+        if remote.ignore_update {
+            ignore_update_items.insert(remote.id.clone());
         }
     }
     
@@ -1633,11 +1687,11 @@ async fn install<F: FnMut() + Clone>(installer_profile: &InstallerProfile, mut p
         }
     };
     
-    // CRITICAL: Pass the USER'S enabled features to download_helper
-    debug!("Downloading mods with user features: {:?}", user_enabled_features);
+    // CRITICAL: Pass the EFFECTIVE enabled features (user + defaults) to download_helper
+    debug!("Downloading mods with effective features: {:?}", effective_enabled_features);
     let mods_w_path = match download_helper(
         manifest.mods.clone(),
-        user_enabled_features, // Use USER'S choices, not manifest defaults
+        &effective_enabled_features, // Use EFFECTIVE features, not just user's choices
         modpack_root.as_path(),
         &manifest.loader.r#type,
         http_client,
@@ -1651,10 +1705,10 @@ async fn install<F: FnMut() + Clone>(installer_profile: &InstallerProfile, mut p
         Err(e) => return Err(e.to_string()),
     };
     
-    debug!("Downloading shaderpacks with user features: {:?}", user_enabled_features);
+    debug!("Downloading shaderpacks with effective features: {:?}", effective_enabled_features);
     let shaderpacks_w_path = match download_helper(
         manifest.shaderpacks.clone(),
-        user_enabled_features, // Use USER'S choices, not manifest defaults
+        &effective_enabled_features, // Use EFFECTIVE features
         modpack_root.as_path(),
         &manifest.loader.r#type,
         http_client,
@@ -1668,10 +1722,10 @@ async fn install<F: FnMut() + Clone>(installer_profile: &InstallerProfile, mut p
         Err(e) => return Err(e.to_string()),
     };
     
-    debug!("Downloading resourcepacks with user features: {:?}", user_enabled_features);
+    debug!("Downloading resourcepacks with effective features: {:?}", effective_enabled_features);
     let resourcepacks_w_path = match download_helper(
         manifest.resourcepacks.clone(),
-        user_enabled_features, // Use USER'S choices, not manifest defaults
+        &effective_enabled_features, // Use EFFECTIVE features
         modpack_root.as_path(),
         &manifest.loader.r#type,
         http_client,
@@ -1687,7 +1741,7 @@ async fn install<F: FnMut() + Clone>(installer_profile: &InstallerProfile, mut p
     
     let mut included_files: HashMap<String, Included> = HashMap::new();
     
-    // Handle regular includes - respect USER'S choices
+    // Handle regular includes - respect EFFECTIVE features (user + defaults)
     if !manifest.include.is_empty() {
         debug!("Processing {} includes from manifest", manifest.include.len());
         
@@ -1698,23 +1752,23 @@ async fn install<F: FnMut() + Clone>(installer_profile: &InstallerProfile, mut p
                 continue;
             }
             
-            // CRITICAL: Check if this include should be installed based on USER'S choices
+            // CRITICAL: Check if this include should be installed based on EFFECTIVE features
             let should_install = if inc.id.is_empty() || inc.id == "default" {
                 true
             } else if !inc.optional {
                 true
             } else {
-                user_enabled_features.contains(&inc.id)
+                effective_enabled_features.contains(&inc.id)
             };
             
             if !should_install {
-                debug!("Skipping disabled include: {} (not in user's enabled features)", inc.id);
+                debug!("Skipping disabled include: {} (not in effective features)", inc.id);
                 continue;
             }
         
-            debug!("Processing include: {} (user enabled)", inc.id);
+            debug!("Processing include: {} (enabled in effective features)", inc.id);
             
-            // ... rest of include processing logic stays the same ...
+            // Rest of include processing logic stays the same
             let github_url = format!(
                 "https://raw.githubusercontent.com/Wynncraft-Overhaul/majestic-overhaul/master/{}",
                 inc.location
@@ -1804,7 +1858,7 @@ async fn install<F: FnMut() + Clone>(installer_profile: &InstallerProfile, mut p
         }
     }
     
-    // Handle remote includes - respect USER'S choices
+    // Handle remote includes - respect EFFECTIVE features (user + defaults)
     if let Some(remote_includes) = &manifest.remote_include {
         debug!("Processing {} remote includes from manifest", remote_includes.len());
         
@@ -1815,21 +1869,21 @@ async fn install<F: FnMut() + Clone>(installer_profile: &InstallerProfile, mut p
                 continue;
             }
             
-            // CRITICAL: Check if this remote include should be installed based on USER'S choices
+            // CRITICAL: Check if this remote include should be installed based on EFFECTIVE features
             let should_install = if remote.id == "default" {
                 true
             } else if !remote.optional {
                 true
             } else {
-                user_enabled_features.contains(&remote.id)
+                effective_enabled_features.contains(&remote.id)
             };
             
             if !should_install {
-                debug!("Skipping disabled remote include: {} (not in user's enabled features)", remote.id);
+                debug!("Skipping disabled remote include: {} (not in effective features)", remote.id);
                 continue;
             }
             
-            debug!("Processing remote include: {} (user enabled)", remote.id);
+            debug!("Processing remote include: {} (enabled in effective features)", remote.id);
             
             // Determine the target path
             let target_path = if let Some(path) = &remote.path {
@@ -1865,12 +1919,12 @@ async fn install<F: FnMut() + Clone>(installer_profile: &InstallerProfile, mut p
     // Now handle overhead tasks
     debug!("Starting overhead tasks");
 
-    // Save local manifest with USER'S choices
+    // Save local manifest with EFFECTIVE features (not just user's original choices)
     let local_manifest = Manifest {
         mods: mods_w_path,
         shaderpacks: shaderpacks_w_path,
         resourcepacks: resourcepacks_w_path,
-        enabled_features: user_enabled_features.clone(), // Save USER'S choices
+        enabled_features: effective_enabled_features.clone(), // Save EFFECTIVE features
         included_files: Some(included_files),
         source: Some(format!(
             "{}{}",
@@ -1963,25 +2017,28 @@ async fn install<F: FnMut() + Clone>(installer_profile: &InstallerProfile, mut p
 
     // FINAL STEP: Mark installation as complete and update installation state
     if let Ok(mut installation) = crate::installation::load_installation(&installer_profile.manifest.uuid) {
+        // Commit the installation with the effective features
+        installation.installed_features = effective_enabled_features.clone();
+        installation.enabled_features = effective_enabled_features.clone();
+        installation.commit_installation();
+        
         installation.installed = true;
         installation.update_available = false;
         installation.modified = false;
         installation.universal_version = installer_profile.manifest.modpack_version.clone();
-        // CRITICAL: Save the USER'S enabled features
-        installation.enabled_features = user_enabled_features.clone();
         
         if let Err(e) = installation.save() {
             error!("Failed to update installation state: {}", e);
             return Err(format!("Failed to save installation state: {}", e));
         } else {
-            debug!("Successfully marked installation as complete with user's choices saved");
+            debug!("Successfully marked installation as complete with effective features saved");
         }
     } else {
         error!("Failed to load installation after install");
         return Err("Failed to load installation after install".to_string());
     }
 
-    info!("Modpack installation completed successfully with user's feature choices!");
+    info!("Modpack installation completed successfully with all default features included!");
     Ok(())
 }
 
