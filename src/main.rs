@@ -1350,25 +1350,15 @@ async fn download_helper<T: Downloadable + Debug, F: FnMut() + Clone>(
         // FIXED: Proper logic for determining if item should be included
         let should_include = if item.get_id() == "default" {
             // Always include the "default" item
+            debug!("Including default item: {}", item.get_name());
             true
         } else {
-            // Check if this item should be included based on:
-            // 1. It's in the user's enabled_features list, OR
-            // 2. It's a default_enabled component (from universal manifest)
-            enabled_features.contains(item.get_id()) || {
-                // For default_enabled items, we need to check the universal manifest
-                // This is a bit of a hack since we don't have direct access to default_enabled here
-                // But we can infer it from the enabled_features containing "default"
-                enabled_features.contains(&"default".to_string()) && {
-                    // If this is likely a default component (based on naming or other heuristics)
-                    // we should include it. But better to be explicit via enabled_features.
-                    false // For now, rely on enabled_features being properly set
-                }
-            }
+            // Check if this item should be included based on enabled_features
+            let is_enabled = enabled_features.contains(item.get_id());
+            debug!("Item '{}' (ID: {}) - enabled: {}, in features: {:?}", 
+                   item.get_name(), item.get_id(), is_enabled, enabled_features);
+            is_enabled
         };
-        
-        debug!("Item '{}' (ID: {}) - should_include: {}, in_enabled_features: {}", 
-               item.get_name(), item.get_id(), should_include, enabled_features.contains(item.get_id()));
         
         // Check if we should ignore this item during updates
         let should_ignore_update = is_update && ignore_update_items.contains(item.get_id());
@@ -1493,6 +1483,41 @@ async fn download_zip(name: &str, http_client: &CachedHttpClient, url: &str, pat
     Ok(files)
 }
 
+// In src/main.rs - Add this helper function before the install function
+
+fn resolve_dependencies(
+    feature_id: &str,
+    enabled_features: &mut Vec<String>,
+    universal_manifest: &UniversalManifest,
+) {
+    // Check all component types for dependencies
+    let all_components: Vec<(&str, Option<&Vec<String>>)> = universal_manifest.mods.iter()
+        .map(|c| (c.id.as_str(), c.dependencies.as_ref()))
+        .chain(universal_manifest.shaderpacks.iter()
+            .map(|c| (c.id.as_str(), c.dependencies.as_ref())))
+        .chain(universal_manifest.resourcepacks.iter()
+            .map(|c| (c.id.as_str(), c.dependencies.as_ref())))
+        .chain(universal_manifest.include.iter()
+            .map(|c| (c.id.as_str(), c.dependencies.as_ref())))
+        .chain(universal_manifest.remote_include.iter()
+            .map(|c| (c.id.as_str(), c.dependencies.as_ref())))
+        .collect();
+    
+    // Find the component
+    if let Some((_, Some(deps))) = all_components.iter().find(|(id, _)| id == &feature_id) {
+        for dep in deps.iter() {
+            if !enabled_features.contains(dep) {
+                debug!("Auto-enabling dependency {} for {}", dep, feature_id);
+                enabled_features.push(dep.clone());
+                // Recursively resolve dependencies of dependencies
+                resolve_dependencies(dep, enabled_features, universal_manifest);
+            }
+        }
+    }
+}
+
+// In src/main.rs - Update the install function's feature resolution section
+
 async fn install<F: FnMut() + Clone>(installer_profile: &InstallerProfile, mut progress_callback: F) -> Result<(), String> {
     info!("Installing modpack");
     
@@ -1552,7 +1577,17 @@ async fn install<F: FnMut() + Clone>(installer_profile: &InstallerProfile, mut p
         effective_enabled_features.insert(0, "default".to_string());
     }
     
-    debug!("Final enabled features list (including defaults): {:?}", effective_enabled_features);
+    // NEW: Resolve dependencies for all enabled features
+    let features_to_check = effective_enabled_features.clone();
+    for feature in features_to_check {
+        resolve_dependencies(&feature, &mut effective_enabled_features, &universal_manifest);
+    }
+    
+    // Remove duplicates while preserving order
+    let mut seen = std::collections::HashSet::new();
+    effective_enabled_features.retain(|item| seen.insert(item.clone()));
+    
+    debug!("Final enabled features list (including defaults and dependencies): {:?}", effective_enabled_features);
     info!("Installing with {} enabled features", effective_enabled_features.len());
     
     // Calculate total items correctly based on EFFECTIVE features (user + defaults)
