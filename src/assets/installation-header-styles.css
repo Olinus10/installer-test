@@ -2073,7 +2073,7 @@ body:has(.installation-management-container) {
     font-weight: 500 !important;
 }
 
-/* 5. Hover effects - now cover full button area */
+/* 5. Hover effects - now cover full button area 
 .installation-page .nav-tab:not(.back-tab):hover,
 .installation-page-content .nav-tab:not(.back-tab):hover,
 .installation-management-container .nav-tab:not(.back-tab):hover {
@@ -2082,9 +2082,9 @@ body:has(.installation-management-container) {
     color: white !important;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
     z-index: 10 !important; /* Ensure hover state appears above container */
-}
+} */
 
-/* 6. Sweep animation - covers full button */
+/* 6. Sweep animation - covers full button 
 .installation-page .nav-tab:not(.back-tab)::before,
 .installation-page-content .nav-tab:not(.back-tab)::before,
 .installation-management-container .nav-tab:not(.back-tab)::before {
@@ -2098,7 +2098,7 @@ body:has(.installation-management-container) {
     border-radius: inherit !important;
     transition: left 0.5s ease !important;
     z-index: 1 !important;
-}
+} */
 
 .installation-page .nav-tab:not(.back-tab):hover::before,
 .installation-page-content .nav-tab:not(.back-tab):hover::before,
