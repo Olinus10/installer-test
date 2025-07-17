@@ -146,7 +146,7 @@
 }
 
 .category-content.expanded {
-    max-height: 10000px; /* Large finite height instead of none */
+    max-height: 20000px; /* Large finite height instead of none */
     overflow: hidden; /* Keep hidden to prevent overlap with other categories */
 }
 
