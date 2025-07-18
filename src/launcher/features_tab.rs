@@ -2,6 +2,56 @@ use dioxus::prelude::*;
 use crate::universal::{ModComponent, UniversalManifest};
 use crate::preset::{Preset, find_preset_by_id};
 use log::debug;
+use std::collections::HashMap;
+use std::sync::Mutex;
+use once_cell::sync::Lazy;
+
+// Global session state storage
+static SESSION_STATE: Lazy<Mutex<HashMap<String, SessionInstallationState>>> = 
+    Lazy::new(|| Mutex::new(HashMap::new()));
+
+#[derive(Clone, Debug)]
+struct SessionInstallationState {
+    selected_preset_id: Option<String>,
+    enabled_features: Vec<String>,
+    last_modified: std::time::Instant,
+}
+
+impl SessionInstallationState {
+    fn new(preset_id: Option<String>, features: Vec<String>) -> Self {
+        Self {
+            selected_preset_id: preset_id,
+            enabled_features: features,
+            last_modified: std::time::Instant::now(),
+        }
+    }
+    
+    fn update(&mut self, preset_id: Option<String>, features: Vec<String>) {
+        self.selected_preset_id = preset_id;
+        self.enabled_features = features;
+        self.last_modified = std::time::Instant::now();
+    }
+}
+
+// Helper functions for session state
+fn get_session_state(installation_id: &str) -> Option<SessionInstallationState> {
+    SESSION_STATE.lock().ok()?.get(installation_id).cloned()
+}
+
+fn set_session_state(installation_id: &str, preset_id: Option<String>, features: Vec<String>) {
+    if let Ok(mut state) = SESSION_STATE.lock() {
+        state.insert(
+            installation_id.to_string(),
+            SessionInstallationState::new(preset_id, features)
+        );
+    }
+}
+
+fn clear_session_state(installation_id: &str) {
+    if let Ok(mut state) = SESSION_STATE.lock() {
+        state.remove(installation_id);
+    }
+}
 
 #[component]
 pub fn FeaturesTab(
@@ -14,37 +64,83 @@ pub fn FeaturesTab(
 ) -> Element {
     // Clone for closures - create all the clones we need upfront
     let presets_for_closure = presets.clone();
-    let presets_for_toggle = presets.clone(); // Separate clone for toggle_feature
-    let presets_for_custom_check = presets.clone(); // Separate clone for custom preset check
+    let presets_for_toggle = presets.clone();
+    let presets_for_custom_check = presets.clone();
     let installation_id_for_apply = installation_id.clone();
     let installation_id_for_toggle = installation_id.clone();
+    let installation_id_for_session = installation_id.clone();
     let universal_manifest_for_apply = universal_manifest.clone();
     let universal_manifest_for_toggle = universal_manifest.clone();
     let universal_manifest_for_count = universal_manifest.clone();
     let universal_manifest_for_render = universal_manifest.clone();
     
-    // Initialize preset state based on installation
+    // Track if we've initialized from session state
+    let mut session_initialized = use_signal(|| false);
+    
+    // Initialize preset state based on installation OR session state
     use_effect({
         let installation_id = installation_id.clone();
         let mut selected_preset = selected_preset.clone();
         let mut enabled_features = enabled_features.clone();
         let presets_for_effect = presets.clone();
+        let mut session_initialized = session_initialized.clone();
         
         move || {
-            // Load installation and set initial state
+            // Skip if already initialized from session
+            if *session_initialized.read() {
+                return;
+            }
+            
+            // Load installation
             if let Ok(installation) = crate::installation::load_installation(&installation_id) {
-                // Use the new display methods
-                enabled_features.set(installation.get_display_features());
-                selected_preset.set(installation.get_display_preset_id());
+                // Check if we have session state for this installation
+                if let Some(session_state) = get_session_state(&installation_id) {
+                    // Use session state (user's ongoing changes)
+                    debug!("Restoring session state for installation {}", installation_id);
+                    enabled_features.set(session_state.enabled_features);
+                    selected_preset.set(session_state.selected_preset_id);
+                    
+                    debug!("Restored from session - preset: {:?}, features: {:?}", 
+                           session_state.selected_preset_id, 
+                           session_state.enabled_features.len());
+                } else {
+                    // No session state - use what's actually installed
+                    debug!("No session state, using installed state for {}", installation_id);
+                    enabled_features.set(installation.get_display_features());
+                    selected_preset.set(installation.get_display_preset_id());
+                    
+                    debug!("Initialized from installation - preset: {:?}, features: {:?}", 
+                           installation.get_display_preset_id(), 
+                           installation.get_display_features());
+                }
                 
-                debug!("Initialized features tab - preset: {:?}, features: {:?}", 
-                       installation.get_display_preset_id(), 
-                       installation.get_display_features());
+                session_initialized.set(true);
             }
         }
     });
     
-    // Handle changing a preset
+    // Save to session state whenever features or preset changes
+    use_effect({
+        let installation_id = installation_id_for_session.clone();
+        let selected_preset = selected_preset.clone();
+        let enabled_features = enabled_features.clone();
+        let session_initialized = session_initialized.clone();
+        
+        move || {
+            // Only save to session if we've initialized
+            if *session_initialized.read() {
+                let current_preset = selected_preset.read().clone();
+                let current_features = enabled_features.read().clone();
+                
+                debug!("Saving session state for {} - preset: {:?}, features: {}", 
+                       installation_id, current_preset, current_features.len());
+                
+                set_session_state(&installation_id, current_preset, current_features);
+            }
+        }
+    });
+    
+    // Handle changing a preset - updated to also save to session
     let mut apply_preset = move |preset_id: String| {
         debug!("Applying preset: {}", preset_id);
         
@@ -84,9 +180,12 @@ pub fn FeaturesTab(
             }
             
             enabled_features.set(default_features.clone());
-            selected_preset.set(None); // Custom = no preset
+            selected_preset.set(None);
             
-            // Save the selection immediately
+            // Save to session state
+            set_session_state(&installation_id_for_apply, None, default_features.clone());
+            
+            // Save the selection immediately to installation (but don't install)
             if let Ok(mut installation) = crate::installation::load_installation(&installation_id_for_apply) {
                 installation.save_pre_install_selections(None, default_features);
                 installation.switch_to_custom_with_tracking();
@@ -96,16 +195,13 @@ pub fn FeaturesTab(
         } else if let Some(preset) = find_preset_by_id(&presets_for_closure, &preset_id) {
             debug!("Found preset {} with features: {:?}", preset.name, preset.enabled_features);
             
-            // Check if euphoria-settings is in the preset
-            if preset.enabled_features.contains(&"euphoria-settings".to_string()) {
-                debug!("Preset {} includes euphoria-settings", preset.name);
-            }
-            
             // Apply preset features
             enabled_features.set(preset.enabled_features.clone());
             selected_preset.set(Some(preset_id.clone()));
             
-            // Verify all features are actually being set
+            // Save to session state
+            set_session_state(&installation_id_for_apply, Some(preset_id.clone()), preset.enabled_features.clone());
+            
             debug!("After applying preset, enabled features: {:?}", enabled_features.read());
             
             // Update installation
@@ -117,6 +213,78 @@ pub fn FeaturesTab(
                 
                 debug!("Saved installation with features: {:?}", installation.enabled_features);
             }
+        }
+    };
+    
+    // Handle toggling a feature with dependency checking - updated to save to session
+    let toggle_feature = move |feature_id: String| {
+        let manifest_for_deps = universal_manifest_for_toggle.clone();
+        
+        enabled_features.with_mut(|features| {
+            let is_enabling = !features.contains(&feature_id);
+            
+            if is_enabling {
+                if !features.contains(&feature_id) {
+                    features.push(feature_id.clone());
+                }
+                
+                // Check for dependencies and enable them too
+                if let Some(manifest) = &manifest_for_deps {
+                    let all_components: Vec<&ModComponent> = manifest.mods.iter()
+                        .chain(manifest.shaderpacks.iter())
+                        .chain(manifest.resourcepacks.iter())
+                        .collect();
+                    
+                    if let Some(component) = all_components.iter().find(|c| c.id == feature_id) {
+                        if let Some(deps) = &component.dependencies {
+                            for dep_id in deps {
+                                if !features.contains(dep_id) {
+                                    debug!("Auto-enabling dependency: {} for {}", dep_id, feature_id);
+                                    features.push(dep_id.clone());
+                                }
+                            }
+                        }
+                    }
+                }
+            } else {
+                features.retain(|id| id != &feature_id);
+                
+                // Check if any enabled features depend on this one
+                if let Some(manifest) = &manifest_for_deps {
+                    let all_components: Vec<&ModComponent> = manifest.mods.iter()
+                        .chain(manifest.shaderpacks.iter())
+                        .chain(manifest.resourcepacks.iter())
+                        .collect();
+                    
+                    let dependent_features: Vec<String> = all_components.iter()
+                        .filter(|c| {
+                            features.contains(&c.id) && 
+                            c.dependencies.as_ref().map_or(false, |deps| deps.contains(&feature_id))
+                        })
+                        .map(|c| c.id.clone())
+                        .collect();
+                    
+                    for dep_feat in dependent_features {
+                        debug!("Auto-disabling dependent feature: {} (depends on {})", dep_feat, feature_id);
+                        features.retain(|id| id != &dep_feat);
+                    }
+                }
+            }
+        });
+
+        // Save to session state
+        let current_preset = selected_preset.read().clone();
+        let current_features = enabled_features.read().clone();
+        set_session_state(&installation_id_for_toggle, current_preset, current_features);
+
+        // Update installation with modification tracking
+        if let Ok(mut installation) = crate::installation::load_installation(&installation_id_for_toggle) {
+            let is_enabled = enabled_features.read().contains(&feature_id);
+            installation.toggle_feature_with_tracking(&feature_id, is_enabled, &presets_for_toggle);
+            installation.enabled_features = enabled_features.read().clone();
+            installation.pending_features = enabled_features.read().clone();
+            installation.modified = true;
+            let _ = installation.save();
         }
     };
     
