@@ -3717,8 +3717,6 @@ a:hover {
 
 
 
-/* FIX 3: Reduce top spacing on pages */
-
 /* Reduce top margin/padding for main containers */
 .main-container {
     padding-top: 10px; /* Reduced from 20px */
@@ -3730,6 +3728,93 @@ a:hover {
 .installation-content-modern {
     padding-top: 90px; /* Reduced from 100px for header space */
     margin-top: 0; /* Remove any extra margin */
+}
+
+/* SPECIFIC FIXES FOR INSTALLATION TAB CONTENT */
+
+/* Features tab content */
+.features-tab {
+    padding-top: 5px !important; /* Reduced from 15px */
+    margin-top: 0 !important;
+}
+
+.features-tab h2 {
+    margin-top: 0 !important; /* Remove top margin from tab headers */
+    margin-bottom: 15px !important;
+}
+
+/* Performance tab content */
+.performance-tab {
+    padding-top: 5px !important;
+    margin-top: 0 !important;
+}
+
+.performance-tab h2 {
+    margin-top: 0 !important;
+    margin-bottom: 15px !important;
+}
+
+/* Settings tab content */
+.settings-tab {
+    padding-top: 5px !important;
+    margin-top: 0 !important;
+}
+
+.settings-tab h2 {
+    margin-top: 0 !important;
+    margin-bottom: 15px !important;
+}
+
+/* Installation management container */
+.installation-management-container {
+    padding-top: 10px !important; /* Reduced top padding */
+    margin-top: 0 !important;
+}
+
+/* Tab content areas */
+.installation-content {
+    padding-top: 15px !important; /* Reduced from default */
+    margin-top: 0 !important;
+}
+
+/* Optional features wrapper */
+.optional-features-wrapper {
+    margin-top: 10px !important; /* Reduced from 30px */
+    padding-top: 10px !important; /* Reduced internal padding */
+}
+
+/* Presets section within installation tabs */
+.presets-section {
+    margin-top: 10px !important; /* Reduced top margin */
+    padding-top: 15px !important; /* Reduced internal padding */
+}
+
+/* Memory section in performance tab */
+.memory-section,
+.performance-section {
+    margin-top: 10px !important; /* Reduced spacing */
+    padding-top: 15px !important;
+}
+
+/* Settings sections */
+.settings-section {
+    margin-top: 10px !important;
+    padding-top: 15px !important;
+}
+
+/* Any content headers within installation tabs */
+.installation-management-container .content-header,
+.features-tab .content-header,
+.performance-tab .content-header,
+.settings-tab .content-header {
+    padding-top: 0 !important;
+    margin-top: 0 !important;
+}
+
+/* Navigation row in installation pages */
+.navigation-row {
+    margin-top: 0 !important;
+    margin-bottom: 15px !important; /* Reduced from 20px */
 }
 
 /* Reduce top spacing for version container */
@@ -3785,4 +3870,30 @@ a:hover {
 
 .installations-grid {
     margin-top: 15px; /* Reduced from 20px */
+}
+
+/* BONUS FIX: Ensure consistent spacing and no overflow issues */
+
+/* Make sure all grid containers handle overflow properly */
+.feature-cards-grid,
+.presets-grid,
+.installations-grid {
+    overflow: visible;
+    width: 100%;
+}
+
+/* Ensure proper container sizing */
+.features-container,
+.features-tab,
+.installation-management-container {
+    overflow: visible;
+    width: 100%;
+    max-width: 100%;
+}
+
+/* Fix any remaining clipping issues */
+.installation-tabs,
+.installation-content,
+.features-section {
+    overflow: visible;
 }
