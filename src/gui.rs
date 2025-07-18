@@ -1225,6 +1225,7 @@ let mut proceed_with_update = {
     let installations = installations.clone();
     let installation_state = installation_state.clone();
     let selected_preset = selected_preset.clone();
+    let installation_id_for_clear = installation_id.clone(); // Add this
     
     move || {
         is_installing.set(true);
@@ -1260,6 +1261,7 @@ let mut proceed_with_update = {
         let mut installations = installations.clone();
         let mut installation_state = installation_state.clone();
         let installation_id = installation_clone.id.clone();
+        let installation_id_for_clear = installation_id_for_clear.clone(); // Clone for async
 
         spawn(async move {
             // Calculate total items for accurate progress tracking
@@ -1362,8 +1364,8 @@ let mut proceed_with_update = {
                     };
                     
                     // Run the installation
-                    match installation_clone.install_or_update_with_progress(&http_client, progress_callback).await {
-                        Ok(_) => {
+match installation_clone.install_or_update_with_progress(&http_client, progress_callback).await {
+                Ok(_) => {
                             // NOW handle overhead tasks with proper progress updates
                             status.set("Finalizing installation...".to_string());
                             
@@ -1385,6 +1387,10 @@ let mut proceed_with_update = {
                                 // Small delay to show each step
                                 tokio::time::sleep(tokio::time::Duration::from_millis(200)).await;
                             }
+
+                            // IMPORTANT: Clear session state after successful installation
+                            crate::launcher::features_tab::clear_session_state(&installation_id_for_clear);
+                            debug!("Cleared session state for installation {}", installation_id_for_clear);
                             
                             // FINAL: Set to 100% and mark as complete
                             progress.set(new_total);
@@ -1440,24 +1446,16 @@ let mut proceed_with_update = {
                                 debug!("Installation UI state updated successfully");
                             }
                             
-                            // Wait a moment to show completion, then close
-                            tokio::time::sleep(tokio::time::Duration::from_millis(1500)).await;
-                            debug!("Closing progress window after successful installation");
-                            is_installing_clone.set(false);
-                        },
-                        Err(e) => {
-                            error!("Installation failed: {}", e);
-                            installation_error_clone.set(Some(format!("Installation failed: {}", e)));
-                            status.set("Installation failed!".to_string());
-                            // Don't auto-close on failure
-                        }
-                    }
+                    // Wait a moment to show completion, then close
+                    tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
+                    debug!("Closing progress window after successful installation");
+                    is_installing_clone.set(false);
                 },
                 Err(e) => {
-                    error!("Failed to load manifest: {}", e);
-                    installation_error_clone.set(Some(format!("Failed to load manifest: {}", e)));
-                    status.set("Failed to load manifest!".to_string());
-                    is_installing_clone.set(false);
+                    error!("Installation failed: {}", e);
+                    installation_error_clone.set(Some(format!("Installation failed: {}", e)));
+                    status.set("Installation failed!".to_string());
+                    // Don't clear session state on failure - let user retry with same selections
                 }
             }
         });
