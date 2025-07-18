@@ -1872,8 +1872,7 @@ fn UpdateWarningDialog(
                 div { class: "modal-content",
                     div { class: "warning-message",
                         p { 
-                            strong { "Important: " }
-                            "Updating may reset some mod configurations, especially Wynntils settings."
+                            "Updating may reset some settings, especially Wynntils settings."
                         }
                         
                         p { 
@@ -1881,15 +1880,14 @@ fn UpdateWarningDialog(
                         }
                         
                         ol { class: "protection-steps",
-                            li { "Click 'Open Installation Folder' below" }
+                            li { "Click 'Open Folder' below" }
                             li { "Make a backup copy of the 'wynntils' folder" }
                             li { "After updating, restore your backed-up folder if needed" }
                         }
                         
                         div { class: "warning-note",
                             p { 
-                                "💡 Tip: Keep your Wynntils folder backed up regularly to avoid losing your waypoints, "
-                                "map data, and custom settings."
+                                "💡 Tip: Keep your Wynntils folder backed up regularly to avoid losing your custom settings."
                             }
                         }
                     }
@@ -1911,7 +1909,7 @@ fn UpdateWarningDialog(
                     button { 
                         class: "update-proceed-button",
                         onclick: move |_| onproceed.call(()),
-                        "UPDATE"
+                        "PROCEED"
                     }
                 }
             }
