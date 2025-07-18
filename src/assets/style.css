@@ -3712,3 +3712,77 @@ a:hover {
 .confirm-delete:hover {
     background: #c82333;
 }
+
+
+
+
+
+/* FIX 3: Reduce top spacing on pages */
+
+/* Reduce top margin/padding for main containers */
+.main-container {
+    padding-top: 10px; /* Reduced from 20px */
+    margin-top: 0; /* Ensure no extra margin */
+}
+
+/* Reduce top spacing for installation page content */
+.installation-page-content,
+.installation-content-modern {
+    padding-top: 90px; /* Reduced from 100px for header space */
+    margin-top: 0; /* Remove any extra margin */
+}
+
+/* Reduce top spacing for version container */
+.version-container {
+    padding-top: 10px; /* Reduced top padding */
+}
+
+.version-container h2 {
+    margin-top: 10px; /* Reduced from 20px */
+}
+
+/* Reduce top spacing for content headers */
+.content-header {
+    padding-top: 10px; /* Reduced from 20px */
+}
+
+/* Reduce top spacing for home container */
+.home-container {
+    padding-top: 10px; /* Reduced from 20px */
+}
+
+/* Reduce top spacing for settings, credits, and other containers */
+.settings-container,
+.credits-container,
+.launcher-container,
+.no-launcher-container,
+.progress-container {
+    margin-top: 10px; /* Add consistent reduced top margin */
+}
+
+/* Reduce welcome header spacing */
+.welcome-header {
+    margin-top: 0;
+    margin-bottom: 20px; /* Reduced from 30px */
+}
+
+.welcome-container {
+    padding-top: 40px; /* Reduced from 60px */
+}
+
+.welcome-container.first-time {
+    padding-top: 30px; /* Reduced from 40px */
+}
+
+/* Additional fixes for specific sections */
+.optional-features-wrapper {
+    margin-top: 20px; /* Reduced from 30px */
+}
+
+.presets-grid {
+    margin-top: 15px; /* Reduced from 25px */
+}
+
+.installations-grid {
+    margin-top: 15px; /* Reduced from 20px */
+}
