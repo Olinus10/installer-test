@@ -429,3 +429,37 @@
     font-style: italic;
     border: 1px dashed rgba(255, 255, 255, 0.2);
 }
+
+
+
+/* FIX 1: Category overflow - Allow categories to expand to show all mod cards */
+.category-content {
+    overflow: visible; /* Changed from hidden to visible */
+    max-height: none; /* Remove height restriction when expanded */
+    transition: max-height 0.5s ease, opacity 0.3s ease;
+    opacity: 0;
+}
+
+.category-content.expanded {
+    max-height: none; /* Remove the 20000px limit */
+    overflow: visible; /* Ensure content is always visible when expanded */
+    opacity: 1;
+}
+
+/* Ensure feature categories container doesn't clip content */
+.feature-categories {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    overflow: visible; /* Ensure no clipping */
+}
+
+.feature-category {
+    background-color: rgba(0, 0, 0, 0.3);
+    border-radius: 10px;
+    margin-bottom: 15px;
+    border-left: 3px solid rgba(7, 60, 23, 0.8);
+    overflow: visible; /* Remove overflow hidden that was clipping content */
+    transition: all 0.3s ease;
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.2);
+}
