@@ -2299,3 +2299,36 @@ body:has(.installation-management-container) {
         font-size: 0.85rem !important;
     }
 }
+
+
+/* Remove the problematic ::before pseudo-elements causing the white swoosh */
+.installation-card-actions button::before,
+.nav-tab::before,
+.installation-page .nav-tab:not(.back-tab)::before,
+.installation-page-content .nav-tab:not(.back-tab)::before,
+.installation-management-container .nav-tab:not(.back-tab)::before {
+    display: none !important; /* Completely remove the swoosh effect */
+}
+
+/* Also remove any other swoosh animations that might be causing issues */
+.installation-card::before {
+    display: none !important; /* Remove card flash animation */
+}
+
+/* Remove the button shine animation from feature toggle buttons */
+.feature-toggle-button::before {
+    display: none !important;
+}
+
+/* Remove shine from main install button */
+.main-install-button::before {
+    display: none !important;
+}
+
+/* Remove any other problematic shine/swoosh effects */
+.action-button::before,
+.category-toggle-all::before,
+.launch-button::before,
+.main-play-button::before {
+    display: none !important;
+}
