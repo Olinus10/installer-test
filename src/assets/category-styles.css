@@ -432,26 +432,28 @@
 
 
 
-/* FIX 1: Category overflow - Allow categories to expand to show all mod cards */
+/* FIX 1: Category overflow - Proper height expansion that pushes content down */
 .category-content {
-    overflow: visible; /* Changed from hidden to visible */
-    max-height: none; /* Remove height restriction when expanded */
-    transition: max-height 0.5s ease, opacity 0.3s ease;
+    overflow: hidden; /* Keep hidden for proper animation */
+    max-height: 0; /* Start collapsed */
+    transition: max-height 0.5s ease-in-out;
     opacity: 0;
+    padding: 0; /* No padding when collapsed */
 }
 
 .category-content.expanded {
-    max-height: none; /* Remove the 20000px limit */
-    overflow: visible; /* Ensure content is always visible when expanded */
+    max-height: 5000px; /* Large but finite value for smooth animation */
+    overflow: visible; /* Allow content to be visible when expanded */
     opacity: 1;
+    padding: 10px 0; /* Add padding when expanded */
 }
 
-/* Ensure feature categories container doesn't clip content */
+/* Ensure feature categories container has proper flow */
 .feature-categories {
     display: flex;
     flex-direction: column;
     gap: 15px;
-    overflow: visible; /* Ensure no clipping */
+    /* Remove overflow visible as it's not needed here */
 }
 
 .feature-category {
@@ -459,7 +461,8 @@
     border-radius: 10px;
     margin-bottom: 15px;
     border-left: 3px solid rgba(7, 60, 23, 0.8);
-    overflow: visible; /* Remove overflow hidden that was clipping content */
+    /* Keep overflow visible only on the main category container */
     transition: all 0.3s ease;
     box-shadow: 0 3px 8px rgba(0, 0, 0, 0.2);
+    position: relative; /* Ensure proper stacking context */
 }
