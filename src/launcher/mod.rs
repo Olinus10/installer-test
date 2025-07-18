@@ -14,7 +14,7 @@ mod performance_tab;
 mod settings_tab;
 
 // Export components (removing unused exports)
-pub use features_tab::FeaturesTab;
+pub use features_tab::{FeaturesTab, clear_session_state};
 pub use performance_tab::PerformanceTab;
 pub use settings_tab::SettingsTab;
 
