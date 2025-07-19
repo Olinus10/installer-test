@@ -7,13 +7,13 @@ mod process;
 pub use config::{update_jvm_args, get_jvm_args, update_memory_allocation, extract_memory_from_args, update_launcher_profile_memory};
 pub use process::launch_modpack;
 
-// Component modules
+// Component modules - make features_tab public
 mod integrated_features;
-mod features_tab;
+pub mod features_tab;  // Changed from 'mod' to 'pub mod'
 mod performance_tab;
 mod settings_tab;
 
-// Export components (removing unused exports)
+// Export components
 pub use features_tab::{FeaturesTab, clear_session_state};
 pub use performance_tab::PerformanceTab;
 pub use settings_tab::SettingsTab;
