@@ -1122,9 +1122,16 @@ pub fn InstallationManagementPage(
     // State for the current tab
     let mut active_tab = use_signal(|| "features");
 
+    // Clone installation_id BEFORE moving it into use_memo
+    let installation_id_for_delete = installation_id.clone();
+    let installation_id_for_launch = installation_id.clone();
+    let installation_id_for_update = installation_id.clone();
+    let installation_id_for_clear = installation_id.clone();
+    let installation_id_for_memo = installation_id.clone();
+
     // Load the installation data
     let installation_result = use_memo(move || {
-        crate::installation::load_installation(&installation_id)
+        crate::installation::load_installation(&installation_id_for_memo)
     });
 
     // Installation status signals
