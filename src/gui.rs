@@ -564,21 +564,6 @@ rsx! {
                     }
                 }
             }
-
-             if let Some(installation) = latest_installation {
-    if installation.update_available {
-        div { class: "update-notification",
-            "Update available for {installation.name}!"
-            button {
-                class: "update-button",
-                onclick: move |_| {
-                    current_installation_id.set(Some(installation.id.clone()));
-                },
-                "Update Now"
-            }
-        }
-    }
-}
             
             if has_installations {
                 // Regular home page with installations
