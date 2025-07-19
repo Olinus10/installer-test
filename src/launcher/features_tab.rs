@@ -47,7 +47,8 @@ fn set_session_state(installation_id: &str, preset_id: Option<String>, features:
     }
 }
 
-fn clear_session_state(installation_id: &str) {
+// Make this public so it can be called from other modules
+pub fn clear_session_state(installation_id: &str) {
     if let Ok(mut state) = SESSION_STATE.lock() {
         state.remove(installation_id);
     }
@@ -69,20 +70,20 @@ pub fn FeaturesTab(
     let installation_id_for_apply = installation_id.clone();
     let installation_id_for_toggle = installation_id.clone();
     let installation_id_for_session = installation_id.clone();
+    let installation_id_for_effect = installation_id.clone();
     let universal_manifest_for_apply = universal_manifest.clone();
     let universal_manifest_for_toggle = universal_manifest.clone();
     let universal_manifest_for_count = universal_manifest.clone();
     let universal_manifest_for_render = universal_manifest.clone();
     
-    // Track if we've initialized from session state
-    let mut session_initialized = use_signal(|| false);
+    // Track if we've initialized from session state (not mutable)
+    let session_initialized = use_signal(|| false);
     
     // Initialize preset state based on installation OR session state
     use_effect({
-        let installation_id = installation_id.clone();
+        let installation_id = installation_id_for_effect.clone();
         let mut selected_preset = selected_preset.clone();
         let mut enabled_features = enabled_features.clone();
-        let presets_for_effect = presets.clone();
         let mut session_initialized = session_initialized.clone();
         
         move || {
@@ -95,14 +96,18 @@ pub fn FeaturesTab(
             if let Ok(installation) = crate::installation::load_installation(&installation_id) {
                 // Check if we have session state for this installation
                 if let Some(session_state) = get_session_state(&installation_id) {
+                    // Clone the values before using them
+                    let session_features = session_state.enabled_features.clone();
+                    let session_preset = session_state.selected_preset_id.clone();
+                    
                     // Use session state (user's ongoing changes)
                     debug!("Restoring session state for installation {}", installation_id);
-                    enabled_features.set(session_state.enabled_features);
-                    selected_preset.set(session_state.selected_preset_id);
+                    enabled_features.set(session_features.clone());
+                    selected_preset.set(session_preset.clone());
                     
                     debug!("Restored from session - preset: {:?}, features: {:?}", 
-                           session_state.selected_preset_id, 
-                           session_state.enabled_features.len());
+                           session_preset, 
+                           session_features.len());
                 } else {
                     // No session state - use what's actually installed
                     debug!("No session state, using installed state for {}", installation_id);
@@ -140,7 +145,7 @@ pub fn FeaturesTab(
         }
     });
     
-    // Handle changing a preset - updated to also save to session
+    // Handle changing a preset
     let mut apply_preset = move |preset_id: String| {
         debug!("Applying preset: {}", preset_id);
         
@@ -216,9 +221,12 @@ pub fn FeaturesTab(
         }
     };
     
-    // Handle toggling a feature with dependency checking - updated to save to session
+    // Handle toggling a feature with dependency checking
     let toggle_feature = move |feature_id: String| {
+        // Clone values at the start of the closure
         let manifest_for_deps = universal_manifest_for_toggle.clone();
+        let installation_id_local = installation_id_for_toggle.clone();
+        let presets_local = presets_for_toggle.clone();
         
         enabled_features.with_mut(|features| {
             let is_enabling = !features.contains(&feature_id);
@@ -275,79 +283,12 @@ pub fn FeaturesTab(
         // Save to session state
         let current_preset = selected_preset.read().clone();
         let current_features = enabled_features.read().clone();
-        set_session_state(&installation_id_for_toggle, current_preset, current_features);
+        set_session_state(&installation_id_local, current_preset, current_features);
 
         // Update installation with modification tracking
-        if let Ok(mut installation) = crate::installation::load_installation(&installation_id_for_toggle) {
+        if let Ok(mut installation) = crate::installation::load_installation(&installation_id_local) {
             let is_enabled = enabled_features.read().contains(&feature_id);
-            installation.toggle_feature_with_tracking(&feature_id, is_enabled, &presets_for_toggle);
-            installation.enabled_features = enabled_features.read().clone();
-            installation.pending_features = enabled_features.read().clone();
-            installation.modified = true;
-            let _ = installation.save();
-        }
-    };
-    
-    // Handle toggling a feature with dependency checking
-    let toggle_feature = move |feature_id: String| {
-        let manifest_for_deps = universal_manifest_for_toggle.clone();
-        
-        enabled_features.with_mut(|features| {
-            let is_enabling = !features.contains(&feature_id);
-            
-            if is_enabling {
-                if !features.contains(&feature_id) {
-                    features.push(feature_id.clone());
-                }
-                
-                // Check for dependencies and enable them too
-                if let Some(manifest) = &manifest_for_deps {
-                    let all_components: Vec<&ModComponent> = manifest.mods.iter()
-                        .chain(manifest.shaderpacks.iter())
-                        .chain(manifest.resourcepacks.iter())
-                        .collect();
-                    
-                    if let Some(component) = all_components.iter().find(|c| c.id == feature_id) {
-                        if let Some(deps) = &component.dependencies {
-                            for dep_id in deps {
-                                if !features.contains(dep_id) {
-                                    debug!("Auto-enabling dependency: {} for {}", dep_id, feature_id);
-                                    features.push(dep_id.clone());
-                                }
-                            }
-                        }
-                    }
-                }
-            } else {
-                features.retain(|id| id != &feature_id);
-                
-                // Check if any enabled features depend on this one
-                if let Some(manifest) = &manifest_for_deps {
-                    let all_components: Vec<&ModComponent> = manifest.mods.iter()
-                        .chain(manifest.shaderpacks.iter())
-                        .chain(manifest.resourcepacks.iter())
-                        .collect();
-                    
-                    let dependent_features: Vec<String> = all_components.iter()
-                        .filter(|c| {
-                            features.contains(&c.id) && 
-                            c.dependencies.as_ref().map_or(false, |deps| deps.contains(&feature_id))
-                        })
-                        .map(|c| c.id.clone())
-                        .collect();
-                    
-                    for dep_feat in dependent_features {
-                        debug!("Auto-disabling dependent feature: {} (depends on {})", dep_feat, feature_id);
-                        features.retain(|id| id != &dep_feat);
-                    }
-                }
-            }
-        });
-
-        // Update installation with modification tracking and save immediately
-        if let Ok(mut installation) = crate::installation::load_installation(&installation_id_for_toggle) {
-            let is_enabled = enabled_features.read().contains(&feature_id);
-            installation.toggle_feature_with_tracking(&feature_id, is_enabled, &presets_for_toggle);
+            installation.toggle_feature_with_tracking(&feature_id, is_enabled, &presets_local);
             installation.enabled_features = enabled_features.read().clone();
             installation.pending_features = enabled_features.read().clone();
             installation.modified = true;
@@ -363,7 +304,7 @@ pub fn FeaturesTab(
     // Features section expanded state
     let mut features_expanded = use_signal(|| false);
     
-    // Find custom preset for the "Custom Configuration" card - use the separate clone
+    // Find custom preset for the "Custom Configuration" card
     let custom_preset = presets_for_custom_check.iter().find(|p| p.id == "custom");
     
     rsx! {
