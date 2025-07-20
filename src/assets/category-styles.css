@@ -4,11 +4,11 @@
     border-radius: 10px;
     margin-bottom: 15px;
     border-left: 3px solid rgba(7, 60, 23, 0.8);
-    overflow: hidden; /* Keep hidden to maintain proper boundaries */
+    overflow: visible; /* Change this from 'hidden' to 'visible' */
     transition: all 0.3s ease;
     box-shadow: 0 3px 8px rgba(0, 0, 0, 0.2);
+    position: relative; /* Ensure proper stacking context */
 }
-
 
 .feature-category:hover {
     box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
@@ -138,12 +138,6 @@
     transform: translateY(-50%) rotate(180deg);
 }
 
-
-
-.category-content.expanded {
-    max-height: 20000px; /* Large finite height instead of none */
-    overflow: hidden; /* Keep hidden to prevent overlap with other categories */
-}
 
 /* Main features section with expandable wrapper */
 .features-tab {
@@ -425,10 +419,11 @@
 
 .feature-cards-grid {
     display: flex;
-    flex-direction: column;  /* Vertical stacking (above/below) */
+    flex-direction: column;
     gap: 12px;
     padding: 10px 0;
     width: 100%;
+    min-height: 0; /* Add this line - important for CSS Grid */
 }
 
 /* Ensure feature categories container has proper flow */
@@ -439,13 +434,3 @@
     /* Remove overflow visible as it's not needed here */
 }
 
-.feature-category {
-    background-color: rgba(0, 0, 0, 0.3);
-    border-radius: 10px;
-    margin-bottom: 15px;
-    border-left: 3px solid rgba(7, 60, 23, 0.8);
-    /* Keep overflow visible only on the main category container */
-    transition: all 0.3s ease;
-    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.2);
-    position: relative; /* Ensure proper stacking context */
-}
