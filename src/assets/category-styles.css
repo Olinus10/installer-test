@@ -138,12 +138,7 @@
     transform: translateY(-50%) rotate(180deg);
 }
 
-/* Category content animation */
-.category-content {
-    overflow: hidden;
-    max-height: 0;
-    transition: max-height 0.5s ease;
-}
+
 
 .category-content.expanded {
     max-height: 20000px; /* Large finite height instead of none */
@@ -396,27 +391,6 @@
     color: white;
 }
 
-/* Responsive design for smaller screens */
-@media (max-width: 768px) {
-    .category-header {
-        flex-direction: column;
-        gap: 10px;
-        align-items: flex-start;
-    }
-    
-    .category-toggle-all {
-        align-self: flex-end;
-    }
-    
-    .feature-cards-grid {
-        grid-template-columns: 1fr;
-    }
-    
-    .expand-collapse-button {
-        width: 100%;
-    }
-}
-
 /* No search results message */
 .no-search-results {
     background-color: rgba(0, 0, 0, 0.3);
@@ -434,18 +408,27 @@
 
 /* FIX 1: Category overflow - Proper height expansion that pushes content down */
 .category-content {
-    overflow: hidden; /* Keep hidden for proper animation */
-    max-height: 0; /* Start collapsed */
-    transition: max-height 0.5s ease-in-out;
-    opacity: 0;
-    padding: 0; /* No padding when collapsed */
+    display: grid;
+    grid-template-rows: 0fr;  /* Collapsed */
+    transition: grid-template-rows 0.3s ease;
+    overflow: hidden;
 }
 
+
 .category-content.expanded {
-    max-height: 5000px; /* Large but finite value for smooth animation */
-    overflow: visible; /* Allow content to be visible when expanded */
-    opacity: 1;
-    padding: 10px 0; /* Add padding when expanded */
+    grid-template-rows: 1fr;  /* Expanded */
+}
+
+.category-content > div {
+    overflow: hidden;
+}
+
+.feature-cards-grid {
+    display: flex;
+    flex-direction: column;  /* Vertical stacking (above/below) */
+    gap: 12px;
+    padding: 10px 0;
+    width: 100%;
 }
 
 /* Ensure feature categories container has proper flow */
