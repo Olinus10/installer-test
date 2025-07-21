@@ -42,6 +42,7 @@ use std::{
 use std::boxed::Box;
 use std::pin::Pin;
 use futures::Future;
+use lazy_static::lazy_static;
 
 mod gui;
 mod launcher;
@@ -71,6 +72,123 @@ const REPO: &str = "Wynncraft-Overhaul/majestic-overhaul/";
 const DEFAULT_UNIVERSAL_URL: &str = "https://raw.githubusercontent.com/Wynncraft-Overhaul/majestic-overhaul/master/universal.json";
 const DEFAULT_PRESETS_URL: &str = "https://raw.githubusercontent.com/Wynncraft-Overhaul/majestic-overhaul/master/presets.json";
 const DEFAULT_CHANGELOG_URL: &str = "https://raw.githubusercontent.com/Wynncraft-Overhaul/majestic-overhaul/master/changelog.json";
+
+fn validate_safe_path(base: &Path, user_path: &str) -> Result<PathBuf, String> {
+    // Reject obvious traversal attempts
+    if user_path.contains("..") || user_path.starts_with('/') || user_path.contains('\0') {
+        return Err("Invalid path detected".to_string());
+    }
+    
+    let target = base.join(user_path);
+    
+    // Canonicalize and verify it's still within base directory
+    match target.canonicalize() {
+        Ok(canonical) => {
+            match base.canonicalize() {
+                Ok(canonical_base) => {
+                    if canonical.starts_with(canonical_base) {
+                        Ok(canonical)
+                    } else {
+                        Err("Path traversal attempt detected".to_string())
+                    }
+                },
+                Err(_) => Err("Invalid base directory".to_string())
+            }
+        },
+        Err(_) => {
+            // If canonicalize fails, do a basic check
+            if target.starts_with(base) {
+                Ok(target)
+            } else {
+                Err("Invalid path".to_string())
+            }
+        }
+    }
+}
+
+pub struct TrackingClient {
+    http_client: CachedHttpClient,
+    project_id: String,
+    enabled: bool,
+}
+
+impl TrackingClient {
+    pub fn new(project_id: String) -> Self {
+        Self {
+            http_client: CachedHttpClient::new(),
+            project_id,
+            enabled: true,
+        }
+    }
+
+    pub async fn track_event(&self, action: &str, data_source_id: &str, additional_data: serde_json::Value) -> Result<(), String> {
+        if !self.enabled {
+            debug!("Tracking disabled, skipping event: {}", action);
+            return Ok(());
+        }
+
+        let payload = serde_json::json!({
+            "projectId": self.project_id,
+            "dataSourceId": data_source_id,
+            "userAction": action,
+            "additionalData": additional_data,
+            "timestamp": chrono::Utc::now().to_rfc3339(),
+            "version": env!("CARGO_PKG_VERSION"),
+            "platform": std::env::consts::OS
+        });
+
+        let request = isahc::Request::post("https://tracking.commander07.workers.dev/track")
+            .header("Content-Type", "application/json")
+            .header("User-Agent", format!("wynncraft-overhaul-installer/{}", env!("CARGO_PKG_VERSION")))
+            .body(payload.to_string())
+            .map_err(|e| format!("Failed to create tracking request: {}", e))?;
+
+        match tokio::time::timeout(
+            std::time::Duration::from_secs(5),
+            self.http_client.http_client.send_async(request)
+        ).await {
+            Ok(Ok(response)) => {
+                if response.status().is_success() {
+                    debug!("Successfully tracked event: {}", action);
+                } else {
+                    warn!("Tracking server returned status: {}", response.status());
+                }
+                Ok(())
+            },
+            Ok(Err(e)) => {
+                warn!("Failed to send tracking event: {}", e);
+                Ok(()) // Don't fail the main operation
+            },
+            Err(_) => {
+                warn!("Tracking request timed out");
+                Ok(()) // Don't fail the main operation
+            }
+        }
+    }
+}
+
+// Global tracking client
+lazy_static! {
+    static ref TRACKING_CLIENT: std::sync::Mutex<Option<TrackingClient>> = 
+        std::sync::Mutex::new(None);
+}
+
+pub fn init_tracking() {
+    let client = TrackingClient::new("55db8403a4f24f3aa5afd33fd1962888".to_string());
+    if let Ok(mut tracker) = TRACKING_CLIENT.lock() {
+        *tracker = Some(client);
+    }
+}
+
+pub async fn track_event(action: &str, data_source_id: &str, additional_data: serde_json::Value) {
+    if let Ok(tracker) = TRACKING_CLIENT.lock() {
+        if let Some(client) = tracker.as_ref() {
+            if let Err(e) = client.track_event(action, data_source_id, additional_data).await {
+                debug!("Tracking failed: {}", e);
+            }
+        }
+    }
+}
 
 #[derive(Debug, Clone, PartialEq)]
 struct PackName {
@@ -1809,7 +1927,8 @@ async fn install<F: FnMut() + Clone>(installer_profile: &InstallerProfile, mut p
                 inc.location
             );
             
-            let target_path = modpack_root.join(&inc.location);
+            let target_path = validate_safe_path(modpack_root, &inc.location)
+    .map_err(|e| format!("Security error for include {}: {}", inc.location, e))?;
             
             let is_file = inc.location.ends_with(".zip") || 
                          inc.location.ends_with(".txt") || 
@@ -2309,6 +2428,9 @@ fn main() {
         let backtrace = Backtrace::force_capture();
         error!("The installer panicked! This is a bug.\n{info:#?}\nPayload: {payload}\nBacktrace: {backtrace}");
     }));
+    
+    init_tracking();
+    
     info!("Installer version: {}", env!("CARGO_PKG_VERSION"));
     let platform_info = PlatformInfo::new().expect("Unable to determine platform info");
     debug!("System information:\n\tSysname: {}\n\tRelease: {}\n\tVersion: {}\n\tArchitecture: {}\n\tOsname: {}",platform_info.sysname().to_string_lossy(), platform_info.release().to_string_lossy(), platform_info.version().to_string_lossy(), platform_info.machine().to_string_lossy(), platform_info.osname().to_string_lossy());
