@@ -3,8 +3,62 @@ use crate::installation::{Installation, delete_installation};
 use log::{debug, error};
 use std::path::PathBuf;
 
+// Add this import for backup functionality
+use crate::backup::{BackupConfig, BackupType, BackupMetadata, BackupProgress};
+
 #[component]
 pub fn SettingsTab(
+    installation: Installation,
+    installation_id: String,
+    ondelete: EventHandler<()>,
+    onupdate: EventHandler<Installation>,
+) -> Element {
+    let mut active_section = use_signal(|| "general");
+    
+    rsx! {
+        div { class: "enhanced-settings-tab",
+            // Section navigation
+            div { class: "settings-navigation",
+                button {
+                    class: if *active_section.read() == "general" { "nav-button active" } else { "nav-button" },
+                    onclick: move |_| active_section.set("general"),
+                    "General"
+                }
+                
+                button {
+                    class: if *active_section.read() == "backup" { "nav-button active" } else { "nav-button" },
+                    onclick: move |_| active_section.set("backup"),
+                    "Backup & Restore"
+                }
+            }
+            
+            // Section content
+            div { class: "settings-content",
+                match *active_section.read() {
+                    "general" => rsx! {
+                        GeneralSettingsSection {
+                            installation: installation.clone(),
+                            installation_id: installation_id.clone(),
+                            ondelete: ondelete.clone(),
+                            onupdate: onupdate.clone()
+                        }
+                    },
+                    "backup" => rsx! {
+                        BackupSection {
+                            installation: installation.clone(),
+                            installation_id: installation_id.clone(),
+                            onupdate: onupdate.clone()
+                        }
+                    },
+                    _ => rsx! { div { "Unknown section" } }
+                }
+            }
+        }
+    }
+}
+
+#[component]
+fn GeneralSettingsSection(
     installation: Installation,
     installation_id: String,
     ondelete: EventHandler<()>,
@@ -513,6 +567,31 @@ div { class: "character-counter",
                         }
                     }
                 }
+            }
+        }
+    }
+}
+
+// Simple backup section placeholder - you'll replace this with the full BackupTab later
+#[component]
+fn BackupSection(
+    installation: Installation,
+    installation_id: String,
+    onupdate: EventHandler<Installation>,
+) -> Element {
+    rsx! {
+        div { class: "backup-section-placeholder",
+            h2 { "Backup & Restore" }
+            p { "Backup functionality will be added here." }
+            p { "Installation: {installation.name}" }
+            
+            // Temporary backup button for testing
+            button {
+                class: "temp-backup-button",
+                onclick: move |_| {
+                    debug!("Backup feature coming soon for: {}", installation_id);
+                },
+                "Create Backup (Coming Soon)"
             }
         }
     }
