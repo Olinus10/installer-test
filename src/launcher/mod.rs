@@ -9,17 +9,15 @@ pub use process::launch_modpack;
 
 // Component modules - make features_tab public
 mod integrated_features;
-pub mod features_tab;  // Changed from 'mod' to 'pub mod'
+pub mod features_tab;
 mod performance_tab;
 mod settings_tab;
-mod backup_tab;
+pub mod backup_tab;
 
-pub use backup_tab::*;
-
-// Export components
 pub use features_tab::{FeaturesTab, clear_session_state};
 pub use performance_tab::PerformanceTab;
 pub use settings_tab::SettingsTab;
+pub use backup_tab::{BackupTab, EnhancedSettingsTab};
 
 // Define public feature types needed by other modules
 pub struct FeatureCard;
