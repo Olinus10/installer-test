@@ -14,7 +14,7 @@ pub fn SettingsTab(
     
     rsx! {
         div { class: "enhanced-settings-tab",
-            // Section navigation
+            // Section navigation tabs
             div { class: "settings-navigation",
                 button {
                     class: if *active_section.read() == "general" { "nav-button active" } else { "nav-button" },
@@ -25,7 +25,7 @@ pub fn SettingsTab(
                 button {
                     class: if *active_section.read() == "backup" { "nav-button active" } else { "nav-button" },
                     onclick: move |_| active_section.set("backup"),
-                    "Backup & Restore"
+                    "Backup & Restore"  // ← NEW TAB
                 }
             }
             
@@ -41,7 +41,8 @@ pub fn SettingsTab(
                         }
                     },
                     "backup" => rsx! {
-                        BackupSection {
+                        // ← THIS IS WHERE THE BACKUP TAB GOES
+                        crate::launcher::backup_tab::BackupTab {
                             installation: installation.clone(),
                             installation_id: installation_id.clone(),
                             onupdate: onupdate.clone()
