@@ -12,6 +12,9 @@ mod integrated_features;
 pub mod features_tab;  // Changed from 'mod' to 'pub mod'
 mod performance_tab;
 mod settings_tab;
+mod backup_tab;
+
+pub use backup_tab::*;
 
 // Export components
 pub use features_tab::{FeaturesTab, clear_session_state};
