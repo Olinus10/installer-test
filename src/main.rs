@@ -47,10 +47,10 @@ use lazy_static::lazy_static;
 mod gui;
 mod launcher;
 mod changelog;
-
 mod installation;
 mod preset;
 mod universal;
+mod backup;
 
 // Update your re-exports
 pub use launcher::{launch_modpack, update_jvm_args, get_jvm_args};
@@ -58,8 +58,8 @@ pub use installation::{Installation, get_active_installation, load_all_installat
 pub use preset::{Preset, load_presets};
 pub use universal::{UniversalManifest, load_universal_manifest, ModComponent};
 pub use universal::{ManifestError, ManifestErrorType};
+pub use backup::{BackupConfig, BackupType, BackupMetadata, BackupProgress, RollbackManager, RollbackOption, format_bytes};
 
-// Remove authentication related code
 
 const CURRENT_MANIFEST_VERSION: i32 = 3;
 const GH_API: &str = "https://api.github.com/repos/";
