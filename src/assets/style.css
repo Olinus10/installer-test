@@ -3897,3 +3897,171 @@ a:hover {
 .features-section {
     overflow: visible;
 }
+
+
+const BACKUP_STYLES: &str = r#"
+.backup-tab {
+    padding: 20px;
+    max-width: 1000px;
+}
+
+.backup-section {
+    margin-bottom: 30px;
+    padding: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    background: rgba(0, 0, 0, 0.2);
+}
+
+.create-backup {
+    background: linear-gradient(135deg, rgba(0, 100, 50, 0.1), rgba(0, 150, 75, 0.1));
+}
+
+.backup-description-input {
+    margin-bottom: 15px;
+}
+
+.backup-description-input input {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+    background: rgba(0, 0, 0, 0.3);
+    color: white;
+}
+
+.backup-size-estimate {
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 0.9em;
+    margin-bottom: 15px;
+}
+
+.backup-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.create-backup-button, .configure-backup-button {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+.create-backup-button {
+    background: linear-gradient(135deg, #4CAF50, #45a049);
+    color: white;
+}
+
+.configure-backup-button {
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.backup-card {
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 10px;
+    background: rgba(0, 0, 0, 0.2);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.backup-card:hover {
+    background: rgba(0, 0, 0, 0.3);
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+.backup-card.selected {
+    border-color: #4CAF50;
+    background: rgba(76, 175, 80, 0.1);
+}
+
+.backup-type-badge {
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.7em;
+    text-transform: uppercase;
+    font-weight: bold;
+}
+
+.backup-type-badge.manual {
+    background: #2196F3;
+    color: white;
+}
+
+.backup-type-badge.pre-update {
+    background: #FF9800;
+    color: white;
+}
+
+.backup-progress {
+    margin-top: 20px;
+    padding: 15px;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 8px;
+}
+
+.progress-bar-container {
+    width: 100%;
+    height: 8px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+    overflow: hidden;
+    margin: 10px 0;
+}
+
+.progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg, #4CAF50, #45a049);
+    transition: width 0.3s ease;
+}
+
+.rollback-option-card {
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 6px;
+    padding: 12px;
+    margin-bottom: 8px;
+    background: rgba(0, 0, 0, 0.2);
+}
+
+.rollback-option-card.recommended {
+    border-color: #4CAF50;
+    background: rgba(76, 175, 80, 0.1);
+}
+
+.recommended-badge {
+    background: #4CAF50;
+    color: white;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.7em;
+    font-weight: bold;
+}
+
+.emergency-rollback {
+    border-color: #f44336;
+    background: rgba(244, 67, 54, 0.1);
+}
+
+.emergency-button {
+    background: #f44336;
+    color: white;
+    border: none;
+    padding: 10px 15px;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-right: 10px;
+}
+
+.success-notification {
+    background: rgba(76, 175, 80, 0.2);
+    border: 1px solid #4CAF50;
+    border-radius: 4px;
+    padding: 15px;
+    margin-bottom: 20px;
+    color: #4CAF50;
+}
