@@ -1689,52 +1689,53 @@ rsx! {
                     }
                     
                     // Tab content
-                    match *active_tab.read() {
-                        "features" => {
-                            rsx! {
-                                FeaturesTab {
-                                    universal_manifest: universal_manifest.read().clone().flatten(),
-                                    presets: presets.read().clone().unwrap_or_default(),
-                                    enabled_features: enabled_features,
-                                    selected_preset: selected_preset,
-                                    filter_text: filter_text,
-                                    installation_id: installation.id.clone(),
-                                }
-                            }
-                        },
-                        "performance" => {
-                            rsx! {
-                                PerformanceTab {
-                                    memory_allocation: memory_allocation,
-                                    java_args: java_args,
-                                    installation_id: installation.id.clone()
-                                }
-                            }
-                        },
-                        "settings" => {
-                            rsx! {
-                                SettingsTab {
-                                    installation: installation.clone(),
-                                    installation_id: installation_id_for_delete.clone(),
-                                    ondelete: move |_| {
-                                        let id_to_delete = installation_id_for_delete.clone();
-                                        installations.with_mut(|list| {
-                                            list.retain(|inst| inst.id != id_to_delete);
-                                        });
-                                        onback.call(());
-                                    },
-                                    onupdate: move |updated_installation: Installation| {
-                                        installations.with_mut(|list| {
-                                            if let Some(index) = list.iter().position(|i| i.id == updated_installation.id) {
-                                                list[index] = updated_installation.clone();
-                                            }
-                                        });
-                                    }
-                                }
-                            }
-                        },
-                        _ => rsx! { div { "Unknown tab selected" } }
-                    }
+match *active_tab.read() {
+    "features" => {
+        rsx! {
+            FeaturesTab {
+                universal_manifest: universal_manifest.read().clone().flatten(),
+                presets: presets.read().clone().unwrap_or_default(),
+                enabled_features: enabled_features,
+                selected_preset: selected_preset,
+                filter_text: filter_text,
+                installation_id: installation.id.clone(),
+            }
+        }
+    },
+    "performance" => {
+        rsx! {
+            PerformanceTab {
+                memory_allocation: memory_allocation,
+                java_args: java_args,
+                installation_id: installation.id.clone()
+            }
+        }
+    },
+    "settings" => {
+        rsx! {
+            // ← REPLACE the existing SettingsTab call with this updated one:
+            crate::launcher::SettingsTab {
+                installation: installation.clone(),
+                installation_id: installation_id_for_delete.clone(),
+                ondelete: move |_| {
+                    let id_to_delete = installation_id_for_delete.clone();
+                    installations.with_mut(|list| {
+                        list.retain(|inst| inst.id != id_to_delete);
+                    });
+                    onback.call(());
+                },
+                onupdate: move |updated_installation: Installation| {
+                    installations.with_mut(|list| {
+                        if let Some(index) = list.iter().position(|i| i.id == updated_installation.id) {
+                            list[index] = updated_installation.clone();
+                        }
+                    });
+                }
+            }
+        }
+    },
+    _ => rsx! { div { "Unknown tab selected" } }
+}
                 }
                 
                 // Modern fixed footer
