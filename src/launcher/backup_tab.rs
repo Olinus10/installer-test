@@ -832,7 +832,7 @@ fn AdvancedSettingsSection(
                 }
             }
             
-            // Emergency Rollback Section
+            // Advanced Rollback Section
             div { class: "advanced-section emergency-rollback",
                 h4 { "Emergency Recovery" }
                 p { "Use these options if your installation is broken or not working properly." }
@@ -863,13 +863,13 @@ fn AdvancedSettingsSection(
                         
                         for option in rollback_options.read().iter() {
                             {
-                                let option_id = option.backup_id.clone();
+                                let option_clone = option.clone();
                                 let rollback_manager = rollback_manager.clone();
                                 let onupdate = onupdate.clone();
                                 
                                 rsx! {
                                     RollbackOptionCard {
-                                        option: option.clone(),
+                                        option: option_clone,
                                         onrollback: move |backup_id: String| {
                                             if let Some(mut manager) = rollback_manager.read().clone() {
                                                 spawn(async move {
@@ -877,8 +877,8 @@ fn AdvancedSettingsSection(
                                                         Ok(_) => {
                                                             onupdate.call(manager.installation);
                                                         },
-                                                        Err(e) => {
-                                                            // Handle error
+                                                        Err(_e) => {
+                                                            // Handle error - could set an error state here
                                                         }
                                                     }
                                                 });
