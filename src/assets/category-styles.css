@@ -400,37 +400,89 @@
 
 
 
-/* FIX 1: Category overflow - Proper height expansion that pushes content down */
-.category-content {
-    display: grid;
-    grid-template-rows: 0fr;  /* Collapsed */
-    transition: grid-template-rows 0.3s ease;
-    overflow: hidden;
-}
+/* REPLACE the CSS Grid approach with this more reliable method */
 
+/* Remove the grid approach entirely and use this instead: */
+.category-content {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.4s ease-out, padding 0.4s ease-out;
+    padding: 0;
+}
 
 .category-content.expanded {
-    grid-template-rows: 1fr;  /* Expanded */
+    max-height: none !important; /* Force no height limit */
+    overflow: visible !important; /* Allow full expansion */
+    padding: 10px 0;
+    transition: padding 0.4s ease-out;
 }
 
-.category-content > div {
+/* Alternative approach using height auto with JavaScript trigger */
+.category-content-alt {
+    height: 0;
     overflow: hidden;
+    transition: height 0.3s ease;
+    padding: 0;
 }
 
+.category-content-alt.expanded {
+    height: auto;
+    overflow: visible;
+    padding: 10px 0;
+}
+
+/* Ensure no constraints on the feature grid */
 .feature-cards-grid {
     display: flex;
     flex-direction: column;
     gap: 12px;
-    padding: 10px 0;
+    padding: 0; /* Remove padding here since parent handles it */
     width: 100%;
-    min-height: 0; /* Add this line - important for CSS Grid */
+    /* Remove all height constraints */
+    height: auto;
+    min-height: auto;
+    max-height: none;
 }
 
-/* Ensure feature categories container has proper flow */
+/* Make sure parent containers don't limit height */
 .feature-categories {
     display: flex;
     flex-direction: column;
     gap: 15px;
-    /* Remove overflow visible as it's not needed here */
+    height: auto;
+    min-height: auto;
+    max-height: none;
+    overflow: visible;
+}
+
+.feature-category {
+    background-color: rgba(0, 0, 0, 0.3);
+    border-radius: 10px;
+    margin-bottom: 15px;
+    border-left: 3px solid rgba(7, 60, 23, 0.8);
+    overflow: visible;
+    transition: all 0.3s ease;
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.2);
+    position: relative;
+    /* Critical: Remove all height constraints */
+    height: auto;
+    min-height: auto;
+    max-height: none;
+}
+
+/* Also check the parent wrapper */
+.optional-features-content {
+    overflow: visible; /* Changed from hidden */
+    max-height: none; /* Remove constraint when expanded */
+    transition: opacity 0.3s ease, padding 0.3s ease;
+    opacity: 0;
+    padding: 0;
+}
+
+.optional-features-content.expanded {
+    max-height: none; /* No height limit */
+    padding: 20px 0;
+    opacity: 1;
+    overflow: visible; /* Allow natural expansion */
 }
 
