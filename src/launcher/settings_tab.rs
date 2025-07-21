@@ -3,9 +3,6 @@ use crate::installation::{Installation, delete_installation};
 use log::{debug, error};
 use std::path::PathBuf;
 
-// Add this import for backup functionality
-use crate::backup::{BackupConfig, BackupType, BackupMetadata, BackupProgress};
-
 #[component]
 pub fn SettingsTab(
     installation: Installation,
@@ -579,20 +576,12 @@ fn BackupSection(
     installation_id: String,
     onupdate: EventHandler<Installation>,
 ) -> Element {
+    // Use the full BackupTab component
     rsx! {
-        div { class: "backup-section-placeholder",
-            h2 { "Backup & Restore" }
-            p { "Backup functionality will be added here." }
-            p { "Installation: {installation.name}" }
-            
-            // Temporary backup button for testing
-            button {
-                class: "temp-backup-button",
-                onclick: move |_| {
-                    debug!("Backup feature coming soon for: {}", installation_id);
-                },
-                "Create Backup (Coming Soon)"
-            }
+        crate::launcher::backup_tab::BackupTab {
+            installation: installation,
+            installation_id: installation_id,
+            onupdate: onupdate
         }
     }
 }
