@@ -1711,29 +1711,29 @@ match *active_tab.read() {
             }
         }
     },
-    "settings" => {
-        rsx! {
-            // ← REPLACE the existing SettingsTab call with this updated one:
-            crate::launcher::SettingsTab {
-                installation: installation.clone(),
-                installation_id: installation_id_for_delete.clone(),
-                ondelete: move |_| {
-                    let id_to_delete = installation_id_for_delete.clone();
-                    installations.with_mut(|list| {
-                        list.retain(|inst| inst.id != id_to_delete);
-                    });
-                    onback.call(());
-                },
-                onupdate: move |updated_installation: Installation| {
-                    installations.with_mut(|list| {
-                        if let Some(index) = list.iter().position(|i| i.id == updated_installation.id) {
-                            list[index] = updated_installation.clone();
-                        }
-                    });
-                }
+"settings" => {
+    rsx! {
+        // Use the regular SettingsTab instead of EnhancedSettingsTab
+        crate::launcher::SettingsTab {
+            installation: installation.clone(),
+            installation_id: installation_id_for_delete.clone(),
+            ondelete: move |_| {
+                let id_to_delete = installation_id_for_delete.clone();
+                installations.with_mut(|list| {
+                    list.retain(|inst| inst.id != id_to_delete);
+                });
+                onback.call(());
+            },
+            onupdate: move |updated_installation: Installation| {
+                installations.with_mut(|list| {
+                    if let Some(index) = list.iter().position(|i| i.id == updated_installation.id) {
+                        list[index] = updated_installation.clone();
+                    }
+                });
             }
         }
-    },
+    }
+},
     _ => rsx! { div { "Unknown tab selected" } }
 }
                 }
