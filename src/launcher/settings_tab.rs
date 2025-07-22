@@ -1,5 +1,6 @@
 use dioxus::prelude::*;
 use crate::installation::{Installation, delete_installation};
+use crate::backup::{BackupConfig, BackupType, BackupMetadata, BackupProgress};
 use log::{debug, error};
 use std::path::PathBuf;
 
@@ -10,46 +11,16 @@ pub fn SettingsTab(
     ondelete: EventHandler<()>,
     onupdate: EventHandler<Installation>,
 ) -> Element {
-    let mut active_section = use_signal(|| "general");
-    
+    // Remove the tab navigation - everything goes in one page now
     rsx! {
-        div { class: "enhanced-settings-tab",
-            // Section navigation tabs
-            div { class: "settings-navigation",
-                button {
-                    class: if *active_section.read() == "general" { "nav-button active" } else { "nav-button" },
-                    onclick: move |_| active_section.set("general"),
-                    "General"
-                }
-                
-                button {
-                    class: if *active_section.read() == "backup" { "nav-button active" } else { "nav-button" },
-                    onclick: move |_| active_section.set("backup"),
-                    "Backup & Restore"  // ← NEW TAB
-                }
-            }
+        div { class: "settings-tab",
+            h2 { "Installation Settings" }
             
-            // Section content
-            div { class: "settings-content",
-                match *active_section.read() {
-                    "general" => rsx! {
-                        GeneralSettingsSection {
-                            installation: installation.clone(),
-                            installation_id: installation_id.clone(),
-                            ondelete: ondelete.clone(),
-                            onupdate: onupdate.clone()
-                        }
-                    },
-                    "backup" => rsx! {
-                        // ← THIS IS WHERE THE BACKUP TAB GOES
-                        crate::launcher::backup_tab::BackupTab {
-                            installation: installation.clone(),
-                            installation_id: installation_id.clone(),
-                            onupdate: onupdate.clone()
-                        }
-                    },
-                    _ => rsx! { div { "Unknown section" } }
-                }
+            GeneralSettingsSection {
+                installation: installation.clone(),
+                installation_id: installation_id.clone(),
+                ondelete: ondelete.clone(),
+                onupdate: onupdate.clone()
             }
         }
     }
@@ -67,7 +38,6 @@ fn GeneralSettingsSection(
     let installation_name = installation.name.clone();
     let installation_id_for_delete = installation_id.clone();
     let installation_id_for_cache = installation_id.clone();
-    let installation_id_for_repair = installation_id.clone();
     
     // Clone values needed in the UI (outside of closures)
     let path_for_ui = installation.installation_path.clone();
@@ -92,112 +62,109 @@ fn GeneralSettingsSection(
     let mut operation_error = use_signal(|| Option::<String>::None);
     let mut is_operating = use_signal(|| false);
     
-    // Open folder function - enhanced with debugging and path checks
-    let installation_path_for_folder = installation.installation_path.clone();
-   let open_folder = move |_| {
-    let mut path = installation_path_for_folder.clone();
+    // Backup-related state
+    let mut show_backup_section = use_signal(|| false);
+    let mut backup_config = use_signal(|| BackupConfig::default());
+    let mut backup_description = use_signal(|| String::new());
+    let mut available_backups = use_signal(|| Vec::<BackupMetadata>::new());
+    let mut selected_backup = use_signal(|| Option::<String>::None);
+    let mut is_creating_backup = use_signal(|| false);
+    let mut backup_progress = use_signal(|| None::<BackupProgress>);
+    let mut backup_success = use_signal(|| Option::<String>::None);
+    let mut show_backup_config = use_signal(|| false);
+    let mut show_restore_confirm = use_signal(|| false);
     
-    // Add extensive debugging for path troubleshooting
-    debug!("Opening installation folder: {:?}", path);
-    debug!("Path exists: {}", path.exists());
-    debug!("Path is directory: {}", path.is_dir());
-    debug!("Path parent: {:?}", path.parent());
-    
-    // Normalize the path by converting to a canonical path
-    // This ensures proper path separators for the platform
-    match path.canonicalize() {
-        Ok(canonical) => {
-            debug!("Canonical path: {:?}", canonical);
-            path = canonical;
-        },
-        Err(e) => {
-            debug!("Failed to canonicalize path: {}", e);
-            // Continue with the original path
+    // Load available backups when backup section is shown
+    use_effect({
+        let installation_clone = installation.clone();
+        let mut available_backups = available_backups.clone();
+        let show_backup_section = show_backup_section.clone();
+        
+        move || {
+            if *show_backup_section.read() {
+                match installation_clone.list_available_backups() {
+                    Ok(backups) => {
+                        debug!("Loaded {} backups for installation", backups.len());
+                        available_backups.set(backups);
+                    },
+                    Err(e) => {
+                        error!("Failed to load backups: {}", e);
+                    }
+                }
+            }
         }
-    }
+    });
     
-    debug!("Final path to open: {:?}", path);
-    
-    // Check if path exists
-    if !path.exists() {
-        debug!("Installation path does not exist: {:?}", path);
-        operation_error.set(Some(format!("Folder does not exist: {:?}", path)));
-        return;
-    }
-    
-    // Launch appropriate command based on OS
-    #[cfg(target_os = "windows")]
-    let result = {
-        // Convert to a proper Windows-style path string
-        let path_str = path.to_string_lossy().replace("/", "\\");
-        debug!("Windows path string: {}", path_str);
+    // Open folder function
+    let installation_path_for_folder = installation.installation_path.clone();
+    let open_folder = move |_| {
+        let mut path = installation_path_for_folder.clone();
         
-        std::process::Command::new("explorer")
-            .arg(&path_str)
-            .spawn()
+        debug!("Opening installation folder: {:?}", path);
+        
+        // Launch appropriate command based on OS
+        #[cfg(target_os = "windows")]
+        let result = {
+            let path_str = path.to_string_lossy().replace("/", "\\");
+            std::process::Command::new("explorer")
+                .arg(&path_str)
+                .spawn()
+        };
+        
+        #[cfg(target_os = "macos")]
+        let result = std::process::Command::new("open")
+            .arg(path)
+            .spawn();
+            
+        #[cfg(target_os = "linux")]
+        let result = std::process::Command::new("xdg-open")
+            .arg(path)
+            .spawn();
+            
+        #[cfg(not(any(target_os = "windows", target_os = "macos", target_os = "linux")))]
+        let result = Err(std::io::Error::new(std::io::ErrorKind::Other, "Unsupported platform"));
+        
+        if let Err(e) = result {
+            debug!("Failed to open installation folder: {}", e);
+            operation_error.set(Some(format!("Failed to open folder: {}", e)));
+        }
     };
-    
-    #[cfg(target_os = "macos")]
-    let result = std::process::Command::new("open")
-        .arg(path)
-        .spawn();
-        
-    #[cfg(target_os = "linux")]
-    let result = std::process::Command::new("xdg-open")
-        .arg(path)
-        .spawn();
-        
-    #[cfg(not(any(target_os = "windows", target_os = "macos", target_os = "linux")))]
-    let result = Err(std::io::Error::new(std::io::ErrorKind::Other, "Unsupported platform"));
-    
-    // Handle command result
-    if let Err(e) = result {
-        debug!("Failed to open installation folder: {}", e);
-        operation_error.set(Some(format!("Failed to open folder: {}", e)));
-    } else {
-        debug!("Successfully opened folder");
-    }
-};
     
     // Handle rename
     let installation_for_rename = installation.clone();
-let handle_rename = move |_| {
-    let mut installation_copy = installation_for_rename.clone();
-    let new_name_trimmed = new_name.read().trim().to_string();
-    installation_copy.name = new_name_trimmed.clone();
-    
-    // Validate name length (add character limit check)
-    const MAX_NAME_LENGTH: usize = 15;
-    if new_name_trimmed.is_empty() {
-        rename_error.set(Some("Installation name cannot be empty".to_string()));
-        return;
-    }
-    
-    if new_name_trimmed.len() > MAX_NAME_LENGTH {
-        rename_error.set(Some(format!("Installation name cannot exceed {} characters.", MAX_NAME_LENGTH)));
-        return;
-    }
-    
-    is_operating.set(true);
-    
-    // Save changes
-    match installation_copy.save() {
-        Ok(_) => {
-            debug!("Renamed installation to: {}", installation_copy.name);
-            show_rename_dialog.set(false);
-            is_operating.set(false);
-            rename_error.set(None); // Clear any previous errors
-            // Call the update handler with the updated installation
-            onupdate.call(installation_copy);
-        },
-        Err(e) => {
-            debug!("Failed to rename installation: {}", e);
-            rename_error.set(Some(format!("Failed to rename installation: {}", e)));
-            is_operating.set(false);
+    let handle_rename = move |_| {
+        let mut installation_copy = installation_for_rename.clone();
+        let new_name_trimmed = new_name.read().trim().to_string();
+        installation_copy.name = new_name_trimmed.clone();
+        
+        const MAX_NAME_LENGTH: usize = 25;
+        if new_name_trimmed.is_empty() {
+            rename_error.set(Some("Installation name cannot be empty".to_string()));
+            return;
         }
-    }
-};
-
+        
+        if new_name_trimmed.len() > MAX_NAME_LENGTH {
+            rename_error.set(Some(format!("Installation name cannot exceed {} characters.", MAX_NAME_LENGTH)));
+            return;
+        }
+        
+        is_operating.set(true);
+        
+        match installation_copy.save() {
+            Ok(_) => {
+                debug!("Renamed installation to: {}", installation_copy.name);
+                show_rename_dialog.set(false);
+                is_operating.set(false);
+                rename_error.set(None);
+                onupdate.call(installation_copy);
+            },
+            Err(e) => {
+                debug!("Failed to rename installation: {}", e);
+                rename_error.set(Some(format!("Failed to rename installation: {}", e)));
+                is_operating.set(false);
+            }
+        }
+    };
     
     // Handle delete
     let handle_delete = move |_| {
@@ -212,7 +179,6 @@ let handle_rename = move |_| {
             match crate::installation::delete_installation(&id_to_delete) {
                 Ok(_) => {
                     debug!("Successfully deleted installation: {}", id_to_delete);
-                    // Call the ondelete handler to navigate back to home
                     delete_handler.call(());
                 },
                 Err(e) => {
@@ -224,10 +190,72 @@ let handle_rename = move |_| {
         });
     };
     
+    // Backup functions
+    let create_backup = {
+        let installation_clone = installation.clone();
+        let mut is_creating_backup = is_creating_backup.clone();
+        let mut backup_progress = backup_progress.clone();
+        let mut operation_error = operation_error.clone();
+        let mut backup_success = backup_success.clone();
+        let backup_config = backup_config.clone();
+        let backup_description = backup_description.clone();
+        let mut available_backups = available_backups.clone();
+        
+        move |_| {
+            let installation = installation_clone.clone();
+            let config = backup_config.read().clone();
+            let description = backup_description.read().clone();
+            let description = if description.trim().is_empty() {
+                format!("Manual backup - {}", chrono::Utc::now().format("%Y-%m-%d %H:%M"))
+            } else {
+                description
+            };
+            
+            is_creating_backup.set(true);
+            backup_progress.set(None);
+            operation_error.set(None);
+            backup_success.set(None);
+            
+            spawn(async move {
+                let (progress_tx, mut progress_rx) = tokio::sync::mpsc::unbounded_channel::<BackupProgress>();
+                
+                let progress_callback = move |progress: BackupProgress| {
+                    let _ = progress_tx.send(progress);
+                };
+                
+                let mut backup_progress_clone = backup_progress.clone();
+                spawn(async move {
+                    while let Some(progress) = progress_rx.recv().await {
+                        backup_progress_clone.set(Some(progress));
+                    }
+                });
+                
+                match installation.create_backup(
+                    BackupType::Manual,
+                    &config,
+                    description.clone(),
+                    Some(progress_callback),
+                ).await {
+                    Ok(metadata) => {
+                        backup_success.set(Some(format!("Backup created successfully: {}", metadata.id)));
+                        
+                        if let Ok(backups) = installation.list_available_backups() {
+                            available_backups.set(backups);
+                        }
+                    },
+                    Err(e) => {
+                        operation_error.set(Some(format!("Failed to create backup: {}", e)));
+                    }
+                }
+                
+                is_creating_backup.set(false);
+                backup_progress.set(None);
+            });
+        }
+    };
+    
     rsx! {
         div { class: "settings-tab",
-            h2 { "Installation Settings" }
-            
             // Display operation error if any
             if let Some(error) = &*operation_error.read() {
                 div { class: "error-notification settings-error",
@@ -235,6 +263,18 @@ let handle_rename = move |_| {
                     button { 
                         class: "error-close",
                         onclick: move |_| operation_error.set(None),
+                        "×"
+                    }
+                }
+            }
+            
+            // Success message for backups
+            if let Some(success) = &*backup_success.read() {
+                div { class: "success-notification",
+                    div { class: "success-message", "{success}" }
+                    button { 
+                        class: "success-close",
+                        onclick: move |_| backup_success.set(None),
                         "×"
                     }
                 }
@@ -269,12 +309,12 @@ let handle_rename = move |_| {
                         div { class: "info-label", "Launcher: ", "{launcher_type}" }
                     }
                     
-                   div { class: "info-row path-row",
-    div { class: "info-label", "Path:" }
-    div { class: "path-container", 
-        code { class: "installation-path-code", "{installation_path_display}" }
-    }
-}
+                    div { class: "info-row path-row",
+                        div { class: "info-label", "Path:" }
+                        div { class: "path-container", 
+                            code { class: "installation-path-code", "{installation_path_display}" }
+                        }
+                    }
                 }
             }
             
@@ -301,102 +341,223 @@ let handle_rename = move |_| {
                 }
             }
             
-            // Advanced section
+            // Advanced section with backup integration
             div { class: "settings-section advanced-settings",
-    h3 { "Advanced" }
-    
-    div { class: "advanced-description",
-        p { "These settings allow you to directly manage your installation. Use with caution." }
-    }
-    
-    // Reset cache option
-    div { class: "advanced-option",
-        div { class: "advanced-option-info",
-            h4 { "Reset Installation Cache" }
-            p { "Clears cached files and forces redownload on next launch. Try this if you encounter issues with mods or resources." }
-        }
-        
-        button {
-            class: "advanced-button reset-cache-button",
-            disabled: *is_operating.read(),
-onclick: move |_| {
-    debug!("Reset cache clicked for installation: {}", installation_id_for_cache);
-    is_operating.set(true);
-    
-    let installation_path_for_cache = installation.installation_path.clone();
-    let mut operation_error_clone = operation_error.clone();
-    let mut is_operating_clone = is_operating.clone();
-    let installation_clone_for_async = installation.clone(); // Clone here
-    let onupdate_clone = onupdate.clone(); // Clone the handler too
-    
-    spawn(async move {
-        // Define the folders to clear
-        let cache_folders = [
-            installation_path_for_cache.join("mods"),
-            installation_path_for_cache.join("resourcepacks"),
-            installation_path_for_cache.join("shaderpacks")
-        ];
-        
-        debug!("Clearing cache folders: {:?}", cache_folders);
-        
-        let mut success = true;
-        
-        // Delete the content of each folder
-        for folder in &cache_folders {
-            if folder.exists() {
-                match std::fs::remove_dir_all(folder) {
-                    Ok(_) => {
-                        debug!("Removed folder: {:?}", folder);
-                        // Recreate the empty folder
-                        if let Err(e) = std::fs::create_dir_all(folder) {
-                            error!("Failed to recreate folder {:?}: {}", folder, e);
-                            operation_error_clone.set(Some(format!("Failed to recreate folder: {}", e)));
-                            success = false;
-                            break;
+                h3 { "Advanced" }
+                
+                div { class: "advanced-description",
+                    p { "These settings allow you to directly manage your installation. Use with caution." }
+                }
+                
+                // Backup & Restore option
+                div { class: "advanced-option",
+                    div { class: "advanced-option-info",
+                        h4 { "Backup & Restore" }
+                        p { "Create backups of your installation and restore from previous states to protect your configuration and settings." }
+                    }
+                    
+                    button {
+                        class: "advanced-button backup-button",
+                        disabled: *is_operating.read(),
+                        onclick: move |_| {
+                            let current_state = *show_backup_section.read();
+                            show_backup_section.set(!current_state);
+                        },
+                        if *show_backup_section.read() {
+                            "Hide Backup Options"
+                        } else {
+                            "Show Backup Options"
                         }
-                    },
-                    Err(e) => {
-                        error!("Failed to remove folder {:?}: {}", folder, e);
-                        operation_error_clone.set(Some(format!("Failed to clear cache: {}", e)));
-                        success = false;
-                        break;
                     }
                 }
-            } else {
-                // Create the folder if it doesn't exist
-                if let Err(e) = std::fs::create_dir_all(folder) {
-                    error!("Failed to create folder {:?}: {}", folder, e);
-                    operation_error_clone.set(Some(format!("Failed to create folder: {}", e)));
-                    success = false;
-                    break;
+                
+                // Expandable backup section
+                if *show_backup_section.read() {
+                    div { class: "backup-expanded-section",
+                        // Quick backup creation
+                        div { class: "backup-quick-create",
+                            h5 { "Quick Backup" }
+                            
+                            div { class: "backup-description-input",
+                                input {
+                                    r#type: "text",
+                                    value: "{backup_description}",
+                                    placeholder: "Backup description (optional)",
+                                    oninput: move |evt| backup_description.set(evt.value().clone())
+                                }
+                            }
+                            
+                            div { class: "backup-quick-actions",
+                                button {
+                                    class: "backup-config-button",
+                                    onclick: move |_| show_backup_config.set(true),
+                                    "⚙️ Configure"
+                                }
+                                
+                                button {
+                                    class: "create-backup-button",
+                                    disabled: *is_creating_backup.read(),
+                                    onclick: create_backup,
+                                    if *is_creating_backup.read() {
+                                        "Creating..."
+                                    } else {
+                                        "Create Backup"
+                                    }
+                                }
+                            }
+                            
+                            // Progress display
+                            if let Some(progress) = &*backup_progress.read() {
+                                div { class: "backup-progress-mini",
+                                    div { class: "progress-text", "Creating backup... {progress.files_processed}/{progress.total_files} files" }
+                                    div { class: "progress-bar-mini",
+                                        div { 
+                                            class: "progress-fill",
+                                            style: "width: {if progress.total_files > 0 { (progress.files_processed as f64 / progress.total_files as f64 * 100.0) as u32 } else { 0 }}%"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        
+                        // Available backups list
+                        div { class: "backup-list-section",
+                            h5 { "Available Backups ({available_backups.read().len()})" }
+                            
+                            if available_backups.read().is_empty() {
+                                div { class: "no-backups-mini",
+                                    "No backups available. Create your first backup above."
+                                }
+                            } else {
+                                div { class: "backups-list-mini",
+                                    for backup in available_backups.read().iter().take(3) {
+                                        {
+                                            let backup_id = backup.id.clone();
+                                            let is_selected = selected_backup.read().as_ref() == Some(&backup_id);
+                                            
+                                            rsx! {
+                                                div { 
+                                                    class: if is_selected {
+                                                        "backup-item-mini selected"
+                                                    } else {
+                                                        "backup-item-mini"
+                                                    },
+                                                    onclick: move |_| {
+                                                        if is_selected {
+                                                            selected_backup.set(None);
+                                                        } else {
+                                                            selected_backup.set(Some(backup_id.clone()));
+                                                        }
+                                                    },
+                                                    
+                                                    div { class: "backup-info-mini",
+                                                        div { class: "backup-name", "{backup.description}" }
+                                                        div { class: "backup-meta", 
+                                                            "{backup.age_description()} • {backup.formatted_size()}"
+                                                        }
+                                                    }
+                                                    
+                                                    if is_selected {
+                                                        button {
+                                                            class: "restore-button-mini",
+                                                            onclick: move |evt| {
+                                                                evt.stop_propagation();
+                                                                show_restore_confirm.set(true);
+                                                            },
+                                                            "Restore"
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                    
+                                    if available_backups.read().len() > 3 {
+                                        div { class: "backup-show-more",
+                                            "... and {available_backups.read().len() - 3} more backups"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                // Reset cache option (existing)
+                div { class: "advanced-option",
+                    div { class: "advanced-option-info",
+                        h4 { "Reset Installation Cache" }
+                        p { "Clears cached files and forces redownload on next launch. Try this if you encounter issues with mods or resources." }
+                    }
+                    
+                    button {
+                        class: "advanced-button reset-cache-button",
+                        disabled: *is_operating.read(),
+                        onclick: move |_| {
+                            debug!("Reset cache clicked for installation: {}", installation_id_for_cache);
+                            is_operating.set(true);
+                            
+                            let installation_path_for_cache = installation.installation_path.clone();
+                            let mut operation_error_clone = operation_error.clone();
+                            let mut is_operating_clone = is_operating.clone();
+                            let installation_clone_for_async = installation.clone();
+                            let onupdate_clone = onupdate.clone();
+                            
+                            spawn(async move {
+                                let cache_folders = [
+                                    installation_path_for_cache.join("mods"),
+                                    installation_path_for_cache.join("resourcepacks"),
+                                    installation_path_for_cache.join("shaderpacks")
+                                ];
+                                
+                                let mut success = true;
+                                
+                                for folder in &cache_folders {
+                                    if folder.exists() {
+                                        match std::fs::remove_dir_all(folder) {
+                                            Ok(_) => {
+                                                if let Err(e) = std::fs::create_dir_all(folder) {
+                                                    operation_error_clone.set(Some(format!("Failed to recreate folder: {}", e)));
+                                                    success = false;
+                                                    break;
+                                                }
+                                            },
+                                            Err(e) => {
+                                                operation_error_clone.set(Some(format!("Failed to clear cache: {}", e)));
+                                                success = false;
+                                                break;
+                                            }
+                                        }
+                                    } else {
+                                        if let Err(e) = std::fs::create_dir_all(folder) {
+                                            operation_error_clone.set(Some(format!("Failed to create folder: {}", e)));
+                                            success = false;
+                                            break;
+                                        }
+                                    }
+                                }
+                                
+                                is_operating_clone.set(false);
+                                
+                                if success {
+                                    let mut installation_for_update = installation_clone_for_async.clone();
+                                    installation_for_update.installed = false;
+                                    
+                                    if let Err(e) = installation_for_update.save() {
+                                        operation_error_clone.set(Some(format!("Failed to update installation state: {}", e)));
+                                    } else {
+                                        onupdate_clone.call(installation_for_update);
+                                    }
+                                    
+                                    operation_error_clone.set(Some("Cache successfully reset. You'll need to reinstall the modpack next time you play.".to_string()));
+                                }
+                            });
+                        },
+                        "Reset Cache"
+                    }
                 }
             }
-        }
-        
-        is_operating_clone.set(false);
-        
-        // Display success message if everything went well
-        if success {
-            // Mark installation as not installed to force re-download
-            let mut installation_for_update = installation_clone_for_async.clone();
-            installation_for_update.installed = false;
             
-            // Save the updated state
-            if let Err(e) = installation_for_update.save() {
-                operation_error_clone.set(Some(format!("Failed to update installation state: {}", e)));
-            } else {
-                // Update the parent component's state
-                onupdate_clone.call(installation_for_update);
-            }
-            
-            operation_error_clone.set(Some("Cache successfully reset. You'll need to reinstall the modpack next time you play.".to_string()));
-        }
-    });
-},
-            "Reset Cache"
-        }
-    }
-     }       
             // Actions section
             div { class: "settings-section actions",
                 h3 { "Actions" }
@@ -436,6 +597,9 @@ onclick: move |_| {
                 }
             }
             
+            // All the existing modals (rename, delete, backup config, restore confirm)
+            // [Keep all existing modal code...]
+            
             // Rename dialog
             if *show_rename_dialog.read() {
                 div { class: "modal-overlay",
@@ -455,7 +619,6 @@ onclick: move |_| {
                         }
                         
                         div { class: "modal-content",
-                            // Error message if any
                             if let Some(error) = &*rename_error.read() {
                                 div { class: "rename-error", "{error}" }
                             }
@@ -463,29 +626,28 @@ onclick: move |_| {
                             div { class: "form-group",
                                 label { r#for: "installation-name", "New name:" }
                                 input {
-    id: "installation-name",
-    r#type: "text",
-    value: "{new_name}",
-    maxlength: "25", // Add maxlength attribute
-    disabled: *is_operating.read(),
-    oninput: move |evt| {
-        let value = evt.value().clone();
-        if value.len() <= 25 {
-            new_name.set(value);
-        }
-    },
-    placeholder: "Enter new installation name"
-}
-
-// Add character counter below input
-div { class: "character-counter",
-    style: if new_name.read().len() > 20 { 
-        "color: #ff9d93;" 
-    } else { 
-        "color: rgba(255, 255, 255, 0.6);" 
-    },
-    "{new_name.read().len()}/25"
-}
+                                    id: "installation-name",
+                                    r#type: "text",
+                                    value: "{new_name}",
+                                    maxlength: "25",
+                                    disabled: *is_operating.read(),
+                                    oninput: move |evt| {
+                                        let value = evt.value().clone();
+                                        if value.len() <= 25 {
+                                            new_name.set(value);
+                                        }
+                                    },
+                                    placeholder: "Enter new installation name"
+                                }
+                                
+                                div { class: "character-counter",
+                                    style: if new_name.read().len() > 20 { 
+                                        "color: #ff9d93;" 
+                                    } else { 
+                                        "color: rgba(255, 255, 255, 0.6);" 
+                                    },
+                                    "{new_name.read().len()}/25"
+                                }
                             }
                         }
                         
@@ -566,23 +728,325 @@ div { class: "character-counter",
                     }
                 }
             }
+            
+            // Backup configuration dialog
+            if *show_backup_config.read() {
+                BackupConfigDialog {
+                    config: backup_config,
+                    estimated_size: installation.get_backup_size_estimate(&backup_config.read()).unwrap_or(0),
+                    onclose: move |_| show_backup_config.set(false),
+                    onupdate: move |new_config: BackupConfig| {
+                        backup_config.set(new_config);
+                    }
+                }
+            }
+            
+            // Restore confirmation dialog
+            if *show_restore_confirm.read() {
+                RestoreConfirmDialog {
+                    backup_id: selected_backup.read().clone().unwrap_or_default(),
+                    backups: available_backups.read().clone(),
+                    installation: installation.clone(),
+                    onclose: move |_| show_restore_confirm.set(false),
+                    onupdate: onupdate.clone()
+                }
+            }
         }
     }
 }
 
-// Simple backup section placeholder - you'll replace this with the full BackupTab later
+// Keep the existing BackupConfigDialog component
 #[component]
-fn BackupSection(
+fn BackupConfigDialog(
+    config: Signal<BackupConfig>,
+    estimated_size: u64,
+    onclose: EventHandler<()>,
+    onupdate: EventHandler<BackupConfig>,
+) -> Element {
+    let mut local_config = use_signal(|| config.read().clone());
+    
+    rsx! {
+        div { class: "modal-overlay",
+            div { class: "modal-container backup-config-dialog",
+                div { class: "modal-header",
+                    h3 { "Backup Configuration" }
+                    button { 
+                        class: "modal-close",
+                        onclick: move |_| onclose.call(()),
+                        "×"
+                    }
+                }
+                
+                div { class: "modal-content",
+                    div { class: "config-section",
+                        h4 { "What to include:" }
+                        
+                        div { class: "config-options",
+                            label { class: "config-option",
+                                input {
+                                    r#type: "checkbox",
+                                    checked: local_config.read().include_mods,
+                                    onchange: move |evt| {
+                                        local_config.with_mut(|c| c.include_mods = evt.value() == "true");
+                                    }
+                                }
+                                "Mods folder"
+                            }
+                            
+                            label { class: "config-option",
+                                input {
+                                    r#type: "checkbox",
+                                    checked: local_config.read().include_config,
+                                    onchange: move |evt| {
+                                        local_config.with_mut(|c| c.include_config = evt.value() == "true");
+                                    }
+                                }
+                                "Config folder"
+                            }
+                            
+                            label { class: "config-option",
+                                input {
+                                    r#type: "checkbox",
+                                    checked: local_config.read().include_wynntils,
+                                    onchange: move |evt| {
+                                        local_config.with_mut(|c| c.include_wynntils = evt.value() == "true");
+                                    }
+                                }
+                                "Wynntils folder (settings)"
+                            }
+                            
+                            label { class: "config-option",
+                                input {
+                                    r#type: "checkbox",
+                                    checked: local_config.read().include_resourcepacks,
+                                    onchange: move |evt| {
+                                        local_config.with_mut(|c| c.include_resourcepacks = evt.value() == "true");
+                                    }
+                                }
+                                "Resource packs"
+                            }
+                            
+                            label { class: "config-option",
+                                input {
+                                    r#type: "checkbox",
+                                    checked: local_config.read().include_shaderpacks,
+                                    onchange: move |evt| {
+                                        local_config.with_mut(|c| c.include_shaderpacks = evt.value() == "true");
+                                    }
+                                }
+                                "Shader packs"
+                            }
+                            
+                            label { class: "config-option",
+                                input {
+                                    r#type: "checkbox",
+                                    checked: local_config.read().include_saves,
+                                    onchange: move |evt| {
+                                        local_config.with_mut(|c| c.include_saves = evt.value() == "true");
+                                    }
+                                }
+                                "Saves folder (can be large)"
+                            }
+                            
+                            label { class: "config-option",
+                                input {
+                                    r#type: "checkbox",
+                                    checked: local_config.read().include_screenshots,
+                                    onchange: move |evt| {
+                                        local_config.with_mut(|c| c.include_screenshots = evt.value() == "true");
+                                    }
+                                }
+                                "Screenshots"
+                            }
+                            
+                            label { class: "config-option",
+                                input {
+                                    r#type: "checkbox",
+                                    checked: local_config.read().include_logs,
+                                    onchange: move |evt| {
+                                        local_config.with_mut(|c| c.include_logs = evt.value() == "true");
+                                    }
+                                }
+                                "Log files"
+                            }
+                        }
+                    }
+                    
+                    div { class: "config-section",
+                        h4 { "Options:" }
+                        
+                        label { class: "config-option",
+                            input {
+                                r#type: "checkbox",
+                                checked: local_config.read().compress_backups,
+                                onchange: move |evt| {
+                                    local_config.with_mut(|c| c.compress_backups = evt.value() == "true");
+                                }
+                            }
+                            "Compress backups (saves space)"
+                        }
+                        
+                        div { class: "config-option",
+                            label { "Maximum backups to keep:" }
+                            input {
+                                r#type: "number",
+                                value: "{local_config.read().max_backups}",
+                                min: "1",
+                                max: "20",
+                                onchange: move |evt| {
+                                    if let Ok(value) = evt.value().parse::<usize>() {
+                                        local_config.with_mut(|c| c.max_backups = value);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    
+                    div { class: "estimated-size",
+                        "Estimated backup size: {crate::backup::format_bytes(estimated_size)}"
+                    }
+                }
+                
+                div { class: "modal-footer",
+                    button { 
+                        class: "cancel-button",
+                        onclick: move |_| onclose.call(()),
+                        "Cancel"
+                    }
+                    
+                    button { 
+                        class: "save-button",
+                        onclick: move |_| {
+                            onupdate.call(local_config.read().clone());
+                            onclose.call(());
+                        },
+                        "Save Configuration"
+                    }
+                }
+            }
+        }
+    }
+}
+
+// New compact restore confirmation dialog
+#[component]
+fn RestoreConfirmDialog(
+    backup_id: String,
+    backups: Vec<BackupMetadata>,
     installation: Installation,
-    installation_id: String,
+    onclose: EventHandler<()>,
     onupdate: EventHandler<Installation>,
 ) -> Element {
-    // Use the full BackupTab component
+    let backup = backups.iter().find(|b| b.id == backup_id);
+    let mut is_restoring = use_signal(|| false);
+    let mut restore_error = use_signal(|| Option::<String>::None);
+    
+    let handle_restore = {
+        let installation_clone = installation.clone();
+        let backup_id_clone = backup_id.clone();
+        let mut is_restoring = is_restoring.clone();
+        let mut restore_error = restore_error.clone();
+        let onupdate = onupdate.clone();
+        let onclose = onclose.clone();
+        
+        move |_| {
+            let mut installation = installation_clone.clone();
+            let backup_id = backup_id_clone.clone();
+            
+            is_restoring.set(true);
+            restore_error.set(None);
+            
+            spawn(async move {
+                match installation.restore_from_backup(&backup_id).await {
+                    Ok(_) => {
+                        onupdate.call(installation);
+                        onclose.call(());
+                    },
+                    Err(e) => {
+                        restore_error.set(Some(format!("Failed to restore backup: {}", e)));
+                        is_restoring.set(false);
+                    }
+                }
+            });
+        }
+    };
+    
     rsx! {
-        crate::launcher::backup_tab::BackupTab {
-            installation: installation,
-            installation_id: installation_id,
-            onupdate: onupdate
+        div { class: "modal-overlay",
+            div { class: "modal-container restore-confirm-dialog",
+                div { class: "modal-header",
+                    h3 { "Confirm Restore" }
+                    button { 
+                        class: "modal-close",
+                        onclick: move |_| onclose.call(()),
+                        "×"
+                    }
+                }
+                
+                div { class: "modal-content",
+                    if let Some(error) = &*restore_error.read() {
+                        div { class: "error-notification",
+                            div { class: "error-message", "{error}" }
+                        }
+                    }
+                    
+                    div { class: "warning-message",
+                        "⚠️ This will replace your current installation with the backup."
+                    }
+                    
+                    if let Some(backup) = backup {
+                        div { class: "backup-details",
+                            h4 { "Backup Details:" }
+                            
+                            div { class: "detail-grid",
+                                div { class: "detail-row",
+                                    span { class: "detail-label", "Description:" }
+                                    span { class: "detail-value", "{backup.description}" }
+                                }
+                                
+                                div { class: "detail-row",
+                                    span { class: "detail-label", "Created:" }
+                                    span { class: "detail-value", "{backup.age_description()}" }
+                                }
+                                
+                                div { class: "detail-row",
+                                    span { class: "detail-label", "Version:" }
+                                    span { class: "detail-value", "{backup.modpack_version}" }
+                                }
+                                
+                                div { class: "detail-row",
+                                    span { class: "detail-label", "Features:" }
+                                    span { class: "detail-value", "{backup.enabled_features.len()}" }
+                                }
+                            }
+                        }
+                    }
+                    
+                    div { class: "safety-info",
+                        "💡 A safety backup will be created automatically before restoring."
+                    }
+                }
+                
+                div { class: "modal-footer",
+                    button { 
+                        class: "cancel-button",
+                        disabled: *is_restoring.read(),
+                        onclick: move |_| onclose.call(()),
+                        "Cancel"
+                    }
+                    
+                    button { 
+                        class: "restore-confirm-button",
+                        disabled: *is_restoring.read(),
+                        onclick: handle_restore,
+                        if *is_restoring.read() {
+                            "Restoring..."
+                        } else {
+                            "Restore Backup"
+                        }
+                    }
+                }
+            }
         }
     }
 }
