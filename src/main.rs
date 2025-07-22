@@ -1651,7 +1651,7 @@ async fn install<F: FnMut() + Clone>(installer_profile: &InstallerProfile, mut p
     // Build the complete list of features that should be enabled
     let mut effective_enabled_features = installer_profile.enabled_features.clone();
     
-    // Add all default-enabled components
+    // Add all default-enabled components (keeping existing logic)
     for component in &universal_manifest.mods {
         if component.default_enabled && !effective_enabled_features.contains(&component.id) {
             debug!("Adding default-enabled mod: {} ({})", component.id, component.name);
@@ -1705,43 +1705,37 @@ async fn install<F: FnMut() + Clone>(installer_profile: &InstallerProfile, mut p
     
     debug!("Final enabled features list: {:?}", effective_enabled_features);
     
-    // UPDATED: Calculate total items more accurately by counting actual downloads that will happen
-    let mut total_downloads = 0;
+    // UPDATED: Calculate weighted progress points based on expected time/complexity
+    let mut total_progress_points = 0;
+    let mut download_counts = (0, 0, 0, 0, 0); // (mods, shaders, resources, includes, remote_includes)
     
-    // Count actual downloadable items (not already downloaded)
     let is_update = installer_profile.installed;
     
-    // Count mods that need downloading
+    // Count what will be downloaded
     for mod_item in &installer_profile.manifest.mods {
         let should_include = mod_item.id == "default" || effective_enabled_features.contains(&mod_item.id);
         let needs_download = should_include && mod_item.path.is_none();
         if needs_download {
-            total_downloads += 1;
-            debug!("Will download mod: {}", mod_item.name);
+            download_counts.0 += 1;
         }
     }
     
-    // Count shaderpacks that need downloading
     for shader in &installer_profile.manifest.shaderpacks {
         let should_include = shader.id == "default" || effective_enabled_features.contains(&shader.id);
         let needs_download = should_include && shader.path.is_none();
         if needs_download {
-            total_downloads += 1;
-            debug!("Will download shaderpack: {}", shader.name);
+            download_counts.1 += 1;
         }
     }
     
-    // Count resourcepacks that need downloading
     for resource in &installer_profile.manifest.resourcepacks {
         let should_include = resource.id == "default" || effective_enabled_features.contains(&resource.id);
         let needs_download = should_include && resource.path.is_none();
         if needs_download {
-            total_downloads += 1;
-            debug!("Will download resourcepack: {}", resource.name);
+            download_counts.2 += 1;
         }
     }
     
-    // Count includes that need downloading
     for include in &installer_profile.manifest.include {
         let should_include = if include.id.is_empty() || include.id == "default" {
             true
@@ -1752,12 +1746,10 @@ async fn install<F: FnMut() + Clone>(installer_profile: &InstallerProfile, mut p
         };
         
         if should_include {
-            total_downloads += 1;
-            debug!("Will download include: {}", include.location);
+            download_counts.3 += 1;
         }
     }
     
-    // Count remote includes that need downloading
     if let Some(remote_includes) = &installer_profile.manifest.remote_include {
         for remote in remote_includes {
             let should_include = if remote.id == "default" {
@@ -1769,18 +1761,33 @@ async fn install<F: FnMut() + Clone>(installer_profile: &InstallerProfile, mut p
             };
             
             if should_include {
-                total_downloads += 1;
-                debug!("Will download remote include: {}", 
-                       remote.name.as_ref().unwrap_or(&remote.id));
+                download_counts.4 += 1;
             }
         }
     }
     
-    // Add overhead tasks (loader, manifest save, profile creation, etc.)
-    let overhead_tasks = 4;
-    let total_items = total_downloads + overhead_tasks;
+    // WEIGHT CALCULATION: Assign points based on typical download time/complexity
+    // Fast downloads (mods/shaders/resources): 1 point each
+    // Medium downloads (includes): 5 points each  
+    // Slow downloads (remote includes): 15 points each
+    // Overhead tasks: 2 points each
     
-    debug!("Total downloads: {}, Total items with overhead: {}", total_downloads, total_items);
+    let mod_points = download_counts.0 * 1;
+    let shader_points = download_counts.1 * 1;
+    let resource_points = download_counts.2 * 1;
+    let include_points = download_counts.3 * 5;
+    let remote_include_points = download_counts.4 * 15;
+    let overhead_points = 4 * 2; // 4 overhead tasks * 2 points each
+    
+    total_progress_points = mod_points + shader_points + resource_points + include_points + remote_include_points + overhead_points;
+    
+    debug!("Progress weighting: Mods({}*1={}), Shaders({}*1={}), Resources({}*1={}), Includes({}*5={}), Remote({}*15={}), Overhead(4*2=8), Total: {}", 
+           download_counts.0, mod_points,
+           download_counts.1, shader_points, 
+           download_counts.2, resource_points,
+           download_counts.3, include_points,
+           download_counts.4, remote_include_points,
+           total_progress_points);
     
     let modpack_root = &get_modpack_root(
         installer_profile
@@ -1831,34 +1838,44 @@ async fn install<F: FnMut() + Clone>(installer_profile: &InstallerProfile, mut p
         Launcher::MultiMC(_) => None,
     };
     
-    // UPDATED: Create a shared progress counter
-    let progress_counter = std::sync::Arc::new(std::sync::Mutex::new(0));
+    // UPDATED: Create weighted progress tracker
+    let current_progress = std::sync::Arc::new(std::sync::Mutex::new(0));
     
-    // Create progress callback that increments the shared counter
-    let mut create_progress_callback = {
-        let progress_counter = progress_counter.clone();
+    // Create different progress callbacks for different operation types
+    let create_weighted_callback = |weight: i32| {
+        let current_progress = current_progress.clone();
         let mut main_callback = progress_callback.clone();
+        let total = total_progress_points;
         
         move || {
-            if let Ok(mut counter) = progress_counter.lock() {
-                *counter += 1;
-                let current = *counter;
-                debug!("Progress: {}/{}", current, total_items);
+            if let Ok(mut progress) = current_progress.lock() {
+                *progress += weight;
+                let current = *progress;
+                let percentage = if total > 0 { (current * 100) / total } else { 0 };
+                debug!("Weighted progress: +{} points, now {}/{} ({}%)", weight, current, total, percentage);
             }
             main_callback();
         }
     };
     
-    debug!("Starting downloads...");
+    // Different callbacks for different operation types
+    let mod_callback = create_weighted_callback(1);      // 1 point per mod
+    let shader_callback = create_weighted_callback(1);   // 1 point per shader
+    let resource_callback = create_weighted_callback(1); // 1 point per resource
+    let include_callback = create_weighted_callback(5);  // 5 points per include
+    let remote_callback = create_weighted_callback(15);  // 15 points per remote include
+    let overhead_callback = create_weighted_callback(2); // 2 points per overhead task
     
-    // Download all components with accurate progress tracking
+    debug!("Starting downloads with weighted progress...");
+    
+    // Download components with appropriate weight callbacks
     let mods_w_path = match download_helper(
         manifest.mods.clone(),
         &effective_enabled_features,
         modpack_root.as_path(),
         &manifest.loader.r#type,
         http_client,
-        create_progress_callback.clone(),
+        mod_callback,
         is_update,
         &ignore_update_items,
     )
@@ -1874,7 +1891,7 @@ async fn install<F: FnMut() + Clone>(installer_profile: &InstallerProfile, mut p
         modpack_root.as_path(),
         &manifest.loader.r#type,
         http_client,
-        create_progress_callback.clone(),
+        shader_callback,
         is_update,
         &ignore_update_items,
     )
@@ -1890,7 +1907,7 @@ async fn install<F: FnMut() + Clone>(installer_profile: &InstallerProfile, mut p
         modpack_root.as_path(),
         &manifest.loader.r#type,
         http_client,
-        create_progress_callback.clone(),
+        resource_callback,
         is_update,
         &ignore_update_items,
     )
@@ -1902,7 +1919,7 @@ async fn install<F: FnMut() + Clone>(installer_profile: &InstallerProfile, mut p
     
     let mut included_files: HashMap<String, crate::Included> = HashMap::new();
     
-    // Handle regular includes with progress tracking
+    // Handle regular includes with weighted progress
     if !manifest.include.is_empty() {
         debug!("Processing {} includes from manifest", manifest.include.len());
         
@@ -1925,7 +1942,7 @@ async fn install<F: FnMut() + Clone>(installer_profile: &InstallerProfile, mut p
                 continue;
             }
         
-            debug!("Processing include: {} (enabled in effective features)", inc.id);
+            debug!("Processing include: {} (weight: 5 points)", inc.id);
             
             let github_url = format!(
                 "https://raw.githubusercontent.com/Wynncraft-Overhaul/majestic-overhaul/master/{}",
@@ -1967,8 +1984,7 @@ async fn install<F: FnMut() + Clone>(installer_profile: &InstallerProfile, mut p
                                                     files: vec![target_path.to_string_lossy().to_string()],
                                                 }
                                             );
-                                            // INCREMENT PROGRESS FOR EACH INCLUDE
-                                            create_progress_callback();
+                                            include_callback(); // +5 points
                                         },
                                         Err(e) => {
                                             error!("Failed to write include file {}: {}", inc.location, e);
@@ -2008,8 +2024,7 @@ async fn install<F: FnMut() + Clone>(installer_profile: &InstallerProfile, mut p
                                 files,
                             }
                         );
-                        // INCREMENT PROGRESS FOR EACH INCLUDE
-                        create_progress_callback();
+                        include_callback(); // +5 points
                     },
                     Err(e) => {
                         error!("Failed to download include directory {}: {}", inc.location, e);
@@ -2019,7 +2034,7 @@ async fn install<F: FnMut() + Clone>(installer_profile: &InstallerProfile, mut p
         }
     }
     
-    // Handle remote includes with progress tracking
+    // Handle remote includes with weighted progress (highest weight!)
     if let Some(remote_includes) = &manifest.remote_include {
         debug!("Processing {} remote includes from manifest", remote_includes.len());
         
@@ -2042,15 +2057,14 @@ async fn install<F: FnMut() + Clone>(installer_profile: &InstallerProfile, mut p
                 continue;
             }
             
-            debug!("Processing remote include: {} (enabled in effective features)", remote.id);
+            let name = remote.name.clone().unwrap_or_else(|| remote.id.clone());
+            debug!("Processing remote include: {} (weight: 15 points)", name);
             
             let target_path = if let Some(path) = &remote.path {
                 modpack_root.join(path)
             } else {
                 modpack_root.clone()
             };
-            
-            let name = remote.name.clone().unwrap_or_else(|| remote.id.clone());
             
             match download_zip(&name, http_client, &remote.location, &target_path).await {
                 Ok(files) => {
@@ -2062,8 +2076,7 @@ async fn install<F: FnMut() + Clone>(installer_profile: &InstallerProfile, mut p
                             files,
                         }
                     );
-                    // INCREMENT PROGRESS FOR EACH REMOTE INCLUDE
-                    create_progress_callback();
+                    remote_callback(); // +15 points - BIG progress jump here!
                 },
                 Err(e) => {
                     error!("Failed to download remote include {}: {:?}", name, e);
@@ -2073,8 +2086,8 @@ async fn install<F: FnMut() + Clone>(installer_profile: &InstallerProfile, mut p
         }
     }
 
-    // Now handle overhead tasks (each calls create_progress_callback())
-    debug!("Starting overhead tasks");
+    // Handle overhead tasks with weighted progress
+    debug!("Starting overhead tasks (2 points each)");
 
     // Save local manifest
     let local_manifest = crate::Manifest {
@@ -2106,7 +2119,7 @@ async fn install<F: FnMut() + Clone>(installer_profile: &InstallerProfile, mut p
     )
     .expect("Failed to save a local copy of 'manifest.json'!");
 
-    create_progress_callback(); // Overhead task 1
+    overhead_callback(); // +2 points
 
     // Download icon if needed
     let icon_img = if manifest.icon {
@@ -2153,7 +2166,7 @@ async fn install<F: FnMut() + Clone>(installer_profile: &InstallerProfile, mut p
         None
     };
 
-    create_progress_callback(); // Overhead task 2
+    overhead_callback(); // +2 points
 
     match create_launcher_profile(installer_profile, icon_img) {
         Ok(_) => {
@@ -2162,13 +2175,13 @@ async fn install<F: FnMut() + Clone>(installer_profile: &InstallerProfile, mut p
         Err(e) => return Err(e.to_string()),
     };
 
-    create_progress_callback(); // Overhead task 3
+    overhead_callback(); // +2 points
 
     if loader_future.is_some() {
         loader_future.unwrap().await;
     }
 
-    create_progress_callback(); // Overhead task 4 - FINAL PROGRESS UPDATE
+    overhead_callback(); // +2 points - FINAL
 
     debug!("All installation tasks completed");
 
