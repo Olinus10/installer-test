@@ -89,11 +89,11 @@ spawn(async move {
         let _ = progress_tx.send(progress);
     };
     
-    // Start a task to handle progress updates - FIX: make backup_progress_clone mutable
+    // Start a task to handle progress updates
     let mut backup_progress_clone = backup_progress.clone();
     spawn(async move {
         while let Some(progress) = progress_rx.recv().await {
-            backup_progress_clone.set(Some(progress));  // Now it's mutable
+            backup_progress_clone.set(Some(progress));
         }
     });
     
@@ -101,7 +101,7 @@ spawn(async move {
         BackupType::Manual,
         &config,
         description.clone(),
-        Some(progress_callback),
+        Some(progress_callback),  // Pass the callback directly
     ).await {
         Ok(metadata) => {
             operation_success.set(Some(format!("Backup created successfully: {}", metadata.id)));
@@ -766,11 +766,11 @@ fn AdvancedSettingsSection(
     
     // Initialize rollback manager
     use_effect({
-        let installation_clone = installation.clone();
+        let installation_for_rollback = installation.clone();
         let mut rollback_manager = rollback_manager.clone();
         
-        move || {
-            let manager = RollbackManager::new(installation_clone);
+move || {
+    let manager = RollbackManager::new(installation_for_rollback.clone());
             rollback_manager.set(Some(manager));
         }
     });
@@ -802,26 +802,27 @@ fn AdvancedSettingsSection(
     };
     
     // Rollback to last working state
-    let rollback_to_last_working = {
-        let rollback_manager = rollback_manager.clone();
-        let onupdate = onupdate.clone();
-        let mut operation_error = operation_error.clone();
-        
-        move |_| {
-            if let Some(mut manager) = rollback_manager.read().clone() {
-                spawn(async move {
-                    match manager.rollback_to_last_working().await {
-                        Ok(_) => {
-                            onupdate.call(manager.installation);
-                        },
-                        Err(e) => {
-                            operation_error.set(Some(format!("Rollback failed: {}", e)));
-                        }
+let rollback_to_last_working = {
+    let rollback_manager = rollback_manager.clone();
+    let onupdate = onupdate.clone();
+    let mut operation_error = operation_error.clone();
+    
+    move |_| {
+        if let Some(manager_ref) = rollback_manager.read().as_ref() {
+            let mut manager = manager_ref.clone();  // Clone the manager
+            spawn(async move {
+                match manager.rollback_to_last_working().await {
+                    Ok(_) => {
+                        onupdate.call(manager.installation);
+                    },
+                    Err(e) => {
+                        operation_error.set(Some(format!("Rollback failed: {}", e)));
                     }
-                });
-            }
+                }
+            });
         }
-    };
+    }
+};
 
     // Pre-compute formatted strings outside of rsx!
     let total_launches = installation.total_launches.to_string();
