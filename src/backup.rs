@@ -17,7 +17,7 @@ pub enum BackupType {
 }
 
 /// Configuration for what to include in backups
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct BackupConfig {
     pub include_mods: bool,
     pub include_config: bool,
@@ -39,9 +39,9 @@ impl Default for BackupConfig {
             include_wynntils: true,
             include_resourcepacks: true,
             include_shaderpacks: true,
-            include_saves: false, // Large files, off by default
-            include_screenshots: false, // Large files, off by default
-            include_logs: false, // Not usually needed
+            include_saves: false,
+            include_screenshots: false,
+            include_logs: false,
             compress_backups: true,
             max_backups: 10,
         }
@@ -108,7 +108,6 @@ impl RollbackManager {
         let backups = self.installation.list_available_backups()?;
         let mut options = Vec::new();
         
-        // Find the most recent working backup
         for backup in &backups {
             let is_recommended = backup.backup_type == BackupType::PreUpdate || 
                                backup.backup_type == BackupType::Manual;
@@ -123,9 +122,7 @@ impl RollbackManager {
             });
         }
         
-        // Sort by date, most recent first
         options.sort_by(|a, b| b.created_at.cmp(&a.created_at));
-        
         Ok(options)
     }
     
@@ -140,7 +137,6 @@ impl RollbackManager {
     }
     
     pub async fn rollback_to_backup(&mut self, backup_id: &str) -> Result<(), String> {
-        // Create safety backup before rollback
         let safety_config = BackupConfig::default();
         let safety_description = format!("Safety backup before rollback to {}", backup_id);
         
@@ -151,9 +147,7 @@ impl RollbackManager {
             None::<fn(BackupProgress)>,
         ).await?;
         
-        // Perform the rollback
         self.installation.restore_from_backup(backup_id).await?;
-        
         Ok(())
     }
 }
@@ -244,7 +238,7 @@ pub fn count_files_recursive(path: &Path) -> io::Result<usize> {
 pub fn create_zip_archive<F>(
     source_dir: &Path,
     zip_path: &Path,
-    progress_callback: Option<F>,
+    progress_callback: Option<&F>,
 ) -> Result<u64, io::Error>
 where
     F: Fn(BackupProgress),
@@ -277,7 +271,7 @@ fn add_directory_to_zip<F, W: Write + io::Seek>(
     files_processed: &mut usize,
     total_files: usize,
     bytes_processed: &mut u64,
-    progress_callback: &Option<F>,
+    progress_callback: &Option<&F>,
 ) -> Result<(), io::Error>
 where
     F: Fn(BackupProgress),
@@ -298,9 +292,9 @@ where
             let file_data = fs::read(&path)?;
             let file_size = file_data.len() as u64;
             
-            zip.start_file(&full_name, zip::write::FileOptions::default()
-                .compression_method(CompressionMethod::Deflated)
-                .unix_permissions(0o755))?;
+            let options = zip::write::FileOptions::default()
+                .compression_method(CompressionMethod::Deflated);
+            zip.start_file(&full_name, options)?;
             zip.write_all(&file_data)?;
             
             *files_processed += 1;
@@ -312,7 +306,7 @@ where
                     files_processed: *files_processed,
                     total_files,
                     bytes_processed: *bytes_processed,
-                    total_bytes: 0, // Will be calculated separately
+                    total_bytes: 0,
                 });
             }
         } else if path.is_dir() {
