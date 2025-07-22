@@ -509,7 +509,7 @@ where
         // FIX: Use the callback directly instead of dereferencing
     if let Some(callback) = &progress_callback {
         callback(crate::backup::BackupProgress {
-            current_file: full_name,
+            current_file: dest.to_string_lossy().to_string(),
             files_processed: *files_processed,
             total_files,
             bytes_processed: *bytes_processed,
