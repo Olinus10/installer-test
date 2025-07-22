@@ -89,11 +89,11 @@ spawn(async move {
         let _ = progress_tx.send(progress);
     };
     
-    // Start a task to handle progress updates
-    let backup_progress_clone = backup_progress.clone();
+    // Start a task to handle progress updates - FIX: make backup_progress_clone mutable
+    let mut backup_progress_clone = backup_progress.clone();
     spawn(async move {
         while let Some(progress) = progress_rx.recv().await {
-            backup_progress_clone.set(Some(progress));
+            backup_progress_clone.set(Some(progress));  // Now it's mutable
         }
     });
     
@@ -823,6 +823,11 @@ fn AdvancedSettingsSection(
         }
     };
 
+    // Pre-compute formatted strings outside of rsx!
+    let total_launches = installation.total_launches.to_string();
+    let enabled_features_count = installation.enabled_features.len().to_string();
+    let last_used_formatted = installation.last_used.format("%Y-%m-%d %H:%M").to_string();
+
     rsx! {
         div { class: "advanced-settings",
             h3 { "Advanced Options" }
@@ -908,17 +913,17 @@ fn AdvancedSettingsSection(
                     
                     div { class: "health-item",
                         span { class: "health-label", "Last Used:" }
-                        span { class: "health-value", "{installation.last_used.format(\"%Y-%m-%d %H:%M\")}" }
+                        span { class: "health-value", "{last_used_formatted}" }
                     }
                     
                     div { class: "health-item",
                         span { class: "health-label", "Total Launches:" }
-                        span { class: "health-value", "{installation.total_launches}" }
+                        span { class: "health-value", "{total_launches}" }
                     }
                     
                     div { class: "health-item",
                         span { class: "health-label", "Enabled Features:" }
-                        span { class: "health-value", "{installation.enabled_features.len()}" }
+                        span { class: "health-value", "{enabled_features_count}" }
                     }
                 }
                 
@@ -938,6 +943,10 @@ fn RollbackOptionCard(
 ) -> Element {
     let backup_id = option.backup_id.clone();
     
+    // Pre-compute formatted strings
+    let created_at_formatted = option.created_at.format("%Y-%m-%d %H:%M").to_string();
+    let size_formatted = crate::backup::format_bytes(option.size);
+    
     rsx! {
         div { 
             class: if option.is_recommended {
@@ -956,8 +965,8 @@ fn RollbackOptionCard(
             
             div { class: "option-details",
                 span { "Version: {option.modpack_version}" }
-                span { "Created: {option.created_at.format(\"%Y-%m-%d %H:%M\")}" }
-                span { "Size: {crate::backup::format_bytes(option.size)}" }
+                span { "Created: {created_at_formatted}" }
+                span { "Size: {size_formatted}" }
             }
             
             button {
