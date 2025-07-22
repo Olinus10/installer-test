@@ -355,7 +355,7 @@ impl Installation {
         progress_callback: Option<F>,
     ) -> Result<crate::backup::BackupMetadata, String>
     where
-        F: Fn(crate::backup::BackupProgress),
+        F: FnMut(crate::backup::BackupProgress) + Send + 'static,
     {
         use chrono::Utc;
         use uuid::Uuid;
