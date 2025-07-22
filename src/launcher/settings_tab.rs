@@ -254,31 +254,43 @@ fn GeneralSettingsSection(
         }
     };
     
-    rsx! {
-        div { class: "settings-tab",
-            // Display operation error if any
+rsx! {
+    div { class: "settings-tab",
+        // Display operation error if any
+        {
             if let Some(error) = &*operation_error.read() {
-                div { class: "error-notification settings-error",
-                    div { class: "error-message", "{error}" }
-                    button { 
-                        class: "error-close",
-                        onclick: move |_| operation_error.set(None),
-                        "×"
+                rsx! {
+                    div { class: "error-notification settings-error",
+                        div { class: "error-message", "{error}" }
+                        button { 
+                            class: "error-close",
+                            onclick: move |_| operation_error.set(None),
+                            "×"
+                        }
                     }
                 }
+            } else {
+                rsx! { }
             }
-            
-            // Success message for backups
+        }
+        
+        // Success message for backups
+        {
             if let Some(success) = &*backup_success.read() {
-                div { class: "success-notification",
-                    div { class: "success-message", "{success}" }
-                    button { 
-                        class: "success-close",
-                        onclick: move |_| backup_success.set(None),
-                        "×"
+                rsx! {
+                    div { class: "success-notification",
+                        div { class: "success-message", "{success}" }
+                        button { 
+                            class: "success-close",
+                            onclick: move |_| backup_success.set(None),
+                            "×"
+                        }
                     }
                 }
+            } else {
+                rsx! { }
             }
+        }
             
             // Installation information section
             div { class: "settings-section installation-info",
