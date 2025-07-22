@@ -257,7 +257,7 @@ fn GeneralSettingsSection(
 rsx! {
     div { class: "settings-tab",
         // Display operation error if any
-        if let Some(error) = operation_error.read().as_ref() {
+        {operation_error.read().as_ref().map(|error| rsx! {
             div { class: "error-notification settings-error",
                 div { class: "error-message", "{error}" }
                 button { 
@@ -266,10 +266,10 @@ rsx! {
                     "×"
                 }
             }
-        }
+        })}
         
         // Success message for backups
-        if let Some(success) = backup_success.read().as_ref() {
+        {backup_success.read().as_ref().map(|success| rsx! {
             div { class: "success-notification",
                 div { class: "success-message", "{success}" }
                 button { 
@@ -278,7 +278,7 @@ rsx! {
                     "×"
                 }
             }
-        }
+        })}
         
         // Installation information section
         div { class: "settings-section installation-info",
@@ -330,11 +330,10 @@ rsx! {
                 
                 div { class: "stat-item",
                     div { class: "stat-value",
-                        if let Some(launch_date) = last_launch {
-                            "{launch_date.format(\"%B %d, %Y\")}"
-                        } else {
-                            "Never"
-                        }
+                        {match last_launch {
+                            Some(launch_date) => format!("{}", launch_date.format("%B %d, %Y")),
+                            None => "Never".to_string(),
+                        }}
                     }
                     div { class: "stat-label", "Last Launch" }
                 }
@@ -363,125 +362,140 @@ rsx! {
                         let current_state = *show_backup_section.read();
                         show_backup_section.set(!current_state);
                     },
-                    if *show_backup_section.read() {
+                    {if *show_backup_section.read() {
                         "Hide Backup Options"
                     } else {
                         "Show Backup Options"
-                    }
+                    }}
                 }
             }
             
             // Expandable backup section
-            if *show_backup_section.read() {
-                div { class: "backup-expanded-section",
-                    // Quick backup creation
-                    div { class: "backup-quick-create",
-                        h5 { "Quick Backup" }
-                        
-                        div { class: "backup-description-input",
-                            input {
-                                r#type: "text",
-                                value: "{backup_description}",
-                                placeholder: "Backup description (optional)",
-                                oninput: move |evt| backup_description.set(evt.value().clone())
-                            }
-                        }
-                        
-                        div { class: "backup-quick-actions",
-                            button {
-                                class: "backup-config-button",
-                                onclick: move |_| show_backup_config.set(true),
-                                "⚙️ Configure"
+            {if *show_backup_section.read() {
+                Some(rsx! {
+                    div { class: "backup-expanded-section",
+                        // Quick backup creation
+                        div { class: "backup-quick-create",
+                            h5 { "Quick Backup" }
+                            
+                            div { class: "backup-description-input",
+                                input {
+                                    r#type: "text",
+                                    value: "{backup_description}",
+                                    placeholder: "Backup description (optional)",
+                                    oninput: move |evt| backup_description.set(evt.value().clone())
+                                }
                             }
                             
-                            button {
-                                class: "create-backup-button",
-                                disabled: *is_creating_backup.read(),
-                                onclick: create_backup,
-                                if *is_creating_backup.read() {
-                                    "Creating..."
-                                } else {
-                                    "Create Backup"
+                            div { class: "backup-quick-actions",
+                                button {
+                                    class: "backup-config-button",
+                                    onclick: move |_| show_backup_config.set(true),
+                                    "⚙️ Configure"
+                                }
+                                
+                                button {
+                                    class: "create-backup-button",
+                                    disabled: *is_creating_backup.read(),
+                                    onclick: create_backup,
+                                    {if *is_creating_backup.read() {
+                                        "Creating..."
+                                    } else {
+                                        "Create Backup"
+                                    }}
                                 }
                             }
-                        }
-                        
-                        // Progress display
-                        if let Some(progress) = backup_progress.read().as_ref() {
-                            div { class: "backup-progress-mini",
-                                div { class: "progress-text", "Creating backup... {progress.files_processed}/{progress.total_files} files" }
-                                div { class: "progress-bar-mini",
-                                    div { 
-                                        class: "progress-fill",
-                                        style: "width: {if progress.total_files > 0 { (progress.files_processed as f64 / progress.total_files as f64 * 100.0) as u32 } else { 0 }}%"
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    
-                    // Available backups list
-                    div { class: "backup-list-section",
-                        h5 { "Available Backups ({available_backups.read().len()})" }
-                        
-                        if available_backups.read().is_empty() {
-                            div { class: "no-backups-mini",
-                                "No backups available. Create your first backup above."
-                            }
-                        } else {
-                            div { class: "backups-list-mini",
-                                for backup in available_backups.read().iter().take(3) {
-                                    {
-                                        let backup_id = backup.id.clone();
-                                        let is_selected = selected_backup.read().as_ref() == Some(&backup_id);
-                                        
-                                        rsx! {
-                                            div { 
-                                                class: if is_selected {
-                                                    "backup-item-mini selected"
-                                                } else {
-                                                    "backup-item-mini"
-                                                },
-                                                onclick: move |_| {
-                                                    if is_selected {
-                                                        selected_backup.set(None);
-                                                    } else {
-                                                        selected_backup.set(Some(backup_id.clone()));
-                                                    }
-                                                },
-                                                
-                                                div { class: "backup-info-mini",
-                                                    div { class: "backup-name", "{backup.description}" }
-                                                    div { class: "backup-meta", 
-                                                        "{backup.age_description()} • {backup.formatted_size()}"
-                                                    }
-                                                }
-                                                
-                                                if is_selected {
-                                                    button {
-                                                        class: "restore-button-mini",
-                                                        onclick: move |evt| {
-                                                            evt.stop_propagation();
-                                                            show_restore_confirm.set(true);
-                                                        },
-                                                        "Restore"
-                                                    }
-                                                }
-                                            }
+                            
+                            // Progress display
+                            {backup_progress.read().as_ref().map(|progress| rsx! {
+                                div { class: "backup-progress-mini",
+                                    div { class: "progress-text", "Creating backup... {progress.files_processed}/{progress.total_files} files" }
+                                    div { class: "progress-bar-mini",
+                                        div { 
+                                            class: "progress-fill",
+                                            style: "width: {if progress.total_files > 0 { (progress.files_processed as f64 / progress.total_files as f64 * 100.0) as u32 } else { 0 }}%"
                                         }
                                     }
                                 }
-                                
-                                if available_backups.read().len() > 3 {
-                                    div { class: "backup-show-more",
-                                        "... and {available_backups.read().len() - 3} more backups"
+                            })}
+                        }
+                        
+                        // Available backups list
+                        div { class: "backup-list-section",
+                            h5 { "Available Backups ({available_backups.read().len()})" }
+                            
+                            {if available_backups.read().is_empty() {
+                                Some(rsx! {
+                                    div { class: "no-backups-mini",
+                                        "No backups available. Create your first backup above."
                                     }
-                                }
-                            }
+                                })
+                            } else {
+                                Some(rsx! {
+                                    div { class: "backups-list-mini",
+                                        {available_backups.read().iter().take(3).map(|backup| {
+                                            let backup_id = backup.id.clone();
+                                            let is_selected = selected_backup.read().as_ref() == Some(&backup_id);
+                                            
+                                            rsx! {
+                                                div { 
+                                                    key: "{backup_id}",
+                                                    class: if is_selected {
+                                                        "backup-item-mini selected"
+                                                    } else {
+                                                        "backup-item-mini"
+                                                    },
+                                                    onclick: move |_| {
+                                                        if is_selected {
+                                                            selected_backup.set(None);
+                                                        } else {
+                                                            selected_backup.set(Some(backup_id.clone()));
+                                                        }
+                                                    },
+                                                    
+                                                    div { class: "backup-info-mini",
+                                                        div { class: "backup-name", "{backup.description}" }
+                                                        div { class: "backup-meta", 
+                                                            "{backup.age_description()} • {backup.formatted_size()}"
+                                                        }
+                                                    }
+                                                    
+                                                    {if is_selected {
+                                                        Some(rsx! {
+                                                            button {
+                                                                class: "restore-button-mini",
+                                                                onclick: move |evt| {
+                                                                    evt.stop_propagation();
+                                                                    show_restore_confirm.set(true);
+                                                                },
+                                                                "Restore"
+                                                            }
+                                                        })
+                                                    } else {
+                                                        None
+                                                    }}
+                                                }
+                                            }
+                                        }).collect::<Vec<_>>()}
+                                        
+                                        {if available_backups.read().len() > 3 {
+                                            Some(rsx! {
+                                                div { class: "backup-show-more",
+                                                    "... and {available_backups.read().len() - 3} more backups"
+                                                }
+                                            })
+                                        } else {
+                                            None
+                                        }}
+                                    }
+                                })
+                            }}
                         }
                     }
-                }
-            }
+                })
+            } else {
+                None
+            }}
             
             // Reset cache option (existing)
             div { class: "advanced-option",
@@ -599,157 +613,174 @@ rsx! {
         
         // All the existing modals (rename, delete, backup config, restore confirm)
         // Rename dialog
-        if *show_rename_dialog.read() {
-            div { class: "modal-overlay",
-                div { class: "modal-container rename-dialog",
-                    div { class: "modal-header",
-                        h3 { "Rename Installation" }
-                        button { 
-                            class: "modal-close",
-                            disabled: *is_operating.read(),
-                            onclick: move |_| {
-                                if !*is_operating.read() {
-                                    show_rename_dialog.set(false);
-                                }
-                            },
-                            "×"
-                        }
-                    }
-                    
-                    div { class: "modal-content",
-                        if let Some(error) = rename_error.read().as_ref() {
-                            div { class: "rename-error", "{error}" }
-                        }
-                        
-                        div { class: "form-group",
-                            label { r#for: "installation-name", "New name:" }
-                            input {
-                                id: "installation-name",
-                                r#type: "text",
-                                value: "{new_name}",
-                                maxlength: "25",
+        {if *show_rename_dialog.read() {
+            Some(rsx! {
+                div { class: "modal-overlay",
+                    div { class: "modal-container rename-dialog",
+                        div { class: "modal-header",
+                            h3 { "Rename Installation" }
+                            button { 
+                                class: "modal-close",
                                 disabled: *is_operating.read(),
-                                oninput: move |evt| {
-                                    let value = evt.value().clone();
-                                    if value.len() <= 25 {
-                                        new_name.set(value);
+                                onclick: move |_| {
+                                    if !*is_operating.read() {
+                                        show_rename_dialog.set(false);
                                     }
                                 },
-                                placeholder: "Enter new installation name"
+                                "×"
+                            }
+                        }
+                        
+                        div { class: "modal-content",
+                            {rename_error.read().as_ref().map(|error| rsx! {
+                                div { class: "rename-error", "{error}" }
+                            })}
+                            
+                            div { class: "form-group",
+                                label { r#for: "installation-name", "New name:" }
+                                input {
+                                    id: "installation-name",
+                                    r#type: "text",
+                                    value: "{new_name}",
+                                    maxlength: "25",
+                                    disabled: *is_operating.read(),
+                                    oninput: move |evt| {
+                                        let value = evt.value().clone();
+                                        if value.len() <= 25 {
+                                            new_name.set(value);
+                                        }
+                                    },
+                                    placeholder: "Enter new installation name"
+                                }
+                                
+                                div { class: "character-counter",
+                                    style: if new_name.read().len() > 20 { 
+                                        "color: #ff9d93;" 
+                                    } else { 
+                                        "color: rgba(255, 255, 255, 0.6);" 
+                                    },
+                                    "{new_name.read().len()}/25"
+                                }
+                            }
+                        }
+                        
+                        div { class: "modal-footer",
+                            button { 
+                                class: "cancel-button",
+                                disabled: *is_operating.read(),
+                                onclick: move |_| {
+                                    if !*is_operating.read() {
+                                        show_rename_dialog.set(false);
+                                    }
+                                },
+                                "Cancel"
                             }
                             
-                            div { class: "character-counter",
-                                style: if new_name.read().len() > 20 { 
-                                    "color: #ff9d93;" 
-                                } else { 
-                                    "color: rgba(255, 255, 255, 0.6);" 
-                                },
-                                "{new_name.read().len()}/25"
-                            }
-                        }
-                    }
-                    
-                    div { class: "modal-footer",
-                        button { 
-                            class: "cancel-button",
-                            disabled: *is_operating.read(),
-                            onclick: move |_| {
-                                if !*is_operating.read() {
-                                    show_rename_dialog.set(false);
-                                }
-                            },
-                            "Cancel"
-                        }
-                        
-                        button { 
-                            class: "save-button",
-                            disabled: *is_operating.read(),
-                            onclick: handle_rename,
-                            if *is_operating.read() {
-                                "Saving..."
-                            } else {
-                                "Save"
+                            button { 
+                                class: "save-button",
+                                disabled: *is_operating.read(),
+                                onclick: handle_rename,
+                                {if *is_operating.read() {
+                                    "Saving..."
+                                } else {
+                                    "Save"
+                                }}
                             }
                         }
                     }
                 }
-            }
-        }
+            })
+        } else {
+            None
+        }}
         
         // Delete confirmation dialog
-        if *show_delete_confirm.read() {
-            div { class: "modal-overlay",
-                div { class: "modal-container delete-dialog",
-                    div { class: "modal-header",
-                        h3 { "Delete Installation" }
-                        button { 
-                            class: "modal-close",
-                            disabled: *is_operating.read(),
-                            onclick: move |_| {
-                                if !*is_operating.read() {
-                                    show_delete_confirm.set(false);
-                                }
-                            },
-                            "×"
-                        }
-                    }
-                    
-                    div { class: "modal-content",
-                        p { "Are you sure you want to delete this installation?" }
-                        p { class: "delete-warning", "This action cannot be undone!" }
-                        p { "Installation: ", strong { "{installation_name}" } }
-                    }
-                    
-                    div { class: "modal-footer",
-                        button { 
-                            class: "cancel-button",
-                            disabled: *is_operating.read(),
-                            onclick: move |_| {
-                                if !*is_operating.read() {
-                                    show_delete_confirm.set(false);
-                                }
-                            },
-                            "Cancel"
+        {if *show_delete_confirm.read() {
+            Some(rsx! {
+                div { class: "modal-overlay",
+                    div { class: "modal-container delete-dialog",
+                        div { class: "modal-header",
+                            h3 { "Delete Installation" }
+                            button { 
+                                class: "modal-close",
+                                disabled: *is_operating.read(),
+                                onclick: move |_| {
+                                    if !*is_operating.read() {
+                                        show_delete_confirm.set(false);
+                                    }
+                                },
+                                "×"
+                            }
                         }
                         
-                        button { 
-                            class: "delete-button",
-                            disabled: *is_operating.read(),
-                            onclick: handle_delete,
-                            if *is_operating.read() {
-                                "Deleting..."
-                            } else {
-                                "Delete"
+                        div { class: "modal-content",
+                            p { "Are you sure you want to delete this installation?" }
+                            p { class: "delete-warning", "This action cannot be undone!" }
+                            p { "Installation: ", strong { "{installation_name}" } }
+                        }
+                        
+                        div { class: "modal-footer",
+                            button { 
+                                class: "cancel-button",
+                                disabled: *is_operating.read(),
+                                onclick: move |_| {
+                                    if !*is_operating.read() {
+                                        show_delete_confirm.set(false);
+                                    }
+                                },
+                                "Cancel"
+                            }
+                            
+                            button { 
+                                class: "delete-button",
+                                disabled: *is_operating.read(),
+                                onclick: handle_delete,
+                                {if *is_operating.read() {
+                                    "Deleting..."
+                                } else {
+                                    "Delete"
+                                }}
                             }
                         }
                     }
                 }
-            }
-        }
+            })
+        } else {
+            None
+        }}
         
         // Backup configuration dialog
-        if *show_backup_config.read() {
-            BackupConfigDialog {
-                config: backup_config,
-                estimated_size: installation.get_backup_size_estimate(&backup_config.read()).unwrap_or(0),
-                onclose: move |_| show_backup_config.set(false),
-                onupdate: move |new_config: BackupConfig| {
-                    backup_config.set(new_config);
+        {if *show_backup_config.read() {
+            Some(rsx! {
+                BackupConfigDialog {
+                    config: backup_config,
+                    estimated_size: installation.get_backup_size_estimate(&backup_config.read()).unwrap_or(0),
+                    onclose: move |_| show_backup_config.set(false),
+                    onupdate: move |new_config: BackupConfig| {
+                        backup_config.set(new_config);
+                    }
                 }
-            }
-        }
+            })
+        } else {
+            None
+        }}
         
         // Restore confirmation dialog
-        if *show_restore_confirm.read() {
-            RestoreConfirmDialog {
-                backup_id: selected_backup.read().clone().unwrap_or_default(),
-                backups: available_backups.read().clone(),
-                installation: installation.clone(),
-                onclose: move |_| show_restore_confirm.set(false),
-                onupdate: onupdate.clone()
-            }
-        }
+        {if *show_restore_confirm.read() {
+            Some(rsx! {
+                RestoreConfirmDialog {
+                    backup_id: selected_backup.read().clone().unwrap_or_default(),
+                    backups: available_backups.read().clone(),
+                    installation: installation.clone(),
+                    onclose: move |_| show_restore_confirm.set(false),
+                    onupdate: onupdate.clone()
+                }
+            })
+        } else {
+            None
+        }}
     }
+}
 }
 
 // Keep the existing BackupConfigDialog component
