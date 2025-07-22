@@ -1835,7 +1835,7 @@ async fn install<F: FnMut() + Clone>(installer_profile: &InstallerProfile, mut p
     let progress_counter = std::sync::Arc::new(std::sync::Mutex::new(0));
     
     // Create progress callback that increments the shared counter
-    let create_progress_callback = {
+    let mut create_progress_callback = {
         let progress_counter = progress_counter.clone();
         let mut main_callback = progress_callback.clone();
         
