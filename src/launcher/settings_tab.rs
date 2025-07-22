@@ -257,511 +257,496 @@ fn GeneralSettingsSection(
 rsx! {
     div { class: "settings-tab",
         // Display operation error if any
-        {
-            if let Some(error) = &*operation_error.read() {
-                rsx! {
-                    div { class: "error-notification settings-error",
-                        div { class: "error-message", "{error}" }
-                        button { 
-                            class: "error-close",
-                            onclick: move |_| operation_error.set(None),
-                            "×"
-                        }
-                    }
+        if let Some(error) = operation_error.read().as_ref() {
+            div { class: "error-notification settings-error",
+                div { class: "error-message", "{error}" }
+                button { 
+                    class: "error-close",
+                    onclick: move |_| operation_error.set(None),
+                    "×"
                 }
-            } else {
-                rsx! { }
             }
         }
         
         // Success message for backups
-        {
-            if let Some(success) = &*backup_success.read() {
-                rsx! {
-                    div { class: "success-notification",
-                        div { class: "success-message", "{success}" }
-                        button { 
-                            class: "success-close",
-                            onclick: move |_| backup_success.set(None),
-                            "×"
-                        }
-                    }
+        if let Some(success) = backup_success.read().as_ref() {
+            div { class: "success-notification",
+                div { class: "success-message", "{success}" }
+                button { 
+                    class: "success-close",
+                    onclick: move |_| backup_success.set(None),
+                    "×"
                 }
-            } else {
-                rsx! { }
             }
         }
+        
+        // Installation information section
+        div { class: "settings-section installation-info",
+            h3 { "Installation Information" }
             
-            // Installation information section
-            div { class: "settings-section installation-info",
-                h3 { "Installation Information" }
+            div { class: "info-grid",
+                div { class: "info-row",
+                    div { class: "info-label", "Name: ", "{installation_name}" }
+                }
                 
-                div { class: "info-grid",
-                    div { class: "info-row",
-                        div { class: "info-label", "Name: ", "{installation_name}" }
-                    }
-                    
-                    div { class: "info-row",
-                        div { class: "info-label", "Created: ", "{created_at.format(\"%B %d, %Y\")}" }
-                    }
-                    
-                    div { class: "info-row",
-                        div { class: "info-label", "Last Used: ", "{last_used.format(\"%B %d, %Y\")}"  }
-                    }
-                    
-                    div { class: "info-row",
-                        div { class: "info-label", "Minecraft: ", "{minecraft_version}" }
-                    }
-                    
-                    div { class: "info-row",
-                        div { class: "info-label", "Loader: ", "{loader_type} {loader_version}"  }
-                    }
-                    
-                    div { class: "info-row",
-                        div { class: "info-label", "Launcher: ", "{launcher_type}" }
-                    }
-                    
-                    div { class: "info-row path-row",
-                        div { class: "info-label", "Path:" }
-                        div { class: "path-container", 
-                            code { class: "installation-path-code", "{installation_path_display}" }
-                        }
+                div { class: "info-row",
+                    div { class: "info-label", "Created: ", "{created_at.format(\"%B %d, %Y\")}" }
+                }
+                
+                div { class: "info-row",
+                    div { class: "info-label", "Last Used: ", "{last_used.format(\"%B %d, %Y\")}"  }
+                }
+                
+                div { class: "info-row",
+                    div { class: "info-label", "Minecraft: ", "{minecraft_version}" }
+                }
+                
+                div { class: "info-row",
+                    div { class: "info-label", "Loader: ", "{loader_type} {loader_version}"  }
+                }
+                
+                div { class: "info-row",
+                    div { class: "info-label", "Launcher: ", "{launcher_type}" }
+                }
+                
+                div { class: "info-row path-row",
+                    div { class: "info-label", "Path:" }
+                    div { class: "path-container", 
+                        code { class: "installation-path-code", "{installation_path_display}" }
                     }
                 }
             }
+        }
+        
+        // Usage statistics section
+        div { class: "settings-section usage-stats",
+            h3 { "Usage Statistics" }
             
-            // Usage statistics section
-            div { class: "settings-section usage-stats",
-                h3 { "Usage Statistics" }
-                
-                div { class: "stats-grid",
-                    div { class: "stat-item",
-                        div { class: "stat-value", "{total_launches}" }
-                        div { class: "stat-label", "Total Launches" }
-                    }
-                    
-                    div { class: "stat-item",
-                        div { class: "stat-value",
-                            if let Some(launch_date) = last_launch {
-                                {launch_date.format("%B %d, %Y").to_string()}
-                            } else {
-                                {"Never".to_string()}
-                            }
-                        }
-                        div { class: "stat-label", "Last Launch" }
-                    }
-                }
-            }
-            
-            // Advanced section with backup integration
-            div { class: "settings-section advanced-settings",
-                h3 { "Advanced" }
-                
-                div { class: "advanced-description",
-                    p { "These settings allow you to directly manage your installation. Use with caution." }
+            div { class: "stats-grid",
+                div { class: "stat-item",
+                    div { class: "stat-value", "{total_launches}" }
+                    div { class: "stat-label", "Total Launches" }
                 }
                 
-                // Backup & Restore option
-                div { class: "advanced-option",
-                    div { class: "advanced-option-info",
-                        h4 { "Backup & Restore" }
-                        p { "Create backups of your installation and restore from previous states to protect your configuration and settings." }
-                    }
-                    
-                    button {
-                        class: "advanced-button backup-button",
-                        disabled: *is_operating.read(),
-                        onclick: move |_| {
-                            let current_state = *show_backup_section.read();
-                            show_backup_section.set(!current_state);
-                        },
-                        if *show_backup_section.read() {
-                            "Hide Backup Options"
+                div { class: "stat-item",
+                    div { class: "stat-value",
+                        if let Some(launch_date) = last_launch {
+                            "{launch_date.format(\"%B %d, %Y\")}"
                         } else {
-                            "Show Backup Options"
+                            "Never"
                         }
                     }
+                    div { class: "stat-label", "Last Launch" }
+                }
+            }
+        }
+        
+        // Advanced section with backup integration
+        div { class: "settings-section advanced-settings",
+            h3 { "Advanced" }
+            
+            div { class: "advanced-description",
+                p { "These settings allow you to directly manage your installation. Use with caution." }
+            }
+            
+            // Backup & Restore option
+            div { class: "advanced-option",
+                div { class: "advanced-option-info",
+                    h4 { "Backup & Restore" }
+                    p { "Create backups of your installation and restore from previous states to protect your configuration and settings." }
                 }
                 
-                // Expandable backup section
-                if *show_backup_section.read() {
-                    div { class: "backup-expanded-section",
-                        // Quick backup creation
-                        div { class: "backup-quick-create",
-                            h5 { "Quick Backup" }
-                            
-                            div { class: "backup-description-input",
-                                input {
-                                    r#type: "text",
-                                    value: "{backup_description}",
-                                    placeholder: "Backup description (optional)",
-                                    oninput: move |evt| backup_description.set(evt.value().clone())
-                                }
+                button {
+                    class: "advanced-button backup-button",
+                    disabled: *is_operating.read(),
+                    onclick: move |_| {
+                        let current_state = *show_backup_section.read();
+                        show_backup_section.set(!current_state);
+                    },
+                    if *show_backup_section.read() {
+                        "Hide Backup Options"
+                    } else {
+                        "Show Backup Options"
+                    }
+                }
+            }
+            
+            // Expandable backup section
+            if *show_backup_section.read() {
+                div { class: "backup-expanded-section",
+                    // Quick backup creation
+                    div { class: "backup-quick-create",
+                        h5 { "Quick Backup" }
+                        
+                        div { class: "backup-description-input",
+                            input {
+                                r#type: "text",
+                                value: "{backup_description}",
+                                placeholder: "Backup description (optional)",
+                                oninput: move |evt| backup_description.set(evt.value().clone())
+                            }
+                        }
+                        
+                        div { class: "backup-quick-actions",
+                            button {
+                                class: "backup-config-button",
+                                onclick: move |_| show_backup_config.set(true),
+                                "⚙️ Configure"
                             }
                             
-                            div { class: "backup-quick-actions",
-                                button {
-                                    class: "backup-config-button",
-                                    onclick: move |_| show_backup_config.set(true),
-                                    "⚙️ Configure"
-                                }
-                                
-                                button {
-                                    class: "create-backup-button",
-                                    disabled: *is_creating_backup.read(),
-                                    onclick: create_backup,
-                                    if *is_creating_backup.read() {
-                                        "Creating..."
-                                    } else {
-                                        "Create Backup"
-                                    }
-                                }
-                            }
-                            
-                            // Progress display
-                            if let Some(progress) = &*backup_progress.read() {
-                                div { class: "backup-progress-mini",
-                                    div { class: "progress-text", "Creating backup... {progress.files_processed}/{progress.total_files} files" }
-                                    div { class: "progress-bar-mini",
-                                        div { 
-                                            class: "progress-fill",
-                                            style: "width: {if progress.total_files > 0 { (progress.files_processed as f64 / progress.total_files as f64 * 100.0) as u32 } else { 0 }}%"
-                                        }
-                                    }
+                            button {
+                                class: "create-backup-button",
+                                disabled: *is_creating_backup.read(),
+                                onclick: create_backup,
+                                if *is_creating_backup.read() {
+                                    "Creating..."
+                                } else {
+                                    "Create Backup"
                                 }
                             }
                         }
                         
-                        // Available backups list
-                        div { class: "backup-list-section",
-                            h5 { "Available Backups ({available_backups.read().len()})" }
-                            
-                            if available_backups.read().is_empty() {
-                                div { class: "no-backups-mini",
-                                    "No backups available. Create your first backup above."
+                        // Progress display
+                        if let Some(progress) = backup_progress.read().as_ref() {
+                            div { class: "backup-progress-mini",
+                                div { class: "progress-text", "Creating backup... {progress.files_processed}/{progress.total_files} files" }
+                                div { class: "progress-bar-mini",
+                                    div { 
+                                        class: "progress-fill",
+                                        style: "width: {if progress.total_files > 0 { (progress.files_processed as f64 / progress.total_files as f64 * 100.0) as u32 } else { 0 }}%"
+                                    }
                                 }
-                            } else {
-                                div { class: "backups-list-mini",
-                                    for backup in available_backups.read().iter().take(3) {
-                                        {
-                                            let backup_id = backup.id.clone();
-                                            let is_selected = selected_backup.read().as_ref() == Some(&backup_id);
-                                            
-                                            rsx! {
-                                                div { 
-                                                    class: if is_selected {
-                                                        "backup-item-mini selected"
-                                                    } else {
-                                                        "backup-item-mini"
-                                                    },
-                                                    onclick: move |_| {
-                                                        if is_selected {
-                                                            selected_backup.set(None);
-                                                        } else {
-                                                            selected_backup.set(Some(backup_id.clone()));
-                                                        }
-                                                    },
-                                                    
-                                                    div { class: "backup-info-mini",
-                                                        div { class: "backup-name", "{backup.description}" }
-                                                        div { class: "backup-meta", 
-                                                            "{backup.age_description()} • {backup.formatted_size()}"
-                                                        }
-                                                    }
-                                                    
+                            }
+                        }
+                    }
+                    
+                    // Available backups list
+                    div { class: "backup-list-section",
+                        h5 { "Available Backups ({available_backups.read().len()})" }
+                        
+                        if available_backups.read().is_empty() {
+                            div { class: "no-backups-mini",
+                                "No backups available. Create your first backup above."
+                            }
+                        } else {
+                            div { class: "backups-list-mini",
+                                for backup in available_backups.read().iter().take(3) {
+                                    {
+                                        let backup_id = backup.id.clone();
+                                        let is_selected = selected_backup.read().as_ref() == Some(&backup_id);
+                                        
+                                        rsx! {
+                                            div { 
+                                                class: if is_selected {
+                                                    "backup-item-mini selected"
+                                                } else {
+                                                    "backup-item-mini"
+                                                },
+                                                onclick: move |_| {
                                                     if is_selected {
-                                                        button {
-                                                            class: "restore-button-mini",
-                                                            onclick: move |evt| {
-                                                                evt.stop_propagation();
-                                                                show_restore_confirm.set(true);
-                                                            },
-                                                            "Restore"
-                                                        }
+                                                        selected_backup.set(None);
+                                                    } else {
+                                                        selected_backup.set(Some(backup_id.clone()));
+                                                    }
+                                                },
+                                                
+                                                div { class: "backup-info-mini",
+                                                    div { class: "backup-name", "{backup.description}" }
+                                                    div { class: "backup-meta", 
+                                                        "{backup.age_description()} • {backup.formatted_size()}"
+                                                    }
+                                                }
+                                                
+                                                if is_selected {
+                                                    button {
+                                                        class: "restore-button-mini",
+                                                        onclick: move |evt| {
+                                                            evt.stop_propagation();
+                                                            show_restore_confirm.set(true);
+                                                        },
+                                                        "Restore"
                                                     }
                                                 }
                                             }
                                         }
                                     }
-                                    
-                                    if available_backups.read().len() > 3 {
-                                        div { class: "backup-show-more",
-                                            "... and {available_backups.read().len() - 3} more backups"
-                                        }
+                                }
+                                
+                                if available_backups.read().len() > 3 {
+                                    div { class: "backup-show-more",
+                                        "... and {available_backups.read().len() - 3} more backups"
                                     }
                                 }
                             }
                         }
                     }
                 }
+            }
+            
+            // Reset cache option (existing)
+            div { class: "advanced-option",
+                div { class: "advanced-option-info",
+                    h4 { "Reset Installation Cache" }
+                    p { "Clears cached files and forces redownload on next launch. Try this if you encounter issues with mods or resources." }
+                }
                 
-                // Reset cache option (existing)
-                div { class: "advanced-option",
-                    div { class: "advanced-option-info",
-                        h4 { "Reset Installation Cache" }
-                        p { "Clears cached files and forces redownload on next launch. Try this if you encounter issues with mods or resources." }
-                    }
-                    
-                    button {
-                        class: "advanced-button reset-cache-button",
-                        disabled: *is_operating.read(),
-                        onclick: move |_| {
-                            debug!("Reset cache clicked for installation: {}", installation_id_for_cache);
-                            is_operating.set(true);
+                button {
+                    class: "advanced-button reset-cache-button",
+                    disabled: *is_operating.read(),
+                    onclick: move |_| {
+                        debug!("Reset cache clicked for installation: {}", installation_id_for_cache);
+                        is_operating.set(true);
+                        
+                        let installation_path_for_cache = installation.installation_path.clone();
+                        let mut operation_error_clone = operation_error.clone();
+                        let mut is_operating_clone = is_operating.clone();
+                        let installation_clone_for_async = installation.clone();
+                        let onupdate_clone = onupdate.clone();
+                        
+                        spawn(async move {
+                            let cache_folders = [
+                                installation_path_for_cache.join("mods"),
+                                installation_path_for_cache.join("resourcepacks"),
+                                installation_path_for_cache.join("shaderpacks")
+                            ];
                             
-                            let installation_path_for_cache = installation.installation_path.clone();
-                            let mut operation_error_clone = operation_error.clone();
-                            let mut is_operating_clone = is_operating.clone();
-                            let installation_clone_for_async = installation.clone();
-                            let onupdate_clone = onupdate.clone();
+                            let mut success = true;
                             
-                            spawn(async move {
-                                let cache_folders = [
-                                    installation_path_for_cache.join("mods"),
-                                    installation_path_for_cache.join("resourcepacks"),
-                                    installation_path_for_cache.join("shaderpacks")
-                                ];
-                                
-                                let mut success = true;
-                                
-                                for folder in &cache_folders {
-                                    if folder.exists() {
-                                        match std::fs::remove_dir_all(folder) {
-                                            Ok(_) => {
-                                                if let Err(e) = std::fs::create_dir_all(folder) {
-                                                    operation_error_clone.set(Some(format!("Failed to recreate folder: {}", e)));
-                                                    success = false;
-                                                    break;
-                                                }
-                                            },
-                                            Err(e) => {
-                                                operation_error_clone.set(Some(format!("Failed to clear cache: {}", e)));
+                            for folder in &cache_folders {
+                                if folder.exists() {
+                                    match std::fs::remove_dir_all(folder) {
+                                        Ok(_) => {
+                                            if let Err(e) = std::fs::create_dir_all(folder) {
+                                                operation_error_clone.set(Some(format!("Failed to recreate folder: {}", e)));
                                                 success = false;
                                                 break;
                                             }
-                                        }
-                                    } else {
-                                        if let Err(e) = std::fs::create_dir_all(folder) {
-                                            operation_error_clone.set(Some(format!("Failed to create folder: {}", e)));
+                                        },
+                                        Err(e) => {
+                                            operation_error_clone.set(Some(format!("Failed to clear cache: {}", e)));
                                             success = false;
                                             break;
                                         }
                                     }
-                                }
-                                
-                                is_operating_clone.set(false);
-                                
-                                if success {
-                                    let mut installation_for_update = installation_clone_for_async.clone();
-                                    installation_for_update.installed = false;
-                                    
-                                    if let Err(e) = installation_for_update.save() {
-                                        operation_error_clone.set(Some(format!("Failed to update installation state: {}", e)));
-                                    } else {
-                                        onupdate_clone.call(installation_for_update);
+                                } else {
+                                    if let Err(e) = std::fs::create_dir_all(folder) {
+                                        operation_error_clone.set(Some(format!("Failed to create folder: {}", e)));
+                                        success = false;
+                                        break;
                                     }
-                                    
-                                    operation_error_clone.set(Some("Cache successfully reset. You'll need to reinstall the modpack next time you play.".to_string()));
                                 }
-                            });
-                        },
-                        "Reset Cache"
-                    }
+                            }
+                            
+                            is_operating_clone.set(false);
+                            
+                            if success {
+                                let mut installation_for_update = installation_clone_for_async.clone();
+                                installation_for_update.installed = false;
+                                
+                                if let Err(e) = installation_for_update.save() {
+                                    operation_error_clone.set(Some(format!("Failed to update installation state: {}", e)));
+                                } else {
+                                    onupdate_clone.call(installation_for_update);
+                                }
+                                
+                                operation_error_clone.set(Some("Cache successfully reset. You'll need to reinstall the modpack next time you play.".to_string()));
+                            }
+                        });
+                    },
+                    "Reset Cache"
                 }
             }
+        }
+        
+        // Actions section
+        div { class: "settings-section actions",
+            h3 { "Actions" }
             
-            // Actions section
-            div { class: "settings-section actions",
-                h3 { "Actions" }
+            div { class: "settings-actions",
+                // Rename button
+                button {
+                    class: "settings-action-button rename-button",
+                    disabled: *is_operating.read(),
+                    onclick: move |_| {
+                        new_name.set(installation_name.clone());
+                        show_rename_dialog.set(true);
+                    },
+                    span { class: "action-icon", "✏️" }
+                    "Rename Installation"
+                }
                 
-                div { class: "settings-actions",
-                    // Rename button
-                    button {
-                        class: "settings-action-button rename-button",
-                        disabled: *is_operating.read(),
-                        onclick: move |_| {
-                            new_name.set(installation_name.clone());
-                            show_rename_dialog.set(true);
-                        },
-                        span { class: "action-icon", "✏️" }
-                        "Rename Installation"
+                // Open folder button
+                button {
+                    class: "settings-action-button folder-button",
+                    disabled: *is_operating.read(),
+                    onclick: open_folder,
+                    span { class: "action-icon", "📂" }
+                    "Open Installation Folder"
+                }
+                
+                // Delete button
+                button {
+                    class: "settings-action-button delete-button",
+                    disabled: *is_operating.read(),
+                    onclick: move |_| {
+                        show_delete_confirm.set(true);
+                    },
+                    span { class: "action-icon", "🗑️" }
+                    "Delete Installation"
+                }
+            }
+        }
+        
+        // All the existing modals (rename, delete, backup config, restore confirm)
+        // Rename dialog
+        if *show_rename_dialog.read() {
+            div { class: "modal-overlay",
+                div { class: "modal-container rename-dialog",
+                    div { class: "modal-header",
+                        h3 { "Rename Installation" }
+                        button { 
+                            class: "modal-close",
+                            disabled: *is_operating.read(),
+                            onclick: move |_| {
+                                if !*is_operating.read() {
+                                    show_rename_dialog.set(false);
+                                }
+                            },
+                            "×"
+                        }
                     }
                     
-                    // Open folder button
-                    button {
-                        class: "settings-action-button folder-button",
-                        disabled: *is_operating.read(),
-                        onclick: open_folder,
-                        span { class: "action-icon", "📂" }
-                        "Open Installation Folder"
+                    div { class: "modal-content",
+                        if let Some(error) = rename_error.read().as_ref() {
+                            div { class: "rename-error", "{error}" }
+                        }
+                        
+                        div { class: "form-group",
+                            label { r#for: "installation-name", "New name:" }
+                            input {
+                                id: "installation-name",
+                                r#type: "text",
+                                value: "{new_name}",
+                                maxlength: "25",
+                                disabled: *is_operating.read(),
+                                oninput: move |evt| {
+                                    let value = evt.value().clone();
+                                    if value.len() <= 25 {
+                                        new_name.set(value);
+                                    }
+                                },
+                                placeholder: "Enter new installation name"
+                            }
+                            
+                            div { class: "character-counter",
+                                style: if new_name.read().len() > 20 { 
+                                    "color: #ff9d93;" 
+                                } else { 
+                                    "color: rgba(255, 255, 255, 0.6);" 
+                                },
+                                "{new_name.read().len()}/25"
+                            }
+                        }
                     }
                     
-                    // Delete button
-                    button {
-                        class: "settings-action-button delete-button",
-                        disabled: *is_operating.read(),
-                        onclick: move |_| {
-                            show_delete_confirm.set(true);
-                        },
-                        span { class: "action-icon", "🗑️" }
-                        "Delete Installation"
-                    }
-                }
-            }
-            
-            // All the existing modals (rename, delete, backup config, restore confirm)
-            // [Keep all existing modal code...]
-            
-            // Rename dialog
-            if *show_rename_dialog.read() {
-                div { class: "modal-overlay",
-                    div { class: "modal-container rename-dialog",
-                        div { class: "modal-header",
-                            h3 { "Rename Installation" }
-                            button { 
-                                class: "modal-close",
-                                disabled: *is_operating.read(),
-                                onclick: move |_| {
-                                    if !*is_operating.read() {
-                                        show_rename_dialog.set(false);
-                                    }
-                                },
-                                "×"
-                            }
+                    div { class: "modal-footer",
+                        button { 
+                            class: "cancel-button",
+                            disabled: *is_operating.read(),
+                            onclick: move |_| {
+                                if !*is_operating.read() {
+                                    show_rename_dialog.set(false);
+                                }
+                            },
+                            "Cancel"
                         }
                         
-                        div { class: "modal-content",
-                            if let Some(error) = &*rename_error.read() {
-                                div { class: "rename-error", "{error}" }
-                            }
-                            
-                            div { class: "form-group",
-                                label { r#for: "installation-name", "New name:" }
-                                input {
-                                    id: "installation-name",
-                                    r#type: "text",
-                                    value: "{new_name}",
-                                    maxlength: "25",
-                                    disabled: *is_operating.read(),
-                                    oninput: move |evt| {
-                                        let value = evt.value().clone();
-                                        if value.len() <= 25 {
-                                            new_name.set(value);
-                                        }
-                                    },
-                                    placeholder: "Enter new installation name"
-                                }
-                                
-                                div { class: "character-counter",
-                                    style: if new_name.read().len() > 20 { 
-                                        "color: #ff9d93;" 
-                                    } else { 
-                                        "color: rgba(255, 255, 255, 0.6);" 
-                                    },
-                                    "{new_name.read().len()}/25"
-                                }
-                            }
-                        }
-                        
-                        div { class: "modal-footer",
-                            button { 
-                                class: "cancel-button",
-                                disabled: *is_operating.read(),
-                                onclick: move |_| {
-                                    if !*is_operating.read() {
-                                        show_rename_dialog.set(false);
-                                    }
-                                },
-                                "Cancel"
-                            }
-                            
-                            button { 
-                                class: "save-button",
-                                disabled: *is_operating.read(),
-                                onclick: handle_rename,
-                                if *is_operating.read() {
-                                    "Saving..."
-                                } else {
-                                    "Save"
-                                }
+                        button { 
+                            class: "save-button",
+                            disabled: *is_operating.read(),
+                            onclick: handle_rename,
+                            if *is_operating.read() {
+                                "Saving..."
+                            } else {
+                                "Save"
                             }
                         }
                     }
                 }
             }
-            
-            // Delete confirmation dialog
-            if *show_delete_confirm.read() {
-                div { class: "modal-overlay",
-                    div { class: "modal-container delete-dialog",
-                        div { class: "modal-header",
-                            h3 { "Delete Installation" }
-                            button { 
-                                class: "modal-close",
-                                disabled: *is_operating.read(),
-                                onclick: move |_| {
-                                    if !*is_operating.read() {
-                                        show_delete_confirm.set(false);
-                                    }
-                                },
-                                "×"
-                            }
-                        }
-                        
-                        div { class: "modal-content",
-                            p { "Are you sure you want to delete this installation?" }
-                            p { class: "delete-warning", "This action cannot be undone!" }
-                            p { "Installation: ", strong { "{installation_name}" } }
-                        }
-                        
-                        div { class: "modal-footer",
-                            button { 
-                                class: "cancel-button",
-                                disabled: *is_operating.read(),
-                                onclick: move |_| {
-                                    if !*is_operating.read() {
-                                        show_delete_confirm.set(false);
-                                    }
-                                },
-                                "Cancel"
-                            }
-                            
-                            button { 
-                                class: "delete-button",
-                                disabled: *is_operating.read(),
-                                onclick: handle_delete,
-                                if *is_operating.read() {
-                                    "Deleting..."
-                                } else {
-                                    "Delete"
+        }
+        
+        // Delete confirmation dialog
+        if *show_delete_confirm.read() {
+            div { class: "modal-overlay",
+                div { class: "modal-container delete-dialog",
+                    div { class: "modal-header",
+                        h3 { "Delete Installation" }
+                        button { 
+                            class: "modal-close",
+                            disabled: *is_operating.read(),
+                            onclick: move |_| {
+                                if !*is_operating.read() {
+                                    show_delete_confirm.set(false);
                                 }
+                            },
+                            "×"
+                        }
+                    }
+                    
+                    div { class: "modal-content",
+                        p { "Are you sure you want to delete this installation?" }
+                        p { class: "delete-warning", "This action cannot be undone!" }
+                        p { "Installation: ", strong { "{installation_name}" } }
+                    }
+                    
+                    div { class: "modal-footer",
+                        button { 
+                            class: "cancel-button",
+                            disabled: *is_operating.read(),
+                            onclick: move |_| {
+                                if !*is_operating.read() {
+                                    show_delete_confirm.set(false);
+                                }
+                            },
+                            "Cancel"
+                        }
+                        
+                        button { 
+                            class: "delete-button",
+                            disabled: *is_operating.read(),
+                            onclick: handle_delete,
+                            if *is_operating.read() {
+                                "Deleting..."
+                            } else {
+                                "Delete"
                             }
                         }
                     }
                 }
             }
-            
-            // Backup configuration dialog
-            if *show_backup_config.read() {
-                BackupConfigDialog {
-                    config: backup_config,
-                    estimated_size: installation.get_backup_size_estimate(&backup_config.read()).unwrap_or(0),
-                    onclose: move |_| show_backup_config.set(false),
-                    onupdate: move |new_config: BackupConfig| {
-                        backup_config.set(new_config);
-                    }
+        }
+        
+        // Backup configuration dialog
+        if *show_backup_config.read() {
+            BackupConfigDialog {
+                config: backup_config,
+                estimated_size: installation.get_backup_size_estimate(&backup_config.read()).unwrap_or(0),
+                onclose: move |_| show_backup_config.set(false),
+                onupdate: move |new_config: BackupConfig| {
+                    backup_config.set(new_config);
                 }
             }
-            
-            // Restore confirmation dialog
-            if *show_restore_confirm.read() {
-                RestoreConfirmDialog {
-                    backup_id: selected_backup.read().clone().unwrap_or_default(),
-                    backups: available_backups.read().clone(),
-                    installation: installation.clone(),
-                    onclose: move |_| show_restore_confirm.set(false),
-                    onupdate: onupdate.clone()
-                }
+        }
+        
+        // Restore confirmation dialog
+        if *show_restore_confirm.read() {
+            RestoreConfirmDialog {
+                backup_id: selected_backup.read().clone().unwrap_or_default(),
+                backups: available_backups.read().clone(),
+                installation: installation.clone(),
+                onclose: move |_| show_restore_confirm.set(false),
+                onupdate: onupdate.clone()
             }
         }
     }
