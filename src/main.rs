@@ -1859,12 +1859,12 @@ async fn install<F: FnMut() + Clone>(installer_profile: &InstallerProfile, mut p
     };
     
     // Different callbacks for different operation types
-    let mod_callback = create_weighted_callback(1);      // 1 point per mod
-    let shader_callback = create_weighted_callback(1);   // 1 point per shader
-    let resource_callback = create_weighted_callback(1); // 1 point per resource
-    let include_callback = create_weighted_callback(5);  // 5 points per include
-    let remote_callback = create_weighted_callback(15);  // 15 points per remote include
-    let overhead_callback = create_weighted_callback(2); // 2 points per overhead task
+    let mut mod_callback = create_weighted_callback(1);      // 1 point per mod
+    let mut shader_callback = create_weighted_callback(1);   // 1 point per shader
+    let mut resource_callback = create_weighted_callback(1); // 1 point per resource
+    let mut include_callback = create_weighted_callback(5);  // 5 points per include
+    let mut remote_callback = create_weighted_callback(15);  // 15 points per remote include
+    let mut overhead_callback = create_weighted_callback(2); // 2 points per overhead task
     
     debug!("Starting downloads with weighted progress...");
     
