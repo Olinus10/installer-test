@@ -81,36 +81,43 @@ pub fn BackupTab(
             operation_error.set(None);
             operation_success.set(None);
             
-            spawn(async move {
-                let progress_callback = {
-                    let mut backup_progress = backup_progress.clone();
-                    move |progress: BackupProgress| {
-                        backup_progress.set(Some(progress));
-                    }
-                };
-                
-                match installation.create_backup(
-                    BackupType::Manual,
-                    &config,
-                    description.clone(),
-                    Some(progress_callback),
-                ).await {
-                    Ok(metadata) => {
-                        operation_success.set(Some(format!("Backup created successfully: {}", metadata.id)));
-                        
-                        // Reload backup list
-                        if let Ok(backups) = installation.list_available_backups() {
-                            available_backups.set(backups);
-                        }
-                    },
-                    Err(e) => {
-                        operation_error.set(Some(format!("Failed to create backup: {}", e)));
-                    }
-                }
-                
-                is_creating_backup.set(false);
-                backup_progress.set(None);
-            });
+spawn(async move {
+    // Use a channel to communicate progress back to the UI thread
+    let (progress_tx, mut progress_rx) = tokio::sync::mpsc::unbounded_channel::<BackupProgress>();
+    
+    let progress_callback = move |progress: BackupProgress| {
+        let _ = progress_tx.send(progress);
+    };
+    
+    // Start a task to handle progress updates
+    let backup_progress_clone = backup_progress.clone();
+    spawn(async move {
+        while let Some(progress) = progress_rx.recv().await {
+            backup_progress_clone.set(Some(progress));
+        }
+    });
+    
+    match installation.create_backup(
+        BackupType::Manual,
+        &config,
+        description.clone(),
+        Some(progress_callback),
+    ).await {
+        Ok(metadata) => {
+            operation_success.set(Some(format!("Backup created successfully: {}", metadata.id)));
+            
+            if let Ok(backups) = installation.list_available_backups() {
+                available_backups.set(backups);
+            }
+        },
+        Err(e) => {
+            operation_error.set(Some(format!("Failed to create backup: {}", e)));
+        }
+    }
+    
+    is_creating_backup.set(false);
+    backup_progress.set(None);
+});
         }
     };
     
@@ -805,7 +812,6 @@ fn AdvancedSettingsSection(
                 spawn(async move {
                     match manager.rollback_to_last_working().await {
                         Ok(_) => {
-                            // Installation was updated, notify parent
                             onupdate.call(manager.installation);
                         },
                         Err(e) => {
@@ -816,7 +822,7 @@ fn AdvancedSettingsSection(
             }
         }
     };
-    
+
     rsx! {
         div { class: "advanced-settings",
             h3 { "Advanced Options" }
@@ -832,7 +838,6 @@ fn AdvancedSettingsSection(
                 }
             }
             
-            // Advanced Rollback Section
             div { class: "advanced-section emergency-rollback",
                 h4 { "Emergency Recovery" }
                 p { "Use these options if your installation is broken or not working properly." }
@@ -856,7 +861,6 @@ fn AdvancedSettingsSection(
                     }
                 }
                 
-                // Display rollback options if loaded
                 if !rollback_options.read().is_empty() {
                     div { class: "rollback-options",
                         h5 { "Available Rollback Points:" }
@@ -873,14 +877,8 @@ fn AdvancedSettingsSection(
                                         onrollback: move |backup_id: String| {
                                             if let Some(mut manager) = rollback_manager.read().clone() {
                                                 spawn(async move {
-                                                    match manager.rollback_to_backup(&backup_id).await {
-                                                        Ok(_) => {
-                                                            onupdate.call(manager.installation);
-                                                        },
-                                                        Err(_e) => {
-                                                            // Handle error - could set an error state here
-                                                        }
-                                                    }
+                                                    let _ = manager.rollback_to_backup(&backup_id).await;
+                                                    onupdate.call(manager.installation);
                                                 });
                                             }
                                         }
@@ -892,7 +890,6 @@ fn AdvancedSettingsSection(
                 }
             }
             
-            // Installation Health Check
             div { class: "advanced-section health-check",
                 h4 { "Installation Health" }
                 
