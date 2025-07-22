@@ -411,7 +411,7 @@ self.copy_directory_with_progress(
     &mut files_processed,
     total_files,
     &mut bytes_processed,
-    &progress_callback.as_ref(),
+    progress_callback.clone(),  // <-- NEW
 )?;
                 }
             }
@@ -443,7 +443,7 @@ self.copy_directory_with_progress(
     &mut files_processed,
     total_files,
     &mut bytes_processed,
-    &progress_callback.as_ref(),
+    progress_callback.clone(),  // <-- NEW
 )?;
                 }
             }
@@ -484,79 +484,80 @@ fn copy_directory_with_progress<F>(
     files_processed: &mut usize,
     total_files: usize,
     bytes_processed: &mut u64,
-    progress_callback: &Option<&F>,
+    progress_callback: Option<F>,  // <-- Changed from &Option<&F>
 ) -> Result<(), String>
 where
     F: Fn(crate::backup::BackupProgress),
-    {
-        if source.is_file() {
-            // Copy single file
-            if let Some(parent) = dest.parent() {
-                std::fs::create_dir_all(parent)
-                    .map_err(|e| format!("Failed to create parent directory: {}", e))?;
-            }
-            
-            std::fs::copy(source, dest)
-                .map_err(|e| format!("Failed to copy file: {}", e))?;
-                
-            let file_size = std::fs::metadata(dest)
-                .map_err(|e| format!("Failed to get file metadata: {}", e))?
-                .len();
-                
-            *files_processed += 1;
-            *bytes_processed += file_size;
-            
-            if let Some(callback) = progress_callback {
-                callback(crate::backup::BackupProgress {
-                    current_file: dest.to_string_lossy().to_string(),
-                    files_processed: *files_processed,
-                    total_files,
-                    bytes_processed: *bytes_processed,
-                    total_bytes: 0, // Will be calculated separately
-                });
-            }
-            
-            return Ok(());
+{
+    if source.is_file() {
+        // Copy single file
+        if let Some(parent) = dest.parent() {
+            std::fs::create_dir_all(parent)
+                .map_err(|e| format!("Failed to create parent directory: {}", e))?;
         }
         
-        if !source.is_dir() {
-            return Ok(());
-        }
-        
-        std::fs::create_dir_all(dest)
-            .map_err(|e| format!("Failed to create directory: {}", e))?;
-        
-        let entries = std::fs::read_dir(source)
-            .map_err(|e| format!("Failed to read directory: {}", e))?;
-        
-        for entry in entries {
-            let entry = entry.map_err(|e| format!("Failed to read directory entry: {}", e))?;
-            let source_path = entry.path();
-            let dest_path = dest.join(entry.file_name());
+        std::fs::copy(source, dest)
+            .map_err(|e| format!("Failed to copy file: {}", e))?;
             
-            if source_path.is_dir() {
-                self.copy_directory_with_progress(
-                    &source_path,
-                    &dest_path,
-                    files_processed,
-                    total_files,
-                    bytes_processed,
-                    progress_callback,
-                )?;
-            } else {
-                self.copy_directory_with_progress(
-                    &source_path,
-                    &dest_path,
-                    files_processed,
-                    total_files,
-                    bytes_processed,
-                    progress_callback,
-                )?;
-            }
+        let file_size = std::fs::metadata(dest)
+            .map_err(|e| format!("Failed to get file metadata: {}", e))?
+            .len();
+            
+        *files_processed += 1;
+        *bytes_processed += file_size;
+        
+        // FIX: Use the callback directly instead of dereferencing
+        if let Some(callback) = &progress_callback {
+            callback(crate::backup::BackupProgress {
+                current_file: dest.to_string_lossy().to_string(),
+                files_processed: *files_processed,
+                total_files,
+                bytes_processed: *bytes_processed,
+                total_bytes: 0, // Will be calculated separately
+            });
         }
         
-        Ok(())
+        return Ok(());
     }
+    
+    if !source.is_dir() {
+        return Ok(());
+    }
+    
+    std::fs::create_dir_all(dest)
+        .map_err(|e| format!("Failed to create directory: {}", e))?;
+    
+    let entries = std::fs::read_dir(source)
+        .map_err(|e| format!("Failed to read directory: {}", e))?;
+    
+    for entry in entries {
+        let entry = entry.map_err(|e| format!("Failed to read directory entry: {}", e))?;
+        let source_path = entry.path();
+        let dest_path = dest.join(entry.file_name());
+        
+        if source_path.is_dir() {
+            self.copy_directory_with_progress(
+                &source_path,
+                &dest_path,
+                files_processed,
+                total_files,
+                bytes_processed,
+                progress_callback.clone(),  // <-- Clone instead of referencing
+            )?;
+        } else {
+            self.copy_directory_with_progress(
+                &source_path,
+                &dest_path,
+                files_processed,
+                total_files,
+                bytes_processed,
+                progress_callback.clone(),  // <-- Clone instead of referencing
+            )?;
+        }
+    }
+    
+    Ok(())
+}
     
     /// Restore installation from a backup
     pub async fn restore_from_backup(&mut self, backup_id: &str) -> Result<(), String> {
