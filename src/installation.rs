@@ -355,7 +355,7 @@ pub async fn create_backup<F>(
     progress_callback: Option<F>,
 ) -> Result<crate::backup::BackupMetadata, String>
 where
-    F: Fn(crate::backup::BackupProgress) + Send + Sync + 'static,
+    F: Fn(crate::backup::BackupProgress) + Send + Sync + Clone + 'static,  // Add Clone
     {
         use chrono::Utc;
         use uuid::Uuid;
@@ -484,10 +484,10 @@ fn copy_directory_with_progress<F>(
     files_processed: &mut usize,
     total_files: usize,
     bytes_processed: &mut u64,
-    progress_callback: Option<F>,  // <-- Changed from &Option<&F>
+    progress_callback: Option<F>,  // Remove the &Option<&F> reference pattern
 ) -> Result<(), String>
 where
-    F: Fn(crate::backup::BackupProgress),
+    F: Fn(crate::backup::BackupProgress) + Clone,  // Add Clone trait bound
 {
     if source.is_file() {
         // Copy single file
@@ -507,18 +507,16 @@ where
         *bytes_processed += file_size;
         
         // FIX: Use the callback directly instead of dereferencing
-        if let Some(callback) = &progress_callback {
-            callback(crate::backup::BackupProgress {
-                current_file: dest.to_string_lossy().to_string(),
-                files_processed: *files_processed,
-                total_files,
-                bytes_processed: *bytes_processed,
-                total_bytes: 0, // Will be calculated separately
-            });
-        }
-        
-        return Ok(());
+    if let Some(callback) = &progress_callback {
+        callback(crate::backup::BackupProgress {
+            current_file: full_name,
+            files_processed: *files_processed,
+            total_files,
+            bytes_processed: *bytes_processed,
+            total_bytes: 0,
+        });
     }
+}
     
     if !source.is_dir() {
         return Ok(());
@@ -616,7 +614,7 @@ where
                         &mut 0,
                         0,
                         &mut 0,
-                        &None::<fn(crate::backup::BackupProgress)>,
+                        None::<fn(crate::backup::BackupProgress)>,
                     )?;
                 }
             }
