@@ -49,7 +49,7 @@ impl Default for BackupConfig {
 }
 
 /// Metadata about a backup
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct BackupMetadata {
     pub id: String,
     pub description: String,
@@ -84,7 +84,7 @@ impl BackupMetadata {
 }
 
 /// Progress tracking for backup operations
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct BackupProgress {
     pub current_file: String,
     pub files_processed: usize,
@@ -159,7 +159,7 @@ impl RollbackManager {
 }
 
 /// Rollback option for the UI
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct RollbackOption {
     pub backup_id: String,
     pub description: String,
@@ -299,7 +299,8 @@ where
             let file_size = file_data.len() as u64;
             
             zip.start_file(&full_name, zip::write::FileOptions::default()
-                .compression_method(CompressionMethod::Deflated))?;
+                .compression_method(CompressionMethod::Deflated)
+                .unix_permissions(0o755))?;
             zip.write_all(&file_data)?;
             
             *files_processed += 1;
