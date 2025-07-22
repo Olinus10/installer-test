@@ -1651,7 +1651,7 @@ async fn install<F: FnMut() + Clone>(installer_profile: &InstallerProfile, mut p
     // Build the complete list of features that should be enabled
     let mut effective_enabled_features = installer_profile.enabled_features.clone();
     
-    // CRITICAL FIX: Add all default-enabled components that aren't already in the list
+    // Add all default-enabled components
     for component in &universal_manifest.mods {
         if component.default_enabled && !effective_enabled_features.contains(&component.id) {
             debug!("Adding default-enabled mod: {} ({})", component.id, component.name);
@@ -1673,7 +1673,6 @@ async fn install<F: FnMut() + Clone>(installer_profile: &InstallerProfile, mut p
         }
     }
     
-    // Add default-enabled includes
     for include in &universal_manifest.include {
         if include.default_enabled && !include.id.is_empty() && !effective_enabled_features.contains(&include.id) {
             debug!("Adding default-enabled include: {} ({})", include.id, include.location);
@@ -1681,7 +1680,6 @@ async fn install<F: FnMut() + Clone>(installer_profile: &InstallerProfile, mut p
         }
     }
     
-    // Add default-enabled remote includes
     for remote in &universal_manifest.remote_include {
         if remote.default_enabled && !effective_enabled_features.contains(&remote.id) {
             debug!("Adding default-enabled remote include: {} ({})", 
@@ -1695,7 +1693,7 @@ async fn install<F: FnMut() + Clone>(installer_profile: &InstallerProfile, mut p
         effective_enabled_features.insert(0, "default".to_string());
     }
     
-    // NEW: Resolve dependencies for all enabled features
+    // Resolve dependencies for all enabled features
     let features_to_check = effective_enabled_features.clone();
     for feature in features_to_check {
         resolve_dependencies(&feature, &mut effective_enabled_features, &universal_manifest);
@@ -1705,77 +1703,84 @@ async fn install<F: FnMut() + Clone>(installer_profile: &InstallerProfile, mut p
     let mut seen = std::collections::HashSet::new();
     effective_enabled_features.retain(|item| seen.insert(item.clone()));
     
-    debug!("Final enabled features list (including defaults and dependencies): {:?}", effective_enabled_features);
-    info!("Installing with {} enabled features", effective_enabled_features.len());
+    debug!("Final enabled features list: {:?}", effective_enabled_features);
     
-    // Calculate total items correctly based on EFFECTIVE features (user + defaults)
-    let mut total_items = 0;
+    // UPDATED: Calculate total items more accurately by counting actual downloads that will happen
+    let mut total_downloads = 0;
     
-    // Count mods that should be installed
-    total_items += installer_profile.manifest.mods.iter()
-        .filter(|m| {
-            let should_include = m.id == "default" || effective_enabled_features.contains(&m.id);
-            debug!("Mod '{}' (ID: {}) - will install: {}", m.name, m.id, should_include);
-            should_include
-        })
-        .count();
+    // Count actual downloadable items (not already downloaded)
+    let is_update = installer_profile.installed;
     
-    // Count shaderpacks that should be installed
-    total_items += installer_profile.manifest.shaderpacks.iter()
-        .filter(|s| {
-            let should_include = s.id == "default" || effective_enabled_features.contains(&s.id);
-            debug!("Shaderpack '{}' (ID: {}) - will install: {}", s.name, s.id, should_include);
-            should_include
-        })
-        .count();
-    
-    // Count resourcepacks that should be installed
-    total_items += installer_profile.manifest.resourcepacks.iter()
-        .filter(|r| {
-            let should_include = r.id == "default" || effective_enabled_features.contains(&r.id);
-            debug!("Resourcepack '{}' (ID: {}) - will install: {}", r.name, r.id, should_include);
-            should_include
-        })
-        .count();
-    
-    // Count includes that should be installed
-    total_items += installer_profile.manifest.include.iter()
-        .filter(|i| {
-            let should_include = if i.id.is_empty() || i.id == "default" {
-                true
-            } else if !i.optional {
-                true
-            } else {
-                effective_enabled_features.contains(&i.id)
-            };
-            debug!("Include '{}' (ID: {}) - will install: {}", i.location, i.id, should_include);
-            should_include
-        })
-        .count();
-    
-    // Count remote includes that should be installed
-    if let Some(remote_includes) = &installer_profile.manifest.remote_include {
-        total_items += remote_includes.iter()
-            .filter(|r| {
-                let should_include = if r.id == "default" {
-                    true
-                } else if !r.optional {
-                    true
-                } else {
-                    effective_enabled_features.contains(&r.id)
-                };
-                debug!("Remote include '{}' (ID: {}) - will install: {}", 
-                       r.name.as_ref().unwrap_or(&r.id), r.id, should_include);
-                should_include
-            })
-            .count();
+    // Count mods that need downloading
+    for mod_item in &installer_profile.manifest.mods {
+        let should_include = mod_item.id == "default" || effective_enabled_features.contains(&mod_item.id);
+        let needs_download = should_include && mod_item.path.is_none();
+        if needs_download {
+            total_downloads += 1;
+            debug!("Will download mod: {}", mod_item.name);
+        }
     }
     
-    // Add overhead tasks
-    let overhead_tasks = 4;
-    total_items += overhead_tasks;
+    // Count shaderpacks that need downloading
+    for shader in &installer_profile.manifest.shaderpacks {
+        let should_include = shader.id == "default" || effective_enabled_features.contains(&shader.id);
+        let needs_download = should_include && shader.path.is_none();
+        if needs_download {
+            total_downloads += 1;
+            debug!("Will download shaderpack: {}", shader.name);
+        }
+    }
     
-    debug!("Total items to install: {}", total_items);
+    // Count resourcepacks that need downloading
+    for resource in &installer_profile.manifest.resourcepacks {
+        let should_include = resource.id == "default" || effective_enabled_features.contains(&resource.id);
+        let needs_download = should_include && resource.path.is_none();
+        if needs_download {
+            total_downloads += 1;
+            debug!("Will download resourcepack: {}", resource.name);
+        }
+    }
+    
+    // Count includes that need downloading
+    for include in &installer_profile.manifest.include {
+        let should_include = if include.id.is_empty() || include.id == "default" {
+            true
+        } else if !include.optional {
+            true
+        } else {
+            effective_enabled_features.contains(&include.id)
+        };
+        
+        if should_include {
+            total_downloads += 1;
+            debug!("Will download include: {}", include.location);
+        }
+    }
+    
+    // Count remote includes that need downloading
+    if let Some(remote_includes) = &installer_profile.manifest.remote_include {
+        for remote in remote_includes {
+            let should_include = if remote.id == "default" {
+                true
+            } else if !remote.optional {
+                true
+            } else {
+                effective_enabled_features.contains(&remote.id)
+            };
+            
+            if should_include {
+                total_downloads += 1;
+                debug!("Will download remote include: {}", 
+                       remote.name.as_ref().unwrap_or(&remote.id));
+            }
+        }
+    }
+    
+    // Add overhead tasks (loader, manifest save, profile creation, etc.)
+    let overhead_tasks = 4;
+    let total_items = total_downloads + overhead_tasks;
+    
+    debug!("Total downloads: {}, Total items with overhead: {}", total_downloads, total_items);
     
     let modpack_root = &get_modpack_root(
         installer_profile
@@ -1788,13 +1793,9 @@ async fn install<F: FnMut() + Clone>(installer_profile: &InstallerProfile, mut p
     let http_client = &installer_profile.http_client;
     let minecraft_folder = get_minecraft_folder();
     
-    // Check if this is an update by looking for existing manifest
-    let is_update = modpack_root.join("manifest.json").exists();
-    
     // Collect items that should be ignored during updates
     let mut ignore_update_items = std::collections::HashSet::new();
     
-    // Check universal manifest for ignore_update flags
     for mod_component in &universal_manifest.mods {
         if mod_component.ignore_update {
             ignore_update_items.insert(mod_component.id.clone());
@@ -1830,25 +1831,34 @@ async fn install<F: FnMut() + Clone>(installer_profile: &InstallerProfile, mut p
         Launcher::MultiMC(_) => None,
     };
     
-    // Create a progress callback that tracks download items
-    let mut items_completed = 0;
-    let mut download_progress_callback = {
-        let mut progress_callback = progress_callback.clone();
+    // UPDATED: Create a shared progress counter
+    let progress_counter = std::sync::Arc::new(std::sync::Mutex::new(0));
+    
+    // Create progress callback that increments the shared counter
+    let create_progress_callback = {
+        let progress_counter = progress_counter.clone();
+        let mut main_callback = progress_callback.clone();
+        
         move || {
-            items_completed += 1;
-            progress_callback();
+            if let Ok(mut counter) = progress_counter.lock() {
+                *counter += 1;
+                let current = *counter;
+                debug!("Progress: {}/{}", current, total_items);
+            }
+            main_callback();
         }
     };
     
-    // CRITICAL: Pass the EFFECTIVE enabled features (user + defaults) to download_helper
-    debug!("Downloading mods with effective features: {:?}", effective_enabled_features);
+    debug!("Starting downloads...");
+    
+    // Download all components with accurate progress tracking
     let mods_w_path = match download_helper(
         manifest.mods.clone(),
-        &effective_enabled_features, // Use EFFECTIVE features, not just user's choices
+        &effective_enabled_features,
         modpack_root.as_path(),
         &manifest.loader.r#type,
         http_client,
-        download_progress_callback.clone(),
+        create_progress_callback.clone(),
         is_update,
         &ignore_update_items,
     )
@@ -1858,14 +1868,13 @@ async fn install<F: FnMut() + Clone>(installer_profile: &InstallerProfile, mut p
         Err(e) => return Err(e.to_string()),
     };
     
-    debug!("Downloading shaderpacks with effective features: {:?}", effective_enabled_features);
     let shaderpacks_w_path = match download_helper(
         manifest.shaderpacks.clone(),
-        &effective_enabled_features, // Use EFFECTIVE features
+        &effective_enabled_features,
         modpack_root.as_path(),
         &manifest.loader.r#type,
         http_client,
-        download_progress_callback.clone(),
+        create_progress_callback.clone(),
         is_update,
         &ignore_update_items,
     )
@@ -1875,14 +1884,13 @@ async fn install<F: FnMut() + Clone>(installer_profile: &InstallerProfile, mut p
         Err(e) => return Err(e.to_string()),
     };
     
-    debug!("Downloading resourcepacks with effective features: {:?}", effective_enabled_features);
     let resourcepacks_w_path = match download_helper(
         manifest.resourcepacks.clone(),
-        &effective_enabled_features, // Use EFFECTIVE features
+        &effective_enabled_features,
         modpack_root.as_path(),
         &manifest.loader.r#type,
         http_client,
-        download_progress_callback.clone(),
+        create_progress_callback.clone(),
         is_update,
         &ignore_update_items,
     )
@@ -1892,20 +1900,18 @@ async fn install<F: FnMut() + Clone>(installer_profile: &InstallerProfile, mut p
         Err(e) => return Err(e.to_string()),
     };
     
-    let mut included_files: HashMap<String, Included> = HashMap::new();
+    let mut included_files: HashMap<String, crate::Included> = HashMap::new();
     
-    // Handle regular includes - respect EFFECTIVE features (user + defaults)
+    // Handle regular includes with progress tracking
     if !manifest.include.is_empty() {
         debug!("Processing {} includes from manifest", manifest.include.len());
         
         for inc in &manifest.include {
-            // Check if we should ignore this include during updates
             if is_update && ignore_update_items.contains(&inc.id) {
                 debug!("Ignoring update for include: {} (ignore_update=true)", inc.id);
                 continue;
             }
             
-            // CRITICAL: Check if this include should be installed based on EFFECTIVE features
             let should_install = if inc.id.is_empty() || inc.id == "default" {
                 true
             } else if !inc.optional {
@@ -1921,14 +1927,13 @@ async fn install<F: FnMut() + Clone>(installer_profile: &InstallerProfile, mut p
         
             debug!("Processing include: {} (enabled in effective features)", inc.id);
             
-            // Rest of include processing logic stays the same
             let github_url = format!(
                 "https://raw.githubusercontent.com/Wynncraft-Overhaul/majestic-overhaul/master/{}",
                 inc.location
             );
             
             let target_path = validate_safe_path(modpack_root, &inc.location)
-    .map_err(|e| format!("Security error for include {}: {}", inc.location, e))?;
+                .map_err(|e| format!("Security error for include {}: {}", inc.location, e))?;
             
             let is_file = inc.location.ends_with(".zip") || 
                          inc.location.ends_with(".txt") || 
@@ -1957,12 +1962,13 @@ async fn install<F: FnMut() + Clone>(installer_profile: &InstallerProfile, mut p
                                             debug!("Successfully downloaded include file: {}", inc.location);
                                             included_files.insert(
                                                 inc.id.clone(),
-                                                Included {
+                                                crate::Included {
                                                     md5: String::new(),
                                                     files: vec![target_path.to_string_lossy().to_string()],
                                                 }
                                             );
-                                            download_progress_callback();
+                                            // INCREMENT PROGRESS FOR EACH INCLUDE
+                                            create_progress_callback();
                                         },
                                         Err(e) => {
                                             error!("Failed to write include file {}: {}", inc.location, e);
@@ -1997,12 +2003,13 @@ async fn install<F: FnMut() + Clone>(installer_profile: &InstallerProfile, mut p
                         debug!("Successfully downloaded include directory: {} ({} files)", inc.location, files.len());
                         included_files.insert(
                             inc.id.clone(),
-                            Included {
+                            crate::Included {
                                 md5: String::new(),
                                 files,
                             }
                         );
-                        download_progress_callback();
+                        // INCREMENT PROGRESS FOR EACH INCLUDE
+                        create_progress_callback();
                     },
                     Err(e) => {
                         error!("Failed to download include directory {}: {}", inc.location, e);
@@ -2012,18 +2019,16 @@ async fn install<F: FnMut() + Clone>(installer_profile: &InstallerProfile, mut p
         }
     }
     
-    // Handle remote includes - respect EFFECTIVE features (user + defaults)
+    // Handle remote includes with progress tracking
     if let Some(remote_includes) = &manifest.remote_include {
         debug!("Processing {} remote includes from manifest", remote_includes.len());
         
         for remote in remote_includes {
-            // Check if we should ignore this remote include during updates
             if is_update && ignore_update_items.contains(&remote.id) {
                 debug!("Ignoring update for remote include: {} (ignore_update=true)", remote.id);
                 continue;
             }
             
-            // CRITICAL: Check if this remote include should be installed based on EFFECTIVE features
             let should_install = if remote.id == "default" {
                 true
             } else if !remote.optional {
@@ -2039,28 +2044,26 @@ async fn install<F: FnMut() + Clone>(installer_profile: &InstallerProfile, mut p
             
             debug!("Processing remote include: {} (enabled in effective features)", remote.id);
             
-            // Determine the target path
             let target_path = if let Some(path) = &remote.path {
                 modpack_root.join(path)
             } else {
                 modpack_root.clone()
             };
             
-            // Get the name for display
             let name = remote.name.clone().unwrap_or_else(|| remote.id.clone());
             
-            // Download and extract the remote include
             match download_zip(&name, http_client, &remote.location, &target_path).await {
                 Ok(files) => {
                     debug!("Successfully downloaded remote include: {} ({} files)", name, files.len());
                     included_files.insert(
                         remote.id.clone(),
-                        Included {
+                        crate::Included {
                             md5: remote.version.clone(),
                             files,
                         }
                     );
-                    download_progress_callback();
+                    // INCREMENT PROGRESS FOR EACH REMOTE INCLUDE
+                    create_progress_callback();
                 },
                 Err(e) => {
                     error!("Failed to download remote include {}: {:?}", name, e);
@@ -2070,15 +2073,15 @@ async fn install<F: FnMut() + Clone>(installer_profile: &InstallerProfile, mut p
         }
     }
 
-    // Now handle overhead tasks
+    // Now handle overhead tasks (each calls create_progress_callback())
     debug!("Starting overhead tasks");
 
-    // Save local manifest with EFFECTIVE features (not just user's original choices)
-    let local_manifest = Manifest {
+    // Save local manifest
+    let local_manifest = crate::Manifest {
         mods: mods_w_path,
         shaderpacks: shaderpacks_w_path,
         resourcepacks: resourcepacks_w_path,
-        enabled_features: effective_enabled_features.clone(), // Save EFFECTIVE features
+        enabled_features: effective_enabled_features.clone(),
         included_files: Some(included_files),
         source: Some(format!(
             "{}{}",
@@ -2103,13 +2106,13 @@ async fn install<F: FnMut() + Clone>(installer_profile: &InstallerProfile, mut p
     )
     .expect("Failed to save a local copy of 'manifest.json'!");
 
-    progress_callback(); // Overhead task 1
+    create_progress_callback(); // Overhead task 1
 
     // Download icon if needed
     let icon_img = if manifest.icon {
         let icon_url = format!(
             "{}{}{}src/assets/icon.png",
-            GH_RAW,
+            crate::GH_RAW,
             installer_profile.modpack_source,
             installer_profile.modpack_branch
         );
@@ -2118,7 +2121,7 @@ async fn install<F: FnMut() + Clone>(installer_profile: &InstallerProfile, mut p
             Ok(mut resp) => {
                 match resp.bytes().await {
                     Ok(bytes) => {
-                        match ImageReader::new(Cursor::new(bytes))
+                        match image::ImageReader::new(std::io::Cursor::new(bytes))
                             .with_guessed_format() {
                             Ok(reader) => {
                                 match reader.decode() {
@@ -2150,7 +2153,7 @@ async fn install<F: FnMut() + Clone>(installer_profile: &InstallerProfile, mut p
         None
     };
 
-    progress_callback(); // Overhead task 2
+    create_progress_callback(); // Overhead task 2
 
     match create_launcher_profile(installer_profile, icon_img) {
         Ok(_) => {
@@ -2159,19 +2162,18 @@ async fn install<F: FnMut() + Clone>(installer_profile: &InstallerProfile, mut p
         Err(e) => return Err(e.to_string()),
     };
 
-    progress_callback(); // Overhead task 3
+    create_progress_callback(); // Overhead task 3
 
     if loader_future.is_some() {
         loader_future.unwrap().await;
     }
 
-    progress_callback(); // Overhead task 4 - FINAL PROGRESS UPDATE
+    create_progress_callback(); // Overhead task 4 - FINAL PROGRESS UPDATE
 
-    debug!("All installation tasks completed, updating installation state...");
+    debug!("All installation tasks completed");
 
-    // FINAL STEP: Mark installation as complete and update installation state
+    // Update installation state
     if let Ok(mut installation) = crate::installation::load_installation(&installer_profile.manifest.uuid) {
-        // Commit the installation with the effective features
         installation.installed_features = effective_enabled_features.clone();
         installation.enabled_features = effective_enabled_features.clone();
         installation.commit_installation();
@@ -2184,15 +2186,10 @@ async fn install<F: FnMut() + Clone>(installer_profile: &InstallerProfile, mut p
         if let Err(e) = installation.save() {
             error!("Failed to update installation state: {}", e);
             return Err(format!("Failed to save installation state: {}", e));
-        } else {
-            debug!("Successfully marked installation as complete with effective features saved");
         }
-    } else {
-        error!("Failed to load installation after install");
-        return Err("Failed to load installation after install".to_string());
     }
 
-    info!("Modpack installation completed successfully with all default features included!");
+    info!("Modpack installation completed successfully!");
     Ok(())
 }
 
