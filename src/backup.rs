@@ -292,7 +292,8 @@ where
             let file_data = fs::read(&path)?;
             let file_size = file_data.len() as u64;
             
-            let options = zip::write::FileOptions::default()
+            // FIX: Specify the generic type parameter explicitly
+            let options = zip::write::FileOptions::<()>::default()
                 .compression_method(CompressionMethod::Deflated);
             zip.start_file(&full_name, options)?;
             zip.write_all(&file_data)?;
