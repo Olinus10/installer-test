@@ -7,17 +7,18 @@ mod process;
 pub use config::{update_jvm_args, get_jvm_args, update_memory_allocation, extract_memory_from_args, update_launcher_profile_memory};
 pub use process::launch_modpack;
 
-// Component modules - make features_tab public
+// Component modules - features_tab remains public
 mod integrated_features;
 pub mod features_tab;
 mod performance_tab;
 mod settings_tab;
-pub mod backup_tab;
+pub mod backup_tab; // Keep for the components, but won't be used as a tab
 
+// Updated exports - remove EnhancedSettingsTab as we're integrating everything
 pub use features_tab::{FeaturesTab, clear_session_state};
 pub use performance_tab::PerformanceTab;
 pub use settings_tab::SettingsTab;
-pub use backup_tab::{BackupTab, EnhancedSettingsTab};
+// Remove the EnhancedSettingsTab export since we're integrating directly
 
 // Define public feature types needed by other modules
 pub struct FeatureCard;
