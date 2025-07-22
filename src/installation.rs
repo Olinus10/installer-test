@@ -347,15 +347,15 @@ impl Installation {
     }
     
     /// Create a backup of this installation
-    pub async fn create_backup<F>(
-        &self,
-        backup_type: crate::backup::BackupType,
-        config: &crate::backup::BackupConfig,
-        description: String,
-        progress_callback: Option<F>,
-    ) -> Result<crate::backup::BackupMetadata, String>
-    where
-        F: FnMut(crate::backup::BackupProgress) + Send + 'static,
+pub async fn create_backup<F>(
+    &self,
+    backup_type: crate::backup::BackupType,
+    config: &crate::backup::BackupConfig,
+    description: String,
+    progress_callback: Option<F>,
+) -> Result<crate::backup::BackupMetadata, String>
+where
+    F: Fn(crate::backup::BackupProgress) + Send + Sync + 'static,
     {
         use chrono::Utc;
         use uuid::Uuid;
@@ -405,23 +405,23 @@ impl Installation {
                         .to_string_lossy();
                     let dest_folder = temp_dir.join(&*folder_name);
                     
-                    self.copy_directory_with_progress(
-                        folder,
-                        &dest_folder,
-                        &mut files_processed,
-                        total_files,
-                        &mut bytes_processed,
-                        &progress_callback,
-                    )?;
+self.copy_directory_with_progress(
+    folder,
+    &dest_folder,
+    &mut files_processed,
+    total_files,
+    &mut bytes_processed,
+    &progress_callback.as_ref(),
+)?;
                 }
             }
             
             // Create ZIP archive
-            let final_size = crate::backup::create_zip_archive(
-                &temp_dir,
-                &archive_path,
-                progress_callback.as_ref(),
-            ).map_err(|e| format!("Failed to create ZIP archive: {}", e))?;
+let final_size = crate::backup::create_zip_archive(
+    &temp_dir,
+    &archive_path,
+    progress_callback.as_ref(),
+).map_err(|e| format!("Failed to create ZIP archive: {}", e))?;
             
             // Clean up temp directory
             std::fs::remove_dir_all(&temp_dir)
@@ -437,14 +437,14 @@ impl Installation {
                         .to_string_lossy();
                     let dest_folder = backup_dir.join(&*folder_name);
                     
-                    self.copy_directory_with_progress(
-                        folder,
-                        &dest_folder,
-                        &mut files_processed,
-                        total_files,
-                        &mut bytes_processed,
-                        &progress_callback,
-                    )?;
+self.copy_directory_with_progress(
+    folder,
+    &dest_folder,
+    &mut files_processed,
+    total_files,
+    &mut bytes_processed,
+    &progress_callback.as_ref(),
+)?;
                 }
             }
         }
@@ -477,17 +477,17 @@ impl Installation {
     }
     
     /// Helper method to copy directory with progress tracking
-    fn copy_directory_with_progress<F>(
-        &self,
-        source: &PathBuf,
-        dest: &PathBuf,
-        files_processed: &mut usize,
-        total_files: usize,
-        bytes_processed: &mut u64,
-        progress_callback: &Option<F>,
-    ) -> Result<(), String>
-    where
-        F: Fn(crate::backup::BackupProgress),
+fn copy_directory_with_progress<F>(
+    &self,
+    source: &PathBuf,
+    dest: &PathBuf,
+    files_processed: &mut usize,
+    total_files: usize,
+    bytes_processed: &mut u64,
+    progress_callback: &Option<&F>,
+) -> Result<(), String>
+where
+    F: Fn(crate::backup::BackupProgress),
     {
         if source.is_file() {
             // Copy single file
