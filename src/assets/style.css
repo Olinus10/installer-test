@@ -4502,3 +4502,477 @@ a:hover {
         grid-template-columns: 1fr;
     }
 }
+
+
+/* Integrated Backup System Styles */
+
+/* Advanced option for backup - styled like the cache reset */
+.advanced-option .backup-button {
+    background: linear-gradient(135deg, #2196F3, #1565C0);
+    border: none;
+    color: white;
+    border-radius: 8px;
+    padding: 12px 20px;
+    font-family: "REGULAR_FONT";
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    box-shadow: 0 4px 15px rgba(33, 150, 243, 0.3);
+}
+
+.advanced-option .backup-button:hover {
+    background: linear-gradient(135deg, #42A5F5, #2196F3);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(33, 150, 243, 0.5);
+}
+
+/* Expandable backup section */
+.backup-expanded-section {
+    margin-top: 20px;
+    padding: 20px;
+    background: linear-gradient(135deg, rgba(33, 150, 243, 0.1), rgba(21, 101, 192, 0.05));
+    border-radius: 12px;
+    border: 1px solid rgba(33, 150, 243, 0.2);
+    animation: expandIn 0.3s ease-out;
+}
+
+@keyframes expandIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+        max-height: 0;
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+        max-height: 500px;
+    }
+}
+
+/* Quick backup creation section */
+.backup-quick-create {
+    margin-bottom: 25px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.backup-quick-create h5 {
+    margin: 0 0 15px 0;
+    color: #ffffff;
+    font-family: "HEADER_FONT";
+    font-size: 1.1rem;
+}
+
+.backup-description-input {
+    margin-bottom: 15px;
+}
+
+.backup-description-input input {
+    width: 100%;
+    padding: 10px 12px;
+    background: rgba(40, 40, 40, 0.8);
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    border-radius: 6px;
+    color: white;
+    font-family: "REGULAR_FONT";
+    font-size: 0.9rem;
+    transition: all 0.3s ease;
+    box-sizing: border-box;
+}
+
+.backup-description-input input:focus {
+    outline: none;
+    border-color: rgba(33, 150, 243, 0.6);
+    background: rgba(50, 50, 50, 0.9);
+    box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.2);
+}
+
+.backup-quick-actions {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+}
+
+.backup-config-button {
+    background: linear-gradient(135deg, #6a6a6a, #4a4a4a);
+    border: none;
+    color: white;
+    border-radius: 6px;
+    padding: 8px 16px;
+    font-family: "REGULAR_FONT";
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.backup-config-button:hover {
+    background: linear-gradient(135deg, #7a7a7a, #5a5a5a);
+    transform: translateY(-1px);
+}
+
+.create-backup-button {
+    background: linear-gradient(135deg, #4CAF50, #2E7D32);
+    border: none;
+    color: white;
+    border-radius: 6px;
+    padding: 10px 20px;
+    font-family: "REGULAR_FONT";
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    box-shadow: 0 3px 10px rgba(76, 175, 80, 0.3);
+}
+
+.create-backup-button:hover:not(:disabled) {
+    background: linear-gradient(135deg, #66BB6A, #4CAF50);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(76, 175, 80, 0.5);
+}
+
+.create-backup-button:disabled {
+    background: linear-gradient(135deg, #666, #444);
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+    opacity: 0.7;
+}
+
+/* Mini progress display */
+.backup-progress-mini {
+    margin-top: 15px;
+    padding: 12px;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.progress-text {
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 0.85rem;
+    margin-bottom: 8px;
+    font-family: "REGULAR_FONT";
+}
+
+.progress-bar-mini {
+    width: 100%;
+    height: 8px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.progress-fill {
+    height: 100%;
+    background: linear-gradient(135deg, #4CAF50, #66BB6A);
+    border-radius: 4px;
+    transition: width 0.3s ease;
+    position: relative;
+}
+
+.progress-fill::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+        90deg,
+        transparent,
+        rgba(255, 255, 255, 0.4),
+        transparent
+    );
+    animation: progress-shine 2s ease-in-out infinite;
+}
+
+@keyframes progress-shine {
+    0% { left: -100%; }
+    100% { left: 100%; }
+}
+
+/* Backup list section */
+.backup-list-section {
+    margin-top: 20px;
+}
+
+.backup-list-section h5 {
+    margin: 0 0 15px 0;
+    color: #ffffff;
+    font-family: "HEADER_FONT";
+    font-size: 1.1rem;
+}
+
+.no-backups-mini {
+    text-align: center;
+    color: rgba(255, 255, 255, 0.6);
+    font-style: italic;
+    padding: 20px;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 6px;
+    border: 2px dashed rgba(255, 255, 255, 0.2);
+    font-size: 0.9rem;
+}
+
+.backups-list-mini {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.backup-item-mini {
+    padding: 12px;
+    background: rgba(40, 40, 50, 0.6);
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.backup-item-mini:hover {
+    background: rgba(50, 50, 60, 0.8);
+    border-color: rgba(255, 255, 255, 0.2);
+    transform: translateY(-1px);
+}
+
+.backup-item-mini.selected {
+    background: rgba(33, 150, 243, 0.2);
+    border-color: rgba(33, 150, 243, 0.6);
+    box-shadow: 0 0 15px rgba(33, 150, 243, 0.2);
+}
+
+.backup-info-mini {
+    flex-grow: 1;
+}
+
+.backup-name {
+    color: #ffffff;
+    font-weight: 600;
+    font-size: 0.9rem;
+    margin-bottom: 2px;
+}
+
+.backup-meta {
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 0.8rem;
+}
+
+.restore-button-mini {
+    background: linear-gradient(135deg, #FF9800, #F57C00);
+    border: none;
+    color: white;
+    border-radius: 4px;
+    padding: 6px 12px;
+    font-family: "REGULAR_FONT";
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    box-shadow: 0 2px 8px rgba(255, 152, 0, 0.3);
+}
+
+.restore-button-mini:hover {
+    background: linear-gradient(135deg, #FFB74D, #FF9800);
+    transform: translateY(-1px);
+    box-shadow: 0 3px 12px rgba(255, 152, 0, 0.5);
+}
+
+.backup-show-more {
+    text-align: center;
+    color: rgba(255, 255, 255, 0.5);
+    font-style: italic;
+    font-size: 0.85rem;
+    padding: 8px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .backup-quick-actions {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .backup-config-button,
+    .create-backup-button {
+        width: 100%;
+        text-align: center;
+    }
+    
+    .backup-item-mini {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+    
+    .restore-button-mini {
+        align-self: flex-end;
+    }
+}
+
+/* Enhanced modal styling for the backup configuration */
+.backup-config-dialog {
+    max-width: 600px;
+}
+
+.backup-config-dialog .config-section {
+    margin-bottom: 25px;
+}
+
+.backup-config-dialog .config-section h4 {
+    margin-bottom: 15px;
+    color: #ffffff;
+    font-family: "HEADER_FONT";
+    font-size: 1.1rem;
+}
+
+.backup-config-dialog .config-options {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 12px;
+}
+
+.backup-config-dialog .config-option {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px;
+    background: rgba(40, 40, 40, 0.5);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.backup-config-dialog .config-option:hover {
+    background: rgba(60, 60, 60, 0.7);
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+.backup-config-dialog .config-option input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    accent-color: #4CAF50;
+}
+
+.backup-config-dialog .config-option input[type="number"] {
+    width: 80px;
+    padding: 6px 8px;
+    background: rgba(20, 20, 20, 0.8);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+    color: white;
+    font-family: "REGULAR_FONT";
+}
+
+.backup-config-dialog .estimated-size {
+    text-align: center;
+    font-weight: bold;
+    color: #4abb6e;
+    background: rgba(76, 175, 80, 0.1);
+    padding: 12px;
+    border-radius: 8px;
+    border: 1px solid rgba(76, 175, 80, 0.3);
+    margin-top: 15px;
+}
+
+/* Restore confirmation dialog styling */
+.restore-confirm-dialog {
+    max-width: 500px;
+}
+
+.restore-confirm-dialog .warning-message {
+    background: linear-gradient(135deg, rgba(255, 152, 0, 0.1), rgba(255, 193, 7, 0.05));
+    border-left: 4px solid #FF9800;
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    font-size: 1rem;
+    font-weight: 600;
+}
+
+.restore-confirm-dialog .backup-details {
+    margin: 15px 0;
+    padding: 15px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+}
+
+.restore-confirm-dialog .detail-grid {
+    display: grid;
+    gap: 8px;
+}
+
+.restore-confirm-dialog .detail-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 6px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.restore-confirm-dialog .detail-row:last-child {
+    border-bottom: none;
+}
+
+.restore-confirm-dialog .detail-label {
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.restore-confirm-dialog .detail-value {
+    color: #ffffff;
+}
+
+.restore-confirm-dialog .safety-info {
+    background: linear-gradient(135deg, rgba(76, 175, 80, 0.1), rgba(46, 125, 50, 0.05));
+    border-left: 4px solid #4CAF50;
+    padding: 12px;
+    border-radius: 8px;
+    margin-top: 15px;
+    font-style: italic;
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 0.9rem;
+}
+
+.restore-confirm-button {
+    background: linear-gradient(135deg, #FF9800, #F57C00);
+    border: none;
+    color: white;
+    border-radius: 8px;
+    padding: 12px 25px;
+    font-family: "HEADER_FONT";
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    box-shadow: 0 4px 15px rgba(255, 152, 0, 0.3);
+}
+
+.restore-confirm-button:hover:not(:disabled) {
+    background: linear-gradient(135deg, #FFB74D, #FF9800);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(255, 152, 0, 0.5);
+}
+
+.restore-confirm-button:disabled {
+    background: linear-gradient(135deg, #666, #444);
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    opacity: 0.7;
+}
