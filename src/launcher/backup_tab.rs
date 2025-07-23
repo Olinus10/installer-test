@@ -1,10 +1,10 @@
 use dioxus::prelude::*;
 use crate::installation::Installation;
-use crate::backup::{BackupConfig, BackupType, BackupMetadata, BackupProgress, RollbackManager, RollbackOption};
+use crate::backup::{BackupConfig, BackupType, BackupMetadata, BackupProgress, BackupItem};
 use log::{debug, error, info};
 
 #[component]
-pub fn BackupTab(
+pub fn EnhancedBackupTab(
     installation: Installation,
     installation_id: String,
     onupdate: EventHandler<Installation>,
@@ -22,9 +22,12 @@ pub fn BackupTab(
     let mut available_backups = use_signal(|| Vec::<BackupMetadata>::new());
     let mut selected_backup = use_signal(|| Option::<String>::None);
     let mut show_rollback_confirm = use_signal(|| false);
+    let mut backup_to_delete = use_signal(|| Option::<String>::None);
     
-    // State for backup configuration dialog
+    // State for configuration dialog
     let mut show_backup_config = use_signal(|| false);
+    let mut available_items = use_signal(|| Vec::<BackupItem>::new());
+    let mut loading_items = use_signal(|| false);
     
     // Load available backups on component mount
     use_effect({
@@ -44,14 +47,56 @@ pub fn BackupTab(
         }
     });
     
+    // Load available backup items when needed
+    let load_backup_items = {
+        let installation_clone = installation.clone();
+        let mut available_items = available_items.clone();
+        let mut loading_items = loading_items.clone();
+        let mut operation_error = operation_error.clone();
+        
+        move |_| {
+            loading_items.set(true);
+            operation_error.set(None);
+            
+            spawn(async move {
+                match installation_clone.discover_backup_items() {
+                    Ok(items) => {
+                        debug!("Discovered {} backup items", items.len());
+                        available_items.set(items);
+                    },
+                    Err(e) => {
+                        error!("Failed to discover backup items: {}", e);
+                        operation_error.set(Some(format!("Failed to scan installation: {}", e)));
+                        available_items.set(Vec::new());
+                    }
+                }
+                loading_items.set(false);
+            });
+        }
+    };
+    
     // Calculate estimated backup size
     let estimated_size = use_memo({
         let installation_clone = installation.clone();
         let backup_config = backup_config.clone();
         
         move || {
-            installation_clone.get_backup_size_estimate(&backup_config.read())
-                .unwrap_or(0)
+            let config = backup_config.read();
+            let mut total_size = 0u64;
+            
+            for item_path in &config.selected_items {
+                let full_path = installation_clone.installation_path.join(item_path);
+                if full_path.exists() {
+                    total_size += crate::backup::calculate_directory_size(&full_path).unwrap_or(0);
+                }
+            }
+            
+            // Apply compression estimate if enabled
+            if config.compress_backups {
+                total_size = (total_size as f64 * 0.65) as u64;
+            }
+            
+            total_size
         }
     });
     
@@ -81,43 +126,41 @@ pub fn BackupTab(
             operation_error.set(None);
             operation_success.set(None);
             
-spawn(async move {
-    // Use a channel to communicate progress back to the UI thread
-    let (progress_tx, mut progress_rx) = tokio::sync::mpsc::unbounded_channel::<BackupProgress>();
-    
-    let progress_callback = move |progress: BackupProgress| {
-        let _ = progress_tx.send(progress);
-    };
-    
-    // Start a task to handle progress updates
-    let mut backup_progress_clone = backup_progress.clone();
-    spawn(async move {
-        while let Some(progress) = progress_rx.recv().await {
-            backup_progress_clone.set(Some(progress));
-        }
-    });
-    
-    match installation.create_backup(
-        BackupType::Manual,
-        &config,
-        description.clone(),
-        Some(progress_callback),  // Pass the callback directly
-    ).await {
-        Ok(metadata) => {
-            operation_success.set(Some(format!("Backup created successfully: {}", metadata.id)));
-            
-            if let Ok(backups) = installation.list_available_backups() {
-                available_backups.set(backups);
-            }
-        },
-        Err(e) => {
-            operation_error.set(Some(format!("Failed to create backup: {}", e)));
-        }
-    }
-    
-    is_creating_backup.set(false);
-    backup_progress.set(None);
-});
+            spawn(async move {
+                let (progress_tx, mut progress_rx) = tokio::sync::mpsc::unbounded_channel::<BackupProgress>();
+                
+                let progress_callback = move |progress: BackupProgress| {
+                    let _ = progress_tx.send(progress);
+                };
+                
+                let mut backup_progress_clone = backup_progress.clone();
+                spawn(async move {
+                    while let Some(progress) = progress_rx.recv().await {
+                        backup_progress_clone.set(Some(progress));
+                    }
+                });
+                
+                match installation.create_backup_dynamic(
+                    BackupType::Manual,
+                    &config,
+                    description.clone(),
+                    Some(progress_callback),
+                ).await {
+                    Ok(metadata) => {
+                        operation_success.set(Some(format!("Backup created successfully: {}", metadata.id)));
+                        
+                        if let Ok(backups) = installation.list_available_backups() {
+                            available_backups.set(backups);
+                        }
+                    },
+                    Err(e) => {
+                        operation_error.set(Some(format!("Failed to create backup: {}", e)));
+                    }
+                }
+                
+                is_creating_backup.set(false);
+                backup_progress.set(None);
+            });
         }
     };
     
@@ -161,9 +204,11 @@ spawn(async move {
         let mut available_backups = available_backups.clone();
         let mut operation_error = operation_error.clone();
         let mut operation_success = operation_success.clone();
+        let mut backup_to_delete = backup_to_delete.clone();
         
         move |backup_id: String| {
             let installation = installation_clone.clone();
+            backup_to_delete.set(Some(backup_id.clone()));
             
             spawn(async move {
                 match installation.delete_backup(&backup_id).await {
@@ -179,12 +224,13 @@ spawn(async move {
                         operation_error.set(Some(format!("Failed to delete backup: {}", e)));
                     }
                 }
+                backup_to_delete.set(None);
             });
         }
     };
     
     rsx! {
-        div { class: "backup-tab",
+        div { class: "backup-tab enhanced-backup-tab",
             h2 { "Backup & Restore" }
             p { "Create backups of your installation and restore from previous states." }
             
@@ -233,8 +279,11 @@ spawn(async move {
                 div { class: "backup-actions",
                     button {
                         class: "configure-backup-button",
-                        onclick: move |_| show_backup_config.set(true),
-                        "⚙️ Configure"
+                        onclick: move |evt| {
+                            load_backup_items(evt);
+                            show_backup_config.set(true);
+                        },
+                        "⚙️ Configure Items"
                     }
                     
                     button {
@@ -251,7 +300,7 @@ spawn(async move {
                 
                 // Progress display
                 if let Some(progress) = &*backup_progress.read() {
-                    BackupProgressDisplay { progress: progress.clone() }
+                    EnhancedBackupProgressDisplay { progress: progress.clone() }
                 }
             }
             
@@ -270,11 +319,13 @@ spawn(async move {
                                 let backup_id = backup.id.clone();
                                 let is_selected = selected_backup.read().as_ref() == Some(&backup_id);
                                 let delete_backup = delete_backup.clone();
+                                let is_deleting = backup_to_delete.read().as_ref() == Some(&backup_id);
                                 
                                 rsx! {
-                                    BackupCard {
+                                    EnhancedBackupCard {
                                         backup: backup.clone(),
                                         is_selected: is_selected,
+                                        is_deleting: is_deleting,
                                         onselect: move |id: String| {
                                             selected_backup.set(Some(id));
                                         },
@@ -305,10 +356,12 @@ spawn(async move {
                 }
             }
             
-            // Backup Configuration Dialog
+            // Enhanced Backup Configuration Dialog
             if *show_backup_config.read() {
-                BackupConfigDialog {
+                EnhancedBackupConfigDialog {
                     config: backup_config,
+                    available_items: available_items.read().clone(),
+                    loading_items: *loading_items.read(),
                     estimated_size: *estimated_size.read(),
                     onclose: move |_| show_backup_config.set(false),
                     onupdate: move |new_config: BackupConfig| {
@@ -331,9 +384,10 @@ spawn(async move {
 }
 
 #[component]
-fn BackupCard(
+fn EnhancedBackupCard(
     backup: BackupMetadata,
     is_selected: bool,
+    is_deleting: bool,
     onselect: EventHandler<String>,
     ondelete: EventHandler<String>,
 ) -> Element {
@@ -382,24 +436,44 @@ fn BackupCard(
                 }
                 
                 div { class: "backup-detail",
-                    span { class: "detail-label", "Features:" }
-                    span { class: "detail-value", "{backup.enabled_features.len()}" }
+                    span { class: "detail-label", "Items:" }
+                    span { class: "detail-value", "{backup.included_items.len()}" }
                 }
                 
                 div { class: "backup-detail",
                     span { class: "detail-label", "Files:" }
                     span { class: "detail-value", "{backup.file_count}" }
                 }
+                
+                // Show included items
+                if !backup.included_items.is_empty() {
+                    div { class: "backup-items-list",
+                        span { class: "items-label", "Includes:" }
+                        div { class: "items-chips",
+                            for item in backup.included_items.iter().take(3) {
+                                span { class: "item-chip", "{item}" }
+                            }
+                            if backup.included_items.len() > 3 {
+                                span { class: "item-chip more", "+{backup.included_items.len() - 3} more" }
+                            }
+                        }
+                    }
+                }
             }
             
             div { class: "backup-card-actions",
                 button {
                     class: "delete-backup-button",
+                    disabled: is_deleting,
                     onclick: move |evt| {
                         evt.stop_propagation();
                         ondelete.call(delete_id.clone());
                     },
-                    "🗑️"
+                    if is_deleting {
+                        "🔄"
+                    } else {
+                        "🗑️"
+                    }
                 }
             }
         }
@@ -407,7 +481,7 @@ fn BackupCard(
 }
 
 #[component]
-fn BackupProgressDisplay(progress: BackupProgress) -> Element {
+fn EnhancedBackupProgressDisplay(progress: BackupProgress) -> Element {
     let percentage = if progress.total_files > 0 {
         (progress.files_processed as f64 / progress.total_files as f64 * 100.0) as u32
     } else {
@@ -415,10 +489,10 @@ fn BackupProgressDisplay(progress: BackupProgress) -> Element {
     };
     
     rsx! {
-        div { class: "backup-progress",
+        div { class: "backup-progress enhanced-progress",
             div { class: "progress-header",
-                span { "Creating backup..." }
-                span { "{percentage}%" }
+                span { class: "operation-status", "{progress.current_operation}" }
+                span { class: "progress-percentage", "{percentage}%" }
             }
             
             div { class: "progress-bar-container",
@@ -429,28 +503,58 @@ fn BackupProgressDisplay(progress: BackupProgress) -> Element {
             }
             
             div { class: "progress-details",
-                div { "Current: {progress.current_file}" }
-                div { "Files: {progress.files_processed}/{progress.total_files}" }
-                div { "Size: {crate::backup::format_bytes(progress.bytes_processed)}/{crate::backup::format_bytes(progress.total_bytes)}" }
+                div { class: "current-file", "Current: {progress.current_file}" }
+                div { class: "file-progress", "Files: {progress.files_processed}/{progress.total_files}" }
+                if progress.total_bytes > 0 {
+                    div { class: "size-progress", 
+                        "Size: {crate::backup::format_bytes(progress.bytes_processed)}/{crate::backup::format_bytes(progress.total_bytes)}" 
+                    }
+                }
             }
         }
     }
 }
 
 #[component]
-fn BackupConfigDialog(
+fn EnhancedBackupConfigDialog(
     config: Signal<BackupConfig>,
+    available_items: Vec<BackupItem>,
+    loading_items: bool,
     estimated_size: u64,
     onclose: EventHandler<()>,
     onupdate: EventHandler<BackupConfig>,
 ) -> Element {
     let mut local_config = use_signal(|| config.read().clone());
+    let mut search_filter = use_signal(|| String::new());
+    
+    // Filter items based on search
+    let filtered_items = use_memo({
+        let available_items = available_items.clone();
+        let search_filter = search_filter.clone();
+        
+        move || {
+            let filter = search_filter.read().to_lowercase();
+            if filter.is_empty() {
+                available_items.clone()
+            } else {
+                available_items.iter()
+                    .filter(|item| {
+                        item.name.to_lowercase().contains(&filter) ||
+                        item.description.as_ref()
+                            .map(|d| d.to_lowercase().contains(&filter))
+                            .unwrap_or(false)
+                    })
+                    .cloned()
+                    .collect()
+            }
+        }
+    });
     
     rsx! {
         div { class: "modal-overlay",
-            div { class: "modal-container backup-config-dialog",
+            div { class: "modal-container enhanced-backup-config-dialog",
                 div { class: "modal-header",
-                    h3 { "Backup Configuration" }
+                    h3 { "Configure Backup Items" }
                     button { 
                         class: "modal-close",
                         onclick: move |_| onclose.call(()),
@@ -459,102 +563,102 @@ fn BackupConfigDialog(
                 }
                 
                 div { class: "modal-content",
-                    div { class: "config-section",
-                        h4 { "What to include:" }
-                        
-                        div { class: "config-options",
-                            label { class: "config-option",
-                                input {
-                                    r#type: "checkbox",
-                                    checked: local_config.read().include_mods,
-                                    onchange: move |evt| {
-                                        local_config.with_mut(|c| c.include_mods = evt.value() == "true");
-                                    }
-                                }
-                                "Mods folder"
-                            }
+                    // Search and filter section
+                    div { class: "config-search-section",
+                        input {
+                            r#type: "text",
+                            class: "search-input",
+                            placeholder: "Search items...",
+                            value: "{search_filter}",
+                            oninput: move |evt| search_filter.set(evt.value().clone())
+                        }
+                    }
+                    
+                    // Loading state
+                    if loading_items {
+                        div { class: "loading-items",
+                            div { class: "loading-spinner" }
+                            span { "Scanning installation..." }
+                        }
+                    }
+                    
+                    // Items selection
+                    if !loading_items && !filtered_items.read().is_empty() {
+                        div { class: "config-section items-selection",
+                            h4 { "Select items to backup:" }
                             
-                            label { class: "config-option",
-                                input {
-                                    r#type: "checkbox",
-                                    checked: local_config.read().include_config,
-                                    onchange: move |evt| {
-                                        local_config.with_mut(|c| c.include_config = evt.value() == "true");
+                            div { class: "items-grid",
+                                for item in filtered_items.read().iter() {
+                                    {
+                                        let item_path = item.path.to_string_lossy().to_string();
+                                        let is_selected = local_config.read().selected_items.contains(&item_path);
+                                        let size_display = if item.is_directory {
+                                            format!("{} ({} files)", 
+                                                crate::backup::format_bytes(item.size_bytes),
+                                                item.file_count.unwrap_or(0)
+                                            )
+                                        } else {
+                                            crate::backup::format_bytes(item.size_bytes)
+                                        };
+                                        
+                                        rsx! {
+                                            label { 
+                                                class: if is_selected { "backup-item-option selected" } else { "backup-item-option" },
+                                                
+                                                input {
+                                                    r#type: "checkbox",
+                                                    checked: is_selected,
+                                                    onchange: move |evt| {
+                                                        let checked = evt.value() == "true";
+                                                        local_config.with_mut(|c| {
+                                                            if checked {
+                                                                if !c.selected_items.contains(&item_path) {
+                                                                    c.selected_items.push(item_path.clone());
+                                                                }
+                                                            } else {
+                                                                c.selected_items.retain(|p| p != &item_path);
+                                                            }
+                                                        });
+                                                    }
+                                                }
+                                                
+                                                div { class: "item-info",
+                                                    div { class: "item-header",
+                                                        span { class: "item-icon", 
+                                                            if item.is_directory { "📁" } else { "📄" }
+                                                        }
+                                                        span { class: "item-name", "{item.name}" }
+                                                    }
+                                                    
+                                                    if let Some(description) = &item.description {
+                                                        div { class: "item-description", "{description}" }
+                                                    }
+                                                    
+                                                    div { class: "item-size", "{size_display}" }
+                                                }
+                                            }
+                                        }
                                     }
                                 }
-                                "Config folder"
-                            }
-                            
-                            label { class: "config-option",
-                                input {
-                                    r#type: "checkbox",
-                                    checked: local_config.read().include_wynntils,
-                                    onchange: move |evt| {
-                                        local_config.with_mut(|c| c.include_wynntils = evt.value() == "true");
-                                    }
-                                }
-                                "Wynntils folder (settings)"
-                            }
-                            
-                            label { class: "config-option",
-                                input {
-                                    r#type: "checkbox",
-                                    checked: local_config.read().include_resourcepacks,
-                                    onchange: move |evt| {
-                                        local_config.with_mut(|c| c.include_resourcepacks = evt.value() == "true");
-                                    }
-                                }
-                                "Resource packs"
-                            }
-                            
-                            label { class: "config-option",
-                                input {
-                                    r#type: "checkbox",
-                                    checked: local_config.read().include_shaderpacks,
-                                    onchange: move |evt| {
-                                        local_config.with_mut(|c| c.include_shaderpacks = evt.value() == "true");
-                                    }
-                                }
-                                "Shader packs"
-                            }
-                            
-                            label { class: "config-option",
-                                input {
-                                    r#type: "checkbox",
-                                    checked: local_config.read().include_saves,
-                                    onchange: move |evt| {
-                                        local_config.with_mut(|c| c.include_saves = evt.value() == "true");
-                                    }
-                                }
-                                "Saves folder (can be large)"
-                            }
-                            
-                            label { class: "config-option",
-                                input {
-                                    r#type: "checkbox",
-                                    checked: local_config.read().include_screenshots,
-                                    onchange: move |evt| {
-                                        local_config.with_mut(|c| c.include_screenshots = evt.value() == "true");
-                                    }
-                                }
-                                "Screenshots"
-                            }
-                            
-                            label { class: "config-option",
-                                input {
-                                    r#type: "checkbox",
-                                    checked: local_config.read().include_logs,
-                                    onchange: move |evt| {
-                                        local_config.with_mut(|c| c.include_logs = evt.value() == "true");
-                                    }
-                                }
-                                "Log files"
                             }
                         }
                     }
                     
-                    div { class: "config-section",
-                        h4 { "Options:" }
+                    if !loading_items && filtered_items.read().is_empty() && !available_items.is_empty() {
+                        div { class: "no-results",
+                            "No items match your search criteria."
+                        }
+                    }
+                    
+                    if !loading_items && available_items.is_empty() {
+                        div { class: "no-items",
+                            "No items found in installation directory."
+                        }
+                    }
+                    
+                    // Advanced options
+                    div { class: "config-section advanced-options",
+                        h4 { "Advanced Options:" }
                         
                         label { class: "config-option",
                             input {
@@ -567,13 +671,24 @@ fn BackupConfigDialog(
                             "Compress backups (saves space)"
                         }
                         
+                        label { class: "config-option",
+                            input {
+                                r#type: "checkbox",
+                                checked: local_config.read().include_hidden_files,
+                                onchange: move |evt| {
+                                    local_config.with_mut(|c| c.include_hidden_files = evt.value() == "true");
+                                }
+                            }
+                            "Include hidden files and folders"
+                        }
+                        
                         div { class: "config-option",
                             label { "Maximum backups to keep:" }
                             input {
                                 r#type: "number",
                                 value: "{local_config.read().max_backups}",
                                 min: "1",
-                                max: "20",
+                                max: "50",
                                 onchange: move |evt| {
                                     if let Ok(value) = evt.value().parse::<usize>() {
                                         local_config.with_mut(|c| c.max_backups = value);
@@ -656,8 +771,19 @@ fn RollbackConfirmDialog(
                                 }
                                 
                                 div { class: "detail-row",
-                                    span { class: "detail-label", "Features:" }
-                                    span { class: "detail-value", "{backup.enabled_features.len()}" }
+                                    span { class: "detail-label", "Items:" }
+                                    span { class: "detail-value", "{backup.included_items.len()}" }
+                                }
+                            }
+                            
+                            if !backup.included_items.is_empty() {
+                                div { class: "included-items",
+                                    h5 { "Included items:" }
+                                    div { class: "items-list",
+                                        for item in backup.included_items.iter() {
+                                            span { class: "included-item", "{item}" }
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -684,296 +810,6 @@ fn RollbackConfirmDialog(
                         "Restore Backup"
                     }
                 }
-            }
-        }
-    }
-}
-
-// Enhanced Settings Tab with Backup integration
-#[component]
-pub fn EnhancedSettingsTab(
-    installation: Installation,
-    installation_id: String,
-    ondelete: EventHandler<()>,
-    onupdate: EventHandler<Installation>,
-) -> Element {
-    let mut active_section = use_signal(|| "general");
-    
-    rsx! {
-        div { class: "enhanced-settings-tab",
-            // Section navigation
-            div { class: "settings-navigation",
-                button {
-                    class: if *active_section.read() == "general" { "nav-button active" } else { "nav-button" },
-                    onclick: move |_| active_section.set("general"),
-                    "General"
-                }
-                
-                button {
-                    class: if *active_section.read() == "backup" { "nav-button active" } else { "nav-button" },
-                    onclick: move |_| active_section.set("backup"),
-                    "Backup & Restore"
-                }
-                
-                button {
-                    class: if *active_section.read() == "advanced" { "nav-button active" } else { "nav-button" },
-                    onclick: move |_| active_section.set("advanced"),
-                    "Advanced"
-                }
-            }
-            
-            // Section content
-            div { class: "settings-content",
-                match *active_section.read() {
-                    "general" => rsx! {
-                        // Your existing SettingsTab content here
-                        crate::launcher::SettingsTab {
-                            installation: installation.clone(),
-                            installation_id: installation_id.clone(),
-                            ondelete: ondelete.clone(),
-                            onupdate: onupdate.clone()
-                        }
-                    },
-                    "backup" => rsx! {
-                        BackupTab {
-                            installation: installation.clone(),
-                            installation_id: installation_id.clone(),
-                            onupdate: onupdate.clone()
-                        }
-                    },
-                    "advanced" => rsx! {
-                        AdvancedSettingsSection {
-                            installation: installation.clone(),
-                            onupdate: onupdate.clone()
-                        }
-                    },
-                    _ => rsx! { div { "Unknown section" } }
-                }
-            }
-        }
-    }
-}
-
-#[component]
-fn AdvancedSettingsSection(
-    installation: Installation,
-    onupdate: EventHandler<Installation>,
-) -> Element {
-    let mut rollback_manager = use_signal(|| None::<RollbackManager>);
-    let mut rollback_options = use_signal(|| Vec::<RollbackOption>::new());
-    let mut is_loading_options = use_signal(|| false);
-    let mut operation_error = use_signal(|| Option::<String>::None);
-    
-    // Initialize rollback manager
-    use_effect({
-        let installation_for_rollback = installation.clone();
-        let mut rollback_manager = rollback_manager.clone();
-        
-move || {
-    let manager = RollbackManager::new(installation_for_rollback.clone());
-            rollback_manager.set(Some(manager));
-        }
-    });
-    
-    // Load rollback options
-    let load_rollback_options = {
-        let mut rollback_options = rollback_options.clone();
-        let mut is_loading_options = is_loading_options.clone();
-        let mut operation_error = operation_error.clone();
-        let rollback_manager = rollback_manager.clone();
-        
-        move |_| {
-            if let Some(manager) = rollback_manager.read().as_ref() {
-                is_loading_options.set(true);
-                operation_error.set(None);
-                
-                match manager.get_rollback_options() {
-                    Ok(options) => {
-                        rollback_options.set(options);
-                    },
-                    Err(e) => {
-                        operation_error.set(Some(format!("Failed to load rollback options: {}", e)));
-                    }
-                }
-                
-                is_loading_options.set(false);
-            }
-        }
-    };
-    
-    // Rollback to last working state
-let rollback_to_last_working = {
-    let rollback_manager = rollback_manager.clone();
-    let onupdate = onupdate.clone();
-    let mut operation_error = operation_error.clone();
-    
-    move |_| {
-        if let Some(manager_ref) = rollback_manager.read().as_ref() {
-            let mut manager = manager_ref.clone();  // Clone the manager
-            spawn(async move {
-                match manager.rollback_to_last_working().await {
-                    Ok(_) => {
-                        onupdate.call(manager.installation);
-                    },
-                    Err(e) => {
-                        operation_error.set(Some(format!("Rollback failed: {}", e)));
-                    }
-                }
-            });
-        }
-    }
-};
-
-    // Pre-compute formatted strings outside of rsx!
-    let total_launches = installation.total_launches.to_string();
-    let enabled_features_count = installation.enabled_features.len().to_string();
-    let last_used_formatted = installation.last_used.format("%Y-%m-%d %H:%M").to_string();
-
-    rsx! {
-        div { class: "advanced-settings",
-            h3 { "Advanced Options" }
-            
-            if let Some(error) = &*operation_error.read() {
-                div { class: "error-notification",
-                    div { class: "error-message", "{error}" }
-                    button { 
-                        class: "error-close",
-                        onclick: move |_| operation_error.set(None),
-                        "×"
-                    }
-                }
-            }
-            
-            div { class: "advanced-section emergency-rollback",
-                h4 { "Emergency Recovery" }
-                p { "Use these options if your installation is broken or not working properly." }
-                
-                div { class: "emergency-actions",
-                    button {
-                        class: "emergency-button rollback-button",
-                        onclick: rollback_to_last_working,
-                        "🔄 Rollback to Last Working State"
-                    }
-                    
-                    button {
-                        class: "emergency-button load-options-button",
-                        onclick: load_rollback_options,
-                        disabled: *is_loading_options.read(),
-                        if *is_loading_options.read() {
-                            "Loading..."
-                        } else {
-                            "📋 Show All Rollback Options"
-                        }
-                    }
-                }
-                
-                if !rollback_options.read().is_empty() {
-                    div { class: "rollback-options",
-                        h5 { "Available Rollback Points:" }
-                        
-                        for option in rollback_options.read().iter() {
-                            {
-                                let option_clone = option.clone();
-                                let rollback_manager = rollback_manager.clone();
-                                let onupdate = onupdate.clone();
-                                
-                                rsx! {
-                                    RollbackOptionCard {
-                                        option: option_clone,
-                                        onrollback: move |backup_id: String| {
-                                            if let Some(mut manager) = rollback_manager.read().clone() {
-                                                spawn(async move {
-                                                    let _ = manager.rollback_to_backup(&backup_id).await;
-                                                    onupdate.call(manager.installation);
-                                                });
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-            
-            div { class: "advanced-section health-check",
-                h4 { "Installation Health" }
-                
-                div { class: "health-info",
-                    div { class: "health-item",
-                        span { class: "health-label", "Installation Status:" }
-                        span { 
-                            class: if installation.installed {
-                                "health-value status-good"
-                            } else {
-                                "health-value status-bad"
-                            },
-                            if installation.installed { "✅ Installed" } else { "❌ Not Installed" }
-                        }
-                    }
-                    
-                    div { class: "health-item",
-                        span { class: "health-label", "Last Used:" }
-                        span { class: "health-value", "{last_used_formatted}" }
-                    }
-                    
-                    div { class: "health-item",
-                        span { class: "health-label", "Total Launches:" }
-                        span { class: "health-value", "{total_launches}" }
-                    }
-                    
-                    div { class: "health-item",
-                        span { class: "health-label", "Enabled Features:" }
-                        span { class: "health-value", "{enabled_features_count}" }
-                    }
-                }
-                
-                button {
-                    class: "health-check-button",
-                    "🔍 Run Diagnostic Check"
-                }
-            }
-        }
-    }
-}
-
-#[component]
-fn RollbackOptionCard(
-    option: RollbackOption,
-    onrollback: EventHandler<String>,
-) -> Element {
-    let backup_id = option.backup_id.clone();
-    
-    // Pre-compute formatted strings
-    let created_at_formatted = option.created_at.format("%Y-%m-%d %H:%M").to_string();
-    let size_formatted = crate::backup::format_bytes(option.size);
-    
-    rsx! {
-        div { 
-            class: if option.is_recommended {
-                "rollback-option-card recommended"
-            } else {
-                "rollback-option-card"
-            },
-            
-            div { class: "option-header",
-                h6 { "{option.description}" }
-                
-                if option.is_recommended {
-                    span { class: "recommended-badge", "Recommended" }
-                }
-            }
-            
-            div { class: "option-details",
-                span { "Version: {option.modpack_version}" }
-                span { "Created: {created_at_formatted}" }
-                span { "Size: {size_formatted}" }
-            }
-            
-            button {
-                class: "rollback-option-button",
-                onclick: move |_| onrollback.call(backup_id.clone()),
-                "Rollback to This Point"
             }
         }
     }
