@@ -371,123 +371,148 @@ rsx! {
             }
             
             // Expandable backup section
-            {if *show_backup_section.read() {
-                Some(rsx! {
-                    div { class: "backup-expanded-section",
-                        // Quick backup creation
-                        div { class: "backup-quick-create",
-                            h5 { "Quick Backup" }
-                            
-                            div { class: "backup-description-input",
-                                input {
-                                    r#type: "text",
-                                    value: "{backup_description}",
-                                    placeholder: "Backup description (optional)",
-                                    oninput: move |evt| backup_description.set(evt.value().clone())
-                                }
-                            }
-                            
-                            div { class: "backup-quick-actions",
-                                button {
-                                    class: "backup-config-button",
-                                    onclick: move |_| show_backup_config.set(true),
-                                    "⚙️ Configure"
-                                }
-                                
-                                button {
-                                    class: "create-backup-button",
-                                    disabled: *is_creating_backup.read(),
-                                    onclick: create_backup,
-                                    {if *is_creating_backup.read() {
-                                        "Creating..."
-                                    } else {
-                                        "Create Backup"
-                                    }}
-                                }
-                            }
-                            
-                            // Progress display
-{backup_progress.read().as_ref().map(|progress| {
-    let progress_text = format!("Creating backup... {}/{} files", progress.files_processed, progress.total_files);
-    let progress_percentage = if progress.total_files > 0 { 
-        (progress.files_processed as f64 / progress.total_files as f64 * 100.0) as u32 
-    } else { 
-        0 
-    };
-    
-    rsx! {
-      {if available_backups.read().is_empty() {
+          {if *show_backup_section.read() {
     Some(rsx! {
-        div { class: "no-backups-mini",
-            "No backups available. Create your first backup above."
-        }
-    })
-} else {
-    let backup_items: Vec<_> = available_backups.read().iter().take(3).map(|backup| {
-        let backup_id = backup.id.clone();
-        let is_selected = selected_backup.read().as_ref() == Some(&backup_id);
-        let age_desc = backup.age_description();
-        let formatted_size = backup.formatted_size();
-        let backup_desc = backup.description.clone();
-        
-        rsx! {
-            div { 
-                key: "{backup_id}",
-                class: if is_selected {
-                    "backup-item-mini selected"
-                } else {
-                    "backup-item-mini"
-                },
-                onclick: move |_| {
-                    if is_selected {
-                        selected_backup.set(None);
-                    } else {
-                        selected_backup.set(Some(backup_id.clone()));
-                    }
-                },
+        div { class: "backup-expanded-section",
+            // Quick backup creation
+            div { class: "backup-quick-create",
+                h5 { "Quick Backup" }
                 
-                div { class: "backup-info-mini",
-                    div { class: "backup-name", "{backup_desc}" }
-                    div { class: "backup-meta", 
-                        "{age_desc} • {formatted_size}"
+                div { class: "backup-description-input",
+                    input {
+                        r#type: "text",
+                        value: "{backup_description}",
+                        placeholder: "Backup description (optional)",
+                        oninput: move |evt| backup_description.set(evt.value().clone())
                     }
                 }
                 
-                {if is_selected {
-                    Some(rsx! {
-                        button {
-                            class: "restore-button-mini",
-                            onclick: move |evt| {
-                                evt.stop_propagation();
-                                show_restore_confirm.set(true);
-                            },
-                            "Restore"
+                div { class: "backup-quick-actions",
+                    button {
+                        class: "backup-config-button",
+                        onclick: move |_| show_backup_config.set(true),
+                        "⚙️ Configure"
+                    }
+                    
+                    button {
+                        class: "create-backup-button",
+                        disabled: *is_creating_backup.read(),
+                        onclick: create_backup,
+                        {if *is_creating_backup.read() {
+                            "Creating..."
+                        } else {
+                            "Create Backup"
+                        }}
+                    }
+                }
+                
+                // Progress display - Fixed version
+                {backup_progress.read().as_ref().map(|progress| {
+                    let progress_text = format!("Creating backup... {}/{} files", progress.files_processed, progress.total_files);
+                    let progress_percentage = if progress.total_files > 0 { 
+                        (progress.files_processed as f64 / progress.total_files as f64 * 100.0) as u32 
+                    } else { 
+                        0 
+                    };
+                    
+                    rsx! {
+                        div { class: "backup-progress-mini",
+                            div { class: "progress-text", "{progress_text}" }
+                            div { class: "progress-bar-mini",
+                                div { 
+                                    class: "progress-fill",
+                                    style: "width: {progress_percentage}%"
+                                }
+                            }
                         }
-                    })
+                    }
+                })}
+            }
+            
+            // Available backups list - Fixed version
+            div { class: "backup-list-section",
+                h5 { "Available Backups ({available_backups.read().len()})" }
+                
+                {if available_backups.read().is_empty() {
+                    rsx! {
+                        div { class: "no-backups-mini",
+                            "No backups available. Create your first backup above."
+                        }
+                    }
                 } else {
-                    None
+                    // Create backup items outside of rsx! macro
+                    let backup_items: Vec<_> = available_backups.read().iter().take(3).map(|backup| {
+                        let backup_id = backup.id.clone();
+                        let is_selected = selected_backup.read().as_ref() == Some(&backup_id);
+                        let age_desc = backup.age_description();
+                        let formatted_size = backup.formatted_size();
+                        let backup_desc = backup.description.clone();
+                        
+                        rsx! {
+                            div { 
+                                key: "{backup_id}",
+                                class: if is_selected {
+                                    "backup-item-mini selected"
+                                } else {
+                                    "backup-item-mini"
+                                },
+                                onclick: move |_| {
+                                    if is_selected {
+                                        selected_backup.set(None);
+                                    } else {
+                                        selected_backup.set(Some(backup_id.clone()));
+                                    }
+                                },
+                                
+                                div { class: "backup-info-mini",
+                                    div { class: "backup-name", "{backup_desc}" }
+                                    div { class: "backup-meta", 
+                                        "{age_desc} • {formatted_size}"
+                                    }
+                                }
+                                
+                                {if is_selected {
+                                    rsx! {
+                                        button {
+                                            class: "restore-button-mini",
+                                            onclick: move |evt| {
+                                                evt.stop_propagation();
+                                                show_restore_confirm.set(true);
+                                            },
+                                            "Restore"
+                                        }
+                                    }
+                                } else {
+                                    rsx! { span {} }
+                                }}
+                            }
+                        }
+                    }).collect();
+                    
+                    rsx! {
+                        div { class: "backups-list-mini",
+                            {backup_items.into_iter()}
+                            
+                            {if available_backups.read().len() > 3 {
+                                let remaining_count = available_backups.read().len() - 3;
+                                rsx! {
+                                    div { class: "backup-show-more",
+                                        "... and {remaining_count} more backups"
+                                    }
+                                }
+                            } else {
+                                rsx! { span {} }
+                            }}
+                        }
+                    }
                 }}
             }
         }
-    }).collect();
-    
-    Some(rsx! {
-        div { class: "backups-list-mini",
-            {backup_items}
-            
-            {if available_backups.read().len() > 3 {
-                let remaining_count = available_backups.read().len() - 3;
-                Some(rsx! {
-                    div { class: "backup-show-more",
-                        "... and {remaining_count} more backups"
-                    }
-                })
-            } else {
-                None
-            }}
-        }
     })
-}}  div { class: "backup-progress-mini",
+} else {
+    None
+}}
+            div { class: "backup-progress-mini",
             div { class: "progress-text", "{progress_text}" }
             div { class: "progress-bar-mini",
                 div { 
