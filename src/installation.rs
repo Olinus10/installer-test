@@ -1146,7 +1146,7 @@ impl Installation {
             "INSTALLED"
         }
     }
-}
+
 
 // Register installation function for installation.rs
 pub fn register_installation(installation: &Installation) -> Result<(), String> {
