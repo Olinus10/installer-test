@@ -493,7 +493,7 @@ impl crate::installation::Installation {
         
         Ok(())
     }
-}
+
 
 /// Check if a path should be excluded based on patterns
 fn should_exclude_path(path: &std::path::Path, exclude_patterns: &[String]) -> bool {
