@@ -847,12 +847,25 @@ onclick: move |_| {
 // Keep the existing BackupConfigDialog component
 #[component]
 fn BackupConfigDialog(
-    config: Signal<BackupConfig>,
+    config: Signal<crate::backup::BackupConfig>,
     estimated_size: u64,
     onclose: EventHandler<()>,
-    onupdate: EventHandler<BackupConfig>,
+    onupdate: EventHandler<crate::backup::BackupConfig>,
 ) -> Element {
     let mut local_config = use_signal(|| config.read().clone());
+    let mut search_filter = use_signal(|| String::new());
+    
+    // Pre-defined common backup items for backwards compatibility
+    let common_items = vec![
+        ("mods", "Mod files and configurations", true),
+        ("config", "Game and mod configuration files", true), 
+        ("wynntils", "Wynntils mod configuration and data", false),
+        ("resourcepacks", "Resource pack files", true),
+        ("shaderpacks", "Shader pack files", true),
+        ("saves", "World save files (can be large)", false),
+        ("screenshots", "Screenshot images", false),
+        ("logs", "Log files", false),
+    ];
     
     rsx! {
         div { class: "modal-overlay",
@@ -871,92 +884,33 @@ fn BackupConfigDialog(
                         h4 { "What to include:" }
                         
                         div { class: "config-options",
-                            label { class: "config-option",
-                                input {
-                                    r#type: "checkbox",
-                                    checked: local_config.read().include_mods,
-                                    onchange: move |evt| {
-                                        local_config.with_mut(|c| c.include_mods = evt.value() == "true");
+                            for (item_name, description, default_checked) in common_items.iter() {
+                                {
+                                    let item_path = item_name.to_string();
+                                    let is_selected = local_config.read().selected_items.contains(&item_path);
+                                    
+                                    rsx! {
+                                        label { class: "config-option",
+                                            input {
+                                                r#type: "checkbox",
+                                                checked: is_selected,
+                                                onchange: move |evt| {
+                                                    let checked = evt.value() == "true";
+                                                    local_config.with_mut(|c| {
+                                                        if checked {
+                                                            if !c.selected_items.contains(&item_path) {
+                                                                c.selected_items.push(item_path.clone());
+                                                            }
+                                                        } else {
+                                                            c.selected_items.retain(|p| p != &item_path);
+                                                        }
+                                                    });
+                                                }
+                                            }
+                                            span { "{description}" }
+                                        }
                                     }
                                 }
-                                "Mods folder"
-                            }
-                            
-                            label { class: "config-option",
-                                input {
-                                    r#type: "checkbox",
-                                    checked: local_config.read().include_config,
-                                    onchange: move |evt| {
-                                        local_config.with_mut(|c| c.include_config = evt.value() == "true");
-                                    }
-                                }
-                                "Config folder"
-                            }
-                            
-                            label { class: "config-option",
-                                input {
-                                    r#type: "checkbox",
-                                    checked: local_config.read().include_wynntils,
-                                    onchange: move |evt| {
-                                        local_config.with_mut(|c| c.include_wynntils = evt.value() == "true");
-                                    }
-                                }
-                                "Wynntils folder (settings)"
-                            }
-                            
-                            label { class: "config-option",
-                                input {
-                                    r#type: "checkbox",
-                                    checked: local_config.read().include_resourcepacks,
-                                    onchange: move |evt| {
-                                        local_config.with_mut(|c| c.include_resourcepacks = evt.value() == "true");
-                                    }
-                                }
-                                "Resource packs"
-                            }
-                            
-                            label { class: "config-option",
-                                input {
-                                    r#type: "checkbox",
-                                    checked: local_config.read().include_shaderpacks,
-                                    onchange: move |evt| {
-                                        local_config.with_mut(|c| c.include_shaderpacks = evt.value() == "true");
-                                    }
-                                }
-                                "Shader packs"
-                            }
-                            
-                            label { class: "config-option",
-                                input {
-                                    r#type: "checkbox",
-                                    checked: local_config.read().include_saves,
-                                    onchange: move |evt| {
-                                        local_config.with_mut(|c| c.include_saves = evt.value() == "true");
-                                    }
-                                }
-                                "Saves folder (can be large)"
-                            }
-                            
-                            label { class: "config-option",
-                                input {
-                                    r#type: "checkbox",
-                                    checked: local_config.read().include_screenshots,
-                                    onchange: move |evt| {
-                                        local_config.with_mut(|c| c.include_screenshots = evt.value() == "true");
-                                    }
-                                }
-                                "Screenshots"
-                            }
-                            
-                            label { class: "config-option",
-                                input {
-                                    r#type: "checkbox",
-                                    checked: local_config.read().include_logs,
-                                    onchange: move |evt| {
-                                        local_config.with_mut(|c| c.include_logs = evt.value() == "true");
-                                    }
-                                }
-                                "Log files"
                             }
                         }
                     }
@@ -973,6 +927,17 @@ fn BackupConfigDialog(
                                 }
                             }
                             "Compress backups (saves space)"
+                        }
+                        
+                        label { class: "config-option",
+                            input {
+                                r#type: "checkbox",
+                                checked: local_config.read().include_hidden_files,
+                                onchange: move |evt| {
+                                    local_config.with_mut(|c| c.include_hidden_files = evt.value() == "true");
+                                }
+                            }
+                            "Include hidden files and folders"
                         }
                         
                         div { class: "config-option",
