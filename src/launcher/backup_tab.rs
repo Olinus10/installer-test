@@ -54,12 +54,17 @@ pub fn EnhancedBackupTab(
         let mut loading_items = loading_items.clone();
         let mut operation_error = operation_error.clone();
         
-        move |_| {
+        use_callback(move |_| {
+            let installation = installation_clone.clone();
+            let mut available_items = available_items.clone();
+            let mut loading_items = loading_items.clone();
+            let mut operation_error = operation_error.clone();
+            
             loading_items.set(true);
             operation_error.set(None);
             
             spawn(async move {
-                match installation_clone.discover_backup_items() {
+                match installation.discover_backup_items() {
                     Ok(items) => {
                         debug!("Discovered {} backup items", items.len());
                         available_items.set(items);
@@ -72,7 +77,7 @@ pub fn EnhancedBackupTab(
                 }
                 loading_items.set(false);
             });
-        }
+        })
     };
     
     // Calculate estimated backup size
@@ -206,8 +211,13 @@ pub fn EnhancedBackupTab(
         let mut operation_success = operation_success.clone();
         let mut backup_to_delete = backup_to_delete.clone();
         
-        move |backup_id: String| {
+        use_callback(move |backup_id: String| {
             let installation = installation_clone.clone();
+            let mut available_backups = available_backups.clone();
+            let mut operation_error = operation_error.clone();
+            let mut operation_success = operation_success.clone();
+            let mut backup_to_delete = backup_to_delete.clone();
+            
             backup_to_delete.set(Some(backup_id.clone()));
             
             spawn(async move {
@@ -226,7 +236,7 @@ pub fn EnhancedBackupTab(
                 }
                 backup_to_delete.set(None);
             });
-        }
+        })
     };
     
     rsx! {
@@ -280,7 +290,7 @@ pub fn EnhancedBackupTab(
                     button {
                         class: "configure-backup-button",
                         onclick: move |evt| {
-                            load_backup_items(evt);
+                            load_backup_items.call(());
                             show_backup_config.set(true);
                         },
                         "⚙️ Configure Items"
@@ -314,28 +324,28 @@ pub fn EnhancedBackupTab(
                     }
                 } else {
                     div { class: "backups-list",
-                        for backup in available_backups.read().iter() {
-                            {
-                                let backup_id = backup.id.clone();
-                                let is_selected = selected_backup.read().as_ref() == Some(&backup_id);
-                                let delete_backup = delete_backup.clone();
-                                let is_deleting = backup_to_delete.read().as_ref() == Some(&backup_id);
-                                
-                                rsx! {
-                                    EnhancedBackupCard {
-                                        backup: backup.clone(),
-                                        is_selected: is_selected,
-                                        is_deleting: is_deleting,
-                                        onselect: move |id: String| {
-                                            selected_backup.set(Some(id));
-                                        },
-                                        ondelete: move |id: String| {
-                                            delete_backup(id);
-                                        }
-                                    }
-                                }
+            for backup in available_backups.read().iter() {
+                {
+                    let backup_id = backup.id.clone();
+                    let is_selected = selected_backup.read().as_ref() == Some(&backup_id);
+                    let delete_backup_callback = delete_backup.clone(); // Clone the callback
+                    let is_deleting = backup_to_delete.read().as_ref() == Some(&backup_id);
+                    
+                    rsx! {
+                        EnhancedBackupCard {
+                            backup: backup.clone(),
+                            is_selected: is_selected,
+                            is_deleting: is_deleting,
+                            onselect: move |id: String| {
+                                selected_backup.set(Some(id));
+                            },
+                            ondelete: move |id: String| {
+                                delete_backup_callback.call(id); // Use call() method
                             }
                         }
+                    }
+                }
+            }
                     }
                     
                     // Restore actions
