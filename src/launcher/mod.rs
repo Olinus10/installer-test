@@ -18,6 +18,13 @@ pub mod backup_tab; // Keep for the components, but won't be used as a tab
 pub use features_tab::{FeaturesTab, clear_session_state};
 pub use performance_tab::PerformanceTab;
 pub use settings_tab::SettingsTab;
+
+pub use backup::{
+    BackupConfig, BackupType, BackupMetadata, BackupProgress, BackupItem,
+    RollbackManager, RollbackOption, format_bytes,
+    calculate_directory_size, count_files_recursive,
+    create_zip_archive, extract_zip_archive
+};
 // Remove the EnhancedSettingsTab export since we're integrating directly
 
 // Define public feature types needed by other modules
