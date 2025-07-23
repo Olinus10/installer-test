@@ -514,23 +514,24 @@ impl crate::installation::Installation {
 }
 
 /// Check if a path should be excluded based on patterns
-fn should_exclude_path(path: &Path, exclude_patterns: &[String]) -> bool {
-    let path_str = path.to_string_lossy();
-    let file_name = path.file_name().unwrap_or_default().to_string_lossy();
-    
-    for pattern in exclude_patterns {
-        // Simple glob-like matching
-        if pattern.contains('*') {
-            let pattern_without_star = pattern.replace('*', "");
-            if path_str.contains(&pattern_without_star) || file_name.contains(&pattern_without_star) {
+    fn should_exclude_path(path: &Path, exclude_patterns: &[String]) -> bool {
+        let path_str = path.to_string_lossy();
+        let file_name = path.file_name().unwrap_or_default().to_string_lossy();
+        
+        for pattern in exclude_patterns {
+            // Simple glob-like matching
+            if pattern.contains('*') {
+                let pattern_without_star = pattern.replace('*', "");
+                if path_str.contains(&pattern_without_star) || file_name.contains(&pattern_without_star) {
+                    return true;
+                }
+            } else if path_str.ends_with(pattern) || file_name.as_ref() == pattern { // Fix comparison
                 return true;
             }
-        } else if path_str.ends_with(pattern) || file_name == pattern {
-            return true;
         }
+        
+        false
     }
-    
-    false
 }
 
 /// Generate user-friendly descriptions for backup items
