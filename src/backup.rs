@@ -179,77 +179,58 @@ pub struct RollbackOption {
 
 /// Enhanced backup discovery system
 impl crate::installation::Installation {
-    /// Discover all backup-able items in the installation directory
-    pub fn discover_backup_items(&self) -> Result<Vec<BackupItem>, String> {
-        let installation_path = &self.installation_path;
+    /// Load available backups with migration support for old metadata format
+    pub fn list_available_backups(&self) -> Result<Vec<crate::backup::BackupMetadata>, String> {
+        let backups_dir = self.get_backups_dir();
         
-        if !installation_path.exists() {
+        if !backups_dir.exists() {
             return Ok(Vec::new());
         }
         
-        let mut items = Vec::new();
+        let mut backups = Vec::new();
         
-        match fs::read_dir(installation_path) {
+        match std::fs::read_dir(&backups_dir) {
             Ok(entries) => {
                 for entry in entries {
                     if let Ok(entry) = entry {
                         let path = entry.path();
-                        let name = entry.file_name().to_string_lossy().to_string();
-                        
-                        // Skip system/hidden files unless explicitly requested
-                        if name.starts_with('.') || name.starts_with('~') {
-                            continue;
+                        if path.is_dir() {
+                            let metadata_path = path.join("metadata.json");
+                            if metadata_path.exists() {
+                                match std::fs::read_to_string(&metadata_path) {
+                                    Ok(content) => {
+                                        // Try to parse with new format first
+                                        match serde_json::from_str::<crate::backup::BackupMetadata>(&content) {
+                                            Ok(metadata) => backups.push(metadata),
+                                            Err(_) => {
+                                                // Try to migrate from old format
+                                                match self.migrate_old_backup_metadata(&content) {
+                                                    Ok(metadata) => {
+                                                        backups.push(metadata);
+                                                        // Save migrated metadata
+                                                        if let Ok(new_content) = serde_json::to_string_pretty(&metadata) {
+                                                            let _ = std::fs::write(&metadata_path, new_content);
+                                                        }
+                                                    },
+                                                    Err(e) => debug!("Failed to migrate backup metadata: {}", e),
+                                                }
+                                            }
+                                        }
+                                    },
+                                    Err(e) => debug!("Failed to read backup metadata: {}", e),
+                                }
+                            }
                         }
-                        
-                        // Skip temporary files and common system files
-                        if matches!(name.as_str(), "desktop.ini" | "Thumbs.db" | ".DS_Store") {
-                            continue;
-                        }
-                        
-                        let is_directory = path.is_dir();
-                        let relative_path = path.strip_prefix(installation_path)
-                            .map_err(|e| format!("Failed to get relative path: {}", e))?
-                            .to_path_buf();
-                        
-                        let size_bytes = if is_directory {
-                            calculate_directory_size(&path).unwrap_or(0)
-                        } else {
-                            fs::metadata(&path).map(|m| m.len()).unwrap_or(0)
-                        };
-                        
-                        let file_count = if is_directory {
-                            Some(count_files_recursive(&path).unwrap_or(0))
-                        } else {
-                            None
-                        };
-                        
-                        // Generate user-friendly descriptions
-                        let description = get_item_description(&name, is_directory);
-                        
-                        items.push(BackupItem {
-                            name,
-                            path: relative_path,
-                            is_directory,
-                            size_bytes,
-                            file_count,
-                            description,
-                        });
                     }
                 }
             },
-            Err(e) => return Err(format!("Failed to read installation directory: {}", e)),
+            Err(e) => return Err(format!("Failed to read backups directory: {}", e)),
         }
         
-        // Sort items: directories first, then by name
-        items.sort_by(|a, b| {
-            match (a.is_directory, b.is_directory) {
-                (true, false) => std::cmp::Ordering::Less,
-                (false, true) => std::cmp::Ordering::Greater,
-                _ => a.name.cmp(&b.name),
-            }
-        });
+        // Sort by creation date, newest first
+        backups.sort_by(|a, b| b.created_at.cmp(&a.created_at));
         
-        Ok(items)
+        Ok(backups)
     }
     
     /// Enhanced backup creation with dynamic item selection
