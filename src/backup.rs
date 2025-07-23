@@ -256,12 +256,12 @@ impl crate::installation::Installation {
     pub async fn create_backup_dynamic<F>(
         &self,
         backup_type: crate::backup::BackupType,
-        config: &BackupConfig,
+        config: &crate::backup::BackupConfig,
         description: String,
         progress_callback: Option<F>,
-    ) -> Result<BackupMetadata, String>
+    ) -> Result<crate::backup::BackupMetadata, String>
     where
-        F: Fn(BackupProgress) + Send + Sync + Clone + 'static,
+        F: Fn(crate::backup::BackupProgress) + Send + Sync + Clone + 'static,
     {
         use chrono::Utc;
         use uuid::Uuid;
@@ -287,11 +287,11 @@ impl crate::installation::Installation {
                 items_to_backup.push((item_path.clone(), full_path.clone()));
                 
                 if full_path.is_dir() {
-                    total_files += count_files_recursive(&full_path).unwrap_or(0);
-                    total_bytes += calculate_directory_size(&full_path).unwrap_or(0);
+                    total_files += crate::backup::count_files_recursive(&full_path).unwrap_or(0);
+                    total_bytes += crate::backup::calculate_directory_size(&full_path).unwrap_or(0);
                 } else {
                     total_files += 1;
-                    total_bytes += fs::metadata(&full_path).map(|m| m.len()).unwrap_or(0);
+                    total_bytes += std::fs::metadata(&full_path).map(|m| m.len()).unwrap_or(0);
                 }
             }
         }
@@ -304,7 +304,7 @@ impl crate::installation::Installation {
         
         // Notify progress of scanning completion
         if let Some(ref callback) = progress_callback {
-            callback(BackupProgress {
+            callback(crate::backup::BackupProgress {
                 current_file: "Preparing backup...".to_string(),
                 files_processed: 0,
                 total_files,
@@ -343,7 +343,7 @@ impl crate::installation::Installation {
             
             // Update progress for compression phase
             if let Some(ref callback) = progress_callback {
-                callback(BackupProgress {
+                callback(crate::backup::BackupProgress {
                     current_file: "Creating archive...".to_string(),
                     files_processed,
                     total_files,
@@ -354,7 +354,7 @@ impl crate::installation::Installation {
             }
             
             // Create ZIP archive
-            let final_size = create_zip_archive(
+            let final_size = crate::backup::create_zip_archive(
                 &temp_dir,
                 &archive_path,
                 progress_callback.as_ref(),
@@ -387,10 +387,10 @@ impl crate::installation::Installation {
             }
         }
         
-        // Create metadata with included items list
+        // Create metadata with ALL required fields
         let included_items = config.selected_items.clone();
         
-        let metadata = BackupMetadata {
+        let metadata = crate::backup::BackupMetadata {
             id: backup_id.clone(),
             description,
             backup_type,
@@ -399,7 +399,7 @@ impl crate::installation::Installation {
             enabled_features: self.enabled_features.clone(),
             file_count: files_processed,
             size_bytes: bytes_processed,
-            included_items,
+            included_items, // Add missing field
             config: config.clone(),
         };
         
@@ -410,12 +410,12 @@ impl crate::installation::Installation {
         std::fs::write(&metadata_path, metadata_json)
             .map_err(|e| format!("Failed to write metadata: {}", e))?;
         
-        // Clean up old backups if needed
+        // Clean up old backups if needed - method is now public
         self.cleanup_old_backups(config.max_backups)?;
         
         // Final progress update
         if let Some(ref callback) = progress_callback {
-            callback(BackupProgress {
+            callback(crate::backup::BackupProgress {
                 current_file: "Backup completed!".to_string(),
                 files_processed,
                 total_files,
@@ -428,6 +428,7 @@ impl crate::installation::Installation {
         info!("Successfully created dynamic backup {} for installation {}", backup_id, self.name);
         Ok(metadata)
     }
+}
     
     /// Helper method to copy a single item (file or directory) with progress and exclusion patterns
     fn copy_item_with_progress<F>(
