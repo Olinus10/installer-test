@@ -55,6 +55,9 @@ pub struct RemoteIncludeComponent {
     pub optional: bool,
     #[serde(default = "default_false")]
     pub default_enabled: bool,
+    // NEW: Add can_reset field
+    #[serde(default = "default_false")]
+    pub can_reset: bool,
     #[serde(default)]
     pub category: Option<String>,
     #[serde(default)]
@@ -127,10 +130,11 @@ pub struct IncludeComponent {
     pub default_enabled: bool,
     #[serde(default = "default_false")]
     pub ignore_update: bool,
-    // NEW: Add category field
+    // NEW: Add can_reset field
+    #[serde(default = "default_false")]
+    pub can_reset: bool,
     #[serde(default)]
     pub category: Option<String>,
-    // NEW: Add dependencies field
     #[serde(default)]
     pub dependencies: Option<Vec<String>>,
 }
