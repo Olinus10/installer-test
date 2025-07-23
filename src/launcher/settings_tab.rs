@@ -1077,4 +1077,4 @@ fn RestoreConfirmDialog(
             }
         }
     }
-}}
+}
