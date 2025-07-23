@@ -347,308 +347,142 @@ impl Installation {
     }
     
     /// Create a backup of this installation
-pub async fn create_backup<F>(
-    &self,
-    backup_type: crate::backup::BackupType,
-    config: &crate::backup::BackupConfig,
-    description: String,
-    progress_callback: Option<F>,
-) -> Result<crate::backup::BackupMetadata, String>
-where
-    F: Fn(crate::backup::BackupProgress) + Send + Sync + Clone + 'static,  // Add Clone
+    pub async fn create_backup<F>(
+        &self,
+        backup_type: crate::backup::BackupType,
+        config: &crate::backup::BackupConfig,
+        description: String,
+        progress_callback: Option<F>,
+    ) -> Result<crate::backup::BackupMetadata, String>
+    where
+        F: Fn(crate::backup::BackupProgress) + Send + Sync + Clone + 'static,
     {
-        use chrono::Utc;
-        use uuid::Uuid;
+        // Use the new dynamic backup creation method
+        self.create_backup_dynamic(backup_type, config, description, progress_callback).await
+    }
+
+    /// Get list of folders to backup based on configuration (updated for new config)
+    fn get_backup_folders(&self, config: &crate::backup::BackupConfig) -> Vec<PathBuf> {
+        let mut folders = Vec::new();
         
-        let backup_id = Uuid::new_v4().to_string();
-        let backups_dir = self.get_backups_dir();
-        let backup_dir = backups_dir.join(&backup_id);
-        
-        // Create backup directory
-        std::fs::create_dir_all(&backup_dir)
-            .map_err(|e| format!("Failed to create backup directory: {}", e))?;
-        
-        debug!("Creating backup {} for installation {}", backup_id, self.name);
-        
-        // Count total files for progress tracking
-        let folders_to_backup = self.get_backup_folders(config);
-        let mut total_files = 0;
-        let mut total_bytes = 0;
-        
-        for folder in &folders_to_backup {
-            if folder.exists() {
-                total_files += crate::backup::count_files_recursive(folder)
-                    .unwrap_or(0);
-                total_bytes += crate::backup::calculate_directory_size(folder)
-                    .unwrap_or(0);
+        // Use selected_items instead of individual include_* fields
+        for item_path in &config.selected_items {
+            let full_path = self.installation_path.join(item_path);
+            if full_path.exists() {
+                folders.push(full_path);
             }
         }
         
-        debug!("Backup will include {} files ({} bytes)", total_files, total_bytes);
+        folders
+    }
+
+    /// Get size estimate for a backup with given configuration (updated)
+    pub fn get_backup_size_estimate(&self, config: &crate::backup::BackupConfig) -> Result<u64, String> {
+        let mut total_size = 0u64;
         
-        let mut files_processed = 0;
-        let mut bytes_processed = 0;
+        for item_path in &config.selected_items {
+            let full_path = self.installation_path.join(item_path);
+            if full_path.exists() {
+                match crate::backup::calculate_directory_size(&full_path) {
+                    Ok(size) => total_size += size,
+                    Err(e) => debug!("Failed to calculate size for {:?}: {}", full_path, e),
+                }
+            }
+        }
         
-        // Copy or compress files
+        // Apply compression estimate if enabled
         if config.compress_backups {
-            // Create ZIP archive
-            let archive_path = backup_dir.join("backup.zip");
-            let temp_dir = backup_dir.join("temp");
-            std::fs::create_dir_all(&temp_dir)
-                .map_err(|e| format!("Failed to create temp directory: {}", e))?;
-            
-            // Copy files to temp directory first
-            for folder in &folders_to_backup {
-                if folder.exists() {
-                    let folder_name = folder.file_name()
-                        .ok_or("Invalid folder name")?
-                        .to_string_lossy();
-                    let dest_folder = temp_dir.join(&*folder_name);
-                    
-self.copy_directory_with_progress(
-    folder,
-    &dest_folder,
-    &mut files_processed,
-    total_files,
-    &mut bytes_processed,
-    progress_callback.clone(),  // <-- NEW
-)?;
-                }
+            // Estimate 35% compression ratio for typical modpack files
+            total_size = (total_size as f64 * 0.65) as u64;
+        }
+        
+        Ok(total_size)
+    }
+
+    /// Copy directory with progress tracking (updated for new progress struct)
+    fn copy_directory_with_progress<F>(
+        &self,
+        source: &PathBuf,
+        dest: &PathBuf,
+        files_processed: &mut usize,
+        total_files: usize,
+        bytes_processed: &mut u64,
+        progress_callback: Option<F>,
+    ) -> Result<(), String>
+    where
+        F: Fn(crate::backup::BackupProgress) + Clone,
+    {
+        if source.is_file() {
+            // Copy single file
+            if let Some(parent) = dest.parent() {
+                std::fs::create_dir_all(parent)
+                    .map_err(|e| format!("Failed to create parent directory: {}", e))?;
             }
             
-            // Create ZIP archive
-let final_size = crate::backup::create_zip_archive(
-    &temp_dir,
-    &archive_path,
-    progress_callback.as_ref(),
-).map_err(|e| format!("Failed to create ZIP archive: {}", e))?;
-            
-            // Clean up temp directory
-            std::fs::remove_dir_all(&temp_dir)
-                .map_err(|e| format!("Failed to clean up temp directory: {}", e))?;
-            
-            bytes_processed = final_size;
-        } else {
-            // Copy files directly
-            for folder in &folders_to_backup {
-                if folder.exists() {
-                    let folder_name = folder.file_name()
-                        .ok_or("Invalid folder name")?
-                        .to_string_lossy();
-                    let dest_folder = backup_dir.join(&*folder_name);
-                    
-self.copy_directory_with_progress(
-    folder,
-    &dest_folder,
-    &mut files_processed,
-    total_files,
-    &mut bytes_processed,
-    progress_callback.clone(),  // <-- NEW
-)?;
-                }
-            }
-        }
-        
-        // Create metadata
-        let metadata = crate::backup::BackupMetadata {
-            id: backup_id.clone(),
-            description,
-            backup_type,
-            created_at: Utc::now(),
-            modpack_version: self.universal_version.clone(),
-            enabled_features: self.enabled_features.clone(),
-            file_count: files_processed,
-            size_bytes: bytes_processed,
-            config: config.clone(),
-        };
-        
-        // Save metadata
-        let metadata_path = backup_dir.join("metadata.json");
-        let metadata_json = serde_json::to_string_pretty(&metadata)
-            .map_err(|e| format!("Failed to serialize metadata: {}", e))?;
-        std::fs::write(&metadata_path, metadata_json)
-            .map_err(|e| format!("Failed to write metadata: {}", e))?;
-        
-        // Clean up old backups if needed
-        self.cleanup_old_backups(config.max_backups)?;
-        
-        info!("Successfully created backup {} for installation {}", backup_id, self.name);
-        Ok(metadata)
-    }
-    
-    /// Helper method to copy directory with progress tracking
-fn copy_directory_with_progress<F>(
-    &self,
-    source: &PathBuf,
-    dest: &PathBuf,
-    files_processed: &mut usize,
-    total_files: usize,
-    bytes_processed: &mut u64,
-    progress_callback: Option<F>,  // Remove the &Option<&F> reference pattern
-) -> Result<(), String>
-where
-    F: Fn(crate::backup::BackupProgress) + Clone,  // Add Clone trait bound
-{
-    if source.is_file() {
-        // Copy single file
-        if let Some(parent) = dest.parent() {
-            std::fs::create_dir_all(parent)
-                .map_err(|e| format!("Failed to create parent directory: {}", e))?;
-        }
-        
-        std::fs::copy(source, dest)
-            .map_err(|e| format!("Failed to copy file: {}", e))?;
-            
-        let file_size = std::fs::metadata(dest)
-            .map_err(|e| format!("Failed to get file metadata: {}", e))?
-            .len();
-            
-        *files_processed += 1;
-        *bytes_processed += file_size;
-        
-        // FIX: Use the callback directly instead of dereferencing
-    if let Some(callback) = &progress_callback {
-        callback(crate::backup::BackupProgress {
-            current_file: dest.to_string_lossy().to_string(),
-            files_processed: *files_processed,
-            total_files,
-            bytes_processed: *bytes_processed,
-            total_bytes: 0,
-        });
-    }
-}
-    
-    if !source.is_dir() {
-        return Ok(());
-    }
-    
-    std::fs::create_dir_all(dest)
-        .map_err(|e| format!("Failed to create directory: {}", e))?;
-    
-    let entries = std::fs::read_dir(source)
-        .map_err(|e| format!("Failed to read directory: {}", e))?;
-    
-    for entry in entries {
-        let entry = entry.map_err(|e| format!("Failed to read directory entry: {}", e))?;
-        let source_path = entry.path();
-        let dest_path = dest.join(entry.file_name());
-        
-        if source_path.is_dir() {
-            self.copy_directory_with_progress(
-                &source_path,
-                &dest_path,
-                files_processed,
-                total_files,
-                bytes_processed,
-                progress_callback.clone(),  // <-- Clone instead of referencing
-            )?;
-        } else {
-            self.copy_directory_with_progress(
-                &source_path,
-                &dest_path,
-                files_processed,
-                total_files,
-                bytes_processed,
-                progress_callback.clone(),  // <-- Clone instead of referencing
-            )?;
-        }
-    }
-    
-    Ok(())
-}
-    
-    /// Restore installation from a backup
-    pub async fn restore_from_backup(&mut self, backup_id: &str) -> Result<(), String> {
-        let backup_dir = self.get_backups_dir().join(backup_id);
-        
-        if !backup_dir.exists() {
-            return Err(format!("Backup {} not found", backup_id));
-        }
-        
-        // Load backup metadata
-        let metadata_path = backup_dir.join("metadata.json");
-        let metadata_content = std::fs::read_to_string(&metadata_path)
-            .map_err(|e| format!("Failed to read backup metadata: {}", e))?;
-        let metadata: crate::backup::BackupMetadata = serde_json::from_str(&metadata_content)
-            .map_err(|e| format!("Failed to parse backup metadata: {}", e))?;
-        
-        debug!("Restoring from backup {} ({})", backup_id, metadata.description);
-        
-        // Create safety backup before restore
-        let safety_config = crate::backup::BackupConfig::default();
-        let safety_description = format!("Safety backup before restore from {}", backup_id);
-        self.create_backup(
-            crate::backup::BackupType::PreUpdate,
-            &safety_config,
-            safety_description,
-            None::<fn(crate::backup::BackupProgress)>,
-        ).await?;
-        
-        // Clear existing installation folders that will be restored
-        let folders_to_clear = self.get_backup_folders(&metadata.config);
-        for folder in &folders_to_clear {
-            if folder.exists() {
-                std::fs::remove_dir_all(folder)
-                    .map_err(|e| format!("Failed to remove existing folder: {}", e))?;
-            }
-        }
-        
-        // Restore from backup
-        if metadata.config.compress_backups {
-            // Extract from ZIP
-            let archive_path = backup_dir.join("backup.zip");
-            crate::backup::extract_zip_archive(&archive_path, &self.installation_path)
-                .map_err(|e| format!("Failed to extract backup: {}", e))?;
-        } else {
-            // Copy files directly
-            for folder in &folders_to_clear {
-                let folder_name = folder.file_name()
-                    .ok_or("Invalid folder name")?
-                    .to_string_lossy();
-                let source_folder = backup_dir.join(&*folder_name);
+            std::fs::copy(source, dest)
+                .map_err(|e| format!("Failed to copy file: {}", e))?;
                 
-                if source_folder.exists() {
-                    self.copy_directory_with_progress(
-                        &source_folder,
-                        folder,
-                        &mut 0,
-                        0,
-                        &mut 0,
-                        None::<fn(crate::backup::BackupProgress)>,
-                    )?;
-                }
+            let file_size = std::fs::metadata(dest)
+                .map_err(|e| format!("Failed to get file metadata: {}", e))?
+                .len();
+                
+            *files_processed += 1;
+            *bytes_processed += file_size;
+            
+            if let Some(callback) = &progress_callback {
+                callback(crate::backup::BackupProgress {
+                    current_file: dest.to_string_lossy().to_string(),
+                    files_processed: *files_processed,
+                    total_files,
+                    bytes_processed: *bytes_processed,
+                    total_bytes: 0,
+                    current_operation: "Copying files".to_string(), // Add missing field
+                });
+            }
+            return Ok(());
+        }
+        
+        if !source.is_dir() {
+            return Ok(());
+        }
+        
+        std::fs::create_dir_all(dest)
+            .map_err(|e| format!("Failed to create directory: {}", e))?;
+        
+        let entries = std::fs::read_dir(source)
+            .map_err(|e| format!("Failed to read directory: {}", e))?;
+        
+        for entry in entries {
+            let entry = entry.map_err(|e| format!("Failed to read directory entry: {}", e))?;
+            let source_path = entry.path();
+            let dest_path = dest.join(entry.file_name());
+            
+            if source_path.is_dir() {
+                self.copy_directory_with_progress(
+                    &source_path,
+                    &dest_path,
+                    files_processed,
+                    total_files,
+                    bytes_processed,
+                    progress_callback.clone(),
+                )?;
+            } else {
+                self.copy_directory_with_progress(
+                    &source_path,
+                    &dest_path,
+                    files_processed,
+                    total_files,
+                    bytes_processed,
+                    progress_callback.clone(),
+                )?;
             }
         }
         
-        // Update installation state
-        self.enabled_features = metadata.enabled_features.clone();
-        self.universal_version = metadata.modpack_version.clone();
-        self.last_used = chrono::Utc::now();
-        
-        // Save the updated installation
-        self.save()?;
-        
-        info!("Successfully restored installation from backup {}", backup_id);
         Ok(())
     }
-    
-    /// Delete a backup
-    pub async fn delete_backup(&self, backup_id: &str) -> Result<(), String> {
-        let backup_dir = self.get_backups_dir().join(backup_id);
-        
-        if !backup_dir.exists() {
-            return Err(format!("Backup {} not found", backup_id));
-        }
-        
-        std::fs::remove_dir_all(&backup_dir)
-            .map_err(|e| format!("Failed to delete backup: {}", e))?;
-        
-        debug!("Deleted backup {}", backup_id);
-        Ok(())
-    }
-    
-    /// Clean up old backups beyond the maximum limit
-    fn cleanup_old_backups(&self, max_backups: usize) -> Result<(), String> {
+
+    /// Make cleanup_old_backups public
+    pub fn cleanup_old_backups(&self, max_backups: usize) -> Result<(), String> {
         let mut backups = self.list_available_backups()?;
         
         if backups.len() <= max_backups {
@@ -671,6 +505,7 @@ where
         
         Ok(())
     }
+}
 
     pub fn save(&self) -> Result<(), String> {
         let installation_dir = get_installations_dir().join(&self.id);
