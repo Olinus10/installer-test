@@ -514,7 +514,7 @@ fn should_exclude_path(path: &std::path::Path, exclude_patterns: &[String]) -> b
     
     false
 }
-}
+
 
 /// Generate user-friendly descriptions for backup items
 fn get_item_description(name: &str, is_directory: bool) -> Option<String> {
