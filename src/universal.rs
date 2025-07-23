@@ -379,17 +379,18 @@ pub fn universal_to_manifest(universal: &UniversalManifest, enabled_features: Ve
         }
     }).collect();
 
-    let includes: Vec<crate::Include> = universal.include.iter().map(|inc| {
-        crate::Include {
-            location: inc.location.clone(),
-            id: if inc.id.is_empty() { "default".to_string() } else { inc.id.clone() },
-            name: inc.name.clone(),
-            authors: inc.authors.clone(),
-            optional: inc.optional,
-            default_enabled: inc.default_enabled,
-            ignore_update: inc.ignore_update,
-        }
-    }).collect();
+let includes: Vec<crate::Include> = universal.include.iter().map(|inc| {
+    crate::Include {
+        location: inc.location.clone(),
+        id: if inc.id.is_empty() { "default".to_string() } else { inc.id.clone() },
+        name: inc.name.clone(),
+        authors: inc.authors.clone(),
+        optional: inc.optional,
+        default_enabled: inc.default_enabled,
+        ignore_update: inc.ignore_update,
+        can_reset: inc.can_reset, // NEW: Add this line
+    }
+}).collect();
     
     // NEW: Convert remote includes to old RemoteInclude format
     let remote_include: Option<Vec<crate::RemoteInclude>> = if universal.remote_include.is_empty() {
