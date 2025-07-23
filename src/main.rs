@@ -376,9 +376,11 @@ struct Include {
     optional: bool,
     #[serde(default = "default_false")]
     default_enabled: bool,
-    // NEW: Add ignore_update support
     #[serde(default = "default_false")]
     ignore_update: bool,
+    // NEW: Add can_reset field
+    #[serde(default = "default_false")]
+    pub can_reset: bool,
 }
 
 #[derive(Debug, Deserialize, Serialize, PartialEq, Clone)]
