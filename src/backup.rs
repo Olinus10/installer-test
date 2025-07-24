@@ -177,62 +177,8 @@ pub struct RollbackOption {
     pub is_recommended: bool,
 }
 
-/// Enhanced backup discovery system
+/// Enhanced backup creation methods for Installation
 impl crate::installation::Installation {
-    /// Load available backups with migration support for old metadata format
-    pub fn list_available_backups(&self) -> Result<Vec<crate::backup::BackupMetadata>, String> {
-        let backups_dir = self.get_backups_dir();
-        
-        if !backups_dir.exists() {
-            return Ok(Vec::new());
-        }
-        
-        let mut backups = Vec::new();
-        
-        match std::fs::read_dir(&backups_dir) {
-            Ok(entries) => {
-                for entry in entries {
-                    if let Ok(entry) = entry {
-                        let path = entry.path();
-                        if path.is_dir() {
-                            let metadata_path = path.join("metadata.json");
-                            if metadata_path.exists() {
-                                match std::fs::read_to_string(&metadata_path) {
-                                    Ok(content) => {
-                                        // Try to parse with new format first
-                                        match serde_json::from_str::<crate::backup::BackupMetadata>(&content) {
-                                            Ok(metadata) => backups.push(metadata),
-                                            Err(_) => {
-                                                // Try to migrate from old format
-                                                match self.migrate_old_backup_metadata(&content) {
-                                                    Ok(metadata) => {
-                                                        backups.push(metadata);
-                                                        // Save migrated metadata
-                                                        if let Ok(new_content) = serde_json::to_string_pretty(&metadata) {
-                                                            let _ = std::fs::write(&metadata_path, new_content);
-                                                        }
-                                                    },
-                                                    Err(e) => debug!("Failed to migrate backup metadata: {}", e),
-                                                }
-                                            }
-                                        }
-                                    },
-                                    Err(e) => debug!("Failed to read backup metadata: {}", e),
-                                }
-                            }
-                        }
-                    }
-                }
-            },
-            Err(e) => return Err(format!("Failed to read backups directory: {}", e)),
-        }
-        
-        // Sort by creation date, newest first
-        backups.sort_by(|a, b| b.created_at.cmp(&a.created_at));
-        
-        Ok(backups)
-    }
-    
     /// Enhanced backup creation with dynamic item selection
     pub async fn create_backup_dynamic<F>(
         &self,
@@ -409,8 +355,7 @@ impl crate::installation::Installation {
         info!("Successfully created dynamic backup {} for installation {}", backup_id, self.name);
         Ok(metadata)
     }
-}
-    
+
     /// Helper method to copy a single item (file or directory) with progress and exclusion patterns
     fn copy_item_with_progress<F>(
         &self,
@@ -446,6 +391,57 @@ impl crate::installation::Installation {
                 .len();
                 
             *files_processed += 1;
+            *bytes_processed += file_size;
+            
+            if let Some(callback) = progress_callback {
+                callback(BackupProgress {
+                    current_file: full_name,
+                    files_processed: *files_processed,
+                    total_files,
+                    bytes_processed: *bytes_processed,
+                    total_bytes: 0,
+                    current_operation: "Compressing files".to_string(),
+                });
+            }
+        } else if path.is_dir() {
+            add_directory_to_zip(
+                zip,
+                &path,
+                &full_name,
+                files_processed,
+                total_files,
+                bytes_processed,
+                progress_callback,
+            )?;
+        }
+    }
+    
+    Ok(())
+}
+
+/// Extract a ZIP archive to a directory
+pub fn extract_zip_archive(zip_path: &Path, destination: &Path) -> Result<(), io::Error> {
+    let file = fs::File::open(zip_path)?;
+    let mut archive = zip::ZipArchive::new(file)?;
+    
+    for i in 0..archive.len() {
+        let mut file = archive.by_index(i)?;
+        let outpath = destination.join(file.name());
+        
+        if file.name().ends_with('/') {
+            fs::create_dir_all(&outpath)?;
+        } else {
+            if let Some(parent) = outpath.parent() {
+                fs::create_dir_all(parent)?;
+            }
+            
+            let mut outfile = fs::File::create(&outpath)?;
+            io::copy(&mut file, &mut outfile)?;
+        }
+    }
+    
+    Ok(())
+}files_processed += 1;
             *bytes_processed += file_size;
             
             if let Some(callback) = progress_callback {
@@ -493,7 +489,7 @@ impl crate::installation::Installation {
         
         Ok(())
     }
-
+}
 
 /// Check if a path should be excluded based on patterns
 fn should_exclude_path(path: &std::path::Path, exclude_patterns: &[String]) -> bool {
@@ -513,41 +509,6 @@ fn should_exclude_path(path: &std::path::Path, exclude_patterns: &[String]) -> b
     }
     
     false
-}
-
-
-/// Generate user-friendly descriptions for backup items
-fn get_item_description(name: &str, is_directory: bool) -> Option<String> {
-    let description = match name.to_lowercase().as_str() {
-        "mods" => "Mod files and configurations",
-        "config" => "Game and mod configuration files",
-        "resourcepacks" => "Resource pack files",
-        "shaderpacks" => "Shader pack files", 
-        "saves" => "World save files",
-        "screenshots" => "Screenshot images",
-        "logs" => "Game and launcher log files",
-        "crash-reports" => "Crash report files",
-        "wynntils" => "Wynntils mod configuration and data",
-        "options.txt" => "Minecraft game options",
-        "servers.dat" => "Multiplayer server list",
-        "usercache.json" => "User cache data",
-        "usernamecache.json" => "Username cache data",
-        _ => {
-            if is_directory {
-                "Custom directory"
-            } else if name.ends_with(".json") {
-                "Configuration file"
-            } else if name.ends_with(".txt") {
-                "Text file"
-            } else if name.ends_with(".jar") {
-                "Java application file"
-            } else {
-                "Custom file"
-            }
-        }
-    };
-    
-    Some(description.to_string())
 }
 
 /// Format bytes in a human-readable way
