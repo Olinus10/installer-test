@@ -1147,6 +1147,318 @@ impl Installation {
         }
     }
 
+    // BACKUP-RELATED METHODS - Fixed versions
+
+    /// Discover backup items by scanning the installation directory
+    pub fn discover_backup_items(&self) -> Result<Vec<crate::backup::BackupItem>, String> {
+        use std::fs;
+        use crate::backup::BackupItem;
+        
+        let mut items = Vec::new();
+        
+        // Scan the installation directory for folders and files
+        match fs::read_dir(&self.installation_path) {
+            Ok(entries) => {
+                for entry in entries {
+                    if let Ok(entry) = entry {
+                        let path = entry.path();
+                        let name = entry.file_name().to_string_lossy().to_string();
+                        
+                        // Skip hidden files/folders unless specifically wanted
+                        if name.starts_with('.') {
+                            continue;
+                        }
+                        
+                        // Skip common files we don't want to backup
+                        let skip_items = ["manifest.json", "launcher_profiles.json", "usernamecache.json", "usercache.json"];
+                        if skip_items.contains(&name.as_str()) {
+                            continue;
+                        }
+                        
+                        let metadata = match path.metadata() {
+                            Ok(meta) => meta,
+                            Err(_) => continue,
+                        };
+                        
+                        let is_directory = metadata.is_dir();
+                        let size_bytes = if is_directory {
+                            crate::backup::calculate_directory_size(&path).unwrap_or(0)
+                        } else {
+                            metadata.len()
+                        };
+                        
+                        let file_count = if is_directory {
+                            Some(crate::backup::count_files_recursive(&path).unwrap_or(0))
+                        } else {
+                            None
+                        };
+                        
+                        // Generate description based on common folder types
+                        let description = get_item_description(&name, is_directory);
+                        
+                        items.push(BackupItem {
+                            name: name.clone(),
+                            path: path.strip_prefix(&self.installation_path)
+                                .unwrap_or(&path)
+                                .to_path_buf(),
+                            is_directory,
+                            size_bytes,
+                            file_count,
+                            description,
+                        });
+                    }
+                }
+            },
+            Err(e) => return Err(format!("Failed to read installation directory: {}", e)),
+        }
+        
+        // Sort by importance (common folders first) and then by name
+        items.sort_by(|a, b| {
+            let a_priority = get_folder_priority(&a.name);
+            let b_priority = get_folder_priority(&b.name);
+            
+            match a_priority.cmp(&b_priority) {
+                std::cmp::Ordering::Equal => a.name.cmp(&b.name),
+                other => other,
+            }
+        });
+        
+        Ok(items)
+    }
+
+    /// Delete a backup by ID
+    pub async fn delete_backup(&self, backup_id: &str) -> Result<(), String> {
+        let backup_dir = self.get_backups_dir().join(backup_id);
+        
+        if !backup_dir.exists() {
+            return Err(format!("Backup {} not found", backup_id));
+        }
+        
+        std::fs::remove_dir_all(&backup_dir)
+            .map_err(|e| format!("Failed to delete backup: {}", e))?;
+        
+        debug!("Successfully deleted backup: {}", backup_id);
+        Ok(())
+    }
+
+    /// Restore installation from a backup
+    pub async fn restore_from_backup(&mut self, backup_id: &str) -> Result<(), String> {
+        let backup_dir = self.get_backups_dir().join(backup_id);
+        let metadata_path = backup_dir.join("metadata.json");
+        
+        // Load backup metadata
+        if !metadata_path.exists() {
+            return Err(format!("Backup metadata not found for {}", backup_id));
+        }
+        
+        let metadata_content = std::fs::read_to_string(&metadata_path)
+            .map_err(|e| format!("Failed to read backup metadata: {}", e))?;
+        
+        let metadata: crate::backup::BackupMetadata = serde_json::from_str(&metadata_content)
+            .map_err(|e| format!("Failed to parse backup metadata: {}", e))?;
+        
+        // Create a safety backup before restoring
+        let safety_config = crate::backup::BackupConfig::default();
+        let safety_description = format!("Safety backup before restoring {}", backup_id);
+        
+        let _safety_backup = self.create_backup(
+            crate::backup::BackupType::PreUpdate,
+            &safety_config,
+            safety_description,
+            None::<fn(crate::backup::BackupProgress)>,
+        ).await?;
+        
+        debug!("Created safety backup before restoration");
+        
+        // Clear current installation (except backups)
+        for item in &metadata.included_items {
+            let target_path = self.installation_path.join(item);
+            if target_path.exists() && target_path != self.get_backups_dir() {
+                if target_path.is_file() {
+                    let _ = std::fs::remove_file(&target_path);
+                } else if target_path.is_dir() {
+                    let _ = std::fs::remove_dir_all(&target_path);
+                }
+            }
+        }
+        
+        // Restore from backup
+        let backup_archive = backup_dir.join("backup.zip");
+        let backup_files = backup_dir.clone();
+        
+        if backup_archive.exists() {
+            // Restore from ZIP archive
+            crate::backup::extract_zip_archive(&backup_archive, &self.installation_path)
+                .map_err(|e| format!("Failed to extract backup archive: {}", e))?;
+        } else {
+            // Restore from directory structure
+            for item in &metadata.included_items {
+                let source_path = backup_files.join(item);
+                let target_path = self.installation_path.join(item);
+                
+                if source_path.exists() {
+                    if let Some(parent) = target_path.parent() {
+                        std::fs::create_dir_all(parent)
+                            .map_err(|e| format!("Failed to create directory: {}", e))?;
+                    }
+                    
+                    if source_path.is_file() {
+                        std::fs::copy(&source_path, &target_path)
+                            .map_err(|e| format!("Failed to restore file: {}", e))?;
+                    } else if source_path.is_dir() {
+                        copy_dir_all(&source_path, &target_path)
+                            .map_err(|e| format!("Failed to restore directory: {}", e))?;
+                    }
+                }
+            }
+        }
+        
+        // Update installation state
+        self.enabled_features = metadata.enabled_features.clone();
+        self.universal_version = metadata.modpack_version.clone();
+        self.installed = true;
+        self.modified = false;
+        
+        debug!("Successfully restored installation from backup {}", backup_id);
+        Ok(())
+    }
+
+    /// Migrate old backup metadata format to new format
+    pub fn migrate_old_backup_metadata(&self, content: &str) -> Result<crate::backup::BackupMetadata, String> {
+        // Try to parse as old format first
+        if let Ok(old_value) = serde_json::from_str::<serde_json::Value>(content) {
+            // Convert old format to new format
+            let id = old_value.get("id")
+                .and_then(|v| v.as_str())
+                .unwrap_or("unknown")
+                .to_string();
+            
+            let description = old_value.get("description")
+                .and_then(|v| v.as_str())
+                .unwrap_or("Migrated backup")
+                .to_string();
+            
+            let backup_type = match old_value.get("backup_type").and_then(|v| v.as_str()) {
+                Some("manual") => crate::backup::BackupType::Manual,
+                Some("pre_update") => crate::backup::BackupType::PreUpdate,
+                Some("pre_install") => crate::backup::BackupType::PreInstall,
+                Some("scheduled") => crate::backup::BackupType::Scheduled,
+                _ => crate::backup::BackupType::Manual,
+            };
+            
+            let created_at = old_value.get("created_at")
+                .and_then(|v| v.as_str())
+                .and_then(|s| chrono::DateTime::parse_from_rfc3339(s).ok())
+                .map(|dt| dt.with_timezone(&chrono::Utc))
+                .unwrap_or_else(chrono::Utc::now);
+            
+            let modpack_version = old_value.get("modpack_version")
+                .and_then(|v| v.as_str())
+                .unwrap_or("unknown")
+                .to_string();
+            
+            let enabled_features = old_value.get("enabled_features")
+                .and_then(|v| v.as_array())
+                .map(|arr| arr.iter().filter_map(|v| v.as_str().map(|s| s.to_string())).collect())
+                .unwrap_or_default();
+            
+            let file_count = old_value.get("file_count")
+                .and_then(|v| v.as_u64())
+                .unwrap_or(0) as usize;
+            
+            let size_bytes = old_value.get("size_bytes")
+                .and_then(|v| v.as_u64())
+                .unwrap_or(0);
+            
+            // Create default config for old backups
+            let config = crate::backup::BackupConfig::default();
+            
+            let included_items = old_value.get("included_items")
+                .and_then(|v| v.as_array())
+                .map(|arr| arr.iter().filter_map(|v| v.as_str().map(|s| s.to_string())).collect())
+                .unwrap_or_else(|| vec!["mods".to_string(), "config".to_string()]);
+            
+            Ok(crate::backup::BackupMetadata {
+                id,
+                description,
+                backup_type,
+                created_at,
+                modpack_version,
+                enabled_features,
+                file_count,
+                size_bytes,
+                included_items,
+                config,
+            })
+        } else {
+            Err("Failed to parse old backup metadata format".to_string())
+        }
+    }
+}
+
+// Helper functions for backup functionality
+
+fn get_item_description(name: &str, is_directory: bool) -> Option<String> {
+    let description = match name.to_lowercase().as_str() {
+        "mods" => "Mod files and configurations",
+        "config" => "Game and mod configuration files",
+        "resourcepacks" => "Resource pack files",
+        "shaderpacks" => "Shader pack files", 
+        "saves" => "World save files",
+        "screenshots" => "Screenshot images",
+        "logs" => "Game and launcher log files",
+        "crash-reports" => "Crash report files",
+        "wynntils" => "Wynntils mod configuration and data",
+        "options.txt" => "Minecraft game options",
+        "servers.dat" => "Multiplayer server list",
+        "usercache.json" => "User cache data",
+        "usernamecache.json" => "Username cache data",
+        _ => {
+            if is_directory {
+                "Custom directory"
+            } else if name.ends_with(".json") {
+                "Configuration file"
+            } else if name.ends_with(".txt") {
+                "Text file"
+            } else if name.ends_with(".jar") {
+                "Java application file"
+            } else {
+                "Custom file"
+            }
+        }
+    };
+    
+    Some(description.to_string())
+}
+
+fn get_folder_priority(name: &str) -> u8 {
+    match name.to_lowercase().as_str() {
+        "mods" => 1,
+        "config" => 2,
+        "saves" => 3,
+        "resourcepacks" => 4,
+        "shaderpacks" => 5,
+        "wynntils" => 6,
+        "screenshots" => 7,
+        "logs" => 8,
+        "crash-reports" => 9,
+        _ => 10,
+    }
+}
+
+fn copy_dir_all(src: &std::path::Path, dst: &std::path::Path) -> std::io::Result<()> {
+    std::fs::create_dir_all(dst)?;
+    for entry in std::fs::read_dir(src)? {
+        let entry = entry?;
+        let ty = entry.file_type()?;
+        if ty.is_dir() {
+            copy_dir_all(&entry.path(), &dst.join(entry.file_name()))?;
+        } else {
+            std::fs::copy(entry.path(), dst.join(entry.file_name()))?;
+        }
+    }
+    Ok(())
+}
 
 // Register installation function for installation.rs
 pub fn register_installation(installation: &Installation) -> Result<(), String> {
