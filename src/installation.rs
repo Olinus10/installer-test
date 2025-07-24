@@ -400,18 +400,25 @@ impl Installation {
     }
 
     /// Copy directory with progress tracking (updated for new progress struct)
-    fn copy_directory_with_progress<F>(
+    fn copy_item_with_progress<F>(
         &self,
-        source: &PathBuf,
-        dest: &PathBuf,
+        source: &Path,
+        dest: &Path,
         files_processed: &mut usize,
         total_files: usize,
         bytes_processed: &mut u64,
-        progress_callback: Option<F>,
+        progress_callback: &Option<F>,
+        exclude_patterns: &[String],
     ) -> Result<(), String>
     where
-        F: Fn(crate::backup::BackupProgress) + Clone,
+        F: Fn(BackupProgress) + Clone,
     {
+        // Check if this item should be excluded
+        if should_exclude_path(source, exclude_patterns) {
+            debug!("Excluding path: {:?}", source);
+            return Ok(());
+        }
+        
         if source.is_file() {
             // Copy single file
             if let Some(parent) = dest.parent() {
@@ -420,7 +427,7 @@ impl Installation {
             }
             
             std::fs::copy(source, dest)
-                .map_err(|e| format!("Failed to copy file: {}", e))?;
+                .map_err(|e| format!("Failed to copy file {:?}: {}", source, e))?;
                 
             let file_size = std::fs::metadata(dest)
                 .map_err(|e| format!("Failed to get file metadata: {}", e))?
@@ -429,16 +436,20 @@ impl Installation {
             *files_processed += 1;
             *bytes_processed += file_size;
             
-            if let Some(callback) = &progress_callback {
-                callback(crate::backup::BackupProgress {
-                    current_file: dest.to_string_lossy().to_string(),
+            if let Some(callback) = progress_callback {
+                callback(BackupProgress {
+                    current_file: source.file_name()
+                        .unwrap_or_default()
+                        .to_string_lossy()
+                        .to_string(),
                     files_processed: *files_processed,
                     total_files,
                     bytes_processed: *bytes_processed,
                     total_bytes: 0,
-                    current_operation: "Copying files".to_string(), // Add missing field
+                    current_operation: "Copying files".to_string(),
                 });
             }
+            
             return Ok(());
         }
         
@@ -457,29 +468,20 @@ impl Installation {
             let source_path = entry.path();
             let dest_path = dest.join(entry.file_name());
             
-            if source_path.is_dir() {
-                self.copy_directory_with_progress(
-                    &source_path,
-                    &dest_path,
-                    files_processed,
-                    total_files,
-                    bytes_processed,
-                    progress_callback.clone(),
-                )?;
-            } else {
-                self.copy_directory_with_progress(
-                    &source_path,
-                    &dest_path,
-                    files_processed,
-                    total_files,
-                    bytes_processed,
-                    progress_callback.clone(),
-                )?;
-            }
+            self.copy_item_with_progress(
+                &source_path,
+                &dest_path,
+                files_processed,
+                total_files,
+                bytes_processed,
+                progress_callback,
+                exclude_patterns,
+            )?;
         }
         
         Ok(())
     }
+}
 
     /// Make cleanup_old_backups public
     pub fn cleanup_old_backups(&self, max_backups: usize) -> Result<(), String> {
