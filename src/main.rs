@@ -365,7 +365,7 @@ trait Downloadable {
 }
 
 
-#[derive(Debug, Deserialize, Serialize, Clone, PartialEq)]
+#[derive(Debug, Deserialize, Serialize, PartialEq, Clone)]
 struct Include {
     location: String,
     #[serde(default = "default_id")]
@@ -381,6 +381,13 @@ struct Include {
     // NEW: Add can_reset field
     #[serde(default = "default_false")]
     pub can_reset: bool,
+    // NEW: Add missing fields for consistency
+    #[serde(default)]
+    pub description: Option<String>,
+    #[serde(default)]
+    pub category: Option<String>,
+    #[serde(default)]
+    pub dependencies: Option<Vec<String>>,
 }
 
 #[derive(Debug, Deserialize, Serialize, PartialEq, Clone)]
