@@ -392,7 +392,10 @@ let includes: Vec<crate::Include> = universal.include.iter().map(|inc| {
         optional: inc.optional,
         default_enabled: inc.default_enabled,
         ignore_update: inc.ignore_update,
-        can_reset: inc.can_reset, // NEW: Add this line
+        can_reset: inc.can_reset, // ADD this line
+        description: inc.description.clone(), // ADD this line
+        category: inc.category.clone(), // ADD this line
+        dependencies: inc.dependencies.clone(), // ADD this line
     }
 }).collect();
     
