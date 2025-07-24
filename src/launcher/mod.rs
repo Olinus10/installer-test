@@ -14,18 +14,18 @@ mod performance_tab;
 mod settings_tab;
 pub mod backup_tab; // Keep for the components, but won't be used as a tab
 
-// Updated exports - remove EnhancedSettingsTab as we're integrating everything
+// Updated exports
 pub use features_tab::{FeaturesTab, clear_session_state};
 pub use performance_tab::PerformanceTab;
 pub use settings_tab::SettingsTab;
 
-pub use backup::{
+// Import from crate::backup instead of just backup
+pub use crate::backup::{
     BackupConfig, BackupType, BackupMetadata, BackupProgress, BackupItem,
     RollbackManager, RollbackOption, format_bytes,
     calculate_directory_size, count_files_recursive,
     create_zip_archive, extract_zip_archive
 };
-// Remove the EnhancedSettingsTab export since we're integrating directly
 
 // Define public feature types needed by other modules
 pub struct FeatureCard;
