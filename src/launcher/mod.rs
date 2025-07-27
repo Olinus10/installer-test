@@ -19,7 +19,7 @@ pub use features_tab::{FeaturesTab, clear_session_state};
 pub use performance_tab::PerformanceTab;
 pub use settings_tab::SettingsTab;
 
-// Import from crate::backup instead of just backup
+// CORRECTED: Import from crate::backup instead of just backup
 pub use crate::backup::{
     BackupConfig, BackupType, BackupMetadata, BackupProgress, BackupItem,
     RollbackManager, RollbackOption, format_bytes,
