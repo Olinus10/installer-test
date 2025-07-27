@@ -34,6 +34,7 @@ use crate::launcher::PerformanceTab;
 use crate::launcher::SettingsTab;
 use crate::installation::delete_installation;
 use crate::preset::find_preset_by_id;
+use crate::backup::BackupProgress;
 
 mod modal;
 
