@@ -326,7 +326,7 @@ impl crate::installation::Installation {
             enabled_features: self.enabled_features.clone(),
             file_count: files_processed,
             size_bytes: bytes_processed,
-            included_items, // Add missing field
+            included_items,
             config: config.clone(),
         };
         
@@ -357,115 +357,44 @@ impl crate::installation::Installation {
     }
 
     /// Helper method to copy a single item (file or directory) with progress and exclusion patterns
-fn copy_item_with_progress<F>(
-    &self,
-    source: &Path,
-    dest: &Path,
-    files_processed: &mut usize,
-    total_files: usize,
-    bytes_processed: &mut u64,
-    progress_callback: &Option<F>,
-    exclude_patterns: &[String],
-) -> Result<(), String>
-where
-    F: Fn(BackupProgress) + Clone,
-{
-    // Check if this item should be excluded
-    if should_exclude_path(source, exclude_patterns) {
-        debug!("Excluding path: {:?}", source);
-        return Ok(());
-    }
-    
-    if source.is_file() {
-        // Copy single file
-        if let Some(parent) = dest.parent() {
-            std::fs::create_dir_all(parent)
-                .map_err(|e| format!("Failed to create parent directory: {}", e))?;
+    fn copy_item_with_progress<F>(
+        &self,
+        source: &Path,
+        dest: &Path,
+        files_processed: &mut usize,
+        total_files: usize,
+        bytes_processed: &mut u64,
+        progress_callback: &Option<F>,
+        exclude_patterns: &[String],
+    ) -> Result<(), String>
+    where
+        F: Fn(crate::backup::BackupProgress) + Clone,
+    {
+        // Check if this item should be excluded
+        if should_exclude_path(source, exclude_patterns) {
+            debug!("Excluding path: {:?}", source);
+            return Ok(());
         }
         
-        std::fs::copy(source, dest)
-            .map_err(|e| format!("Failed to copy file {:?}: {}", source, e))?;
-            
-        let file_size = std::fs::metadata(dest)
-            .map_err(|e| format!("Failed to get file metadata: {}", e))?
-            .len();
-            
-        *files_processed += 1;
-        *bytes_processed += file_size;
-        
-        if let Some(callback) = progress_callback {
-            callback(BackupProgress {
-                current_file: source.file_name()
-                    .unwrap_or_default()
-                    .to_string_lossy()
-                    .to_string(),
-                files_processed: *files_processed,
-                total_files,
-                bytes_processed: *bytes_processed,
-                total_bytes: 0, // This should probably be passed as a parameter
-                current_operation: "Copying files".to_string(),
-            });
-        } // <- This closing brace matches the if let Some(callback)
-        
-        return Ok(());
-    } // <- This closing brace matches the if source.is_file()
-    
-    if !source.is_dir() {
-        return Ok(());
-    }
-    
-    std::fs::create_dir_all(dest)
-        .map_err(|e| format!("Failed to create directory: {}", e))?;
-    
-    let entries = std::fs::read_dir(source)
-        .map_err(|e| format!("Failed to read directory: {}", e))?;
-    
-    for entry in entries {
-        let entry = entry.map_err(|e| format!("Failed to read directory entry: {}", e))?;
-        let source_path = entry.path();
-        let dest_path = dest.join(entry.file_name());
-        
-        self.copy_item_with_progress(
-            &source_path,
-            &dest_path,
-            files_processed,
-            total_files,
-            bytes_processed,
-            progress_callback,
-            exclude_patterns,
-        )?;
-    }
-    
-    Ok(())
-}
-    
-/// Extract a ZIP archive to a directory
-pub fn extract_zip_archive(zip_path: &Path, destination: &Path) -> Result<(), io::Error> {
-    let file = fs::File::open(zip_path)?;
-    let mut archive = zip::ZipArchive::new(file)?;
-    
-    for i in 0..archive.len() {
-        let mut file = archive.by_index(i)?;
-        let outpath = destination.join(file.name());
-        
-        if file.name().ends_with('/') {
-            fs::create_dir_all(&outpath)?;
-        } else {
-            if let Some(parent) = outpath.parent() {
-                fs::create_dir_all(parent)?;
+        if source.is_file() {
+            // Copy single file
+            if let Some(parent) = dest.parent() {
+                std::fs::create_dir_all(parent)
+                    .map_err(|e| format!("Failed to create parent directory: {}", e))?;
             }
             
-            let mut outfile = fs::File::create(&outpath)?;
-            io::copy(&mut file, &mut outfile)?;
-        }
-    }
-    
-    Ok(())
-}files_processed += 1;
+            std::fs::copy(source, dest)
+                .map_err(|e| format!("Failed to copy file {:?}: {}", source, e))?;
+                
+            let file_size = std::fs::metadata(dest)
+                .map_err(|e| format!("Failed to get file metadata: {}", e))?
+                .len();
+                
+            *files_processed += 1;
             *bytes_processed += file_size;
             
             if let Some(callback) = progress_callback {
-                callback(BackupProgress {
+                callback(crate::backup::BackupProgress {
                     current_file: source.file_name()
                         .unwrap_or_default()
                         .to_string_lossy()
@@ -509,6 +438,33 @@ pub fn extract_zip_archive(zip_path: &Path, destination: &Path) -> Result<(), io
         
         Ok(())
     }
+} // <- This closes the impl block
+
+/// Extract a ZIP archive to a directory
+pub fn extract_zip_archive(zip_path: &Path, destination: &Path) -> Result<(), std::io::Error> {
+    use std::fs;
+    use std::io;
+    
+    let file = fs::File::open(zip_path)?;
+    let mut archive = zip::ZipArchive::new(file)?;
+    
+    for i in 0..archive.len() {
+        let mut file = archive.by_index(i)?;
+        let outpath = destination.join(file.name());
+        
+        if file.name().ends_with('/') {
+            fs::create_dir_all(&outpath)?;
+        } else {
+            if let Some(parent) = outpath.parent() {
+                fs::create_dir_all(parent)?;
+            }
+            
+            let mut outfile = fs::File::create(&outpath)?;
+            io::copy(&mut file, &mut outfile)?;
+        }
+    }
+    
+    Ok(())
 }
 
 /// Check if a path should be excluded based on patterns
