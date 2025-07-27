@@ -507,7 +507,7 @@ impl Installation {
         
         Ok(())
     }
-}
+
 
     pub fn save(&self) -> Result<(), String> {
         let installation_dir = get_installations_dir().join(&self.id);
