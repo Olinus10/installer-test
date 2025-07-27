@@ -48,37 +48,38 @@ pub fn EnhancedBackupTab(
     });
     
     // Load available backup items when needed
-    let load_backup_items = {
-        let installation_clone = installation.clone();
+let load_backup_items = {
+    let installation_clone = installation.clone();
+    let mut available_items = available_items.clone();
+    let mut loading_items = loading_items.clone();
+    let mut operation_error = operation_error.clone();
+    
+    move || {
+        let installation = installation_clone.clone();
         let mut available_items = available_items.clone();
         let mut loading_items = loading_items.clone();
         let mut operation_error = operation_error.clone();
         
-        use_callback(move |_| {
-            let installation = installation_clone.clone();
-            let mut available_items = available_items.clone();
-            let mut loading_items = loading_items.clone();
-            let mut operation_error = operation_error.clone();
-            
-            loading_items.set(true);
-            operation_error.set(None);
-            
-            spawn(async move {
-                match installation.discover_backup_items() {
-                    Ok(items) => {
-                        debug!("Discovered {} backup items", items.len());
-                        available_items.set(items);
-                    },
-                    Err(e) => {
-                        error!("Failed to discover backup items: {}", e);
-                        operation_error.set(Some(format!("Failed to scan installation: {}", e)));
-                        available_items.set(Vec::new());
-                    }
+        loading_items.set(true);
+        operation_error.set(None);
+        
+        spawn(async move {
+            match installation.discover_backup_items() {
+                Ok(items) => {
+                    debug!("Discovered {} backup items", items.len());
+                    available_items.set(items);
+                },
+                Err(e) => {
+                    error!("Failed to discover backup items: {}", e);
+                    operation_error.set(Some(format!("Failed to scan installation: {}", e)));
+                    available_items.set(Vec::new());
                 }
-                loading_items.set(false);
-            });
-        })
-    };
+            }
+            loading_items.set(false);
+        });
+    }
+};
+
     
     // Calculate estimated backup size
     let estimated_size = use_memo({
@@ -204,40 +205,40 @@ pub fn EnhancedBackupTab(
     };
     
     // Delete backup function
-    let delete_backup = {
-        let installation_clone = installation.clone();
+let delete_backup = {
+    let installation_clone = installation.clone();
+    let mut available_backups = available_backups.clone();
+    let mut operation_error = operation_error.clone();
+    let mut operation_success = operation_success.clone();
+    let mut backup_to_delete = backup_to_delete.clone();
+    
+    move |backup_id: String| {
+        let installation = installation_clone.clone();
         let mut available_backups = available_backups.clone();
         let mut operation_error = operation_error.clone();
         let mut operation_success = operation_success.clone();
         let mut backup_to_delete = backup_to_delete.clone();
         
-        use_callback(move |backup_id: String| {
-            let installation = installation_clone.clone();
-            let mut available_backups = available_backups.clone();
-            let mut operation_error = operation_error.clone();
-            let mut operation_success = operation_success.clone();
-            let mut backup_to_delete = backup_to_delete.clone();
-            
-            backup_to_delete.set(Some(backup_id.clone()));
-            
-            spawn(async move {
-                match installation.delete_backup(&backup_id).await {
-                    Ok(_) => {
-                        operation_success.set(Some("Backup deleted successfully".to_string()));
-                        
-                        // Reload backup list
-                        if let Ok(backups) = installation.list_available_backups() {
-                            available_backups.set(backups);
-                        }
-                    },
-                    Err(e) => {
-                        operation_error.set(Some(format!("Failed to delete backup: {}", e)));
+        backup_to_delete.set(Some(backup_id.clone()));
+        
+        spawn(async move {
+            match installation.delete_backup(&backup_id).await {
+                Ok(_) => {
+                    operation_success.set(Some("Backup deleted successfully".to_string()));
+                    
+                    // Reload backup list
+                    if let Ok(backups) = installation.list_available_backups() {
+                        available_backups.set(backups);
                     }
+                },
+                Err(e) => {
+                    operation_error.set(Some(format!("Failed to delete backup: {}", e)));
                 }
-                backup_to_delete.set(None);
-            });
-        })
-    };
+            }
+            backup_to_delete.set(None);
+        });
+    }
+};
     
     rsx! {
         div { class: "backup-tab enhanced-backup-tab",
