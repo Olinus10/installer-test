@@ -76,15 +76,15 @@ pub fn handle_play_click(uuid: String, error_signal: &Signal<Option<String>>) {
     debug!("Play button clicked for modpack: {}", uuid);
     
     // Create a channel to communicate back to the main thread
-    let (error_tx, error_rx) = mpsc::channel::<String>();
+    let (error_tx, error_rx) = std::sync::mpsc::channel::<String>();
     
     // Clone error_signal before moving to thread
     let mut error_signal_clone = error_signal.clone();
     
-    // Launch the game directly without auth
+    // Launch the game using the proper launch function
     let uuid_clone = uuid.clone();
     std::thread::spawn(move || {
-        match crate::launch_modpack(&uuid_clone) {
+        match crate::launcher::launch_modpack(&uuid_clone) {
             Ok(_) => {
                 debug!("Successfully launched modpack: {}", uuid_clone);
             },
