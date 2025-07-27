@@ -193,136 +193,6 @@ impl Installation {
         }
     }
 
-    pub fn discover_backup_items(&self) -> Result<Vec<BackupItem>, String> {
-        use std::fs;
-        
-        let mut items = Vec::new();
-        
-        // Scan the installation directory for folders and files
-        match fs::read_dir(&self.installation_path) {
-            Ok(entries) => {
-                for entry in entries {
-                    if let Ok(entry) = entry {
-                        let path = entry.path();
-                        let name = entry.file_name().to_string_lossy().to_string();
-                        
-                        // Skip hidden files/folders unless specifically wanted
-                        if name.starts_with('.') && name != ".minecraft" {
-                            continue;
-                        }
-                        
-                        // Skip common files we don't want to backup
-                        let skip_items = [
-                            "manifest.json", "launcher_profiles.json", 
-                            "usernamecache.json", "usercache.json",
-                            "backup.zip", "tmp_include.zip"
-                        ];
-                        if skip_items.contains(&name.as_str()) {
-                            continue;
-                        }
-                        
-                        let metadata = match path.metadata() {
-                            Ok(meta) => meta,
-                            Err(_) => continue,
-                        };
-                        
-                        let is_directory = metadata.is_dir();
-                        let size_bytes = if is_directory {
-                            crate::backup::calculate_directory_size(&path).unwrap_or(0)
-                        } else {
-                            metadata.len()
-                        };
-                        
-                        let file_count = if is_directory {
-                            Some(crate::backup::count_files_recursive(&path).unwrap_or(0))
-                        } else {
-                            None
-                        };
-                        
-                        // Generate description based on common folder types
-                        let description = get_item_description(&name, is_directory);
-                        
-                        items.push(BackupItem {
-                            name: name.clone(),
-                            path: path.strip_prefix(&self.installation_path)
-                                .unwrap_or(&path)
-                                .to_path_buf(),
-                            is_directory,
-                            size_bytes,
-                            file_count,
-                            description,
-                        });
-                    }
-                }
-            },
-            Err(e) => return Err(format!("Failed to read installation directory: {}", e)),
-        }
-        
-        // Sort by importance (common folders first) and then by name
-        items.sort_by(|a, b| {
-            let a_priority = get_folder_priority(&a.name);
-            let b_priority = get_folder_priority(&b.name);
-            
-            match a_priority.cmp(&b_priority) {
-                std::cmp::Ordering::Equal => a.name.cmp(&b.name),
-                other => other,
-            }
-        });
-        
-        Ok(items)
-    }
-}
-
-// Helper functions for installation.rs (add these at the end of the file)
-
-fn get_item_description(name: &str, is_directory: bool) -> Option<String> {
-    let description = match name.to_lowercase().as_str() {
-        "mods" => "Mod files and configurations",
-        "config" => "Game and mod configuration files",
-        "resourcepacks" => "Resource pack files",
-        "shaderpacks" => "Shader pack files", 
-        "saves" => "World save files",
-        "screenshots" => "Screenshot images",
-        "logs" => "Game and launcher log files",
-        "crash-reports" => "Crash report files",
-        "wynntils" => "Wynntils mod configuration and data",
-        "options.txt" => "Minecraft game options",
-        "servers.dat" => "Multiplayer server list",
-        "usercache.json" => "User cache data",
-        "usernamecache.json" => "Username cache data",
-        _ => {
-            if is_directory {
-                "Custom directory"
-            } else if name.ends_with(".json") {
-                "Configuration file"
-            } else if name.ends_with(".txt") {
-                "Text file"
-            } else if name.ends_with(".jar") {
-                "Java application file"
-            } else {
-                "Custom file"
-            }
-        }
-    };
-    
-    Some(description.to_string())
-}
-
-fn get_folder_priority(name: &str) -> u8 {
-    match name.to_lowercase().as_str() {
-        "mods" => 1,
-        "config" => 2,
-        "saves" => 3,
-        "resourcepacks" => 4,
-        "shaderpacks" => 5,
-        "wynntils" => 6,
-        "screenshots" => 7,
-        "logs" => 8,
-        "crash-reports" => 9,
-        _ => 10,
-    }
-}
-    
     // Custom installation without using a preset
     pub fn new_custom(
         name: String,
@@ -443,7 +313,7 @@ fn get_folder_priority(name: &str) -> u8 {
         Ok(total_size)
     }
     
-    /// Create a backup of this installation
+    /// Create a backup using the enhanced method
     pub async fn create_backup<F>(
         &self,
         backup_type: BackupType,
@@ -454,12 +324,11 @@ fn get_folder_priority(name: &str) -> u8 {
     where
         F: Fn(BackupProgress) + Send + Sync + Clone + 'static,
     {
-        // Use the new dynamic backup creation method from backup.rs
-        self.create_backup_dynamic(backup_type, config, description, progress_callback).await
+        self.create_backup_enhanced(backup_type, config, description, progress_callback).await
     }
 
-    /// Enhanced backup creation with dynamic item selection (moved from backup.rs)
-    pub async fn create_backup_dynamic<F>(
+    /// Enhanced backup creation with dynamic item selection
+    pub async fn create_backup_enhanced<F>(
         &self,
         backup_type: BackupType,
         config: &BackupConfig,
@@ -480,26 +349,31 @@ fn get_folder_priority(name: &str) -> u8 {
         std::fs::create_dir_all(&backup_dir)
             .map_err(|e| format!("Failed to create backup directory: {}", e))?;
         
-        debug!("Creating dynamic backup {} for installation {}", backup_id, self.name);
+        debug!("Creating enhanced backup {} for installation {}", backup_id, self.name);
         
-        // Collect items to backup based on configuration
+        // Discover all available items first
+        let all_items = crate::backup::discover_installation_items(&self.installation_path, 1)?;
+        
+        // Filter items based on configuration
         let mut items_to_backup = Vec::new();
         let mut total_files = 0;
         let mut total_bytes = 0;
         
-        for item_path in &config.selected_items {
-            let full_path = self.installation_path.join(item_path);
-            if full_path.exists() {
-                items_to_backup.push((item_path.clone(), full_path.clone()));
+        for item in &all_items {
+            let item_path_str = item.path.to_string_lossy().to_string();
+            
+            // Check if this item is selected for backup
+            if config.selected_items.contains(&item_path_str) {
+                items_to_backup.push(item);
+                total_files += item.file_count.unwrap_or(1);
+                total_bytes += item.size_bytes;
                 
-                if full_path.is_dir() {
-                    total_files += crate::backup::count_files_recursive(&full_path).unwrap_or(0);
-                    total_bytes += crate::backup::calculate_directory_size(&full_path).unwrap_or(0);
-                } else {
-                    total_files += 1;
-                    total_bytes += std::fs::metadata(&full_path).map(|m| m.len()).unwrap_or(0);
-                }
+                debug!("Selected for backup: {} ({} bytes)", item.name, item.size_bytes);
             }
+        }
+        
+        if items_to_backup.is_empty() {
+            return Err("No items selected for backup".to_string());
         }
         
         debug!("Backup will include {} items ({} files, {} bytes)", 
@@ -508,7 +382,7 @@ fn get_folder_priority(name: &str) -> u8 {
         let mut files_processed = 0;
         let mut bytes_processed = 0;
         
-        // Notify progress of scanning completion
+        // Initial progress
         if let Some(ref callback) = progress_callback {
             callback(BackupProgress {
                 current_file: "Preparing backup...".to_string(),
@@ -521,86 +395,45 @@ fn get_folder_priority(name: &str) -> u8 {
         }
         
         if config.compress_backups {
-            // Create ZIP archive
+            // Create compressed backup
             let archive_path = backup_dir.join("backup.zip");
-            let temp_dir = backup_dir.join("temp");
-            std::fs::create_dir_all(&temp_dir)
-                .map_err(|e| format!("Failed to create temp directory: {}", e))?;
             
-            // Copy selected items to temp directory
-            for (item_name, source_path) in &items_to_backup {
-                let dest_path = temp_dir.join(item_name);
-                
-                if let Some(parent) = dest_path.parent() {
-                    std::fs::create_dir_all(parent)
-                        .map_err(|e| format!("Failed to create parent directory: {}", e))?;
-                }
-                
-                self.copy_item_with_progress(
-                    source_path,
-                    &dest_path,
-                    &mut files_processed,
-                    total_files,
-                    &mut bytes_processed,
-                    &progress_callback,
-                    &config.exclude_patterns,
-                )?;
-            }
-            
-            // Update progress for compression phase
-            if let Some(ref callback) = progress_callback {
-                callback(BackupProgress {
-                    current_file: "Creating archive...".to_string(),
-                    files_processed,
-                    total_files,
-                    bytes_processed,
-                    total_bytes,
-                    current_operation: "Compressing files".to_string(),
-                });
-            }
-            
-            // Create ZIP archive
-            let final_size = crate::backup::create_zip_archive(
-                &temp_dir,
+            self.create_compressed_backup(
+                &items_to_backup,
                 &archive_path,
-                progress_callback.as_ref(),
-            ).map_err(|e| format!("Failed to create ZIP archive: {}", e))?;
+                &mut files_processed,
+                total_files,
+                &mut bytes_processed,
+                &progress_callback,
+                &config.exclude_patterns,
+            ).await?;
             
-            // Clean up temp directory
-            std::fs::remove_dir_all(&temp_dir)
-                .map_err(|e| format!("Failed to clean up temp directory: {}", e))?;
-            
-            bytes_processed = final_size;
+            bytes_processed = fs::metadata(&archive_path)
+                .map_err(|e| format!("Failed to get archive size: {}", e))?
+                .len();
         } else {
-            // Copy files directly
-            for (item_name, source_path) in &items_to_backup {
-                let dest_path = backup_dir.join(item_name);
-                
-                if let Some(parent) = dest_path.parent() {
-                    std::fs::create_dir_all(parent)
-                        .map_err(|e| format!("Failed to create parent directory: {}", e))?;
-                }
-                
-                self.copy_item_with_progress(
-                    source_path,
-                    &dest_path,
-                    &mut files_processed,
-                    total_files,
-                    &mut bytes_processed,
-                    &progress_callback,
-                    &config.exclude_patterns,
-                )?;
-            }
+            // Create uncompressed backup
+            self.create_uncompressed_backup(
+                &items_to_backup,
+                &backup_dir,
+                &mut files_processed,
+                total_files,
+                &mut bytes_processed,
+                &progress_callback,
+                &config.exclude_patterns,
+            ).await?;
         }
         
-        // Create metadata with ALL required fields
-        let included_items = config.selected_items.clone();
+        // Create metadata
+        let included_items = items_to_backup.iter()
+            .map(|item| item.path.to_string_lossy().to_string())
+            .collect();
         
         let metadata = BackupMetadata {
             id: backup_id.clone(),
             description,
             backup_type,
-            created_at: Utc::now(),
+            created_at: chrono::Utc::now(),
             modpack_version: self.universal_version.clone(),
             enabled_features: self.enabled_features.clone(),
             file_count: files_processed,
@@ -613,10 +446,10 @@ fn get_folder_priority(name: &str) -> u8 {
         let metadata_path = backup_dir.join("metadata.json");
         let metadata_json = serde_json::to_string_pretty(&metadata)
             .map_err(|e| format!("Failed to serialize metadata: {}", e))?;
-        std::fs::write(&metadata_path, metadata_json)
+        fs::write(&metadata_path, metadata_json)
             .map_err(|e| format!("Failed to write metadata: {}", e))?;
         
-        // Clean up old backups if needed
+        // Clean up old backups
         self.cleanup_old_backups(config.max_backups)?;
         
         // Final progress update
@@ -631,15 +464,15 @@ fn get_folder_priority(name: &str) -> u8 {
             });
         }
         
-        info!("Successfully created dynamic backup {} for installation {}", backup_id, self.name);
+        info!("Successfully created enhanced backup {} for installation {}", backup_id, self.name);
         Ok(metadata)
     }
-
-    /// Helper method to copy a single item (file or directory) with progress and exclusion patterns
-    fn copy_item_with_progress<F>(
+    
+    /// Create compressed backup using ZIP
+    async fn create_compressed_backup<F>(
         &self,
-        source: &Path,
-        dest: &Path,
+        items: &[&BackupItem],
+        archive_path: &Path,
         files_processed: &mut usize,
         total_files: usize,
         bytes_processed: &mut u64,
@@ -649,70 +482,279 @@ fn get_folder_priority(name: &str) -> u8 {
     where
         F: Fn(BackupProgress) + Clone,
     {
-        // Check if this item should be excluded
-        if should_exclude_path(source, exclude_patterns) {
-            debug!("Excluding path: {:?}", source);
-            return Ok(());
-        }
+        use zip::{ZipWriter, CompressionMethod};
+        use std::io::Write;
         
-        if source.is_file() {
-            // Copy single file
-            if let Some(parent) = dest.parent() {
-                std::fs::create_dir_all(parent)
-                    .map_err(|e| format!("Failed to create parent directory: {}", e))?;
-            }
+        let file = fs::File::create(archive_path)
+            .map_err(|e| format!("Failed to create archive: {}", e))?;
+        let mut zip = ZipWriter::new(file);
+        
+        for item in items {
+            let source_path = self.installation_path.join(&item.path);
             
-            std::fs::copy(source, dest)
-                .map_err(|e| format!("Failed to copy file {:?}: {}", source, e))?;
-                
-            let file_size = std::fs::metadata(dest)
-                .map_err(|e| format!("Failed to get file metadata: {}", e))?
-                .len();
-                
-            *files_processed += 1;
-            *bytes_processed += file_size;
-            
-            if let Some(callback) = progress_callback {
-                callback(BackupProgress {
-                    current_file: source.file_name()
-                        .unwrap_or_default()
-                        .to_string_lossy()
-                        .to_string(),
-                    files_processed: *files_processed,
+            if source_path.is_file() {
+                self.add_file_to_zip(
+                    &mut zip,
+                    &source_path,
+                    &item.path.to_string_lossy(),
+                    files_processed,
                     total_files,
-                    bytes_processed: *bytes_processed,
-                    total_bytes: 0,
-                    current_operation: "Copying files".to_string(),
-                });
+                    bytes_processed,
+                    progress_callback,
+                )?;
+            } else if source_path.is_dir() {
+                self.add_directory_to_zip(
+                    &mut zip,
+                    &source_path,
+                    &item.path.to_string_lossy(),
+                    files_processed,
+                    total_files,
+                    bytes_processed,
+                    progress_callback,
+                    exclude_patterns,
+                )?;
+            }
+        }
+        
+        zip.finish()
+            .map_err(|e| format!("Failed to finalize archive: {}", e))?;
+        
+        Ok(())
+    }
+    
+    /// Create uncompressed backup by copying files
+    async fn create_uncompressed_backup<F>(
+        &self,
+        items: &[&BackupItem],
+        backup_dir: &Path,
+        files_processed: &mut usize,
+        total_files: usize,
+        bytes_processed: &mut u64,
+        progress_callback: &Option<F>,
+        exclude_patterns: &[String],
+    ) -> Result<(), String>
+    where
+        F: Fn(BackupProgress) + Clone,
+    {
+        for item in items {
+            let source_path = self.installation_path.join(&item.path);
+            let dest_path = backup_dir.join(&item.path);
+            
+            if should_exclude_path(&source_path, exclude_patterns) {
+                continue;
             }
             
-            return Ok(());
+            if source_path.is_file() {
+                if let Some(parent) = dest_path.parent() {
+                    fs::create_dir_all(parent)
+                        .map_err(|e| format!("Failed to create directory: {}", e))?;
+                }
+                
+                fs::copy(&source_path, &dest_path)
+                    .map_err(|e| format!("Failed to copy file: {}", e))?;
+                
+                let file_size = fs::metadata(&dest_path)
+                    .map_err(|e| format!("Failed to get file size: {}", e))?
+                    .len();
+                
+                *files_processed += 1;
+                *bytes_processed += file_size;
+                
+                if let Some(callback) = progress_callback {
+                    callback(BackupProgress {
+                        current_file: item.name.clone(),
+                        files_processed: *files_processed,
+                        total_files,
+                        bytes_processed: *bytes_processed,
+                        total_bytes: 0,
+                        current_operation: "Copying files".to_string(),
+                    });
+                }
+            } else if source_path.is_dir() {
+                self.copy_directory_recursive(
+                    &source_path,
+                    &dest_path,
+                    files_processed,
+                    total_files,
+                    bytes_processed,
+                    progress_callback,
+                    exclude_patterns,
+                )?;
+            }
         }
         
-        if !source.is_dir() {
-            return Ok(());
+        Ok(())
+    }
+    
+    /// Helper method to add file to ZIP
+    fn add_file_to_zip<F, W: Write + io::Seek>(
+        &self,
+        zip: &mut zip::ZipWriter<W>,
+        source_path: &Path,
+        archive_path: &str,
+        files_processed: &mut usize,
+        total_files: usize,
+        bytes_processed: &mut u64,
+        progress_callback: &Option<F>,
+    ) -> Result<(), String>
+    where
+        F: Fn(BackupProgress) + Clone,
+    {
+        use zip::CompressionMethod;
+        
+        let file_data = fs::read(source_path)
+            .map_err(|e| format!("Failed to read file: {}", e))?;
+        let file_size = file_data.len() as u64;
+        
+        let options = zip::write::FileOptions::<()>::default()
+            .compression_method(CompressionMethod::Deflated);
+        
+        zip.start_file(archive_path, options)
+            .map_err(|e| format!("Failed to start file in zip: {}", e))?;
+        zip.write_all(&file_data)
+            .map_err(|e| format!("Failed to write file to zip: {}", e))?;
+        
+        *files_processed += 1;
+        *bytes_processed += file_size;
+        
+        if let Some(callback) = progress_callback {
+            callback(BackupProgress {
+                current_file: source_path.file_name()
+                    .unwrap_or_default()
+                    .to_string_lossy()
+                    .to_string(),
+                files_processed: *files_processed,
+                total_files,
+                bytes_processed: *bytes_processed,
+                total_bytes: 0,
+                current_operation: "Compressing files".to_string(),
+            });
         }
         
-        std::fs::create_dir_all(dest)
-            .map_err(|e| format!("Failed to create directory: {}", e))?;
-        
-        let entries = std::fs::read_dir(source)
+        Ok(())
+    }
+    
+    /// Helper method to add directory to ZIP recursively
+    fn add_directory_to_zip<F, W: Write + io::Seek>(
+        &self,
+        zip: &mut zip::ZipWriter<W>,
+        source_dir: &Path,
+        archive_prefix: &str,
+        files_processed: &mut usize,
+        total_files: usize,
+        bytes_processed: &mut u64,
+        progress_callback: &Option<F>,
+        exclude_patterns: &[String],
+    ) -> Result<(), String>
+    where
+        F: Fn(BackupProgress) + Clone,
+    {
+        let entries = fs::read_dir(source_dir)
             .map_err(|e| format!("Failed to read directory: {}", e))?;
         
         for entry in entries {
-            let entry = entry.map_err(|e| format!("Failed to read directory entry: {}", e))?;
-            let source_path = entry.path();
-            let dest_path = dest.join(entry.file_name());
+            let entry = entry.map_err(|e| format!("Failed to read entry: {}", e))?;
+            let path = entry.path();
+            let name = entry.file_name().to_string_lossy();
             
-            self.copy_item_with_progress(
-                &source_path,
-                &dest_path,
-                files_processed,
-                total_files,
-                bytes_processed,
-                progress_callback,
-                exclude_patterns,
-            )?;
+            if should_exclude_path(&path, exclude_patterns) {
+                continue;
+            }
+            
+            let archive_path = if archive_prefix.is_empty() {
+                name.to_string()
+            } else {
+                format!("{}/{}", archive_prefix, name)
+            };
+            
+            if path.is_file() {
+                self.add_file_to_zip(
+                    zip,
+                    &path,
+                    &archive_path,
+                    files_processed,
+                    total_files,
+                    bytes_processed,
+                    progress_callback,
+                )?;
+            } else if path.is_dir() {
+                self.add_directory_to_zip(
+                    zip,
+                    &path,
+                    &archive_path,
+                    files_processed,
+                    total_files,
+                    bytes_processed,
+                    progress_callback,
+                    exclude_patterns,
+                )?;
+            }
+        }
+        
+        Ok(())
+    }
+    
+    /// Helper method to copy directory recursively
+    fn copy_directory_recursive<F>(
+        &self,
+        source_dir: &Path,
+        dest_dir: &Path,
+        files_processed: &mut usize,
+        total_files: usize,
+        bytes_processed: &mut u64,
+        progress_callback: &Option<F>,
+        exclude_patterns: &[String],
+    ) -> Result<(), String>
+    where
+        F: Fn(BackupProgress) + Clone,
+    {
+        fs::create_dir_all(dest_dir)
+            .map_err(|e| format!("Failed to create directory: {}", e))?;
+        
+        let entries = fs::read_dir(source_dir)
+            .map_err(|e| format!("Failed to read directory: {}", e))?;
+        
+        for entry in entries {
+            let entry = entry.map_err(|e| format!("Failed to read entry: {}", e))?;
+            let source_path = entry.path();
+            let dest_path = dest_dir.join(entry.file_name());
+            
+            if should_exclude_path(&source_path, exclude_patterns) {
+                continue;
+            }
+            
+            if source_path.is_file() {
+                fs::copy(&source_path, &dest_path)
+                    .map_err(|e| format!("Failed to copy file: {}", e))?;
+                
+                let file_size = fs::metadata(&dest_path)
+                    .map_err(|e| format!("Failed to get file size: {}", e))?
+                    .len();
+                
+                *files_processed += 1;
+                *bytes_processed += file_size;
+                
+                if let Some(callback) = progress_callback {
+                    callback(BackupProgress {
+                        current_file: entry.file_name().to_string_lossy().to_string(),
+                        files_processed: *files_processed,
+                        total_files,
+                        bytes_processed: *bytes_processed,
+                        total_bytes: 0,
+                        current_operation: "Copying files".to_string(),
+                    });
+                }
+            } else if source_path.is_dir() {
+                self.copy_directory_recursive(
+                    &source_path,
+                    &dest_path,
+                    files_processed,
+                    total_files,
+                    bytes_processed,
+                    progress_callback,
+                    exclude_patterns,
+                )?;
+            }
         }
         
         Ok(())
@@ -1440,6 +1482,7 @@ fn get_folder_priority(name: &str) -> u8 {
                             size_bytes,
                             file_count,
                             description,
+                            children: None, // Add the missing children field
                         });
                     }
                 }
@@ -1629,7 +1672,7 @@ fn get_folder_priority(name: &str) -> u8 {
             Err("Failed to parse old backup metadata format".to_string())
         }
     }
-
+}
 
 // Check if a path should be excluded based on patterns
 fn should_exclude_path(path: &std::path::Path, exclude_patterns: &[String]) -> bool {
