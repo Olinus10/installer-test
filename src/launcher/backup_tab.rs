@@ -54,7 +54,7 @@ let load_backup_items = {
     let mut loading_items = loading_items.clone();
     let mut operation_error = operation_error.clone();
     
-    move || {
+    move |_| {
         let installation = installation_clone.clone();
         let mut available_items = available_items.clone();
         let mut loading_items = loading_items.clone();
@@ -204,7 +204,7 @@ let load_backup_items = {
         }
     };
     
-    // Delete backup function
+    // Delete backup function - FIXED: Remove call() method usage
 let delete_backup = {
     let installation_clone = installation.clone();
     let mut available_backups = available_backups.clone();
@@ -290,8 +290,8 @@ let delete_backup = {
                 div { class: "backup-actions",
                     button {
                         class: "configure-backup-button",
-                        onclick: move |evt| {
-                            load_backup_items.call(());
+                        onclick: load_backup_items,
+                        onclick: move |_| {
                             show_backup_config.set(true);
                         },
                         "⚙️ Configure Items"
@@ -341,7 +341,7 @@ let delete_backup = {
                                 selected_backup.set(Some(id));
                             },
                             ondelete: move |id: String| {
-                                delete_backup_callback.call(id); // Use call() method
+                                delete_backup_callback(id); // Use direct function call
                             }
                         }
                     }
