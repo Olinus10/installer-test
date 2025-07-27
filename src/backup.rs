@@ -155,7 +155,7 @@ impl RollbackManager {
         let safety_config = BackupConfig::default();
         let safety_description = format!("Safety backup before rollback to {}", backup_id);
         
-        self.installation.create_backup_dynamic(
+        self.installation.create_backup(
             BackupType::PreUpdate,
             &safety_config,
             safety_description,
