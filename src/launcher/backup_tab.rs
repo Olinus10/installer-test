@@ -139,7 +139,7 @@ pub fn EnhancedBackupTab(
                     }
                 });
                 
-                match installation.create_backup_dynamic(
+                match installation.create_backup(
                     BackupType::Manual,
                     &config,
                     description.clone(),
