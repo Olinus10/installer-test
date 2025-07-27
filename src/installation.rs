@@ -1521,7 +1521,7 @@ fn should_exclude_path(path: &std::path::Path, exclude_patterns: &[String]) -> b
             Err("Failed to parse old backup metadata format".to_string())
         }
     }
-}
+
 
 // Helper functions for backup functionality
 
