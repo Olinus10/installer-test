@@ -1396,7 +1396,7 @@ impl Installation {
             Err("Failed to parse old backup metadata format".to_string())
         }
     }
-}
+
 
 // Helper functions for backup functionality
 
