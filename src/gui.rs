@@ -192,9 +192,10 @@ fn ManifestErrorDisplay(
     let formatted_error = format_error_message(&error);
     
     rsx! {
-        div { class: "manifest-error-overlay",
-            div { class: "manifest-error-container",
-                div { class: "manifest-error-header",
+        // Use the correct class names that match your CSS
+        div { class: "error-syntax-overlay",
+            div { class: "error-syntax-container",
+                div { class: "error-syntax-header",
                     h2 { "{error_type} Error" }
                     button { 
                         class: "close-button",
@@ -203,8 +204,8 @@ fn ManifestErrorDisplay(
                     }
                 }
                 
-                div { class: "manifest-error-content",
-                    p { class: "error-intro",
+                div { class: "error-syntax-content",
+                    div { class: "error-syntax-message",
                         "There was a problem loading the {file_name} file. This could be due to:"
                     }
                     
@@ -214,11 +215,8 @@ fn ManifestErrorDisplay(
                         li { "Missing or invalid data in the file" }
                     }
                     
-                    div { class: "error-details-container",
-                        h3 { "Error Details" }
-                        div { class: "error-details",
-                            pre { "{formatted_error}" }
-                        }
+                    div { class: "error-syntax-details",
+                        "{formatted_error}"
                     }
                     
                     p { class: "error-help",
@@ -226,21 +224,27 @@ fn ManifestErrorDisplay(
                     }
                 }
                 
-                div { class: "manifest-error-footer",
+                div { class: "error-syntax-footer",
                     button { 
-                        class: "report-button",
-                        onclick: move |evt| onreport.call(evt),
-                        "Report Issue"
+                        class: "cancel-button",
+                        onclick: move |evt| onclose.call(evt),
+                        "CLOSE"
                     }
                     
                     button { 
-                        class: "copy-button",
+                        class: "retry-button",
+                        onclick: move |evt| onreport.call(evt),
+                        "REPORT ISSUE"
+                    }
+                    
+                    button { 
+                        class: "secondary-button",
                         onclick: move |_| {
                             // This would need to be implemented in your system
                             // Typically using web_sys::clipboard in WASM
                             debug!("Copying error to clipboard");
                         },
-                        "Copy Error Details"
+                        "COPY ERROR DETAILS"
                     }
                 }
             }
