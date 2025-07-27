@@ -193,6 +193,136 @@ impl Installation {
         }
     }
 
+    pub fn discover_backup_items(&self) -> Result<Vec<BackupItem>, String> {
+        use std::fs;
+        
+        let mut items = Vec::new();
+        
+        // Scan the installation directory for folders and files
+        match fs::read_dir(&self.installation_path) {
+            Ok(entries) => {
+                for entry in entries {
+                    if let Ok(entry) = entry {
+                        let path = entry.path();
+                        let name = entry.file_name().to_string_lossy().to_string();
+                        
+                        // Skip hidden files/folders unless specifically wanted
+                        if name.starts_with('.') && name != ".minecraft" {
+                            continue;
+                        }
+                        
+                        // Skip common files we don't want to backup
+                        let skip_items = [
+                            "manifest.json", "launcher_profiles.json", 
+                            "usernamecache.json", "usercache.json",
+                            "backup.zip", "tmp_include.zip"
+                        ];
+                        if skip_items.contains(&name.as_str()) {
+                            continue;
+                        }
+                        
+                        let metadata = match path.metadata() {
+                            Ok(meta) => meta,
+                            Err(_) => continue,
+                        };
+                        
+                        let is_directory = metadata.is_dir();
+                        let size_bytes = if is_directory {
+                            crate::backup::calculate_directory_size(&path).unwrap_or(0)
+                        } else {
+                            metadata.len()
+                        };
+                        
+                        let file_count = if is_directory {
+                            Some(crate::backup::count_files_recursive(&path).unwrap_or(0))
+                        } else {
+                            None
+                        };
+                        
+                        // Generate description based on common folder types
+                        let description = get_item_description(&name, is_directory);
+                        
+                        items.push(BackupItem {
+                            name: name.clone(),
+                            path: path.strip_prefix(&self.installation_path)
+                                .unwrap_or(&path)
+                                .to_path_buf(),
+                            is_directory,
+                            size_bytes,
+                            file_count,
+                            description,
+                        });
+                    }
+                }
+            },
+            Err(e) => return Err(format!("Failed to read installation directory: {}", e)),
+        }
+        
+        // Sort by importance (common folders first) and then by name
+        items.sort_by(|a, b| {
+            let a_priority = get_folder_priority(&a.name);
+            let b_priority = get_folder_priority(&b.name);
+            
+            match a_priority.cmp(&b_priority) {
+                std::cmp::Ordering::Equal => a.name.cmp(&b.name),
+                other => other,
+            }
+        });
+        
+        Ok(items)
+    }
+}
+
+// Helper functions for installation.rs (add these at the end of the file)
+
+fn get_item_description(name: &str, is_directory: bool) -> Option<String> {
+    let description = match name.to_lowercase().as_str() {
+        "mods" => "Mod files and configurations",
+        "config" => "Game and mod configuration files",
+        "resourcepacks" => "Resource pack files",
+        "shaderpacks" => "Shader pack files", 
+        "saves" => "World save files",
+        "screenshots" => "Screenshot images",
+        "logs" => "Game and launcher log files",
+        "crash-reports" => "Crash report files",
+        "wynntils" => "Wynntils mod configuration and data",
+        "options.txt" => "Minecraft game options",
+        "servers.dat" => "Multiplayer server list",
+        "usercache.json" => "User cache data",
+        "usernamecache.json" => "Username cache data",
+        _ => {
+            if is_directory {
+                "Custom directory"
+            } else if name.ends_with(".json") {
+                "Configuration file"
+            } else if name.ends_with(".txt") {
+                "Text file"
+            } else if name.ends_with(".jar") {
+                "Java application file"
+            } else {
+                "Custom file"
+            }
+        }
+    };
+    
+    Some(description.to_string())
+}
+
+fn get_folder_priority(name: &str) -> u8 {
+    match name.to_lowercase().as_str() {
+        "mods" => 1,
+        "config" => 2,
+        "saves" => 3,
+        "resourcepacks" => 4,
+        "shaderpacks" => 5,
+        "wynntils" => 6,
+        "screenshots" => 7,
+        "logs" => 8,
+        "crash-reports" => 9,
+        _ => 10,
+    }
+}
+    
     // Custom installation without using a preset
     pub fn new_custom(
         name: String,
