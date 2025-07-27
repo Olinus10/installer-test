@@ -328,7 +328,7 @@ impl Installation {
         self.create_backup_dynamic(backup_type, config, description, progress_callback).await
     }
 
-    /// Enhanced backup creation with dynamic item selection
+    /// Enhanced backup creation with dynamic item selection (moved from backup.rs)
     pub async fn create_backup_dynamic<F>(
         &self,
         backup_type: BackupType,
@@ -486,7 +486,7 @@ impl Installation {
         std::fs::write(&metadata_path, metadata_json)
             .map_err(|e| format!("Failed to write metadata: {}", e))?;
         
-        // Clean up old backups if needed - method is now public
+        // Clean up old backups if needed
         self.cleanup_old_backups(config.max_backups)?;
         
         // Final progress update
@@ -587,28 +587,6 @@ impl Installation {
         
         Ok(())
     }
-}
-
-// Check if a path should be excluded based on patterns
-fn should_exclude_path(path: &std::path::Path, exclude_patterns: &[String]) -> bool {
-    let path_str = path.to_string_lossy();
-    let file_name = path.file_name().unwrap_or_default().to_string_lossy();
-    
-    for pattern in exclude_patterns {
-        // Simple glob-like matching
-        if pattern.contains('*') {
-            let pattern_without_star = pattern.replace('*', "");
-            if path_str.contains(&pattern_without_star) || file_name.contains(&pattern_without_star) {
-                return true;
-            }
-        } else if path_str.ends_with(pattern) || &*file_name == pattern { // Fix: dereference Cow
-            return true;
-        }
-    }
-    
-    false
-}
-        
 
     /// Cleanup old backups
     pub fn cleanup_old_backups(&self, max_backups: usize) -> Result<(), String> {
@@ -1521,7 +1499,27 @@ fn should_exclude_path(path: &std::path::Path, exclude_patterns: &[String]) -> b
             Err("Failed to parse old backup metadata format".to_string())
         }
     }
+}
 
+// Check if a path should be excluded based on patterns
+fn should_exclude_path(path: &std::path::Path, exclude_patterns: &[String]) -> bool {
+    let path_str = path.to_string_lossy();
+    let file_name = path.file_name().unwrap_or_default().to_string_lossy();
+    
+    for pattern in exclude_patterns {
+        // Simple glob-like matching
+        if pattern.contains('*') {
+            let pattern_without_star = pattern.replace('*', "");
+            if path_str.contains(&pattern_without_star) || file_name.contains(&pattern_without_star) {
+                return true;
+            }
+        } else if path_str.ends_with(pattern) || &*file_name == pattern { // Fix: dereference Cow
+            return true;
+        }
+    }
+    
+    false
+}
 
 // Helper functions for backup functionality
 
