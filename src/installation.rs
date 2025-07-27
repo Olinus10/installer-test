@@ -9,10 +9,10 @@ use uuid::Uuid;
 use std::sync::Arc;
 use std::sync::Mutex;
 
-
 use crate::{CachedHttpClient, launcher};
 use crate::preset::Preset;
 use crate::Launcher;
+use crate::backup::{BackupProgress, BackupConfig, BackupType, BackupMetadata, BackupItem};
 
 #[derive(Debug, Deserialize, Serialize, Default, Clone)]
 pub struct InstallationsIndex {
@@ -244,13 +244,13 @@ impl Installation {
         }
     }
 
-        /// Get the backups directory for this installation
+    /// Get the backups directory for this installation
     pub fn get_backups_dir(&self) -> PathBuf {
         self.installation_path.join("backups")
     }
     
     /// List all available backups for this installation
-    pub fn list_available_backups(&self) -> Result<Vec<crate::backup::BackupMetadata>, String> {
+    pub fn list_available_backups(&self) -> Result<Vec<BackupMetadata>, String> {
         let backups_dir = self.get_backups_dir();
         
         if !backups_dir.exists() {
@@ -269,7 +269,7 @@ impl Installation {
                             if metadata_path.exists() {
                                 match std::fs::read_to_string(&metadata_path) {
                                     Ok(content) => {
-                                        match serde_json::from_str::<crate::backup::BackupMetadata>(&content) {
+                                        match serde_json::from_str::<BackupMetadata>(&content) {
                                             Ok(metadata) => backups.push(metadata),
                                             Err(e) => debug!("Failed to parse backup metadata: {}", e),
                                         }
@@ -291,93 +291,7 @@ impl Installation {
     }
     
     /// Get size estimate for a backup with given configuration
-    pub fn get_backup_size_estimate(&self, config: &crate::backup::BackupConfig) -> Result<u64, String> {
-        let mut total_size = 0u64;
-        
-        let folders_to_check = self.get_backup_folders(config);
-        
-        for folder_path in folders_to_check {
-            if folder_path.exists() {
-                match crate::backup::calculate_directory_size(&folder_path) {
-                    Ok(size) => total_size += size,
-                    Err(e) => debug!("Failed to calculate size for {:?}: {}", folder_path, e),
-                }
-            }
-        }
-        
-        // Apply compression estimate if enabled
-        if config.compress_backups {
-            // Estimate 35% compression ratio for typical modpack files
-            total_size = (total_size as f64 * 0.65) as u64;
-        }
-        
-        Ok(total_size)
-    }
-    
-    /// Get list of folders to backup based on configuration
-    fn get_backup_folders(&self, config: &crate::backup::BackupConfig) -> Vec<PathBuf> {
-        let mut folders = Vec::new();
-        
-        if config.include_mods {
-            folders.push(self.installation_path.join("mods"));
-        }
-        if config.include_config {
-            folders.push(self.installation_path.join("config"));
-        }
-        if config.include_wynntils {
-            folders.push(self.installation_path.join("wynntils"));
-        }
-        if config.include_resourcepacks {
-            folders.push(self.installation_path.join("resourcepacks"));
-        }
-        if config.include_shaderpacks {
-            folders.push(self.installation_path.join("shaderpacks"));
-        }
-        if config.include_saves {
-            folders.push(self.installation_path.join("saves"));
-        }
-        if config.include_screenshots {
-            folders.push(self.installation_path.join("screenshots"));
-        }
-        if config.include_logs {
-            folders.push(self.installation_path.join("logs"));
-        }
-        
-        folders
-    }
-    
-    /// Create a backup of this installation
-    pub async fn create_backup<F>(
-        &self,
-        backup_type: crate::backup::BackupType,
-        config: &crate::backup::BackupConfig,
-        description: String,
-        progress_callback: Option<F>,
-    ) -> Result<crate::backup::BackupMetadata, String>
-    where
-        F: Fn(crate::backup::BackupProgress) + Send + Sync + Clone + 'static,
-    {
-        // Use the new dynamic backup creation method
-        self.create_backup_dynamic(backup_type, config, description, progress_callback).await
-    }
-
-    /// Get list of folders to backup based on configuration (updated for new config)
-fn get_backup_folders(&self, config: &crate::backup::BackupConfig) -> Vec<PathBuf> {
-    let mut folders = Vec::new();
-    
-    // Use selected_items instead of individual include_* fields
-    for item_path in &config.selected_items {
-        let full_path = self.installation_path.join(item_path);
-        if full_path.exists() {
-            folders.push(full_path);
-        }
-    }
-    
-    folders
-}
-
-    /// Get size estimate for a backup with given configuration (updated)
-    pub fn get_backup_size_estimate(&self, config: &crate::backup::BackupConfig) -> Result<u64, String> {
+    pub fn get_backup_size_estimate(&self, config: &BackupConfig) -> Result<u64, String> {
         let mut total_size = 0u64;
         
         for item_path in &config.selected_items {
@@ -398,8 +312,200 @@ fn get_backup_folders(&self, config: &crate::backup::BackupConfig) -> Vec<PathBu
         
         Ok(total_size)
     }
+    
+    /// Create a backup of this installation
+    pub async fn create_backup<F>(
+        &self,
+        backup_type: BackupType,
+        config: &BackupConfig,
+        description: String,
+        progress_callback: Option<F>,
+    ) -> Result<BackupMetadata, String>
+    where
+        F: Fn(BackupProgress) + Send + Sync + Clone + 'static,
+    {
+        // Use the new dynamic backup creation method from backup.rs
+        self.create_backup_dynamic(backup_type, config, description, progress_callback).await
+    }
 
-    /// Copy directory with progress tracking (updated for new progress struct)
+    /// Enhanced backup creation with dynamic item selection
+    pub async fn create_backup_dynamic<F>(
+        &self,
+        backup_type: BackupType,
+        config: &BackupConfig,
+        description: String,
+        progress_callback: Option<F>,
+    ) -> Result<BackupMetadata, String>
+    where
+        F: Fn(BackupProgress) + Send + Sync + Clone + 'static,
+    {
+        use chrono::Utc;
+        use uuid::Uuid;
+        
+        let backup_id = Uuid::new_v4().to_string();
+        let backups_dir = self.get_backups_dir();
+        let backup_dir = backups_dir.join(&backup_id);
+        
+        // Create backup directory
+        std::fs::create_dir_all(&backup_dir)
+            .map_err(|e| format!("Failed to create backup directory: {}", e))?;
+        
+        debug!("Creating dynamic backup {} for installation {}", backup_id, self.name);
+        
+        // Collect items to backup based on configuration
+        let mut items_to_backup = Vec::new();
+        let mut total_files = 0;
+        let mut total_bytes = 0;
+        
+        for item_path in &config.selected_items {
+            let full_path = self.installation_path.join(item_path);
+            if full_path.exists() {
+                items_to_backup.push((item_path.clone(), full_path.clone()));
+                
+                if full_path.is_dir() {
+                    total_files += crate::backup::count_files_recursive(&full_path).unwrap_or(0);
+                    total_bytes += crate::backup::calculate_directory_size(&full_path).unwrap_or(0);
+                } else {
+                    total_files += 1;
+                    total_bytes += std::fs::metadata(&full_path).map(|m| m.len()).unwrap_or(0);
+                }
+            }
+        }
+        
+        debug!("Backup will include {} items ({} files, {} bytes)", 
+               items_to_backup.len(), total_files, total_bytes);
+        
+        let mut files_processed = 0;
+        let mut bytes_processed = 0;
+        
+        // Notify progress of scanning completion
+        if let Some(ref callback) = progress_callback {
+            callback(BackupProgress {
+                current_file: "Preparing backup...".to_string(),
+                files_processed: 0,
+                total_files,
+                bytes_processed: 0,
+                total_bytes,
+                current_operation: "Scanning files".to_string(),
+            });
+        }
+        
+        if config.compress_backups {
+            // Create ZIP archive
+            let archive_path = backup_dir.join("backup.zip");
+            let temp_dir = backup_dir.join("temp");
+            std::fs::create_dir_all(&temp_dir)
+                .map_err(|e| format!("Failed to create temp directory: {}", e))?;
+            
+            // Copy selected items to temp directory
+            for (item_name, source_path) in &items_to_backup {
+                let dest_path = temp_dir.join(item_name);
+                
+                if let Some(parent) = dest_path.parent() {
+                    std::fs::create_dir_all(parent)
+                        .map_err(|e| format!("Failed to create parent directory: {}", e))?;
+                }
+                
+                self.copy_item_with_progress(
+                    source_path,
+                    &dest_path,
+                    &mut files_processed,
+                    total_files,
+                    &mut bytes_processed,
+                    &progress_callback,
+                    &config.exclude_patterns,
+                )?;
+            }
+            
+            // Update progress for compression phase
+            if let Some(ref callback) = progress_callback {
+                callback(BackupProgress {
+                    current_file: "Creating archive...".to_string(),
+                    files_processed,
+                    total_files,
+                    bytes_processed,
+                    total_bytes,
+                    current_operation: "Compressing files".to_string(),
+                });
+            }
+            
+            // Create ZIP archive
+            let final_size = crate::backup::create_zip_archive(
+                &temp_dir,
+                &archive_path,
+                progress_callback.as_ref(),
+            ).map_err(|e| format!("Failed to create ZIP archive: {}", e))?;
+            
+            // Clean up temp directory
+            std::fs::remove_dir_all(&temp_dir)
+                .map_err(|e| format!("Failed to clean up temp directory: {}", e))?;
+            
+            bytes_processed = final_size;
+        } else {
+            // Copy files directly
+            for (item_name, source_path) in &items_to_backup {
+                let dest_path = backup_dir.join(item_name);
+                
+                if let Some(parent) = dest_path.parent() {
+                    std::fs::create_dir_all(parent)
+                        .map_err(|e| format!("Failed to create parent directory: {}", e))?;
+                }
+                
+                self.copy_item_with_progress(
+                    source_path,
+                    &dest_path,
+                    &mut files_processed,
+                    total_files,
+                    &mut bytes_processed,
+                    &progress_callback,
+                    &config.exclude_patterns,
+                )?;
+            }
+        }
+        
+        // Create metadata with ALL required fields
+        let included_items = config.selected_items.clone();
+        
+        let metadata = BackupMetadata {
+            id: backup_id.clone(),
+            description,
+            backup_type,
+            created_at: Utc::now(),
+            modpack_version: self.universal_version.clone(),
+            enabled_features: self.enabled_features.clone(),
+            file_count: files_processed,
+            size_bytes: bytes_processed,
+            included_items,
+            config: config.clone(),
+        };
+        
+        // Save metadata
+        let metadata_path = backup_dir.join("metadata.json");
+        let metadata_json = serde_json::to_string_pretty(&metadata)
+            .map_err(|e| format!("Failed to serialize metadata: {}", e))?;
+        std::fs::write(&metadata_path, metadata_json)
+            .map_err(|e| format!("Failed to write metadata: {}", e))?;
+        
+        // Clean up old backups if needed - method is now public
+        self.cleanup_old_backups(config.max_backups)?;
+        
+        // Final progress update
+        if let Some(ref callback) = progress_callback {
+            callback(BackupProgress {
+                current_file: "Backup completed!".to_string(),
+                files_processed,
+                total_files,
+                bytes_processed,
+                total_bytes,
+                current_operation: "Finished".to_string(),
+            });
+        }
+        
+        info!("Successfully created dynamic backup {} for installation {}", backup_id, self.name);
+        Ok(metadata)
+    }
+
+    /// Helper method to copy a single item (file or directory) with progress and exclusion patterns
     fn copy_item_with_progress<F>(
         &self,
         source: &Path,
@@ -483,8 +589,28 @@ fn get_backup_folders(&self, config: &crate::backup::BackupConfig) -> Vec<PathBu
     }
 }
 
-    /// Make cleanup_old_backups public
+// Check if a path should be excluded based on patterns
+fn should_exclude_path(path: &std::path::Path, exclude_patterns: &[String]) -> bool {
+    let path_str = path.to_string_lossy();
+    let file_name = path.file_name().unwrap_or_default().to_string_lossy();
+    
+    for pattern in exclude_patterns {
+        // Simple glob-like matching
+        if pattern.contains('*') {
+            let pattern_without_star = pattern.replace('*', "");
+            if path_str.contains(&pattern_without_star) || file_name.contains(&pattern_without_star) {
+                return true;
+            }
+        } else if path_str.ends_with(pattern) || &*file_name == pattern { // Fix: dereference Cow
+            return true;
+        }
+    }
+    
+    false
+}
+        
 
+    /// Cleanup old backups
     pub fn cleanup_old_backups(&self, max_backups: usize) -> Result<(), String> {
         let mut backups = self.list_available_backups()?;
         
@@ -596,7 +722,7 @@ fn get_backup_folders(&self, config: &crate::backup::BackupConfig) -> Vec<PathBu
 
     pub async fn install_or_update_with_progress<F: FnMut() + Clone>(
         &self, 
-        http_client: &crate::CachedHttpClient,
+        http_client: &CachedHttpClient,
         progress_callback: F
     ) -> Result<(), String> {
         // Get the universal manifest
@@ -737,7 +863,7 @@ fn get_backup_folders(&self, config: &crate::backup::BackupConfig) -> Vec<PathBu
         self.save()
     }
 
-    pub async fn install_or_update(&self, http_client: &crate::CachedHttpClient) -> Result<(), String> {
+    pub async fn install_or_update(&self, http_client: &CachedHttpClient) -> Result<(), String> {
         self.install_or_update_with_progress(http_client, || {}).await
     }
     
@@ -902,7 +1028,7 @@ fn get_backup_folders(&self, config: &crate::backup::BackupConfig) -> Vec<PathBu
     }
 
     // Enhanced method to properly initialize from universal manifest  
-    pub async fn initialize_with_universal_defaults(&mut self, http_client: &crate::CachedHttpClient) -> Result<(), String> {
+    pub async fn initialize_with_universal_defaults(&mut self, http_client: &CachedHttpClient) -> Result<(), String> {
         debug!("Initializing installation '{}' with universal defaults", self.name);
         
         let universal_manifest = crate::universal::load_universal_manifest(http_client, None).await
@@ -1000,7 +1126,7 @@ fn get_backup_folders(&self, config: &crate::backup::BackupConfig) -> Vec<PathBu
     }
     
     // Enhanced completion method that preserves user choices
-    pub async fn complete_installation_with_choices(&mut self, http_client: &crate::CachedHttpClient) -> Result<(), String> {
+    pub async fn complete_installation_with_choices(&mut self, http_client: &CachedHttpClient) -> Result<(), String> {
         debug!("Completing installation for '{}' while preserving user choices", self.name);
         
         // Load latest manifest to get current version
@@ -1040,7 +1166,7 @@ fn get_backup_folders(&self, config: &crate::backup::BackupConfig) -> Vec<PathBu
     }
 
     // Method to initialize enabled features based on universal manifest
-    pub async fn initialize_default_features(&mut self, http_client: &crate::CachedHttpClient) -> Result<(), String> {
+    pub async fn initialize_default_features(&mut self, http_client: &CachedHttpClient) -> Result<(), String> {
         let universal_manifest = crate::universal::load_universal_manifest(http_client, None).await
             .map_err(|e| format!("Failed to load universal manifest: {}", e))?;
         
@@ -1152,9 +1278,8 @@ fn get_backup_folders(&self, config: &crate::backup::BackupConfig) -> Vec<PathBu
     // BACKUP-RELATED METHODS - Fixed versions
 
     /// Discover backup items by scanning the installation directory
-    pub fn discover_backup_items(&self) -> Result<Vec<crate::backup::BackupItem>, String> {
+    pub fn discover_backup_items(&self) -> Result<Vec<BackupItem>, String> {
         use std::fs;
-        use crate::backup::BackupItem;
         
         let mut items = Vec::new();
         
@@ -1256,18 +1381,18 @@ fn get_backup_folders(&self, config: &crate::backup::BackupConfig) -> Vec<PathBu
         let metadata_content = std::fs::read_to_string(&metadata_path)
             .map_err(|e| format!("Failed to read backup metadata: {}", e))?;
         
-        let metadata: crate::backup::BackupMetadata = serde_json::from_str(&metadata_content)
+        let metadata: BackupMetadata = serde_json::from_str(&metadata_content)
             .map_err(|e| format!("Failed to parse backup metadata: {}", e))?;
         
         // Create a safety backup before restoring
-        let safety_config = crate::backup::BackupConfig::default();
+        let safety_config = BackupConfig::default();
         let safety_description = format!("Safety backup before restoring {}", backup_id);
         
         let _safety_backup = self.create_backup(
-            crate::backup::BackupType::PreUpdate,
+            BackupType::PreUpdate,
             &safety_config,
             safety_description,
-            None::<fn(crate::backup::BackupProgress)>,
+            None::<fn(BackupProgress)>,
         ).await?;
         
         debug!("Created safety backup before restoration");
@@ -1326,7 +1451,7 @@ fn get_backup_folders(&self, config: &crate::backup::BackupConfig) -> Vec<PathBu
     }
 
     /// Migrate old backup metadata format to new format
-    pub fn migrate_old_backup_metadata(&self, content: &str) -> Result<crate::backup::BackupMetadata, String> {
+    pub fn migrate_old_backup_metadata(&self, content: &str) -> Result<BackupMetadata, String> {
         // Try to parse as old format first
         if let Ok(old_value) = serde_json::from_str::<serde_json::Value>(content) {
             // Convert old format to new format
@@ -1341,11 +1466,11 @@ fn get_backup_folders(&self, config: &crate::backup::BackupConfig) -> Vec<PathBu
                 .to_string();
             
             let backup_type = match old_value.get("backup_type").and_then(|v| v.as_str()) {
-                Some("manual") => crate::backup::BackupType::Manual,
-                Some("pre_update") => crate::backup::BackupType::PreUpdate,
-                Some("pre_install") => crate::backup::BackupType::PreInstall,
-                Some("scheduled") => crate::backup::BackupType::Scheduled,
-                _ => crate::backup::BackupType::Manual,
+                Some("manual") => BackupType::Manual,
+                Some("pre_update") => BackupType::PreUpdate,
+                Some("pre_install") => BackupType::PreInstall,
+                Some("scheduled") => BackupType::Scheduled,
+                _ => BackupType::Manual,
             };
             
             let created_at = old_value.get("created_at")
@@ -1373,14 +1498,14 @@ fn get_backup_folders(&self, config: &crate::backup::BackupConfig) -> Vec<PathBu
                 .unwrap_or(0);
             
             // Create default config for old backups
-            let config = crate::backup::BackupConfig::default();
+            let config = BackupConfig::default();
             
             let included_items = old_value.get("included_items")
                 .and_then(|v| v.as_array())
                 .map(|arr| arr.iter().filter_map(|v| v.as_str().map(|s| s.to_string())).collect())
                 .unwrap_or_else(|| vec!["mods".to_string(), "config".to_string()]);
             
-            Ok(crate::backup::BackupMetadata {
+            Ok(BackupMetadata {
                 id,
                 description,
                 backup_type,
@@ -1396,7 +1521,7 @@ fn get_backup_folders(&self, config: &crate::backup::BackupConfig) -> Vec<PathBu
             Err("Failed to parse old backup metadata format".to_string())
         }
     }
-
+}
 
 // Helper functions for backup functionality
 
