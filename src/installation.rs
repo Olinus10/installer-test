@@ -362,19 +362,19 @@ impl Installation {
     }
 
     /// Get list of folders to backup based on configuration (updated for new config)
-    fn get_backup_folders(&self, config: &crate::backup::BackupConfig) -> Vec<PathBuf> {
-        let mut folders = Vec::new();
-        
-        // Use selected_items instead of individual include_* fields
-        for item_path in &config.selected_items {
-            let full_path = self.installation_path.join(item_path);
-            if full_path.exists() {
-                folders.push(full_path);
-            }
+fn get_backup_folders(&self, config: &crate::backup::BackupConfig) -> Vec<PathBuf> {
+    let mut folders = Vec::new();
+    
+    // Use selected_items instead of individual include_* fields
+    for item_path in &config.selected_items {
+        let full_path = self.installation_path.join(item_path);
+        if full_path.exists() {
+            folders.push(full_path);
         }
-        
-        folders
     }
+    
+    folders
+}
 
     /// Get size estimate for a backup with given configuration (updated)
     pub fn get_backup_size_estimate(&self, config: &crate::backup::BackupConfig) -> Result<u64, String> {
