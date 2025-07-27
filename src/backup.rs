@@ -818,7 +818,8 @@ impl crate::installation::Installation {
         for entry in entries {
             let entry = entry.map_err(|e| format!("Failed to read entry: {}", e))?;
             let path = entry.path();
-            let name = entry.file_name().to_string_lossy();
+            let file_name = entry.file_name();
+            let name_string = file_name.to_string_lossy().to_string();
             
             if should_exclude_path(&path, exclude_patterns) {
                 continue;
