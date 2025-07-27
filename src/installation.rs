@@ -484,6 +484,7 @@ impl Installation {
 }
 
     /// Make cleanup_old_backups public
+
     pub fn cleanup_old_backups(&self, max_backups: usize) -> Result<(), String> {
         let mut backups = self.list_available_backups()?;
         
@@ -507,7 +508,6 @@ impl Installation {
         
         Ok(())
     }
-
 
     pub fn save(&self) -> Result<(), String> {
         let installation_dir = get_installations_dir().join(&self.id);
