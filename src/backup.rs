@@ -826,7 +826,7 @@ impl crate::installation::Installation {
             }
             
             let archive_path = if archive_prefix.is_empty() {
-                name.to_string()
+                name_string
             } else {
                 format!("{}/{}", archive_prefix, name)
             };
