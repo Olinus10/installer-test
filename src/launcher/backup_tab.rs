@@ -239,7 +239,6 @@ pub fn EnhancedBackupTab(
         }
     };
     
-    
     rsx! {
         div { class: "backup-tab enhanced-backup-tab",
             h2 { "Backup & Restore" }
@@ -290,8 +289,8 @@ pub fn EnhancedBackupTab(
                 div { class: "backup-actions",
                     button {
                         class: "configure-backup-button",
-                        onclick: load_backup_items,
                         onclick: move |_| {
+                            load_backup_items(());
                             show_backup_config.set(true);
                         },
                         "⚙️ Configure Items"
@@ -325,28 +324,28 @@ pub fn EnhancedBackupTab(
                     }
                 } else {
                     div { class: "backups-list",
-            for backup in available_backups.read().iter() {
-                {
-                    let backup_id = backup.id.clone();
-                    let is_selected = selected_backup.read().as_ref() == Some(&backup_id);
-                    let delete_backup_callback = delete_backup.clone(); // Clone the callback
-                    let is_deleting = backup_to_delete.read().as_ref() == Some(&backup_id);
-                    
-                    rsx! {
-                        EnhancedBackupCard {
-                            backup: backup.clone(),
-                            is_selected: is_selected,
-                            is_deleting: is_deleting,
-                            onselect: move |id: String| {
-                                selected_backup.set(Some(id));
-                            },
-                            ondelete: move |id: String| {
-                                delete_backup_callback(id); // Use direct function call
+                        for backup in available_backups.read().iter() {
+                            {
+                                let backup_id = backup.id.clone();
+                                let is_selected = selected_backup.read().as_ref() == Some(&backup_id);
+                                let delete_backup_callback = delete_backup.clone(); // Clone the callback
+                                let is_deleting = backup_to_delete.read().as_ref() == Some(&backup_id);
+                                
+                                rsx! {
+                                    EnhancedBackupCard {
+                                        backup: backup.clone(),
+                                        is_selected: is_selected,
+                                        is_deleting: is_deleting,
+                                        onselect: move |id: String| {
+                                            selected_backup.set(Some(id));
+                                        },
+                                        ondelete: move |id: String| {
+                                            delete_backup_callback(id); // Use direct function call
+                                        }
+                                    }
+                                }
                             }
                         }
-                    }
-                }
-            }
                     }
                     
                     // Restore actions
