@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 use std::fs;
-use std::io;
+use std::io::{self, Write};
 use std::path::{Path, PathBuf};
 use log::{debug, error, info, warn};
 use chrono::{DateTime, Utc};
@@ -313,8 +313,22 @@ impl Installation {
         Ok(total_size)
     }
     
-    /// Create a backup using the enhanced method
+    /// Create a backup using the enhanced method (alias for create_backup_enhanced)
     pub async fn create_backup<F>(
+        &self,
+        backup_type: BackupType,
+        config: &BackupConfig,
+        description: String,
+        progress_callback: Option<F>,
+    ) -> Result<BackupMetadata, String>
+    where
+        F: Fn(BackupProgress) + Send + Sync + Clone + 'static,
+    {
+        self.create_backup_enhanced(backup_type, config, description, progress_callback).await
+    }
+
+    /// Alias for create_backup_enhanced to maintain compatibility
+    pub async fn create_backup_dynamic<F>(
         &self,
         backup_type: BackupType,
         config: &BackupConfig,
