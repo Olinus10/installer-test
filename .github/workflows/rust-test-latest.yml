@@ -14,41 +14,31 @@ jobs:
     runs-on: windows-2022
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
 
-    - name: Install sccache
-      run: cargo install sccache
+    - name: Install Rust toolchain
+      uses: actions-rs/toolchain@v1
+      with:
+        toolchain: stable
+        override: true
 
-    - name: Cache sccache
-      uses: actions/cache@v3
+    - name: Cache cargo dependencies
+      uses: actions/cache@v4
       with:
         path: |
-          ~/.cache/sccache
-        key: sccache-windows-${{ hashFiles('**/Cargo.lock') }}
+          ~/.cargo/registry/index/
+          ~/.cargo/registry/cache/
+          ~/.cargo/git/db/
+          target/
+        key: cargo-windows-${{ hashFiles('**/Cargo.lock') }}
         restore-keys: |
-          sccache-windows-
-    - name: Cache cargo registry
-      uses: actions/cache@v3
-      with:
-        path: ~/.cargo/registry
-        key: cargo-registry-windows-${{ hashFiles('**/Cargo.lock') }}
-        restore-keys: |
-          cargo-registry-windows-
-    - name: Cache cargo index
-      uses: actions/cache@v3
-      with:
-        path: ~/.cargo/git
-        key: cargo-git-windows-${{ hashFiles('**/Cargo.lock') }}
-        restore-keys: |
-          cargo-git-windows-
+          cargo-windows-
+
     - name: Build project
       run: cargo build --verbose --release
-      env:
-        RUSTC_WRAPPER: sccache
-        CARGO_TERM_COLOR: always
 
     - name: Upload Windows executable
       uses: actions/upload-artifact@v4
       with:
-        name: wynncraft-installer
+        name: wynncraft-installer-windows
         path: target/release/wynncraft-overhaul-installer.exe
