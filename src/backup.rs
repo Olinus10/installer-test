@@ -206,14 +206,15 @@ pub fn create_zip_archive<F>(
     source_dir: &std::path::Path,
     zip_path: &std::path::Path,
     progress_callback: Option<&F>,
-) -> Result<u64, io::Error>
+) -> Result<u64, String>
 where
     F: Fn(BackupProgress),
 {
     let file = fs::File::create(zip_path)?;
     let mut zip = ZipWriter::new(file);
     
-    let total_files = count_files_recursive(source_dir)?;
+    let total_files = count_files_recursive(source_dir)
+    .map_err(|e| format!("Failed to count files: {}", e))?;
     let mut files_processed = 0;
     let mut bytes_processed = 0;
     
@@ -818,8 +819,8 @@ impl crate::installation::Installation {
         for entry in entries {
             let entry = entry.map_err(|e| format!("Failed to read entry: {}", e))?;
             let path = entry.path();
-            let file_name = entry.file_name();
-            let name_string = file_name.to_string_lossy().to_string();
+let file_name = entry.file_name();
+let name_string = file_name.to_string_lossy().to_string();
             
             if should_exclude_path(&path, exclude_patterns) {
                 continue;
@@ -828,7 +829,7 @@ impl crate::installation::Installation {
             let archive_path = if archive_prefix.is_empty() {
                 name_string
             } else {
-                format!("{}/{}", archive_prefix, name)
+                format!("{}/{}", archive_prefix, name_string)
             };
             
             if path.is_file() {
@@ -1050,7 +1051,7 @@ pub fn calculate_directory_size(path: &Path) -> Result<u64, String> {
     Ok(total_size)
 }
 
-pub fn count_files_recursive(path: &Path) -> Result<usize, String> {
+pub fn count_files_recursive(path: &Path) -> Result<usize, io::Error> {
     let mut count = 0;
     
     if path.is_file() {
@@ -1058,11 +1059,10 @@ pub fn count_files_recursive(path: &Path) -> Result<usize, String> {
     }
     
     if path.is_dir() {
-        let entries = fs::read_dir(path)
-            .map_err(|e| format!("Failed to read directory: {}", e))?;
+        let entries = fs::read_dir(path)?;
         
         for entry in entries {
-            let entry = entry.map_err(|e| format!("Failed to read entry: {}", e))?;
+            let entry = entry?;
             let entry_path = entry.path();
             
             if entry_path.is_file() {
