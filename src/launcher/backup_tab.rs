@@ -306,7 +306,7 @@ pub fn EnhancedBackupTab(
                             {
                                 let backup_id = backup.id.clone();
                                 let is_selected = selected_backup.read().as_ref() == Some(&backup_id);
-                                let delete_backup_callback = delete_backup.clone();
+                                let mut delete_backup_callback = delete_backup.clone();
                                 
                                 rsx! {
                                     EnhancedBackupCard {
