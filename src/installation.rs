@@ -1629,7 +1629,7 @@ fn get_folder_priority(name: &str) -> u8 {
             Err("Failed to parse old backup metadata format".to_string())
         }
     }
-}
+
 
 // Check if a path should be excluded based on patterns
 fn should_exclude_path(path: &std::path::Path, exclude_patterns: &[String]) -> bool {
