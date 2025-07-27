@@ -438,33 +438,6 @@ impl crate::installation::Installation {
         
         Ok(())
     }
-} // <- This closes the impl block
-
-/// Extract a ZIP archive to a directory
-pub fn extract_zip_archive(zip_path: &Path, destination: &Path) -> Result<(), std::io::Error> {
-    use std::fs;
-    use std::io;
-    
-    let file = fs::File::open(zip_path)?;
-    let mut archive = zip::ZipArchive::new(file)?;
-    
-    for i in 0..archive.len() {
-        let mut file = archive.by_index(i)?;
-        let outpath = destination.join(file.name());
-        
-        if file.name().ends_with('/') {
-            fs::create_dir_all(&outpath)?;
-        } else {
-            if let Some(parent) = outpath.parent() {
-                fs::create_dir_all(parent)?;
-            }
-            
-            let mut outfile = fs::File::create(&outpath)?;
-            io::copy(&mut file, &mut outfile)?;
-        }
-    }
-    
-    Ok(())
 }
 
 /// Check if a path should be excluded based on patterns
