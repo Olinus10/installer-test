@@ -58,7 +58,14 @@ pub use installation::{Installation, get_active_installation, load_all_installat
 pub use preset::{Preset, load_presets};
 pub use universal::{UniversalManifest, load_universal_manifest, ModComponent};
 pub use universal::{ManifestError, ManifestErrorType};
-pub use backup::{BackupConfig, BackupType, BackupMetadata, BackupProgress, RollbackManager, RollbackOption, format_bytes};
+
+// CORRECTED: Use direct exports from backup module
+pub use backup::{
+    BackupConfig, BackupType, BackupMetadata, BackupProgress, BackupItem,
+    RollbackManager, RollbackOption, format_bytes,
+    calculate_directory_size, count_files_recursive,
+    create_zip_archive, extract_zip_archive
+};
 
 
 const CURRENT_MANIFEST_VERSION: i32 = 3;
