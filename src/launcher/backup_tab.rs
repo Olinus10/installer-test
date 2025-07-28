@@ -20,14 +20,13 @@ pub fn EnhancedBackupTab(
     // State for backup list
     let mut available_backups = use_signal(|| Vec::<BackupMetadata>::new());
     let mut selected_backup = use_signal(|| Option::<String>::None);
-    let mut show_rollback_confirm = use_signal(|| false);
-    let mut backup_to_delete = use_signal(|| Option::<String>::None);
-    let mut show_delete_confirm = use_signal(|| false);
     
-    // State for configuration dialog
+    // State for dialogs
     let mut show_backup_config = use_signal(|| false);
-    let mut available_items = use_signal(|| Vec::<BackupItem>::new());
-    let mut loading_items = use_signal(|| false);
+    let mut show_restore_confirm = use_signal(|| false);
+    let mut show_delete_confirm = use_signal(|| false);
+    let mut backup_to_delete = use_signal(|| Option::<String>::None);
+    let mut deleting_backup = use_signal(|| false);
     
     // Load available backups on component mount
     use_effect({
@@ -47,180 +46,15 @@ pub fn EnhancedBackupTab(
         }
     });
     
-    // Load available backup items when needed
-    let load_backup_items = {
-        let installation_clone = installation.clone();
-        let mut available_items = available_items.clone();
-        let mut loading_items = loading_items.clone();
-        let mut operation_error = operation_error.clone();
-        
-        move |_| {
-            let installation = installation_clone.clone();
-            let mut available_items = available_items.clone();
-            let mut loading_items = loading_items.clone();
-            let mut operation_error = operation_error.clone();
-            
-            loading_items.set(true);
-            operation_error.set(None);
-            
-            spawn(async move {
-                match installation.discover_backup_items() {
-                    Ok(items) => {
-                        debug!("Discovered {} backup items", items.len());
-                        available_items.set(items);
-                    },
-                    Err(e) => {
-                        error!("Failed to discover backup items: {}", e);
-                        operation_error.set(Some(format!("Failed to scan installation: {}", e)));
-                        available_items.set(Vec::new());
-                    }
-                }
-                loading_items.set(false);
-            });
-        }
-    };
-
-    // Calculate estimated backup size
-    let estimated_size = use_memo({
-        let installation_clone = installation.clone();
-        let backup_config = backup_config.clone();
-        
-        move || {
-            let config = backup_config.read();
-            installation_clone.get_backup_size_estimate(&config).unwrap_or(0)
-        }
-    });
-    
-    // Create backup function with immediate progress display
-let create_backup = {
-    let installation_clone = installation.clone();
-    let mut is_creating_backup = is_creating_backup.clone();
-    let mut backup_progress = backup_progress.clone();
-    let mut operation_error = operation_error.clone();
-    let mut operation_success = operation_success.clone();
-    let backup_config = backup_config.clone();
-    let backup_description = backup_description.clone();
-    let mut available_backups = available_backups.clone();
-    
-    move |_| {
-        let installation = installation_clone.clone();
-        let config = backup_config.read().clone();
-        let description = backup_description.read().clone();
-        let description = if description.trim().is_empty() {
-            format!("Manual backup - {}", chrono::Utc::now().format("%Y-%m-%d %H:%M"))
-        } else {
-            description
-        };
-        
-        // CRITICAL FIX: Set states immediately when button is clicked
-        is_creating_backup.set(true);
-        operation_error.set(None);
-        operation_success.set(None);
-        
-        // Show initial progress immediately
-        backup_progress.set(Some(BackupProgress {
-            current_file: "Initializing backup...".to_string(),
-            files_processed: 0,
-            total_files: 0,
-            bytes_processed: 0,
-            total_bytes: 0,
-            current_operation: "Starting backup process...".to_string(),
-        }));
-        
-        debug!("Backup button clicked - UI state updated immediately");
-        
-        spawn(async move {
-            // Create progress channel for real-time updates
-            let (progress_tx, mut progress_rx) = tokio::sync::mpsc::unbounded_channel::<BackupProgress>();
-            
-            // Start progress receiver task
-            let mut backup_progress_clone = backup_progress.clone();
-            let progress_task = spawn(async move {
-                while let Some(progress) = progress_rx.recv().await {
-                    debug!("Received progress update: {}/{} files", 
-                           progress.files_processed, progress.total_files);
-                    backup_progress_clone.set(Some(progress));
-                }
-            });
-            
-            // Progress callback that sends updates
-            let progress_callback = move |progress: BackupProgress| {
-                debug!("Sending progress: {} - {}/{}", 
-                       progress.current_operation, progress.files_processed, progress.total_files);
-                let _ = progress_tx.send(progress);
-            };
-            
-            // Perform the actual backup
-            match installation.create_backup(
-                BackupType::Manual,
-                &config,
-                description.clone(),
-                Some(progress_callback),
-            ).await {
-                Ok(metadata) => {
-                    debug!("Backup completed successfully: {}", metadata.id);
-                    
-                    // Show completion message
-                    backup_progress.set(Some(BackupProgress {
-                        current_file: "Backup completed!".to_string(),
-                        files_processed: metadata.file_count,
-                        total_files: metadata.file_count,
-                        bytes_processed: metadata.size_bytes,
-                        total_bytes: metadata.size_bytes,
-                        current_operation: "Finished successfully".to_string(),
-                    }));
-                    
-                    operation_success.set(Some(format!("Backup created successfully: {}", metadata.id)));
-                    
-                    // Reload backup list
-                    if let Ok(backups) = installation.list_available_backups() {
-                        available_backups.set(backups);
-                    }
-                    
-                    // Wait 2 seconds to show completion, then hide progress
-                    tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
-                    backup_progress.set(None);
-                    debug!("Progress display hidden after completion");
-                },
-                Err(e) => {
-                    error!("Backup failed: {}", e);
-                    operation_error.set(Some(format!("Failed to create backup: {}", e)));
-                    backup_progress.set(None);
-                }
-            }
-            
-            // Stop progress receiver
-            drop(progress_tx);
-            progress_task.abort();
-            
-            is_creating_backup.set(false);
-            debug!("Backup operation completed, UI state reset");
-        });
-    }
-};
-    
-    // Delete and restore functions (simplified for your existing structures)
-    let delete_backup = {
-        let installation_clone = installation.clone();
-        let mut available_backups = available_backups.clone();
-        let mut operation_error = operation_error.clone();
-        let mut operation_success = operation_success.clone();
-        let mut backup_to_delete = backup_to_delete.clone();
-        let mut show_delete_confirm = show_delete_confirm.clone();
-        
-        move |backup_id: String| {
-            backup_to_delete.set(Some(backup_id));
-            show_delete_confirm.set(true);
-        }
-    };
-    
-    let confirm_delete_backup = {
+    // Delete backup handler
+    let handle_delete_backup = {
         let installation_clone = installation.clone();
         let mut available_backups = available_backups.clone();
         let mut operation_error = operation_error.clone();
         let mut operation_success = operation_success.clone();
         let backup_to_delete = backup_to_delete.clone();
         let mut show_delete_confirm = show_delete_confirm.clone();
+        let mut deleting_backup = deleting_backup.clone();
         
         move |_| {
             if let Some(backup_id) = backup_to_delete.read().clone() {
@@ -228,6 +62,10 @@ let create_backup = {
                 let mut available_backups = available_backups.clone();
                 let mut operation_error = operation_error.clone();
                 let mut operation_success = operation_success.clone();
+                let mut deleting_backup = deleting_backup.clone();
+                
+                deleting_backup.set(true);
+                operation_error.set(None);
                 
                 spawn(async move {
                     match installation.delete_backup(&backup_id).await {
@@ -243,11 +81,14 @@ let create_backup = {
                             operation_error.set(Some(format!("Failed to delete backup: {}", e)));
                         }
                     }
+                    deleting_backup.set(false);
                 });
             }
             show_delete_confirm.set(false);
         }
     };
+    
+    // [Include the create_backup function from the previous artifact here]
     
     rsx! {
         div { class: "backup-tab enhanced-backup-tab",
@@ -292,24 +133,17 @@ let create_backup = {
                     }
                 }
                 
-                div { class: "backup-size-estimate",
-                    "Estimated size: {format_bytes(*estimated_size.read())}"
-                }
-                
                 div { class: "backup-actions",
                     button {
                         class: "configure-backup-button",
-                        onclick: move |_| {
-                            load_backup_items(());
-                            show_backup_config.set(true);
-                        },
-                        "⚙️ Configure Items"
+                        onclick: move |_| show_backup_config.set(true),
+                        "⚙️ Select Files"
                     }
                     
                     button {
                         class: "create-backup-button",
                         disabled: *is_creating_backup.read(),
-                        onclick: create_backup,
+                        onclick: create_backup, // From previous artifact
                         if *is_creating_backup.read() {
                             "Creating Backup..."
                         } else {
@@ -318,64 +152,79 @@ let create_backup = {
                     }
                 }
                 
-                // Progress display that shows immediately
+                // Progress display
                 if let Some(progress) = &*backup_progress.read() {
                     EnhancedBackupProgressDisplay { progress: progress.clone() }
                 }
             }
             
-            // Available Backups Section
+            // Available Backups Section with enhanced cards
             div { class: "backup-section available-backups",
-                h3 { "Available Backups ({available_backups.read().len()})" }
+                div { class: "backups-header",
+                    h3 { "Available Backups ({available_backups.read().len()})" }
+                    
+                    if !available_backups.read().is_empty() {
+                        div { class: "backup-tools",
+                            button {
+                                class: "backup-tool-button",
+                                onclick: move |_| {
+                                    // Refresh backup list
+                                    if let Ok(backups) = installation.list_available_backups() {
+                                        available_backups.set(backups);
+                                    }
+                                },
+                                "🔄 Refresh"
+                            }
+                        }
+                    }
+                }
                 
                 if available_backups.read().is_empty() {
                     div { class: "no-backups",
-                        "No backups available. Create your first backup above."
+                        div { class: "no-backups-icon", "📦" }
+                        h4 { "No backups available" }
+                        p { "Create your first backup above to protect your installation." }
                     }
                 } else {
-                    div { class: "backups-list",
+                    div { class: "backups-grid",
                         for backup in available_backups.read().iter() {
                             {
                                 let backup_id = backup.id.clone();
                                 let is_selected = selected_backup.read().as_ref() == Some(&backup_id);
-                                let mut delete_backup_callback = delete_backup.clone();
                                 
                                 rsx! {
-                                    EnhancedBackupCard {
+                                    EnhancedBackupCardWithDelete {
                                         backup: backup.clone(),
                                         is_selected: is_selected,
                                         onselect: move |id: String| {
-                                            selected_backup.set(Some(id));
+                                            if selected_backup.read().as_ref() == Some(&id) {
+                                                selected_backup.set(None);
+                                            } else {
+                                                selected_backup.set(Some(id));
+                                            }
                                         },
                                         ondelete: move |id: String| {
-                                            delete_backup_callback(id);
+                                            backup_to_delete.set(Some(id));
+                                            show_delete_confirm.set(true);
+                                        },
+                                        onrestore: move |id: String| {
+                                            selected_backup.set(Some(id));
+                                            show_restore_confirm.set(true);
                                         }
                                     }
                                 }
                             }
                         }
                     }
-                    
-                    // Restore actions
-                    if selected_backup.read().is_some() {
-                        div { class: "restore-actions",
-                            button {
-                                class: "restore-button",
-                                onclick: move |_| show_rollback_confirm.set(true),
-                                "Restore Selected Backup"
-                            }
-                        }
-                    }
                 }
             }
             
-            // Enhanced Backup Configuration Dialog
+            // Enhanced File System Backup Configuration Dialog
             if *show_backup_config.read() {
-                ImprovedBackupConfigDialog {
+                EnhancedFileSystemBackupDialog {
                     config: backup_config,
-                    available_items: available_items.read().clone(),
-                    loading_items: *loading_items.read(),
-                    estimated_size: *estimated_size.read(),
+                    installation: installation.clone(),
+                    estimated_size: installation.get_backup_size_estimate(&backup_config.read()).unwrap_or(0),
                     onclose: move |_| show_backup_config.set(false),
                     onupdate: move |new_config: BackupConfig| {
                         backup_config.set(new_config);
@@ -383,25 +232,30 @@ let create_backup = {
                 }
             }
             
-            // Rollback Confirmation Dialog
-            if *show_rollback_confirm.read() {
-                RollbackConfirmDialog {
+            // Restore Confirmation Dialog
+            if *show_restore_confirm.read() {
+                RestoreConfirmationDialog {
                     backup_id: selected_backup.read().clone().unwrap_or_default(),
                     backups: available_backups.read().clone(),
+                    installation: installation.clone(),
                     onconfirm: move |_| {
                         // Add restore logic here
-                        show_rollback_confirm.set(false);
+                        show_restore_confirm.set(false);
                     },
-                    oncancel: move |_| show_rollback_confirm.set(false)
+                    oncancel: move |_| {
+                        show_restore_confirm.set(false);
+                        selected_backup.set(None);
+                    }
                 }
             }
             
             // Delete Confirmation Dialog
             if *show_delete_confirm.read() {
-                DeleteBackupConfirmDialog {
+                DeleteBackupConfirmationDialog {
                     backup_id: backup_to_delete.read().clone().unwrap_or_default(),
                     backups: available_backups.read().clone(),
-                    onconfirm: confirm_delete_backup,
+                    is_deleting: *deleting_backup.read(),
+                    onconfirm: handle_delete_backup,
                     oncancel: move |_| {
                         show_delete_confirm.set(false);
                         backup_to_delete.set(None);
@@ -412,92 +266,229 @@ let create_backup = {
     }
 }
 
+#[component]
+fn DeleteBackupConfirmationDialog(
+    backup_id: String,
+    backups: Vec<BackupMetadata>,
+    is_deleting: bool,
+    onconfirm: EventHandler<()>,
+    oncancel: EventHandler<()>,
+) -> Element {
+    let backup = backups.iter().find(|b| b.id == backup_id);
+    
+    rsx! {
+        div { class: "modal-overlay",
+            div { class: "modal-container delete-backup-dialog",
+                div { class: "modal-header danger",
+                    h3 { "🗑️ Delete Backup" }
+                    if !is_deleting {
+                        button { 
+                            class: "modal-close",
+                            onclick: move |_| oncancel.call(()),
+                            "×"
+                        }
+                    }
+                }
+                
+                div { class: "modal-content",
+                    div { class: "danger-warning",
+                        "⚠️ This action cannot be undone!"
+                    }
+                    
+                    p { class: "delete-confirmation-text",
+                        "Are you sure you want to permanently delete this backup?"
+                    }
+                    
+                    if let Some(backup) = backup {
+                        div { class: "backup-details-card",
+                            div { class: "detail-row",
+                                strong { "Description: " }
+                                span { "{backup.description}" }
+                            }
+                            
+                            div { class: "detail-row",
+                                strong { "Created: " }
+                                span { "{backup.age_description()}" }
+                            }
+                            
+                            div { class: "detail-row",
+                                strong { "Size: " }
+                                span { "{backup.formatted_size()}" }
+                            }
+                            
+                            div { class: "detail-row",
+                                strong { "Files: " }
+                                span { "{backup.file_count} files in {backup.included_items.len()} items" }
+                            }
+                            
+                            div { class: "detail-row",
+                                strong { "Type: " }
+                                span { 
+                                    class: format!("backup-type-badge {}", 
+                                        match backup.backup_type {
+                                            BackupType::Manual => "manual",
+                                            BackupType::PreUpdate => "pre-update",
+                                            BackupType::PreInstall => "pre-install", 
+                                            BackupType::Scheduled => "scheduled",
+                                        }
+                                    ),
+                                    {format!("{:?}", backup.backup_type)}
+                                }
+                            }
+                        }
+                    }
+                    
+                    if is_deleting {
+                        div { class: "deleting-progress",
+                            div { class: "loading-spinner" }
+                            span { "Deleting backup..." }
+                        }
+                    }
+                }
+                
+                div { class: "modal-footer",
+                    button { 
+                        class: "cancel-button",
+                        disabled: is_deleting,
+                        onclick: move |_| oncancel.call(()),
+                        "Cancel"
+                    }
+                    
+                    button { 
+                        class: "delete-confirm-button danger",
+                        disabled: is_deleting,
+                        onclick: move |_| onconfirm.call(()),
+                        if is_deleting {
+                            "Deleting..."
+                        } else {
+                            "Delete Backup"
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
 // Enhanced backup card with delete button
 #[component]
-fn EnhancedBackupCard(
+fn EnhancedBackupCardWithDelete(
     backup: BackupMetadata,
     is_selected: bool,
     onselect: EventHandler<String>,
     ondelete: EventHandler<String>,
+    onrestore: EventHandler<String>,
 ) -> Element {
     let backup_id = backup.id.clone();
     let delete_id = backup.id.clone();
+    let restore_id = backup.id.clone();
+    
+    let mut show_actions = use_signal(|| false);
     
     rsx! {
         div { 
             class: if is_selected {
-                "backup-card selected"
+                "backup-card enhanced selected"
             } else {
-                "backup-card"
+                "backup-card enhanced"
             },
+            onmouseenter: move |_| show_actions.set(true),
+            onmouseleave: move |_| show_actions.set(false),
             onclick: move |_| onselect.call(backup_id.clone()),
             
-            div { class: "backup-card-header",
-                div { class: "backup-info",
-                    h4 { "{backup.description}" }
+            div { class: "backup-card-main",
+                div { class: "backup-card-header",
+                    div { class: "backup-info",
+                        h4 { class: "backup-title", "{backup.description}" }
+                        
+                        div { class: "backup-badges",
+                            span { 
+                                class: format!("backup-type-badge {}", 
+                                    match backup.backup_type {
+                                        BackupType::Manual => "manual",
+                                        BackupType::PreUpdate => "pre-update", 
+                                        BackupType::PreInstall => "pre-install",
+                                        BackupType::Scheduled => "scheduled",
+                                    }
+                                ),
+                                {format!("{:?}", backup.backup_type)}
+                            }
+                        }
+                    }
+                    
                     span { class: "backup-date", "{backup.age_description()}" }
                 }
                 
-                div { class: "backup-badges",
-                    span { 
-                        class: format!("backup-type-badge {}", 
-                            match backup.backup_type {
-                                BackupType::Manual => "manual",
-                                BackupType::PreUpdate => "pre-update",
-                                BackupType::PreInstall => "pre-install",
-                                BackupType::Scheduled => "scheduled",
-                            }
-                        ),
-                        {format!("{:?}", backup.backup_type)}
+                div { class: "backup-card-details",
+                    div { class: "backup-stats-grid",
+                        div { class: "backup-stat",
+                            span { class: "stat-label", "Size" }
+                            span { class: "stat-value", "{backup.formatted_size()}" }
+                        }
+                        
+                        div { class: "backup-stat",
+                            span { class: "stat-label", "Files" }
+                            span { class: "stat-value", "{backup.file_count}" }
+                        }
+                        
+                        div { class: "backup-stat",
+                            span { class: "stat-label", "Items" }
+                            span { class: "stat-value", "{backup.included_items.len()}" }
+                        }
+                        
+                        div { class: "backup-stat",
+                            span { class: "stat-label", "Version" }
+                            span { class: "stat-value", "{backup.modpack_version}" }
+                        }
                     }
-                }
-            }
-            
-            div { class: "backup-card-details",
-                div { class: "backup-detail",
-                    span { class: "detail-label", "Version:" }
-                    span { class: "detail-value", "{backup.modpack_version}" }
-                }
-                
-                div { class: "backup-detail",
-                    span { class: "detail-label", "Size:" }
-                    span { class: "detail-value", "{backup.formatted_size()}" }
-                }
-                
-                div { class: "backup-detail",
-                    span { class: "detail-label", "Items:" }
-                    span { class: "detail-value", "{backup.included_items.len()}" }
-                }
-                
-                div { class: "backup-detail",
-                    span { class: "detail-label", "Files:" }
-                    span { class: "detail-value", "{backup.file_count}" }
-                }
-                
-                // Show included items
-                if !backup.included_items.is_empty() {
-                    div { class: "backup-items-list",
-                        span { class: "items-label", "Includes:" }
-                        div { class: "items-chips",
-                            for item in backup.included_items.iter().take(3) {
-                                span { class: "item-chip", "{item}" }
-                            }
-                            if backup.included_items.len() > 3 {
-                                span { class: "item-chip more", "+{backup.included_items.len() - 3} more" }
+                    
+                    // Show included items preview
+                    if !backup.included_items.is_empty() {
+                        div { class: "backup-items-preview",
+                            span { class: "items-label", "Includes:" }
+                            div { class: "items-tags",
+                                for item in backup.included_items.iter().take(4) {
+                                    span { class: "item-tag", 
+                                        {item.split('/').last().unwrap_or(item)}
+                                    }
+                                }
+                                if backup.included_items.len() > 4 {
+                                    span { class: "item-tag more", 
+                                        "+{backup.included_items.len() - 4}"
+                                    }
+                                }
                             }
                         }
                     }
                 }
             }
             
-            div { class: "backup-card-actions",
+            // Action buttons (shown on hover or when selected)
+            div { 
+                class: if *show_actions.read() || is_selected {
+                    "backup-card-actions visible"
+                } else {
+                    "backup-card-actions"
+                },
+                
                 button {
-                    class: "delete-backup-button",
+                    class: "backup-action-button restore-button",
+                    onclick: move |evt| {
+                        evt.stop_propagation();
+                        onrestore.call(restore_id.clone());
+                    },
+                    title: "Restore this backup",
+                    "🔄 Restore"
+                }
+                
+                button {
+                    class: "backup-action-button delete-button",
                     onclick: move |evt| {
                         evt.stop_propagation();
                         ondelete.call(delete_id.clone());
                     },
-                    "🗑️"
+                    title: "Delete this backup",
+                    "🗑️ Delete"
                 }
             }
         }
@@ -542,33 +533,61 @@ fn EnhancedBackupProgressDisplay(progress: BackupProgress) -> Element {
 
 // Improved backup configuration dialog
 #[component]
-fn ImprovedBackupConfigDialog(
+fn EnhancedFileSystemBackupDialog(
     config: Signal<BackupConfig>,
-    available_items: Vec<BackupItem>,
-    loading_items: bool,
+    installation: Installation,
     estimated_size: u64,
     onclose: EventHandler<()>,
     onupdate: EventHandler<BackupConfig>,
 ) -> Element {
     let mut local_config = use_signal(|| config.read().clone());
     let mut search_filter = use_signal(|| String::new());
+    let mut file_system_items = use_signal(|| Vec::<FileSystemItem>::new());
+    let mut loading_items = use_signal(|| false);
+    let mut scan_error = use_signal(|| Option::<String>::None);
+    let mut expanded_folders = use_signal(|| std::collections::HashSet::<PathBuf>::new());
+    
+    // Load file system on mount
+    use_effect({
+        let installation_path = installation.installation_path.clone();
+        let mut file_system_items = file_system_items.clone();
+        let mut loading_items = loading_items.clone();
+        let mut scan_error = scan_error.clone();
+        
+        move || {
+            loading_items.set(true);
+            scan_error.set(None);
+            
+            spawn(async move {
+                match FileSystemItem::scan_directory(&installation_path, 2) {
+                    Ok(items) => {
+                        debug!("Scanned {} top-level items from installation", items.len());
+                        file_system_items.set(items);
+                    },
+                    Err(e) => {
+                        error!("Failed to scan installation directory: {}", e);
+                        scan_error.set(Some(format!("Failed to scan installation: {}", e)));
+                    }
+                }
+                loading_items.set(false);
+            });
+        }
+    });
     
     // Filter items based on search
     let filtered_items = use_memo({
-        let available_items = available_items.clone();
+        let file_system_items = file_system_items.clone();
         let search_filter = search_filter.clone();
         
         move || {
             let filter = search_filter.read().to_lowercase();
             if filter.is_empty() {
-                available_items.clone()
+                file_system_items.read().clone()
             } else {
-                available_items.iter()
+                file_system_items.read().iter()
                     .filter(|item| {
                         item.name.to_lowercase().contains(&filter) ||
-                        item.description.as_ref()
-                            .map(|d| d.to_lowercase().contains(&filter))
-                            .unwrap_or(false)
+                        item.path.to_string_lossy().to_lowercase().contains(&filter)
                     })
                     .cloned()
                     .collect()
@@ -576,11 +595,49 @@ fn ImprovedBackupConfigDialog(
         }
     });
     
+    // Calculate selected size
+    let selected_size = use_memo({
+        let file_system_items = file_system_items.clone();
+        
+        move || {
+            file_system_items.read().iter()
+                .filter(|item| item.is_selected)
+                .map(|item| item.size_bytes)
+                .sum::<u64>()
+        }
+    });
+    
+    let toggle_item_selection = {
+        let mut file_system_items = file_system_items.clone();
+        
+        move |item_path: PathBuf| {
+            file_system_items.with_mut(|items| {
+                for item in items.iter_mut() {
+                    item.toggle_selection(&item_path);
+                }
+            });
+        }
+    };
+    
+    let toggle_folder_expansion = {
+        let mut expanded_folders = expanded_folders.clone();
+        
+        move |folder_path: PathBuf| {
+            expanded_folders.with_mut(|folders| {
+                if folders.contains(&folder_path) {
+                    folders.remove(&folder_path);
+                } else {
+                    folders.insert(folder_path);
+                }
+            });
+        }
+    };
+    
     rsx! {
         div { class: "modal-overlay",
-            div { class: "modal-container enhanced-backup-config-dialog",
+            div { class: "modal-container enhanced-file-backup-dialog",
                 div { class: "modal-header",
-                    h3 { "Configure Backup Items" }
+                    h3 { "Select Files and Folders to Backup" }
                     button { 
                         class: "modal-close",
                         onclick: move |_| onclose.call(()),
@@ -589,82 +646,71 @@ fn ImprovedBackupConfigDialog(
                 }
                 
                 div { class: "modal-content",
-                    // Search and filter section
-                    div { class: "config-search-section",
-                        input {
-                            r#type: "text",
-                            class: "search-input",
-                            placeholder: "Search items...",
-                            value: "{search_filter}",
-                            oninput: move |evt| search_filter.set(evt.value().clone())
+                    // Search and stats section
+                    div { class: "backup-dialog-header",
+                        div { class: "search-section",
+                            input {
+                                r#type: "text",
+                                class: "file-search-input",
+                                placeholder: "Search files and folders...",
+                                value: "{search_filter}",
+                                oninput: move |evt| search_filter.set(evt.value().clone())
+                            }
+                        }
+                        
+                        div { class: "selection-stats",
+                            span { class: "selected-size", 
+                                "Selected: {format_bytes(*selected_size.read())}"
+                            }
+                            
+                            if local_config.read().compress_backups {
+                                span { class: "compressed-estimate",
+                                    " (≈{format_bytes((*selected_size.read() as f64 * 0.65) as u64)} compressed)"
+                                }
+                            }
+                        }
+                    }
+                    
+                    // Error display
+                    if let Some(error) = &*scan_error.read() {
+                        div { class: "scan-error",
+                            "⚠️ {error}"
                         }
                     }
                     
                     // Loading state
-                    if loading_items {
-                        div { class: "loading-items",
+                    if *loading_items.read() {
+                        div { class: "loading-files",
                             div { class: "loading-spinner" }
-                            span { "Scanning installation..." }
+                            span { "Scanning installation files..." }
                         }
-                    }
-                    
-                    // Items selection with actual discovered files
-                    if !loading_items && !filtered_items.read().is_empty() {
-                        div { class: "config-section items-selection",
-                            h4 { "Select items to backup:" }
-                            
-                            div { class: "items-grid",
+                    } else {
+                        // File system tree
+                        div { class: "file-system-tree",
+                            if filtered_items.read().is_empty() {
+                                div { class: "no-files-found",
+                                    if search_filter.read().is_empty() {
+                                        "No files found in installation directory."
+                                    } else {
+                                        "No files match your search criteria."
+                                    }
+                                }
+                            } else {
                                 for item in filtered_items.read().iter() {
                                     {
-                                        let item_path = item.path.to_string_lossy().to_string();
-                                        let is_selected = local_config.read().selected_items.contains(&item_path);
-                                        let size_display = if item.is_directory {
-                                            format!("{} ({} files)", 
-                                                format_bytes(item.size_bytes),
-                                                item.file_count.unwrap_or(0)
-                                            )
-                                        } else {
-                                            format_bytes(item.size_bytes)
-                                        };
-                                        
                                         rsx! {
-                                            label { 
-                                                class: if is_selected { 
-                                                    "backup-item-option selected" 
-                                                } else { 
-                                                    "backup-item-option" 
+                                            FileSystemTreeItem {
+                                                item: item.clone(),
+                                                expanded_folders: expanded_folders.clone(),
+                                                on_toggle_selection: {
+                                                    let toggle_fn = toggle_item_selection.clone();
+                                                    let item_path = item.path.clone();
+                                                    move |_| toggle_fn(item_path.clone())
                                                 },
-                                                
-                                                input {
-                                                    r#type: "checkbox",
-                                                    checked: is_selected,
-                                                    onchange: move |evt| {
-                                                        let checked = evt.value() == "true";
-                                                        local_config.with_mut(|c| {
-                                                            if checked {
-                                                                if !c.selected_items.contains(&item_path) {
-                                                                    c.selected_items.push(item_path.clone());
-                                                                }
-                                                            } else {
-                                                                c.selected_items.retain(|p| p != &item_path);
-                                                            }
-                                                        });
-                                                    }
-                                                }
-                                                
-                                                div { class: "item-info",
-                                                    div { class: "item-header",
-                                                        span { class: "item-icon", 
-                                                            if item.is_directory { "📁" } else { "📄" }
-                                                        }
-                                                        span { class: "item-name", "{item.name}" }
-                                                    }
-                                                    
-                                                    if let Some(description) = &item.description {
-                                                        div { class: "item-description", "{description}" }
-                                                    }
-                                                    
-                                                    div { class: "item-size", "{size_display}" }
+                                                on_toggle_expansion: {
+                                                    let toggle_fn = toggle_folder_expansion.clone();
+                                                    let item_path = item.path.clone();
+                                                    move |_| toggle_fn(item_path.clone())
                                                 }
                                             }
                                         }
@@ -674,23 +720,11 @@ fn ImprovedBackupConfigDialog(
                         }
                     }
                     
-                    if !loading_items && filtered_items.read().is_empty() && !available_items.is_empty() {
-                        div { class: "no-results",
-                            "No items match your search criteria."
-                        }
-                    }
-                    
-                    if !loading_items && available_items.is_empty() {
-                        div { class: "no-items",
-                            "No items found in installation directory."
-                        }
-                    }
-                    
-                    // Advanced options
-                    div { class: "config-section advanced-options",
-                        h4 { "Advanced Options:" }
+                    // Options section
+                    div { class: "backup-options-section",
+                        h4 { "Backup Options" }
                         
-                        label { class: "config-option",
+                        label { class: "backup-option",
                             input {
                                 r#type: "checkbox",
                                 checked: local_config.read().compress_backups,
@@ -698,10 +732,10 @@ fn ImprovedBackupConfigDialog(
                                     local_config.with_mut(|c| c.compress_backups = evt.value() == "true");
                                 }
                             }
-                            "Compress backups (saves space)"
+                            span { "Compress backup (saves space, slower)" }
                         }
                         
-                        label { class: "config-option",
+                        label { class: "backup-option",
                             input {
                                 r#type: "checkbox",
                                 checked: local_config.read().include_hidden_files,
@@ -709,44 +743,161 @@ fn ImprovedBackupConfigDialog(
                                     local_config.with_mut(|c| c.include_hidden_files = evt.value() == "true");
                                 }
                             }
-                            "Include hidden files and folders"
+                            span { "Include hidden files and folders" }
                         }
                         
-                        div { class: "config-option",
-                            label { "Maximum backups to keep:" }
+                        div { class: "backup-option",
+                            label { "Keep last " }
                             input {
                                 r#type: "number",
                                 value: "{local_config.read().max_backups}",
                                 min: "1",
                                 max: "50",
+                                class: "backup-count-input",
                                 onchange: move |evt| {
                                     if let Ok(value) = evt.value().parse::<usize>() {
                                         local_config.with_mut(|c| c.max_backups = value);
                                     }
                                 }
                             }
+                            label { " backups" }
                         }
-                    }
-                    
-                    div { class: "estimated-size",
-                        "Estimated backup size: {format_bytes(estimated_size)}"
                     }
                 }
                 
                 div { class: "modal-footer",
-                    button { 
-                        class: "cancel-button",
-                        onclick: move |_| onclose.call(()),
-                        "Cancel"
+                    div { class: "footer-info",
+                        "Estimated backup size: {format_bytes(*selected_size.read())}"
                     }
                     
-                    button { 
-                        class: "save-button",
-                        onclick: move |_| {
-                            onupdate.call(local_config.read().clone());
-                            onclose.call(());
-                        },
-                        "Save Configuration"
+                    div { class: "footer-actions",
+                        button { 
+                            class: "cancel-button",
+                            onclick: move |_| onclose.call(()),
+                            "Cancel"
+                        }
+                        
+                        button { 
+                            class: "save-button",
+                            disabled: *selected_size.read() == 0,
+                            onclick: move |_| {
+                                // Convert selected items to config format
+                                let mut new_config = local_config.read().clone();
+                                let selected_paths: Vec<String> = file_system_items.read().iter()
+                                    .flat_map(|item| item.get_selected_paths())
+                                    .map(|path| path.to_string_lossy().to_string())
+                                    .collect();
+                                
+                                new_config.selected_items = selected_paths;
+                                onupdate.call(new_config);
+                                onclose.call(());
+                            },
+                            "Save & Configure"
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+#[component]
+fn FileSystemTreeItem(
+    item: FileSystemItem,
+    expanded_folders: Signal<std::collections::HashSet<PathBuf>>,
+    on_toggle_selection: EventHandler<()>,
+    on_toggle_expansion: EventHandler<()>,
+) -> Element {
+    let is_expanded = expanded_folders.read().contains(&item.path);
+    let has_children = item.children.as_ref().map_or(false, |c| !c.is_empty());
+    
+    rsx! {
+        div { class: "file-tree-item",
+            div { 
+                class: if item.is_selected {
+                    "file-item-header selected"
+                } else {
+                    "file-item-header"
+                },
+                
+                // Expansion toggle (only for directories with children)
+                if item.is_directory && has_children {
+                    button {
+                        class: if is_expanded { "expand-toggle expanded" } else { "expand-toggle" },
+                        onclick: move |_| on_toggle_expansion.call(()),
+                        if is_expanded { "▼" } else { "▶" }
+                    }
+                } else {
+                    span { class: "expand-spacer" }
+                }
+                
+                // Selection checkbox
+                label { class: "file-selection-label",
+                    input {
+                        r#type: "checkbox",
+                        checked: item.is_selected,
+                        onchange: move |_| on_toggle_selection.call(()),
+                    }
+                    
+                    // File/folder icon and info
+                    div { class: "file-info",
+                        span { class: "file-icon",
+                            if item.is_directory { "📁" } else { "📄" }
+                        }
+                        
+                        div { class: "file-details",
+                            div { class: "file-name", "{item.name}" }
+                            div { class: "file-meta",
+                                span { class: "file-size", "{item.get_formatted_size()}" }
+                                span { class: "file-description", " • {item.get_description()}" }
+                                
+                                if let Some(modified) = item.last_modified {
+                                    span { class: "file-modified", 
+                                        " • Modified {modified.format(\"%m/%d/%Y\")}"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            
+            // Children (if expanded)
+            if is_expanded && has_children {
+                div { class: "file-tree-children",
+                    for child in item.children.as_ref().unwrap().iter() {
+                        {
+                            rsx! {
+                                FileSystemTreeItem {
+                                    item: child.clone(),
+                                    expanded_folders: expanded_folders.clone(),
+                                    on_toggle_selection: {
+                                        let item_path = child.path.clone();
+                                        let mut file_system_items = use_context::<Signal<Vec<FileSystemItem>>>();
+                                        move |_| {
+                                            file_system_items.with_mut(|items| {
+                                                for item in items.iter_mut() {
+                                                    item.toggle_selection(&item_path);
+                                                }
+                                            });
+                                        }
+                                    },
+                                    on_toggle_expansion: {
+                                        let item_path = child.path.clone();
+                                        let mut expanded_folders = expanded_folders.clone();
+                                        move |_| {
+                                            expanded_folders.with_mut(|folders| {
+                                                if folders.contains(&item_path) {
+                                                    folders.remove(&item_path);
+                                                } else {
+                                                    folders.insert(item_path.clone());
+                                                }
+                                            });
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }
