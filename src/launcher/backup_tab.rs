@@ -92,80 +92,112 @@ pub fn EnhancedBackupTab(
     });
     
     // Create backup function with immediate progress display
-    let create_backup = {
-        let installation_clone = installation.clone();
-        let mut is_creating_backup = is_creating_backup.clone();
-        let mut backup_progress = backup_progress.clone();
-        let mut operation_error = operation_error.clone();
-        let mut operation_success = operation_success.clone();
-        let backup_config = backup_config.clone();
-        let backup_description = backup_description.clone();
-        let mut available_backups = available_backups.clone();
+let create_backup = {
+    let installation_clone = installation.clone();
+    let mut is_creating_backup = is_creating_backup.clone();
+    let mut backup_progress = backup_progress.clone();
+    let mut operation_error = operation_error.clone();
+    let mut operation_success = operation_success.clone();
+    let backup_config = backup_config.clone();
+    let backup_description = backup_description.clone();
+    let mut available_backups = available_backups.clone();
+    
+    move |_| {
+        let installation = installation_clone.clone();
+        let config = backup_config.read().clone();
+        let description = backup_description.read().clone();
+        let description = if description.trim().is_empty() {
+            format!("Manual backup - {}", chrono::Utc::now().format("%Y-%m-%d %H:%M"))
+        } else {
+            description
+        };
         
-        move |_| {
-            let installation = installation_clone.clone();
-            let config = backup_config.read().clone();
-            let description = backup_description.read().clone();
-            let description = if description.trim().is_empty() {
-                format!("Manual backup - {}", chrono::Utc::now().format("%Y-%m-%d %H:%M"))
-            } else {
-                description
+        // CRITICAL FIX: Set states immediately when button is clicked
+        is_creating_backup.set(true);
+        operation_error.set(None);
+        operation_success.set(None);
+        
+        // Show initial progress immediately
+        backup_progress.set(Some(BackupProgress {
+            current_file: "Initializing backup...".to_string(),
+            files_processed: 0,
+            total_files: 0,
+            bytes_processed: 0,
+            total_bytes: 0,
+            current_operation: "Starting backup process...".to_string(),
+        }));
+        
+        debug!("Backup button clicked - UI state updated immediately");
+        
+        spawn(async move {
+            // Create progress channel for real-time updates
+            let (progress_tx, mut progress_rx) = tokio::sync::mpsc::unbounded_channel::<BackupProgress>();
+            
+            // Start progress receiver task
+            let mut backup_progress_clone = backup_progress.clone();
+            let progress_task = spawn(async move {
+                while let Some(progress) = progress_rx.recv().await {
+                    debug!("Received progress update: {}/{} files", 
+                           progress.files_processed, progress.total_files);
+                    backup_progress_clone.set(Some(progress));
+                }
+            });
+            
+            // Progress callback that sends updates
+            let progress_callback = move |progress: BackupProgress| {
+                debug!("Sending progress: {} - {}/{}", 
+                       progress.current_operation, progress.files_processed, progress.total_files);
+                let _ = progress_tx.send(progress);
             };
             
-            // IMPROVED: Set progress state immediately when clicked
-            is_creating_backup.set(true);
-            backup_progress.set(Some(BackupProgress {
-                current_file: "Preparing backup...".to_string(),
-                files_processed: 0,
-                total_files: 0,
-                bytes_processed: 0,
-                total_bytes: 0,
-                current_operation: "Starting backup...".to_string(),
-            }));
-            operation_error.set(None);
-            operation_success.set(None);
-            
-            spawn(async move {
-                let (progress_tx, mut progress_rx) = tokio::sync::mpsc::unbounded_channel::<BackupProgress>();
-                
-                let progress_callback = move |progress: BackupProgress| {
-                    let _ = progress_tx.send(progress);
-                };
-                
-                let mut backup_progress_clone = backup_progress.clone();
-                spawn(async move {
-                    while let Some(progress) = progress_rx.recv().await {
-                        backup_progress_clone.set(Some(progress));
+            // Perform the actual backup
+            match installation.create_backup(
+                BackupType::Manual,
+                &config,
+                description.clone(),
+                Some(progress_callback),
+            ).await {
+                Ok(metadata) => {
+                    debug!("Backup completed successfully: {}", metadata.id);
+                    
+                    // Show completion message
+                    backup_progress.set(Some(BackupProgress {
+                        current_file: "Backup completed!".to_string(),
+                        files_processed: metadata.file_count,
+                        total_files: metadata.file_count,
+                        bytes_processed: metadata.size_bytes,
+                        total_bytes: metadata.size_bytes,
+                        current_operation: "Finished successfully".to_string(),
+                    }));
+                    
+                    operation_success.set(Some(format!("Backup created successfully: {}", metadata.id)));
+                    
+                    // Reload backup list
+                    if let Ok(backups) = installation.list_available_backups() {
+                        available_backups.set(backups);
                     }
-                });
-                
-                match installation.create_backup(
-                    BackupType::Manual,
-                    &config,
-                    description.clone(),
-                    Some(progress_callback),
-                ).await {
-                    Ok(metadata) => {
-                        operation_success.set(Some(format!("Backup created successfully: {}", metadata.id)));
-                        
-                        if let Ok(backups) = installation.list_available_backups() {
-                            available_backups.set(backups);
-                        }
-                        
-                        // Auto-clear progress after success
-                        tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
-                        backup_progress.set(None);
-                    },
-                    Err(e) => {
-                        operation_error.set(Some(format!("Failed to create backup: {}", e)));
-                        backup_progress.set(None);
-                    }
+                    
+                    // Wait 2 seconds to show completion, then hide progress
+                    tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
+                    backup_progress.set(None);
+                    debug!("Progress display hidden after completion");
+                },
+                Err(e) => {
+                    error!("Backup failed: {}", e);
+                    operation_error.set(Some(format!("Failed to create backup: {}", e)));
+                    backup_progress.set(None);
                 }
-                
-                is_creating_backup.set(false);
-            });
-        }
-    };
+            }
+            
+            // Stop progress receiver
+            drop(progress_tx);
+            progress_task.abort();
+            
+            is_creating_backup.set(false);
+            debug!("Backup operation completed, UI state reset");
+        });
+    }
+};
     
     // Delete and restore functions (simplified for your existing structures)
     let delete_backup = {
