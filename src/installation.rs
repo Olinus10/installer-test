@@ -312,6 +312,295 @@ impl Installation {
         
         Ok(total_size)
     }
+
+        pub fn discover_backup_items_enhanced(&self) -> Result<Vec<FileSystemItem>, String> {
+        debug!("Scanning installation directory: {:?}", self.installation_path);
+        
+        if !self.installation_path.exists() {
+            return Err("Installation directory does not exist".to_string());
+        }
+        
+        // Use the new FileSystemItem scanner with depth 2 for good performance
+        FileSystemItem::scan_directory(&self.installation_path, 2)
+    }
+    
+    /// Get backup size estimate based on selected FileSystemItems
+    pub fn get_backup_size_estimate_from_items(&self, items: &[FileSystemItem]) -> u64 {
+        items.iter()
+            .filter(|item| item.is_selected)
+            .map(|item| item.size_bytes)
+            .sum()
+    }
+    
+    /// Create backup with enhanced file selection
+    pub async fn create_backup_from_file_selection<F>(
+        &self,
+        backup_type: BackupType,
+        selected_items: &[FileSystemItem],
+        description: String,
+        compress: bool,
+        progress_callback: Option<F>,
+    ) -> Result<BackupMetadata, String>
+    where
+        F: Fn(BackupProgress) + Send + Sync + Clone + 'static,
+    {
+        use chrono::Utc;
+        use uuid::Uuid;
+        
+        let backup_id = Uuid::new_v4().to_string();
+        let backups_dir = self.get_backups_dir();
+        let backup_dir = backups_dir.join(&backup_id);
+        
+        // Create backup directory
+        std::fs::create_dir_all(&backup_dir)
+            .map_err(|e| format!("Failed to create backup directory: {}", e))?;
+        
+        debug!("Creating backup {} with {} selected items", backup_id, selected_items.len());
+        
+        // Get all selected paths recursively
+        let selected_paths: Vec<PathBuf> = selected_items.iter()
+            .flat_map(|item| item.get_selected_paths())
+            .collect();
+        
+        if selected_paths.is_empty() {
+            return Err("No items selected for backup".to_string());
+        }
+        
+        let mut total_files = 0;
+        let mut total_bytes = 0;
+        
+        // Calculate totals
+        for path in &selected_paths {
+            let full_path = self.installation_path.join(path);
+            if full_path.exists() {
+                if full_path.is_file() {
+                    total_files += 1;
+                    total_bytes += full_path.metadata().unwrap_or_else(|_| std::fs::Metadata::from(std::fs::File::open(&full_path).unwrap())).len();
+                } else if full_path.is_dir() {
+                    let dir_files = count_files_recursive(&full_path).unwrap_or(0);
+                    let dir_size = calculate_directory_size(&full_path).unwrap_or(0);
+                    total_files += dir_files;
+                    total_bytes += dir_size;
+                }
+            }
+        }
+        
+        debug!("Backup will process {} files totaling {} bytes", total_files, total_bytes);
+        
+        let mut files_processed = 0;
+        let mut bytes_processed = 0;
+        
+        // Initial progress
+        if let Some(ref callback) = progress_callback {
+            callback(BackupProgress {
+                current_file: "Preparing backup...".to_string(),
+                files_processed: 0,
+                total_files,
+                bytes_processed: 0,
+                total_bytes,
+                current_operation: "Scanning selected files".to_string(),
+            });
+        }
+        
+        // Process each selected path
+        for path in &selected_paths {
+            let source_path = self.installation_path.join(path);
+            let dest_path = backup_dir.join(path);
+            
+            if !source_path.exists() {
+                debug!("Skipping non-existent path: {:?}", source_path);
+                continue;
+            }
+            
+            if source_path.is_file() {
+                // Copy single file
+                if let Some(parent) = dest_path.parent() {
+                    fs::create_dir_all(parent)
+                        .map_err(|e| format!("Failed to create directory: {}", e))?;
+                }
+                
+                fs::copy(&source_path, &dest_path)
+                    .map_err(|e| format!("Failed to copy file: {}", e))?;
+                
+                let file_size = dest_path.metadata()
+                    .map_err(|e| format!("Failed to get file size: {}", e))?
+                    .len();
+                
+                files_processed += 1;
+                bytes_processed += file_size;
+                
+                if let Some(ref callback) = progress_callback {
+                    callback(BackupProgress {
+                        current_file: path.to_string_lossy().to_string(),
+                        files_processed,
+                        total_files,
+                        bytes_processed,
+                        total_bytes,
+                        current_operation: "Copying files".to_string(),
+                    });
+                }
+            } else if source_path.is_dir() {
+                // Copy directory recursively
+                self.copy_directory_with_progress(
+                    &source_path,
+                    &dest_path,
+                    &mut files_processed,
+                    &mut bytes_processed,
+                    total_files,
+                    total_bytes,
+                    &progress_callback,
+                )?;
+            }
+        }
+        
+        // Create backup metadata
+        let included_items = selected_paths.iter()
+            .map(|p| p.to_string_lossy().to_string())
+            .collect();
+        
+        let config = BackupConfig {
+            selected_items: included_items.clone(),
+            compress_backups: compress,
+            max_backups: 10,
+            include_hidden_files: false,
+            exclude_patterns: Vec::new(),
+        };
+        
+        let metadata = BackupMetadata {
+            id: backup_id.clone(),
+            description,
+            backup_type,
+            created_at: Utc::now(),
+            modpack_version: self.universal_version.clone(),
+            enabled_features: self.enabled_features.clone(),
+            file_count: files_processed,
+            size_bytes: bytes_processed,
+            included_items,
+            config,
+        };
+        
+        // Save metadata
+        let metadata_path = backup_dir.join("metadata.json");
+        let metadata_json = serde_json::to_string_pretty(&metadata)
+            .map_err(|e| format!("Failed to serialize metadata: {}", e))?;
+        fs::write(&metadata_path, metadata_json)
+            .map_err(|e| format!("Failed to write metadata: {}", e))?;
+        
+        // Optional compression
+        if compress {
+            if let Some(ref callback) = progress_callback {
+                callback(BackupProgress {
+                    current_file: "Compressing backup...".to_string(),
+                    files_processed,
+                    total_files,
+                    bytes_processed,
+                    total_bytes,
+                    current_operation: "Creating compressed archive".to_string(),
+                });
+            }
+            
+            let archive_path = backup_dir.join("backup.zip");
+            let final_size = create_zip_archive(&backup_dir, &archive_path, progress_callback.as_ref())?;
+            
+            // Remove uncompressed files after successful compression
+            for path in &selected_paths {
+                let uncompressed_path = backup_dir.join(path);
+                if uncompressed_path.exists() && uncompressed_path != archive_path {
+                    if uncompressed_path.is_file() {
+                        let _ = fs::remove_file(&uncompressed_path);
+                    } else if uncompressed_path.is_dir() {
+                        let _ = fs::remove_dir_all(&uncompressed_path);
+                    }
+                }
+            }
+            
+            debug!("Compressed backup to {} bytes", final_size);
+        }
+        
+        // Clean up old backups
+        self.cleanup_old_backups(config.max_backups)?;
+        
+        // Final progress update
+        if let Some(ref callback) = progress_callback {
+            callback(BackupProgress {
+                current_file: "Backup completed!".to_string(),
+                files_processed,
+                total_files,
+                bytes_processed,
+                total_bytes,
+                current_operation: "Finished".to_string(),
+            });
+        }
+        
+        info!("Successfully created enhanced backup {} for installation {}", backup_id, self.name);
+        Ok(metadata)
+    }
+    
+    /// Helper method to copy directory with progress updates
+    fn copy_directory_with_progress<F>(
+        &self,
+        source: &Path,
+        dest: &Path,
+        files_processed: &mut usize,
+        bytes_processed: &mut u64,
+        total_files: usize,
+        total_bytes: u64,
+        progress_callback: &Option<F>,
+    ) -> Result<(), String>
+    where
+        F: Fn(BackupProgress) + Clone,
+    {
+        fs::create_dir_all(dest)
+            .map_err(|e| format!("Failed to create directory: {}", e))?;
+        
+        let entries = fs::read_dir(source)
+            .map_err(|e| format!("Failed to read directory: {}", e))?;
+        
+        for entry in entries {
+            let entry = entry.map_err(|e| format!("Failed to read entry: {}", e))?;
+            let source_path = entry.path();
+            let dest_path = dest.join(entry.file_name());
+            
+            if source_path.is_file() {
+                fs::copy(&source_path, &dest_path)
+                    .map_err(|e| format!("Failed to copy file: {}", e))?;
+                
+                let file_size = dest_path.metadata()
+                    .map_err(|e| format!("Failed to get file size: {}", e))?
+                    .len();
+                
+                *files_processed += 1;
+                *bytes_processed += file_size;
+                
+                if let Some(callback) = progress_callback {
+                    callback(BackupProgress {
+                        current_file: dest_path.file_name()
+                            .unwrap_or_default()
+                            .to_string_lossy()
+                            .to_string(),
+                        files_processed: *files_processed,
+                        total_files,
+                        bytes_processed: *bytes_processed,
+                        total_bytes,
+                        current_operation: "Copying files".to_string(),
+                    });
+                }
+            } else if source_path.is_dir() {
+                self.copy_directory_with_progress(
+                    &source_path,
+                    &dest_path,
+                    files_processed,
+                    bytes_processed,
+                    total_files,
+                    total_bytes,
+                    progress_callback,
+                )?;
+            }
+        }
+        
+        Ok(())
+    }
+
     
     /// Create a backup using the enhanced method (alias for create_backup_enhanced)
     pub async fn create_backup<F>(
