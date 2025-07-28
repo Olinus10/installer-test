@@ -19,6 +19,18 @@ pub struct BackupItem {
     pub children: Option<Vec<BackupItem>>, // NEW: For nested items
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct FileSystemItem {
+    pub name: String,
+    pub path: PathBuf,
+    pub is_directory: bool,
+    pub size_bytes: u64,
+    pub file_count: Option<usize>, // For directories
+    pub last_modified: Option<chrono::DateTime<chrono::Utc>>,
+    pub children: Option<Vec<FileSystemItem>>, // For tree view
+    pub is_selected: bool, // User selection state
+}
+
 /// Progress tracking for backup operations
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct BackupProgress {
@@ -86,6 +98,173 @@ pub struct BackupMetadata {
     pub included_items: Vec<String>, // List of backed up items
     pub config: BackupConfig,
 }
+
+impl FileSystemItem {
+    pub fn scan_directory(root_path: &Path, max_depth: usize) -> Result<Vec<FileSystemItem>, String> {
+        Self::scan_directory_recursive(root_path, root_path, 0, max_depth)
+    }
+    
+    fn scan_directory_recursive(
+        root_path: &Path, 
+        current_path: &Path, 
+        current_depth: usize, 
+        max_depth: usize
+    ) -> Result<Vec<FileSystemItem>, String> {
+        if current_depth > max_depth {
+            return Ok(Vec::new());
+        }
+        
+        let mut items = Vec::new();
+        
+        let entries = std::fs::read_dir(current_path)
+            .map_err(|e| format!("Failed to read directory {:?}: {}", current_path, e))?;
+        
+        for entry in entries {
+            let entry = entry.map_err(|e| format!("Failed to read entry: {}", e))?;
+            let path = entry.path();
+            let name = entry.file_name().to_string_lossy().to_string();
+            
+            // Skip hidden files and backup-related temp files
+            if Self::should_skip_item(&name) {
+                continue;
+            }
+            
+            let metadata = path.metadata()
+                .map_err(|e| format!("Failed to get metadata for {:?}: {}", path, e))?;
+            
+            let is_directory = metadata.is_dir();
+            let last_modified = metadata.modified().ok()
+                .and_then(|time| chrono::DateTime::from_timestamp(
+                    time.duration_since(std::time::UNIX_EPOCH).ok()?.as_secs() as i64, 0
+                ));
+            
+            let relative_path = path.strip_prefix(root_path)
+                .unwrap_or(&path)
+                .to_path_buf();
+            
+            let (size_bytes, file_count, children) = if is_directory {
+                let dir_size = calculate_directory_size(&path).unwrap_or(0);
+                let dir_file_count = count_files_recursive(&path).unwrap_or(0);
+                
+                // Only scan children if we haven't hit max depth
+                let dir_children = if current_depth < max_depth {
+                    Self::scan_directory_recursive(root_path, &path, current_depth + 1, max_depth)
+                        .unwrap_or_default()
+                } else {
+                    Vec::new()
+                };
+                
+                (dir_size, Some(dir_file_count), Some(dir_children))
+            } else {
+                (metadata.len(), None, None)
+            };
+            
+            items.push(FileSystemItem {
+                name,
+                path: relative_path,
+                is_directory,
+                size_bytes,
+                file_count,
+                last_modified,
+                children,
+                is_selected: Self::is_default_selected(&path), // Auto-select important folders
+            });
+        }
+        
+        // Sort: directories first, then files, both alphabetically
+        items.sort_by(|a, b| {
+            match (a.is_directory, b.is_directory) {
+                (true, false) => std::cmp::Ordering::Less,
+                (false, true) => std::cmp::Ordering::Greater,
+                _ => a.name.cmp(&b.name),
+            }
+        });
+        
+        Ok(items)
+    }
+    
+    fn should_skip_item(name: &str) -> bool {
+        // Skip system files, temp files, and backup-related files
+        let skip_patterns = [
+            ".DS_Store", "Thumbs.db", "desktop.ini",
+            "backup.zip", "tmp_include.zip", ".tmp",
+            "manifest.json", "launcher_profiles.json",
+        ];
+        
+        skip_patterns.iter().any(|pattern| {
+            name == *pattern || name.starts_with("tmp_") || name.ends_with(".tmp")
+        })
+    }
+    
+    fn is_default_selected(path: &Path) -> bool {
+        // Auto-select commonly important folders
+        if let Some(name) = path.file_name().and_then(|n| n.to_str()) {
+            matches!(name, "mods" | "config" | "resourcepacks" | "shaderpacks" | "wynntils")
+        } else {
+            false
+        }
+    }
+    
+    pub fn get_selected_paths(&self) -> Vec<PathBuf> {
+        let mut selected = Vec::new();
+        
+        if self.is_selected {
+            selected.push(self.path.clone());
+        }
+        
+        if let Some(children) = &self.children {
+            for child in children {
+                selected.extend(child.get_selected_paths());
+            }
+        }
+        
+        selected
+    }
+    
+    pub fn toggle_selection(&mut self, path: &Path) {
+        if self.path == path {
+            self.is_selected = !self.is_selected;
+            // If selecting a directory, auto-select all children
+            if self.is_selected && self.is_directory {
+                if let Some(children) = &mut self.children {
+                    for child in children {
+                        child.set_selection_recursive(true);
+                    }
+                }
+            }
+        } else if let Some(children) = &mut self.children {
+            for child in children {
+                child.toggle_selection(path);
+            }
+        }
+    }
+    
+    fn set_selection_recursive(&mut self, selected: bool) {
+        self.is_selected = selected;
+        if let Some(children) = &mut self.children {
+            for child in children {
+                child.set_selection_recursive(selected);
+            }
+        }
+    }
+    
+    pub fn get_formatted_size(&self) -> String {
+        format_bytes(self.size_bytes)
+    }
+    
+    pub fn get_description(&self) -> String {
+        if self.is_directory {
+            if let Some(count) = self.file_count {
+                format!("{} files", count)
+            } else {
+                "Directory".to_string()
+            }
+        } else {
+            "File".to_string()
+        }
+    }
+}
+
 
 impl BackupMetadata {
     pub fn age_description(&self) -> String {
