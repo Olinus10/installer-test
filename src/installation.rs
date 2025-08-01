@@ -13,6 +13,7 @@ use crate::{CachedHttpClient, launcher};
 use crate::preset::Preset;
 use crate::Launcher;
 use crate::backup::{BackupProgress, BackupConfig, BackupType, BackupMetadata, BackupItem};
+use crate::backup::{FileSystemItem, count_files_recursive, calculate_directory_size, create_zip_archive};
 
 #[derive(Debug, Deserialize, Serialize, Default, Clone)]
 pub struct InstallationsIndex {
@@ -370,17 +371,28 @@ impl Installation {
         let mut total_bytes = 0;
         
         // Calculate totals
-        for path in &selected_paths {
-            let full_path = self.installation_path.join(path);
-            if full_path.exists() {
-                if full_path.is_file() {
-                    total_files += 1;
-                    total_bytes += full_path.metadata().unwrap_or_else(|_| std::fs::Metadata::from(std::fs::File::open(&full_path).unwrap())).len();
-                } else if full_path.is_dir() {
-                    let dir_files = count_files_recursive(&full_path).unwrap_or(0);
-                    let dir_size = calculate_directory_size(&full_path).unwrap_or(0);
-                    total_files += dir_files;
-                    total_bytes += dir_size;
+    for path in &selected_paths {
+        let full_path = self.installation_path.join(path);
+        if full_path.exists() {
+            if full_path.is_file() {
+                total_files += 1;
+                
+                // FIXED: Proper file size calculation
+                let file_size = if full_path.is_file() {
+                    match std::fs::metadata(&full_path) {
+                        Ok(metadata) => metadata.len(),
+                        Err(_) => 0,
+                    }
+                } else {
+                    0
+                };
+                total_bytes += file_size;
+                
+            } else if full_path.is_dir() {
+                let dir_files = count_files_recursive(&full_path).unwrap_or(0);
+                let dir_size = calculate_directory_size(&full_path).unwrap_or(0);
+                total_files += dir_files;
+                total_bytes += dir_size;
                 }
             }
         }
