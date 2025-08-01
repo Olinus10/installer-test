@@ -12,20 +12,15 @@ mod integrated_features;
 pub mod features_tab;
 mod performance_tab;
 mod settings_tab;
-pub mod backup_tab; // Keep for the components, but won't be used as a tab
+pub mod backup_tab; // Keep for the components
 
 // Updated exports
 pub use features_tab::{FeaturesTab, clear_session_state};
 pub use performance_tab::PerformanceTab;
 pub use settings_tab::SettingsTab;
 
-// CORRECTED: Import from crate::backup instead of just backup
-pub use crate::backup::{
-    BackupConfig, BackupType, BackupMetadata, BackupProgress, BackupItem,
-    RollbackManager, RollbackOption, format_bytes,
-    calculate_directory_size, count_files_recursive,
-    create_zip_archive, extract_zip_archive
-};
+// FIXED: Import from crate::backup instead of re-exporting
+// (Remove the re-export lines and let main.rs handle the backup imports directly)
 
 // Define public feature types needed by other modules
 pub struct FeatureCard;
