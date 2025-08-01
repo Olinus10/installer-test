@@ -216,18 +216,22 @@ pub fn EnhancedBackupTab(
                     h3 { "Available Backups ({available_backups.read().len()})" }
                     
                     if !available_backups.read().is_empty() {
-                        div { class: "backup-tools",
-                            button {
-                                class: "backup-tool-button",
-                                onclick: move |_| {
-                                    // Refresh backup list
-                                    if let Ok(backups) = installation.list_available_backups() {
-                                        available_backups.set(backups);
-                                    }
-                                },
-                                "🔄 Refresh"
-                            }
-                        }
+div { class: "backup-tools",
+    button {
+        class: "backup-tool-button",
+        onclick: {
+            let installation_clone = installation.clone(); // Clone before move
+            let mut available_backups = available_backups.clone();
+            move |_| {
+                // Use the cloned installation
+                if let Ok(backups) = installation_clone.list_available_backups() {
+                    available_backups.set(backups);
+                }
+            }
+        },
+        "🔄 Refresh"
+    }
+}
                     }
                 }
                 
@@ -285,21 +289,21 @@ pub fn EnhancedBackupTab(
             }
             
             // Restore Confirmation Dialog
-            if *show_restore_confirm.read() {
-                RestoreConfirmationDialog {
-                    backup_id: selected_backup.read().clone().unwrap_or_default(),
-                    backups: available_backups.read().clone(),
-                    installation: installation.clone(),
-                    onconfirm: move |_| {
-                        // Add restore logic here
-                        show_restore_confirm.set(false);
-                    },
-                    oncancel: move |_| {
-                        show_restore_confirm.set(false);
-                        selected_backup.set(None);
-                    }
-                }
-            }
+if *show_restore_confirm.read() {
+    RestoreConfirmationDialog {
+        backup_id: selected_backup.read().clone().unwrap_or_default(),
+        backups: available_backups.read().clone(),
+        installation: installation.clone(), // Make sure this is properly cloned
+        onconfirm: move |_| {
+            // Add restore logic here
+            show_restore_confirm.set(false);
+        },
+        oncancel: move |_| {
+            show_restore_confirm.set(false);
+            selected_backup.set(None);
+        }
+    }
+}
             
             // Delete Confirmation Dialog
             if *show_delete_confirm.read() {
@@ -675,31 +679,32 @@ fn EnhancedFileSystemBackupDialog(
     let mut expanded_folders = use_signal(|| HashSet::<PathBuf>::new());
     
     // Load file system on mount
-    use_effect({
-        let installation_path = installation.installation_path.clone();
-        let mut file_system_items = file_system_items.clone();
-        let mut loading_items = loading_items.clone();
-        let mut scan_error = scan_error.clone();
+use_effect({
+    let installation_path = installation.installation_path.clone();
+    let mut file_system_items = file_system_items.clone();
+    let mut loading_items = loading_items.clone();
+    let mut scan_error = scan_error.clone();
+    
+    move || {
+        loading_items.set(true);
+        scan_error.set(None);
         
-        move || {
-            loading_items.set(true);
-            scan_error.set(None);
-            
-            spawn(async move {
-                match FileSystemItem::scan_directory(&installation_path, 2) {
-                    Ok(items) => {
-                        debug!("Scanned {} top-level items from installation", items.len());
-                        file_system_items.set(items);
-                    },
-                    Err(e) => {
-                        error!("Failed to scan installation directory: {}", e);
-                        scan_error.set(Some(format!("Failed to scan installation: {}", e)));
-                    }
+        let installation_path_clone = installation_path.clone(); // Clone for async move
+        spawn(async move {
+            match FileSystemItem::scan_directory(&installation_path_clone, 2) {
+                Ok(items) => {
+                    debug!("Scanned {} top-level items from installation", items.len());
+                    file_system_items.set(items);
+                },
+                Err(e) => {
+                    error!("Failed to scan installation directory: {}", e);
+                    scan_error.set(Some(format!("Failed to scan installation: {}", e)));
                 }
-                loading_items.set(false);
-            });
-        }
-    });
+            }
+            loading_items.set(false);
+        });
+    }
+});
     
     // Filter items based on search
     let filtered_items = use_memo({
@@ -830,12 +835,12 @@ fn EnhancedFileSystemBackupDialog(
                                                 item: item.clone(),
                                                 expanded_folders: expanded_folders.clone(),
                                                 on_toggle_selection: {
-                                                    let toggle_fn = toggle_item_selection.clone();
+                                                    let mut toggle_fn = toggle_item_selection.clone();
                                                     let item_path = item.path.clone();
                                                     move |_| toggle_fn(item_path.clone())
                                                 },
                                                 on_toggle_expansion: {
-                                                    let toggle_fn = toggle_folder_expansion.clone();
+                                                    let mut toggle_fn = toggle_folder_expansion.clone();
                                                     let item_path = item.path.clone();
                                                     move |_| toggle_fn(item_path.clone())
                                                 }
