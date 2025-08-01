@@ -466,9 +466,9 @@ impl Installation {
         }
         
         // Create backup metadata
-        let included_items = selected_paths.iter()
-            .map(|p| p.to_string_lossy().to_string())
-            .collect();
+let included_items: Vec<String> = selected_paths.iter()
+    .map(|p| p.to_string_lossy().to_string())
+    .collect();
         
         let config = BackupConfig {
             selected_items: included_items.clone(),
