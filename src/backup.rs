@@ -7,13 +7,6 @@ use log::{debug, error, info, warn};
 use zip::{ZipWriter, CompressionMethod};
 use std::collections::HashMap;
 
-pub use crate::backup::{
-    BackupConfig, BackupType, BackupMetadata, BackupProgress, BackupItem, FileSystemItem,
-    RollbackManager, RollbackOption, format_bytes,
-    calculate_directory_size, count_files_recursive,
-    create_zip_archive, extract_zip_archive
-};
-
 /// Enhanced backup item discovery with better file/folder scanning
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct BackupItem {
