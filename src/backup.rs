@@ -7,6 +7,13 @@ use log::{debug, error, info, warn};
 use zip::{ZipWriter, CompressionMethod};
 use std::collections::HashMap;
 
+pub use crate::backup::{
+    BackupConfig, BackupType, BackupMetadata, BackupProgress, BackupItem, FileSystemItem,
+    RollbackManager, RollbackOption, format_bytes,
+    calculate_directory_size, count_files_recursive,
+    create_zip_archive, extract_zip_archive
+};
+
 /// Enhanced backup item discovery with better file/folder scanning
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct BackupItem {
@@ -774,6 +781,7 @@ fn matches_pattern(text: &str, pattern: &str) -> bool {
             pattern_parts.iter().any(|part| !part.is_empty() && text.contains(part))
         }
     } else {
+        
         text == pattern || text.ends_with(pattern)
     }
 }
