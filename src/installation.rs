@@ -470,26 +470,26 @@ let included_items: Vec<String> = selected_paths.iter()
     .map(|p| p.to_string_lossy().to_string())
     .collect();
         
-        let config = BackupConfig {
-            selected_items: included_items.clone(),
-            compress_backups: compress,
-            max_backups: 10,
-            include_hidden_files: false,
-            exclude_patterns: Vec::new(),
-        };
-        
-        let metadata = BackupMetadata {
-            id: backup_id.clone(),
-            description,
-            backup_type,
-            created_at: Utc::now(),
-            modpack_version: self.universal_version.clone(),
-            enabled_features: self.enabled_features.clone(),
-            file_count: files_processed,
-            size_bytes: bytes_processed,
-            included_items,
-            config,
-        };
+let config = BackupConfig {
+    selected_items: included_items.clone(),
+    compress_backups: compress,
+    max_backups: 10,
+    include_hidden_files: false,
+    exclude_patterns: Vec::new(),
+};
+
+let metadata = BackupMetadata {
+    id: backup_id.clone(),
+    description,
+    backup_type,
+    created_at: Utc::now(),
+    modpack_version: self.universal_version.clone(),
+    enabled_features: self.enabled_features.clone(),
+    file_count: files_processed,
+    size_bytes: bytes_processed,
+    included_items,
+    config: config.clone(), // <- Clone here instead of moving
+};
         
         // Save metadata
         let metadata_path = backup_dir.join("metadata.json");
