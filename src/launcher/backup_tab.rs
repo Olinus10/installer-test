@@ -5,6 +5,7 @@ use crate::backup::{calculate_directory_size, count_files_recursive, create_zip_
 use log::{debug, error, info};
 use std::path::PathBuf; // Add this import
 use std::collections::HashSet; // Add this import
+use dioxus::prelude::MouseEvent;
 
 #[component]
 pub fn EnhancedBackupTab(
@@ -50,55 +51,55 @@ pub fn EnhancedBackupTab(
     });
 
     // Add the create_backup function here
-    let create_backup = {
-        let installation_clone = installation.clone();
-        let mut is_creating_backup = is_creating_backup.clone();
-        let mut backup_progress = backup_progress.clone();
-        let mut operation_error = operation_error.clone();
-        let mut operation_success = operation_success.clone();
-        let backup_config = backup_config.clone();
-        let backup_description = backup_description.clone();
-        let mut available_backups = available_backups.clone();
+   let create_backup = {
+    let installation_clone = installation.clone();
+    let mut is_creating_backup = is_creating_backup.clone();
+    let mut backup_progress = backup_progress.clone();
+    let mut operation_error = operation_error.clone();
+    let mut operation_success = operation_success.clone();
+    let backup_config = backup_config.clone();
+    let backup_description = backup_description.clone();
+    let mut available_backups = available_backups.clone();
+    
+    move |_evt: MouseEvent| {  // Changed from move |_| to move |_evt: MouseEvent|
+        let installation = installation_clone.clone();
+        let config = backup_config.read().clone();
+        let description = backup_description.read().clone();
+        let description = if description.trim().is_empty() {
+            format!("Manual backup - {}", chrono::Utc::now().format("%Y-%m-%d %H:%M"))
+        } else {
+            description
+        };
         
-        move |_| {
-            let installation = installation_clone.clone();
-            let config = backup_config.read().clone();
-            let description = backup_description.read().clone();
-            let description = if description.trim().is_empty() {
-                format!("Manual backup - {}", chrono::Utc::now().format("%Y-%m-%d %H:%M"))
-            } else {
-                description
-            };
-            
-            is_creating_backup.set(true);
-            backup_progress.set(None);
-            operation_error.set(None);
-            operation_success.set(None);
-            
-            spawn(async move {
-                match installation.create_backup(
-                    BackupType::Manual,
-                    &config,
-                    description.clone(),
-                    None::<fn(BackupProgress)>, // Simple callback type
-                ).await {
-                    Ok(metadata) => {
-                        operation_success.set(Some(format!("Backup created successfully: {}", metadata.id)));
-                        
-                        if let Ok(backups) = installation.list_available_backups() {
-                            available_backups.set(backups);
-                        }
-                    },
-                    Err(e) => {
-                        operation_error.set(Some(format!("Failed to create backup: {}", e)));
+        is_creating_backup.set(true);
+        backup_progress.set(None);
+        operation_error.set(None);
+        operation_success.set(None);
+        
+        spawn(async move {
+            match installation.create_backup(
+                BackupType::Manual,
+                &config,
+                description.clone(),
+                None::<fn(BackupProgress)>,
+            ).await {
+                Ok(metadata) => {
+                    operation_success.set(Some(format!("Backup created successfully: {}", metadata.id)));
+                    
+                    if let Ok(backups) = installation.list_available_backups() {
+                        available_backups.set(backups);
                     }
+                },
+                Err(e) => {
+                    operation_error.set(Some(format!("Failed to create backup: {}", e)));
                 }
-                
-                is_creating_backup.set(false);
-                backup_progress.set(None);
-            });
-        }
-    };
+            }
+            
+            is_creating_backup.set(false);
+            backup_progress.set(None);
+        });
+    }
+};
     
     // Delete backup handler
     let handle_delete_backup = {
@@ -192,16 +193,28 @@ pub fn EnhancedBackupTab(
                         "⚙️ Select Files"
                     }
                     
-                    button {
-                        class: "create-backup-button",
-                        disabled: *is_creating_backup.read(),
-                        onclick: create_backup,
-                        if *is_creating_backup.read() {
-                            "Creating Backup..."
-                        } else {
-                            "Create Backup"
-                        }
-                    }
+button { 
+    class: "create-backup-button",
+    disabled: *selected_size.read() == 0,
+    onclick: move |_evt| {  // Note: accept the event parameter
+        // Collect selected items
+        let mut selected_paths = Vec::new();
+        for item in file_tree.read().iter() {
+            selected_paths.extend(item.get_selected_paths());
+        }
+        
+        // Update config with selected paths
+        config.with_mut(|c| {
+            c.selected_items = selected_paths.iter()
+                .map(|p| p.to_string_lossy().to_string())
+                .collect();
+        });
+        
+        onupdate.call(config.read().clone());
+        oncreate.call(());  // Call with no arguments
+    },
+    "Create Backup ({format_bytes(*selected_size.read())})"
+}
                 }
                 
                 // Progress display
@@ -277,14 +290,23 @@ div { class: "backup-tools",
             
             // Enhanced File System Backup Configuration Dialog
 if *show_backup_config.read() {
-    FileSystemBackupDialog {
-        installation: installation.clone(),
-        config: backup_config,
-        onclose: move |_| show_backup_config.set(false),
-        onupdate: move |new_config: BackupConfig| {
-            backup_config.set(new_config);
-        },
-        oncreate: create_backup  // Pass the create_backup handler
+    {
+        let create_backup_clone = create_backup.clone();
+        rsx! {
+            FileSystemBackupDialog {
+                installation: installation.clone(),
+                config: backup_config,
+                onclose: move |_| show_backup_config.set(false),
+                onupdate: move |new_config: BackupConfig| {
+                    backup_config.set(new_config);
+                },
+                oncreate: move |_| {
+                    show_backup_config.set(false);
+                    // Trigger the backup creation
+                    create_backup_clone(MouseEvent::default());
+                }
+            }
+        }
     }
 }
             
@@ -680,12 +702,19 @@ fn FileSystemBackupDialog(
     // Load file system on mount
     use_effect({
         let installation = installation.clone();
+        let mut file_tree = file_tree.clone();
+        let mut loading = loading.clone();
+        let mut error = error.clone();
+        
         move || {
             loading.set(true);
             error.set(None);
             
+            // Clone the path before moving into async block
+            let installation_path = installation.installation_path.clone();
+            
             spawn(async move {
-                match FileSystemItem::scan_installation(&installation.installation_path) {
+                match FileSystemItem::scan_installation(&installation_path) {
                     Ok(items) => {
                         debug!("Scanned {} items from installation", items.len());
                         file_tree.set(items);
