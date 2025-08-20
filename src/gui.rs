@@ -3329,7 +3329,7 @@ let complete_css = format!("{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}",
     search_styles,
     modal_styles,
     installation_header_styles,
-    file_tree_styles
+    file_tree_styles  // Add this line
 );
 
     let mut modal_context = use_context_provider(ModalContext::default);
