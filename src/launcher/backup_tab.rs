@@ -276,17 +276,17 @@ div { class: "backup-tools",
             }
             
             // Enhanced File System Backup Configuration Dialog
-            if *show_backup_config.read() {
-                EnhancedFileSystemBackupDialog {
-                    config: backup_config,
-                    installation: installation.clone(),
-                    estimated_size: installation.get_backup_size_estimate(&backup_config.read()).unwrap_or(0),
-                    onclose: move |_| show_backup_config.set(false),
-                    onupdate: move |new_config: BackupConfig| {
-                        backup_config.set(new_config);
-                    }
-                }
-            }
+if *show_backup_config.read() {
+    FileSystemBackupDialog {
+        installation: installation.clone(),
+        config: backup_config,
+        onclose: move |_| show_backup_config.set(false),
+        onupdate: move |new_config: BackupConfig| {
+            backup_config.set(new_config);
+        },
+        oncreate: create_backup  // Pass the create_backup handler
+    }
+}
             
             // Restore Confirmation Dialog
 if *show_restore_confirm.read() {
@@ -905,6 +905,10 @@ fn FileTreeNode(
     let has_children = item.children.as_ref().map_or(false, |c| !c.is_empty());
     let indent = depth * 20;
     
+    // Clone the path for each closure to avoid move issues
+    let path_for_expand = item.path.clone();
+    let path_for_toggle = item.path.clone();
+    
     rsx! {
         div { class: "file-tree-node",
             div { 
@@ -915,7 +919,7 @@ fn FileTreeNode(
                 if item.is_directory && has_children {
                     button {
                         class: "expand-btn",
-                        onclick: move |_| on_expand.call(item.path.clone()),
+                        onclick: move |_| on_expand.call(path_for_expand.clone()),
                         if is_expanded { "▼" } else { "▶" }
                     }
                 } else if item.is_directory {
@@ -926,7 +930,7 @@ fn FileTreeNode(
                 input {
                     r#type: "checkbox",
                     checked: item.is_selected,
-                    onclick: move |_| on_toggle.call(item.path.clone()),
+                    onclick: move |_| on_toggle.call(path_for_toggle.clone()),
                     class: "node-checkbox"
                 }
                 
