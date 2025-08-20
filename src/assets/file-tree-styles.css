@@ -1,0 +1,156 @@
+/* File Tree Styles */
+.file-backup-dialog {
+    width: 800px;
+    max-width: 90vw;
+    height: 600px;
+    max-height: 80vh;
+}
+
+.file-search-bar {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 15px;
+    align-items: center;
+}
+
+.file-search-input {
+    flex: 1;
+    padding: 8px 12px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 6px;
+    color: white;
+    font-size: 14px;
+}
+
+.selection-stats {
+    padding: 8px 12px;
+    background: rgba(100, 200, 255, 0.1);
+    border-radius: 6px;
+    color: #64c8ff;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.file-tree-container {
+    flex: 1;
+    overflow-y: auto;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 8px;
+    padding: 10px;
+    margin-bottom: 15px;
+    max-height: 350px;
+}
+
+.file-tree {
+    font-family: monospace;
+}
+
+.file-tree-node {
+    user-select: none;
+}
+
+.node-header {
+    display: flex;
+    align-items: center;
+    padding: 4px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.node-header:hover {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.node-header.selected {
+    background: rgba(100, 200, 255, 0.15);
+}
+
+.expand-btn {
+    background: none;
+    border: none;
+    color: rgba(255, 255, 255, 0.6);
+    cursor: pointer;
+    padding: 0 4px;
+    font-size: 12px;
+    width: 20px;
+}
+
+.expand-spacer {
+    display: inline-block;
+    width: 24px;
+}
+
+.node-checkbox {
+    margin: 0 8px;
+    cursor: pointer;
+}
+
+.node-icon {
+    margin-right: 8px;
+    font-size: 16px;
+}
+
+.node-name {
+    flex: 1;
+    color: white;
+    font-size: 14px;
+}
+
+.node-info {
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 12px;
+    margin-left: 10px;
+}
+
+.node-children {
+    margin-left: 20px;
+}
+
+.quick-select-buttons {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 15px;
+}
+
+.quick-select-btn {
+    padding: 6px 12px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+    color: white;
+    cursor: pointer;
+    font-size: 13px;
+    transition: all 0.2s;
+}
+
+.quick-select-btn:hover {
+    background: rgba(255, 255, 255, 0.15);
+    border-color: rgba(255, 255, 255, 0.3);
+}
+
+.loading-state,
+.error-state,
+.empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 200px;
+    color: rgba(255, 255, 255, 0.6);
+}
+
+.loading-spinner {
+    width: 40px;
+    height: 40px;
+    border: 3px solid rgba(255, 255, 255, 0.1);
+    border-top-color: #64c8ff;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-bottom: 15px;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
