@@ -100,16 +100,24 @@ pub struct BackupMetadata {
 }
 
 impl FileSystemItem {
+    // Add this method that was referenced but missing
+    pub fn scan_directory(root_path: &Path, max_depth: usize) -> Result<Vec<FileSystemItem>, String> {
+        Self::scan_installation_with_depth(root_path, max_depth)
+    }
+    
     /// Scan a directory and build a tree of all files and folders
     pub fn scan_installation(root_path: &Path) -> Result<Vec<FileSystemItem>, String> {
+        Self::scan_installation_with_depth(root_path, 5)
+    }
+    
+    pub fn scan_installation_with_depth(root_path: &Path, max_depth: usize) -> Result<Vec<FileSystemItem>, String> {
         debug!("Scanning installation directory: {:?}", root_path);
         
         if !root_path.exists() {
             return Err("Installation directory does not exist".to_string());
         }
         
-        // Start recursive scan with max depth of 5 to avoid infinite recursion
-        Self::scan_directory_recursive(root_path, root_path, 0, 5)
+        Self::scan_directory_recursive(root_path, root_path, 0, max_depth)
     }
     
     fn scan_directory_recursive(
@@ -250,7 +258,7 @@ impl FileSystemItem {
         }
     }
     
-    fn set_all_children_selected(&mut self, selected: bool) {
+    pub fn set_all_children_selected(&mut self, selected: bool) {
         self.is_selected = selected;
         if let Some(children) = &mut self.children {
             for child in children {
