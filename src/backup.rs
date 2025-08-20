@@ -100,14 +100,22 @@ pub struct BackupMetadata {
 }
 
 impl FileSystemItem {
-    pub fn scan_directory(root_path: &Path, max_depth: usize) -> Result<Vec<FileSystemItem>, String> {
-        Self::scan_directory_recursive(root_path, root_path, 0, max_depth)
+    /// Scan a directory and build a tree of all files and folders
+    pub fn scan_installation(root_path: &Path) -> Result<Vec<FileSystemItem>, String> {
+        debug!("Scanning installation directory: {:?}", root_path);
+        
+        if !root_path.exists() {
+            return Err("Installation directory does not exist".to_string());
+        }
+        
+        // Start recursive scan with max depth of 5 to avoid infinite recursion
+        Self::scan_directory_recursive(root_path, root_path, 0, 5)
     }
     
     fn scan_directory_recursive(
-        root_path: &Path, 
-        current_path: &Path, 
-        current_depth: usize, 
+        root_path: &Path,
+        current_path: &Path,
+        current_depth: usize,
         max_depth: usize
     ) -> Result<Vec<FileSystemItem>, String> {
         if current_depth > max_depth {
@@ -116,7 +124,7 @@ impl FileSystemItem {
         
         let mut items = Vec::new();
         
-        let entries = std::fs::read_dir(current_path)
+        let entries = fs::read_dir(current_path)
             .map_err(|e| format!("Failed to read directory {:?}: {}", current_path, e))?;
         
         for entry in entries {
@@ -124,7 +132,7 @@ impl FileSystemItem {
             let path = entry.path();
             let name = entry.file_name().to_string_lossy().to_string();
             
-            // Skip hidden files and backup-related temp files
+            // Skip system files and backup-related temp files
             if Self::should_skip_item(&name) {
                 continue;
             }
@@ -138,6 +146,7 @@ impl FileSystemItem {
                     time.duration_since(std::time::UNIX_EPOCH).ok()?.as_secs() as i64, 0
                 ));
             
+            // Get relative path from root
             let relative_path = path.strip_prefix(root_path)
                 .unwrap_or(&path)
                 .to_path_buf();
@@ -146,7 +155,7 @@ impl FileSystemItem {
                 let dir_size = calculate_directory_size(&path).unwrap_or(0);
                 let dir_file_count = count_files_recursive(&path).unwrap_or(0);
                 
-                // Only scan children if we haven't hit max depth
+                // Recursively scan children
                 let dir_children = if current_depth < max_depth {
                     Self::scan_directory_recursive(root_path, &path, current_depth + 1, max_depth)
                         .unwrap_or_default()
@@ -167,7 +176,7 @@ impl FileSystemItem {
                 file_count,
                 last_modified,
                 children,
-                is_selected: Self::is_default_selected(&path), // Auto-select important folders
+                is_selected: Self::is_default_selected(&path),
             });
         }
         
@@ -189,6 +198,7 @@ impl FileSystemItem {
             ".DS_Store", "Thumbs.db", "desktop.ini",
             "backup.zip", "tmp_include.zip", ".tmp",
             "manifest.json", "launcher_profiles.json",
+            "backups", // Don't include the backups folder itself
         ];
         
         skip_patterns.iter().any(|pattern| {
@@ -205,14 +215,16 @@ impl FileSystemItem {
         }
     }
     
+    /// Get all selected paths recursively
     pub fn get_selected_paths(&self) -> Vec<PathBuf> {
         let mut selected = Vec::new();
         
         if self.is_selected {
             selected.push(self.path.clone());
-        }
-        
-        if let Some(children) = &self.children {
+            // If a directory is selected, we include all its contents
+            // so no need to check children
+        } else if let Some(children) = &self.children {
+            // If directory not selected, check children
             for child in children {
                 selected.extend(child.get_selected_paths());
             }
@@ -221,16 +233,15 @@ impl FileSystemItem {
         selected
     }
     
+    /// Toggle selection state for a specific path
     pub fn toggle_selection(&mut self, path: &Path) {
         if self.path == path {
             self.is_selected = !self.is_selected;
             // If selecting a directory, auto-select all children
             if self.is_selected && self.is_directory {
-                if let Some(children) = &mut self.children {
-                    for child in children {
-                        child.set_selection_recursive(true);
-                    }
-                }
+                self.set_all_children_selected(true);
+            } else if !self.is_selected && self.is_directory {
+                self.set_all_children_selected(false);
             }
         } else if let Some(children) = &mut self.children {
             for child in children {
@@ -239,28 +250,12 @@ impl FileSystemItem {
         }
     }
     
-    fn set_selection_recursive(&mut self, selected: bool) {
+    fn set_all_children_selected(&mut self, selected: bool) {
         self.is_selected = selected;
         if let Some(children) = &mut self.children {
             for child in children {
-                child.set_selection_recursive(selected);
+                child.set_all_children_selected(selected);
             }
-        }
-    }
-    
-    pub fn get_formatted_size(&self) -> String {
-        format_bytes(self.size_bytes)
-    }
-    
-    pub fn get_description(&self) -> String {
-        if self.is_directory {
-            if let Some(count) = self.file_count {
-                format!("{} files", count)
-            } else {
-                "Directory".to_string()
-            }
-        } else {
-            "File".to_string()
         }
     }
 }
