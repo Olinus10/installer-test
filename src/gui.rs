@@ -3318,7 +3318,7 @@ let preset_styles = include_str!("assets/preset-styles.css");
 let search_styles = include_str!("assets/search-results-styles.css");
 let modal_styles = include_str!("assets/modal-styles.css");
 let installation_header_styles = include_str!("assets/installation-header-styles.css");
-let file_tree_styles = include_str!("file-tree-styles.css");
+let file_tree_styles = include_str!("assets/file-tree-styles.css");
 
 // Combine all CSS files
 let complete_css = format!("{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}", 
