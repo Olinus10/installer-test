@@ -105,7 +105,7 @@ pub fn EnhancedBackupTab(
     
     // Quick backup handler (no file selection)
     let create_quick_backup = {
-        let create_backup_fn = create_backup_with_config.clone();
+        let mut create_backup_fn = create_backup_with_config.clone();
         move |_| {
             // Set default config for quick backup
             backup_config.with_mut(|c| {
