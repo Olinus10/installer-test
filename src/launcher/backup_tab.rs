@@ -50,56 +50,75 @@ pub fn EnhancedBackupTab(
         }
     });
 
-    // Add the create_backup function here
-   let create_backup = {
-    let installation_clone = installation.clone();
-    let mut is_creating_backup = is_creating_backup.clone();
-    let mut backup_progress = backup_progress.clone();
-    let mut operation_error = operation_error.clone();
-    let mut operation_success = operation_success.clone();
-    let backup_config = backup_config.clone();
-    let backup_description = backup_description.clone();
-    let mut available_backups = available_backups.clone();
-    
-    move |_evt: MouseEvent| {  // Changed from move |_| to move |_evt: MouseEvent|
-        let installation = installation_clone.clone();
-        let config = backup_config.read().clone();
-        let description = backup_description.read().clone();
-        let description = if description.trim().is_empty() {
-            format!("Manual backup - {}", chrono::Utc::now().format("%Y-%m-%d %H:%M"))
-        } else {
-            description
-        };
+    // Create backup handler that will be triggered after file selection
+    let create_backup_with_config = {
+        let installation_clone = installation.clone();
+        let mut is_creating_backup = is_creating_backup.clone();
+        let mut backup_progress = backup_progress.clone();
+        let mut operation_error = operation_error.clone();
+        let mut operation_success = operation_success.clone();
+        let backup_config = backup_config.clone();
+        let backup_description = backup_description.clone();
+        let mut available_backups = available_backups.clone();
+        let mut show_backup_config = show_backup_config.clone();
         
-        is_creating_backup.set(true);
-        backup_progress.set(None);
-        operation_error.set(None);
-        operation_success.set(None);
-        
-        spawn(async move {
-            match installation.create_backup(
-                BackupType::Manual,
-                &config,
-                description.clone(),
-                None::<fn(BackupProgress)>,
-            ).await {
-                Ok(metadata) => {
-                    operation_success.set(Some(format!("Backup created successfully: {}", metadata.id)));
-                    
-                    if let Ok(backups) = installation.list_available_backups() {
-                        available_backups.set(backups);
-                    }
-                },
-                Err(e) => {
-                    operation_error.set(Some(format!("Failed to create backup: {}", e)));
-                }
-            }
+        move |_| {
+            let installation = installation_clone.clone();
+            let config = backup_config.read().clone();
+            let description = backup_description.read().clone();
+            let description = if description.trim().is_empty() {
+                format!("Manual backup - {}", chrono::Utc::now().format("%Y-%m-%d %H:%M"))
+            } else {
+                description
+            };
             
-            is_creating_backup.set(false);
+            is_creating_backup.set(true);
             backup_progress.set(None);
-        });
-    }
-};
+            operation_error.set(None);
+            operation_success.set(None);
+            show_backup_config.set(false);
+            
+            spawn(async move {
+                match installation.create_backup(
+                    BackupType::Manual,
+                    &config,
+                    description.clone(),
+                    None::<fn(BackupProgress)>,
+                ).await {
+                    Ok(metadata) => {
+                        operation_success.set(Some(format!("Backup created successfully: {}", metadata.id)));
+                        
+                        if let Ok(backups) = installation.list_available_backups() {
+                            available_backups.set(backups);
+                        }
+                    },
+                    Err(e) => {
+                        operation_error.set(Some(format!("Failed to create backup: {}", e)));
+                    }
+                }
+                
+                is_creating_backup.set(false);
+                backup_progress.set(None);
+            });
+        }
+    };
+    
+    // Quick backup handler (no file selection)
+    let create_quick_backup = {
+        let create_backup_fn = create_backup_with_config.clone();
+        move |_| {
+            // Set default config for quick backup
+            backup_config.with_mut(|c| {
+                c.selected_items = vec![
+                    "mods".to_string(),
+                    "config".to_string(),
+                    "resourcepacks".to_string(),
+                    "shaderpacks".to_string(),
+                ];
+            });
+            create_backup_fn(());
+        }
+    };
     
     // Delete backup handler
     let handle_delete_backup = {
@@ -193,28 +212,16 @@ pub fn EnhancedBackupTab(
                         "⚙️ Select Files"
                     }
                     
-button { 
-    class: "create-backup-button",
-    disabled: *selected_size.read() == 0,
-    onclick: move |_evt| {  // Note: accept the event parameter
-        // Collect selected items
-        let mut selected_paths = Vec::new();
-        for item in file_tree.read().iter() {
-            selected_paths.extend(item.get_selected_paths());
-        }
-        
-        // Update config with selected paths
-        config.with_mut(|c| {
-            c.selected_items = selected_paths.iter()
-                .map(|p| p.to_string_lossy().to_string())
-                .collect();
-        });
-        
-        onupdate.call(config.read().clone());
-        oncreate.call(());  // Call with no arguments
-    },
-    "Create Backup ({format_bytes(*selected_size.read())})"
-}
+                    button {
+                        class: "create-backup-button",
+                        disabled: *is_creating_backup.read(),
+                        onclick: create_quick_backup,
+                        if *is_creating_backup.read() {
+                            "Creating Backup..."
+                        } else {
+                            "Quick Backup"
+                        }
+                    }
                 }
                 
                 // Progress display
@@ -223,28 +230,27 @@ button {
                 }
             }
             
-            // Available Backups Section with enhanced cards
+            // Available Backups Section
             div { class: "backup-section available-backups",
                 div { class: "backups-header",
                     h3 { "Available Backups ({available_backups.read().len()})" }
                     
                     if !available_backups.read().is_empty() {
-div { class: "backup-tools",
-    button {
-        class: "backup-tool-button",
-        onclick: {
-            let installation_clone = installation.clone(); // Clone before move
-            let mut available_backups = available_backups.clone();
-            move |_| {
-                // Use the cloned installation
-                if let Ok(backups) = installation_clone.list_available_backups() {
-                    available_backups.set(backups);
-                }
-            }
-        },
-        "🔄 Refresh"
-    }
-}
+                        div { class: "backup-tools",
+                            button {
+                                class: "backup-tool-button",
+                                onclick: {
+                                    let installation_clone = installation.clone();
+                                    let mut available_backups = available_backups.clone();
+                                    move |_| {
+                                        if let Ok(backups) = installation_clone.list_available_backups() {
+                                            available_backups.set(backups);
+                                        }
+                                    }
+                                },
+                                "🔄 Refresh"
+                            }
+                        }
                     }
                 }
                 
@@ -288,27 +294,18 @@ div { class: "backup-tools",
                 }
             }
             
-            // Enhanced File System Backup Configuration Dialog
-if *show_backup_config.read() {
-    {
-        let create_backup_clone = create_backup.clone();
-        rsx! {
-            FileSystemBackupDialog {
-                installation: installation.clone(),
-                config: backup_config,
-                onclose: move |_| show_backup_config.set(false),
-                onupdate: move |new_config: BackupConfig| {
-                    backup_config.set(new_config);
-                },
-                oncreate: move |_| {
-                    show_backup_config.set(false);
-                    // Trigger the backup creation
-                    create_backup_clone(MouseEvent::default());
+            // File System Backup Configuration Dialog
+            if *show_backup_config.read() {
+                FileSystemBackupDialog {
+                    installation: installation.clone(),
+                    config: backup_config,
+                    onclose: move |_| show_backup_config.set(false),
+                    onupdate: move |new_config: BackupConfig| {
+                        backup_config.set(new_config);
+                    },
+                    oncreate: create_backup_with_config.clone()
                 }
             }
-        }
-    }
-}
             
             // Restore Confirmation Dialog
 if *show_restore_confirm.read() {
@@ -894,28 +891,29 @@ fn FileSystemBackupDialog(
                         "Cancel"
                     }
                     
-                    button { 
-                        class: "create-backup-button",
-                        disabled: *selected_size.read() == 0,
-                        onclick: move |_| {
-                            // Collect selected items
-                            let mut selected_paths = Vec::new();
-                            for item in file_tree.read().iter() {
-                                selected_paths.extend(item.get_selected_paths());
-                            }
-                            
-                            // Update config with selected paths
-                            config.with_mut(|c| {
-                                c.selected_items = selected_paths.iter()
-                                    .map(|p| p.to_string_lossy().to_string())
-                                    .collect();
-                            });
-                            
-                            onupdate.call(config.read().clone());
-                            oncreate.call(());
-                        },
-                        "Create Backup ({format_bytes(*selected_size.read())})"
-                    }
+button { 
+    class: "create-backup-button",
+    disabled: *selected_size.read() == 0,
+    onclick: move |_| {
+        // Collect selected items
+        let mut selected_paths = Vec::new();
+        for item in file_tree.read().iter() {
+            selected_paths.extend(item.get_selected_paths());
+        }
+        
+        // Update config with selected paths - Fix the type annotation
+        config.with_mut(|c| {
+            c.selected_items = selected_paths.iter()
+                .map(|p: &PathBuf| p.to_string_lossy().to_string())  // Added type annotation
+                .collect();
+        });
+        
+        onupdate.call(config.read().clone());
+        oncreate.call(());  // This will trigger the backup creation
+        onclose.call(());   // Close the dialog
+    },
+    "Create Backup ({format_bytes(*selected_size.read())})"
+}
                 }
             }
         }
