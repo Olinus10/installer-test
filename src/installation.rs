@@ -12,9 +12,12 @@ use std::sync::Mutex;
 use crate::{CachedHttpClient, launcher};
 use crate::preset::Preset;
 use crate::Launcher;
-use crate::backup::{BackupProgress, BackupConfig, BackupType, BackupMetadata, BackupItem};
-use crate::backup::{FileSystemItem, count_files_recursive, calculate_directory_size, create_zip_archive};
-use crate::backup::{BackupConfig, BackupType, BackupMetadata, BackupProgress, format_bytes};
+// FIXED: Combine all backup imports into one line
+use crate::backup::{
+    BackupProgress, BackupConfig, BackupType, BackupMetadata, BackupItem,
+    FileSystemItem, count_files_recursive, calculate_directory_size, 
+    create_zip_archive, format_bytes
+};
 
 #[derive(Debug, Deserialize, Serialize, Default, Clone)]
 pub struct InstallationsIndex {
@@ -615,8 +618,6 @@ let metadata = BackupMetadata {
     }
 
     
-    /// Create a backup using the enhanced method (alias for create_backup_enhanced)
-    /// Create a backup that can handle both full installation and selective backups
     pub async fn create_backup<F>(
         &self,
         backup_type: BackupType,
@@ -706,7 +707,7 @@ let metadata = BackupMetadata {
                 }
             } else if source_path.is_dir() {
                 // Copy directory recursively
-                self.copy_directory_recursive(
+                self.copy_directory_recursive_enhanced(
                     source_path,
                     &dest_path,
                     &mut files_processed,
@@ -752,7 +753,7 @@ let metadata = BackupMetadata {
             }
             
             let archive_path = backup_dir.join("backup.zip");
-            let _final_size = crate::backup::create_zip_archive(&backup_dir, &archive_path, progress_callback.as_ref())?;
+            let _final_size = create_zip_archive(&backup_dir, &archive_path, progress_callback.as_ref())?;
             
             // Remove uncompressed files after successful compression
             for (_, relative_path) in &items_to_backup {
@@ -899,8 +900,8 @@ let metadata = BackupMetadata {
         Ok((files, bytes))
     }
     
-    /// Copy directory recursively with progress updates
-    fn copy_directory_recursive<F>(
+    /// Copy directory recursively with progress updates (renamed to avoid conflicts)
+    fn copy_directory_recursive_enhanced<F>(
         &self,
         source: &Path,
         dest: &Path,
@@ -949,7 +950,7 @@ let metadata = BackupMetadata {
                     });
                 }
             } else if source_path.is_dir() {
-                self.copy_directory_recursive(
+                self.copy_directory_recursive_enhanced(
                     &source_path,
                     &dest_path,
                     files_processed,
@@ -964,7 +965,7 @@ let metadata = BackupMetadata {
         Ok(())
     }
 
-    /// Enhanced restore that can handle both full and selective backups
+    // REPLACE the existing restore_from_backup method with this enhanced version:
     pub async fn restore_from_backup(&mut self, backup_id: &str) -> Result<(), String> {
         let backup_dir = self.get_backups_dir().join(backup_id);
         let metadata_path = backup_dir.join("metadata.json");
@@ -1047,7 +1048,7 @@ let metadata = BackupMetadata {
                             std::fs::copy(&source_path, &target_path)
                                 .map_err(|e| format!("Failed to restore file: {}", e))?;
                         } else if source_path.is_dir() {
-                            self.copy_directory_all(&source_path, &target_path)
+                            copy_dir_all(&source_path, &target_path)
                                 .map_err(|e| format!("Failed to restore directory: {}", e))?;
                         }
                     }
@@ -1117,32 +1118,13 @@ let metadata = BackupMetadata {
                 fs::copy(&source_path, &dest_path)
                     .map_err(|e| format!("Failed to copy file: {}", e))?;
             } else if source_path.is_dir() {
-                self.copy_directory_all(&source_path, &dest_path)
+                copy_dir_all(&source_path, &dest_path)
                     .map_err(|e| format!("Failed to copy directory: {}", e))?;
             }
         }
         
         Ok(())
     }
-    
-    /// Copy directory recursively
-    fn copy_directory_all(&self, source: &Path, dest: &Path) -> Result<(), std::io::Error> {
-        fs::create_dir_all(dest)?;
-        
-        for entry in fs::read_dir(source)? {
-            let entry = entry?;
-            let ty = entry.file_type()?;
-            
-            if ty.is_dir() {
-                self.copy_directory_all(&entry.path(), &dest.join(entry.file_name()))?;
-            } else {
-                fs::copy(entry.path(), dest.join(entry.file_name()))?;
-            }
-        }
-        
-        Ok(())
-    }
-
 
     /// Cleanup old backups
     pub fn cleanup_old_backups(&self, max_backups: usize) -> Result<(), String> {
