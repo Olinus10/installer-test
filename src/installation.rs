@@ -14,6 +14,7 @@ use crate::preset::Preset;
 use crate::Launcher;
 use crate::backup::{BackupProgress, BackupConfig, BackupType, BackupMetadata, BackupItem};
 use crate::backup::{FileSystemItem, count_files_recursive, calculate_directory_size, create_zip_archive};
+use crate::backup::{BackupConfig, BackupType, BackupMetadata, BackupProgress, format_bytes};
 
 #[derive(Debug, Deserialize, Serialize, Default, Clone)]
 pub struct InstallationsIndex {
@@ -615,37 +616,8 @@ let metadata = BackupMetadata {
 
     
     /// Create a backup using the enhanced method (alias for create_backup_enhanced)
+    /// Create a backup that can handle both full installation and selective backups
     pub async fn create_backup<F>(
-        &self,
-        backup_type: BackupType,
-        config: &BackupConfig,
-        description: String,
-        progress_callback: Option<F>,
-    ) -> Result<BackupMetadata, String>
-    where
-        F: Fn(BackupProgress) + Send + Sync + Clone + 'static,
-    {
-        // Call the method defined in backup.rs to avoid duplication
-        self.create_backup_enhanced_impl(backup_type, config, description, progress_callback).await
-    }
-
-    /// Alias for create_backup_enhanced to maintain compatibility
-    pub async fn create_backup_dynamic<F>(
-        &self,
-        backup_type: BackupType,
-        config: &BackupConfig,
-        description: String,
-        progress_callback: Option<F>,
-    ) -> Result<BackupMetadata, String>
-    where
-        F: Fn(BackupProgress) + Send + Sync + Clone + 'static,
-    {
-        // Call the method defined in backup.rs to avoid duplication
-        self.create_backup_enhanced_impl(backup_type, config, description, progress_callback).await
-    }
-
-    /// Internal implementation - forwards to backup.rs implementation
-    async fn create_backup_enhanced_impl<F>(
         &self,
         backup_type: BackupType,
         config: &BackupConfig,
@@ -666,28 +638,18 @@ let metadata = BackupMetadata {
         std::fs::create_dir_all(&backup_dir)
             .map_err(|e| format!("Failed to create backup directory: {}", e))?;
         
-        debug!("Creating enhanced backup {} for installation {}", backup_id, self.name);
+        debug!("Creating backup {} for installation {}", backup_id, self.name);
         
-        // Discover all available items first
-        let all_items = crate::backup::discover_installation_items(&self.installation_path, 1)?;
+        // Check if this is a full backup (indicated by "*" in selected_items)
+        let is_full_backup = config.selected_items.contains(&"*".to_string());
         
-        // Filter items based on configuration
-        let mut items_to_backup = Vec::new();
-        let mut total_files = 0;
-        let mut total_bytes = 0;
-        
-        for item in &all_items {
-            let item_path_str = item.path.to_string_lossy().to_string();
-            
-            // Check if this item is selected for backup
-            if config.selected_items.contains(&item_path_str) {
-                items_to_backup.push(item);
-                total_files += item.file_count.unwrap_or(1);
-                total_bytes += item.size_bytes;
-                
-                debug!("Selected for backup: {} ({} bytes)", item.name, item.size_bytes);
-            }
-        }
+        let (items_to_backup, total_files, total_bytes) = if is_full_backup {
+            debug!("Creating full installation backup");
+            self.prepare_full_backup_items()?
+        } else {
+            debug!("Creating selective backup for {} items", config.selected_items.len());
+            self.prepare_selective_backup_items(config)?
+        };
         
         if items_to_backup.is_empty() {
             return Err("No items selected for backup".to_string());
@@ -711,21 +673,21 @@ let metadata = BackupMetadata {
             });
         }
         
-        // Simple file copying implementation (remove complex ZIP logic to avoid duplication)
-        for item in &items_to_backup {
-            let source_path = self.installation_path.join(&item.path);
-            let dest_path = backup_dir.join(&item.path);
+        // Copy each item to backup directory
+        for (source_path, relative_path) in &items_to_backup {
+            let dest_path = backup_dir.join(relative_path);
             
             if source_path.is_file() {
+                // Copy single file
                 if let Some(parent) = dest_path.parent() {
                     fs::create_dir_all(parent)
                         .map_err(|e| format!("Failed to create directory: {}", e))?;
                 }
                 
-                fs::copy(&source_path, &dest_path)
+                fs::copy(source_path, &dest_path)
                     .map_err(|e| format!("Failed to copy file: {}", e))?;
                 
-                let file_size = fs::metadata(&dest_path)
+                let file_size = dest_path.metadata()
                     .map_err(|e| format!("Failed to get file size: {}", e))?
                     .len();
                 
@@ -734,7 +696,7 @@ let metadata = BackupMetadata {
                 
                 if let Some(ref callback) = progress_callback {
                     callback(BackupProgress {
-                        current_file: item.name.clone(),
+                        current_file: relative_path.to_string_lossy().to_string(),
                         files_processed,
                         total_files,
                         bytes_processed,
@@ -743,21 +705,31 @@ let metadata = BackupMetadata {
                     });
                 }
             } else if source_path.is_dir() {
-                // Simple recursive copy
-                self.copy_dir_simple(&source_path, &dest_path, &mut files_processed, &mut bytes_processed, &progress_callback)?;
+                // Copy directory recursively
+                self.copy_directory_recursive(
+                    source_path,
+                    &dest_path,
+                    &mut files_processed,
+                    &mut bytes_processed,
+                    total_files,
+                    total_bytes,
+                    &progress_callback,
+                )?;
             }
         }
         
         // Create metadata
-        let included_items = items_to_backup.iter()
-            .map(|item| item.path.to_string_lossy().to_string())
-            .collect();
+        let included_items = if is_full_backup {
+            vec!["*".to_string()] // Special marker for full backup
+        } else {
+            config.selected_items.clone()
+        };
         
         let metadata = BackupMetadata {
             id: backup_id.clone(),
             description,
             backup_type,
-            created_at: chrono::Utc::now(),
+            created_at: Utc::now(),
             modpack_version: self.universal_version.clone(),
             enabled_features: self.enabled_features.clone(),
             file_count: files_processed,
@@ -765,6 +737,35 @@ let metadata = BackupMetadata {
             included_items,
             config: config.clone(),
         };
+        
+        // Compress if requested
+        if config.compress_backups {
+            if let Some(ref callback) = progress_callback {
+                callback(BackupProgress {
+                    current_file: "Compressing backup...".to_string(),
+                    files_processed,
+                    total_files,
+                    bytes_processed,
+                    total_bytes,
+                    current_operation: "Creating compressed archive".to_string(),
+                });
+            }
+            
+            let archive_path = backup_dir.join("backup.zip");
+            let _final_size = crate::backup::create_zip_archive(&backup_dir, &archive_path, progress_callback.as_ref())?;
+            
+            // Remove uncompressed files after successful compression
+            for (_, relative_path) in &items_to_backup {
+                let uncompressed_path = backup_dir.join(relative_path);
+                if uncompressed_path.exists() && uncompressed_path != archive_path {
+                    if uncompressed_path.is_file() {
+                        let _ = fs::remove_file(&uncompressed_path);
+                    } else if uncompressed_path.is_dir() {
+                        let _ = fs::remove_dir_all(&uncompressed_path);
+                    }
+                }
+            }
+        }
         
         // Save metadata
         let metadata_path = backup_dir.join("metadata.json");
@@ -788,17 +789,125 @@ let metadata = BackupMetadata {
             });
         }
         
-        info!("Successfully created enhanced backup {} for installation {}", backup_id, self.name);
+        info!("Successfully created backup {} for installation {}", backup_id, self.name);
         Ok(metadata)
     }
-
-    /// Simple directory copy helper
-    fn copy_dir_simple<F>(
+    
+    /// Prepare items for a full installation backup
+    fn prepare_full_backup_items(&self) -> Result<(Vec<(PathBuf, PathBuf)>, usize, u64), String> {
+        let mut items = Vec::new();
+        let mut total_files = 0;
+        let mut total_bytes = 0;
+        
+        // Get all entries in the installation directory
+        let entries = fs::read_dir(&self.installation_path)
+            .map_err(|e| format!("Failed to read installation directory: {}", e))?;
+        
+        for entry in entries {
+            let entry = entry.map_err(|e| format!("Failed to read entry: {}", e))?;
+            let path = entry.path();
+            let name = entry.file_name().to_string_lossy().to_string();
+            
+            // Skip backup directories and temporary files
+            if name == "backups" || name.starts_with("tmp_") || name.ends_with(".tmp") {
+                continue;
+            }
+            
+            let relative_path = path.strip_prefix(&self.installation_path)
+                .unwrap_or(&path)
+                .to_path_buf();
+            
+            items.push((path.clone(), relative_path));
+            
+            // Calculate size and file count
+            if path.is_file() {
+                total_files += 1;
+                total_bytes += path.metadata().map(|m| m.len()).unwrap_or(0);
+            } else if path.is_dir() {
+                let (dir_files, dir_bytes) = self.calculate_directory_stats(&path)?;
+                total_files += dir_files;
+                total_bytes += dir_bytes;
+            }
+        }
+        
+        debug!("Full backup prepared: {} items, {} files, {} bytes", 
+               items.len(), total_files, total_bytes);
+        
+        Ok((items, total_files, total_bytes))
+    }
+    
+    /// Prepare items for a selective backup
+    fn prepare_selective_backup_items(&self, config: &BackupConfig) -> Result<(Vec<(PathBuf, PathBuf)>, usize, u64), String> {
+        let mut items = Vec::new();
+        let mut total_files = 0;
+        let mut total_bytes = 0;
+        
+        for item_name in &config.selected_items {
+            let source_path = self.installation_path.join(item_name);
+            
+            if !source_path.exists() {
+                warn!("Selected backup item does not exist: {}", item_name);
+                continue;
+            }
+            
+            let relative_path = PathBuf::from(item_name);
+            items.push((source_path.clone(), relative_path));
+            
+            // Calculate size and file count
+            if source_path.is_file() {
+                total_files += 1;
+                total_bytes += source_path.metadata().map(|m| m.len()).unwrap_or(0);
+            } else if source_path.is_dir() {
+                let (dir_files, dir_bytes) = self.calculate_directory_stats(&source_path)?;
+                total_files += dir_files;
+                total_bytes += dir_bytes;
+            }
+        }
+        
+        debug!("Selective backup prepared: {} items, {} files, {} bytes", 
+               items.len(), total_files, total_bytes);
+        
+        Ok((items, total_files, total_bytes))
+    }
+    
+    /// Calculate total files and bytes in a directory
+    fn calculate_directory_stats(&self, path: &Path) -> Result<(usize, u64), String> {
+        let mut files = 0;
+        let mut bytes = 0;
+        
+        if path.is_file() {
+            return Ok((1, path.metadata().map(|m| m.len()).unwrap_or(0)));
+        }
+        
+        let entries = fs::read_dir(path)
+            .map_err(|e| format!("Failed to read directory: {}", e))?;
+        
+        for entry in entries {
+            let entry = entry.map_err(|e| format!("Failed to read entry: {}", e))?;
+            let entry_path = entry.path();
+            
+            if entry_path.is_file() {
+                files += 1;
+                bytes += entry_path.metadata().map(|m| m.len()).unwrap_or(0);
+            } else if entry_path.is_dir() {
+                let (sub_files, sub_bytes) = self.calculate_directory_stats(&entry_path)?;
+                files += sub_files;
+                bytes += sub_bytes;
+            }
+        }
+        
+        Ok((files, bytes))
+    }
+    
+    /// Copy directory recursively with progress updates
+    fn copy_directory_recursive<F>(
         &self,
         source: &Path,
         dest: &Path,
         files_processed: &mut usize,
         bytes_processed: &mut u64,
+        total_files: usize,
+        total_bytes: u64,
         progress_callback: &Option<F>,
     ) -> Result<(), String>
     where
@@ -819,7 +928,7 @@ let metadata = BackupMetadata {
                 fs::copy(&source_path, &dest_path)
                     .map_err(|e| format!("Failed to copy file: {}", e))?;
                 
-                let file_size = fs::metadata(&dest_path)
+                let file_size = dest_path.metadata()
                     .map_err(|e| format!("Failed to get file size: {}", e))?
                     .len();
                 
@@ -828,21 +937,212 @@ let metadata = BackupMetadata {
                 
                 if let Some(callback) = progress_callback {
                     callback(BackupProgress {
-                        current_file: entry.file_name().to_string_lossy().to_string(),
+                        current_file: dest_path.file_name()
+                            .unwrap_or_default()
+                            .to_string_lossy()
+                            .to_string(),
                         files_processed: *files_processed,
-                        total_files: 0, // We don't track total in this simple version
+                        total_files,
                         bytes_processed: *bytes_processed,
-                        total_bytes: 0,
+                        total_bytes,
                         current_operation: "Copying files".to_string(),
                     });
                 }
             } else if source_path.is_dir() {
-                self.copy_dir_simple(&source_path, &dest_path, files_processed, bytes_processed, progress_callback)?;
+                self.copy_directory_recursive(
+                    &source_path,
+                    &dest_path,
+                    files_processed,
+                    bytes_processed,
+                    total_files,
+                    total_bytes,
+                    progress_callback,
+                )?;
             }
         }
         
         Ok(())
     }
+
+    /// Enhanced restore that can handle both full and selective backups
+    pub async fn restore_from_backup(&mut self, backup_id: &str) -> Result<(), String> {
+        let backup_dir = self.get_backups_dir().join(backup_id);
+        let metadata_path = backup_dir.join("metadata.json");
+        
+        // Load backup metadata
+        if !metadata_path.exists() {
+            return Err(format!("Backup metadata not found for {}", backup_id));
+        }
+        
+        let metadata_content = std::fs::read_to_string(&metadata_path)
+            .map_err(|e| format!("Failed to read backup metadata: {}", e))?;
+        
+        let metadata: BackupMetadata = serde_json::from_str(&metadata_content)
+            .map_err(|e| format!("Failed to parse backup metadata: {}", e))?;
+        
+        // Create a safety backup before restoring
+        let safety_config = BackupConfig {
+            selected_items: vec!["*".to_string()], // Full backup for safety
+            compress_backups: true,
+            max_backups: 15, // Keep more safety backups
+            include_hidden_files: true,
+            exclude_patterns: vec!["backups".to_string()],
+        };
+        let safety_description = format!("Safety backup before restoring {}", backup_id);
+        
+        let _safety_backup = self.create_backup(
+            BackupType::PreUpdate,
+            &safety_config,
+            safety_description,
+            None::<fn(BackupProgress)>,
+        ).await?;
+        
+        debug!("Created safety backup before restoration");
+        
+        // Check if this is a full backup restore
+        let is_full_restore = metadata.included_items.contains(&"*".to_string());
+        
+        if is_full_restore {
+            // For full restore, clear everything except backups
+            self.clear_installation_except_backups()?;
+        } else {
+            // For selective restore, only clear the specific items
+            for item in &metadata.included_items {
+                let target_path = self.installation_path.join(item);
+                if target_path.exists() && target_path != self.get_backups_dir() {
+                    if target_path.is_file() {
+                        let _ = std::fs::remove_file(&target_path);
+                    } else if target_path.is_dir() {
+                        let _ = std::fs::remove_dir_all(&target_path);
+                    }
+                }
+            }
+        }
+        
+        // Restore from backup
+        let backup_archive = backup_dir.join("backup.zip");
+        
+        if backup_archive.exists() {
+            // Restore from ZIP archive
+            crate::backup::extract_zip_archive(&backup_archive, &self.installation_path)
+                .map_err(|e| format!("Failed to extract backup archive: {}", e))?;
+        } else {
+            // Restore from directory structure
+            if is_full_restore {
+                // For full restore, copy everything
+                self.copy_backup_directory(&backup_dir, &self.installation_path)?;
+            } else {
+                // For selective restore, copy only the specified items
+                for item in &metadata.included_items {
+                    let source_path = backup_dir.join(item);
+                    let target_path = self.installation_path.join(item);
+                    
+                    if source_path.exists() {
+                        if let Some(parent) = target_path.parent() {
+                            std::fs::create_dir_all(parent)
+                                .map_err(|e| format!("Failed to create directory: {}", e))?;
+                        }
+                        
+                        if source_path.is_file() {
+                            std::fs::copy(&source_path, &target_path)
+                                .map_err(|e| format!("Failed to restore file: {}", e))?;
+                        } else if source_path.is_dir() {
+                            self.copy_directory_all(&source_path, &target_path)
+                                .map_err(|e| format!("Failed to restore directory: {}", e))?;
+                        }
+                    }
+                }
+            }
+        }
+        
+        // Update installation state
+        self.enabled_features = metadata.enabled_features.clone();
+        self.universal_version = metadata.modpack_version.clone();
+        self.installed = true;
+        self.modified = false;
+        
+        debug!("Successfully restored installation from backup {}", backup_id);
+        Ok(())
+    }
+    
+    /// Clear installation directory except for backups
+    fn clear_installation_except_backups(&self) -> Result<(), String> {
+        let entries = fs::read_dir(&self.installation_path)
+            .map_err(|e| format!("Failed to read installation directory: {}", e))?;
+        
+        for entry in entries {
+            let entry = entry.map_err(|e| format!("Failed to read entry: {}", e))?;
+            let path = entry.path();
+            let name = entry.file_name().to_string_lossy().to_string();
+            
+            // Don't delete the backups directory
+            if name == "backups" {
+                continue;
+            }
+            
+            if path.is_file() {
+                fs::remove_file(&path)
+                    .map_err(|e| format!("Failed to remove file: {}", e))?;
+            } else if path.is_dir() {
+                fs::remove_dir_all(&path)
+                    .map_err(|e| format!("Failed to remove directory: {}", e))?;
+            }
+        }
+        
+        Ok(())
+    }
+    
+    /// Copy backup directory contents, excluding metadata
+    fn copy_backup_directory(&self, source: &Path, dest: &Path) -> Result<(), String> {
+        let entries = fs::read_dir(source)
+            .map_err(|e| format!("Failed to read backup directory: {}", e))?;
+        
+        for entry in entries {
+            let entry = entry.map_err(|e| format!("Failed to read entry: {}", e))?;
+            let source_path = entry.path();
+            let name = entry.file_name().to_string_lossy().to_string();
+            
+            // Skip metadata and zip files
+            if name == "metadata.json" || name == "backup.zip" {
+                continue;
+            }
+            
+            let dest_path = dest.join(&name);
+            
+            if source_path.is_file() {
+                if let Some(parent) = dest_path.parent() {
+                    fs::create_dir_all(parent)
+                        .map_err(|e| format!("Failed to create directory: {}", e))?;
+                }
+                fs::copy(&source_path, &dest_path)
+                    .map_err(|e| format!("Failed to copy file: {}", e))?;
+            } else if source_path.is_dir() {
+                self.copy_directory_all(&source_path, &dest_path)
+                    .map_err(|e| format!("Failed to copy directory: {}", e))?;
+            }
+        }
+        
+        Ok(())
+    }
+    
+    /// Copy directory recursively
+    fn copy_directory_all(&self, source: &Path, dest: &Path) -> Result<(), std::io::Error> {
+        fs::create_dir_all(dest)?;
+        
+        for entry in fs::read_dir(source)? {
+            let entry = entry?;
+            let ty = entry.file_type()?;
+            
+            if ty.is_dir() {
+                self.copy_directory_all(&entry.path(), &dest.join(entry.file_name()))?;
+            } else {
+                fs::copy(entry.path(), dest.join(entry.file_name()))?;
+            }
+        }
+        
+        Ok(())
+    }
+
 
     /// Cleanup old backups
     pub fn cleanup_old_backups(&self, max_backups: usize) -> Result<(), String> {
