@@ -5362,13 +5362,20 @@ a:hover {
     white-space: nowrap;
 }
 
-/* Simplified backup dialog */
-.backup-tab .backup-config-dialog .modal-content {
+/* ADDITIONAL BACKUP STYLES FOR COMPONENTS OUTSIDE .backup-tab CONTAINER */
+
+/* Backup config dialogs and modals */
+.backup-config-dialog .modal-content,
+.enhanced-backup-config-dialog .modal-content,
+.restore-confirm-dialog .modal-content,
+.delete-backup-dialog .modal-content {
     max-height: 70vh;
     overflow-y: auto;
 }
 
-.backup-tab .backup-warning {
+/* Backup warning styles for dialogs */
+.backup-config-dialog .backup-warning,
+.enhanced-backup-config-dialog .backup-warning {
     background: rgba(255, 152, 0, 0.1);
     border: 1px solid rgba(255, 152, 0, 0.3);
     border-radius: 8px;
@@ -5378,31 +5385,37 @@ a:hover {
     font-weight: 500;
 }
 
-.backup-tab .backup-warning p {
+.backup-config-dialog .backup-warning p,
+.enhanced-backup-config-dialog .backup-warning p {
     margin: 8px 0 0 0;
     font-size: 0.9rem;
     color: rgba(255, 255, 255, 0.8);
     font-weight: normal;
 }
 
-.backup-tab .config-section {
+/* Config sections in dialogs */
+.backup-config-dialog .config-section,
+.enhanced-backup-config-dialog .config-section {
     margin-bottom: 24px;
 }
 
-.backup-tab .config-section h4 {
+.backup-config-dialog .config-section h4,
+.enhanced-backup-config-dialog .config-section h4 {
     color: #fff;
     margin: 0 0 12px 0;
     font-size: 1.1rem;
     font-weight: 500;
 }
 
-.backup-tab .config-options {
+.backup-config-dialog .config-options,
+.enhanced-backup-config-dialog .config-options {
     display: flex;
     flex-direction: column;
     gap: 12px;
 }
 
-.backup-tab .config-option {
+.backup-config-dialog .config-option,
+.enhanced-backup-config-dialog .config-option {
     display: flex;
     align-items: flex-start;
     gap: 12px;
@@ -5414,195 +5427,272 @@ a:hover {
     transition: all 0.2s ease;
 }
 
-.backup-tab .config-option:hover {
+.backup-config-dialog .config-option:hover,
+.enhanced-backup-config-dialog .config-option:hover {
     background: rgba(255, 255, 255, 0.08);
     border-color: rgba(255, 255, 255, 0.2);
 }
 
-.backup-tab .config-option.wynntils-important {
+.backup-config-dialog .config-option.wynntils-important,
+.enhanced-backup-config-dialog .config-option.wynntils-important {
     background: rgba(255, 193, 7, 0.1);
     border-color: rgba(255, 193, 7, 0.3);
 }
 
-.backup-tab .config-option.wynntils-important:hover {
+.backup-config-dialog .config-option.wynntils-important:hover,
+.enhanced-backup-config-dialog .config-option.wynntils-important:hover {
     background: rgba(255, 193, 7, 0.15);
     border-color: rgba(255, 193, 7, 0.4);
 }
 
-.backup-tab .config-option input[type="checkbox"] {
+.backup-config-dialog .config-option input[type="checkbox"],
+.enhanced-backup-config-dialog .config-option input[type="checkbox"] {
     margin: 0;
     transform: scale(1.2);
     accent-color: #4CAF50;
 }
 
-.backup-tab .option-content {
+.backup-config-dialog .option-content,
+.enhanced-backup-config-dialog .option-content {
     flex: 1;
 }
 
-.backup-tab .option-name {
+.backup-config-dialog .option-name,
+.enhanced-backup-config-dialog .option-name {
     color: #fff;
     font-weight: 500;
     font-size: 0.95rem;
     margin-bottom: 4px;
 }
 
-.backup-tab .option-description {
+.backup-config-dialog .option-description,
+.enhanced-backup-config-dialog .option-description {
     color: rgba(255, 255, 255, 0.7);
     font-size: 0.85rem;
     line-height: 1.4;
 }
 
-.backup-tab .number-option {
-    flex-direction: row;
-    align-items: center;
-}
-
-.backup-tab .number-option label {
-    color: rgba(255, 255, 255, 0.9);
-    margin-right: 12px;
-    font-size: 0.9rem;
-}
-
-.backup-tab .number-option input {
-    width: 80px;
-    padding: 4px 8px;
-    background: rgba(255, 255, 255, 0.1);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: 4px;
-    color: #fff;
-    font-size: 0.9rem;
-}
-
-/* Notifications */
-.backup-tab .backup-error {
-    border-left: 4px solid #F44336;
-}
-
-.backup-tab .success-notification {
-    background: rgba(76, 175, 80, 0.1);
-    border: 1px solid rgba(76, 175, 80, 0.3);
-    border-left: 4px solid #4CAF50;
-    border-radius: 6px;
-    padding: 12px 16px;
-    margin-bottom: 16px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.backup-tab .success-message {
-    color: #4CAF50;
+/* Backup action buttons in dialogs */
+.backup-config-dialog .create-backup-button,
+.enhanced-backup-config-dialog .create-backup-button {
+    background: linear-gradient(135deg, #4CAF50, #45a049);
+    color: white;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 8px;
     font-weight: 500;
     font-size: 0.9rem;
-}
-
-.backup-tab .success-close {
-    background: none;
-    border: none;
-    color: rgba(76, 175, 80, 0.8);
-    font-size: 1.2rem;
     cursor: pointer;
-    padding: 0;
-    line-height: 1;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }
 
-.backup-tab .success-close:hover {
-    color: #4CAF50;
+.backup-config-dialog .create-backup-button:hover:not(:disabled),
+.enhanced-backup-config-dialog .create-backup-button:hover:not(:disabled) {
+    background: linear-gradient(135deg, #45a049, #3d8b40);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
 }
 
-/* Modal enhancements for backup dialogs */
-.backup-tab .restore-confirm-dialog .modal-content,
-.backup-tab .delete-backup-dialog .modal-content {
-    max-width: 500px;
+.backup-config-dialog .create-backup-button:disabled,
+.enhanced-backup-config-dialog .create-backup-button:disabled {
+    background: rgba(255, 255, 255, 0.2);
+    color: rgba(255, 255, 255, 0.5);
+    cursor: not-allowed;
 }
 
-.backup-tab .backup-details-card {
+.backup-config-dialog .configure-backup-button,
+.enhanced-backup-config-dialog .configure-backup-button {
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-weight: 500;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.backup-config-dialog .configure-backup-button:hover,
+.enhanced-backup-config-dialog .configure-backup-button:hover {
+    background: rgba(255, 255, 255, 0.2);
+    border-color: rgba(255, 255, 255, 0.3);
+}
+
+/* Progress display in dialogs */
+.backup-config-dialog .enhanced-progress,
+.enhanced-backup-config-dialog .enhanced-progress {
     background: rgba(255, 255, 255, 0.05);
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 8px;
     padding: 16px;
-    margin: 16px 0;
-}
-
-.backup-tab .detail-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 8px;
-}
-
-.backup-tab .detail-row:last-child {
-    margin-bottom: 0;
-}
-
-.backup-tab .detail-row strong {
-    color: rgba(255, 255, 255, 0.8);
-    font-size: 0.9rem;
-}
-
-.backup-tab .detail-row span {
-    color: #fff;
-    font-size: 0.9rem;
-    text-align: right;
-}
-
-.backup-tab .warning-message, 
-.backup-tab .danger-warning {
-    background: rgba(255, 152, 0, 0.1);
-    border: 1px solid rgba(255, 152, 0, 0.3);
-    border-radius: 6px;
-    padding: 12px;
-    color: #FF9800;
-    font-weight: 500;
-    font-size: 0.9rem;
-    margin-bottom: 16px;
-}
-
-.backup-tab .danger-warning {
-    background: rgba(244, 67, 54, 0.1);
-    border-color: rgba(244, 67, 54, 0.3);
-    color: #F44336;
-}
-
-.backup-tab .safety-info {
-    background: rgba(76, 175, 80, 0.1);
-    border: 1px solid rgba(76, 175, 80, 0.2);
-    border-radius: 6px;
-    padding: 12px;
-    color: rgba(255, 255, 255, 0.8);
-    font-size: 0.9rem;
     margin-top: 16px;
 }
 
-.backup-tab .delete-confirmation-text {
-    color: rgba(255, 255, 255, 0.9);
-    font-size: 0.95rem;
-    margin: 12px 0;
+.backup-config-dialog .progress-header,
+.enhanced-backup-config-dialog .progress-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
 }
 
-.backup-tab .deleting-progress {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 16px;
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 6px;
-    color: rgba(255, 255, 255, 0.8);
+.backup-config-dialog .operation-status,
+.enhanced-backup-config-dialog .operation-status {
+    color: #fff;
+    font-weight: 500;
     font-size: 0.9rem;
 }
 
-.backup-tab .loading-spinner {
-    width: 16px;
-    height: 16px;
+.backup-config-dialog .progress-percentage,
+.enhanced-backup-config-dialog .progress-percentage {
+    color: #4CAF50;
+    font-weight: 600;
+    font-size: 1rem;
+}
+
+/* Items selection styles */
+.items-selection .items-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 8px;
+    max-height: 300px;
+    overflow-y: auto;
+    padding: 10px;
+    background: rgba(20, 20, 20, 0.3);
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.backup-item-option {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px;
+    background: rgba(40, 40, 40, 0.5);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border: 2px solid transparent;
+    position: relative;
+}
+
+.backup-item-option:hover {
+    background: rgba(50, 50, 50, 0.7);
+    border-color: rgba(255, 255, 255, 0.2);
+    transform: translateY(-1px);
+}
+
+.backup-item-option.selected {
+    background: rgba(33, 150, 243, 0.2);
+    border-color: rgba(33, 150, 243, 0.6);
+    box-shadow: 0 0 15px rgba(33, 150, 243, 0.2);
+}
+
+.backup-item-option input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    accent-color: #2196F3;
+    margin: 0;
+    flex-shrink: 0;
+}
+
+.item-info {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.item-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.item-icon {
+    font-size: 1.2rem;
+    flex-shrink: 0;
+}
+
+.item-name {
+    font-weight: 600;
+    color: #ffffff;
+    font-size: 1rem;
+}
+
+.item-description {
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 0.85rem;
+    line-height: 1.3;
+    font-style: italic;
+}
+
+.item-size {
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 0.8rem;
+    font-family: monospace;
+}
+
+/* Search input */
+.search-input {
+    width: 100%;
+    padding: 12px 15px;
+    background: rgba(40, 40, 40, 0.8);
     border: 2px solid rgba(255, 255, 255, 0.2);
-    border-top: 2px solid #fff;
+    border-radius: 8px;
+    color: white;
+    font-family: "REGULAR_FONT";
+    font-size: 1rem;
+    transition: all 0.3s ease;
+    box-sizing: border-box;
+}
+
+.search-input:focus {
+    outline: none;
+    border-color: rgba(33, 150, 243, 0.6);
+    background: rgba(50, 50, 50, 0.9);
+    box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.2);
+}
+
+.search-input::placeholder {
+    color: rgba(255, 255, 255, 0.5);
+}
+
+/* Loading states */
+.loading-items {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 20px;
+    gap: 15px;
+}
+
+.loading-spinner {
+    width: 40px;
+    height: 40px;
+    border: 4px solid rgba(33, 150, 243, 0.2);
     border-radius: 50%;
+    border-top-color: #2196F3;
     animation: spin 1s linear infinite;
 }
 
-@keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
+.no-results,
+.no-items {
+    text-align: center;
+    color: rgba(255, 255, 255, 0.6);
+    font-style: italic;
+    padding: 40px 20px;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 8px;
+    border: 2px dashed rgba(255, 255, 255, 0.2);
 }
 
 /* Responsive design */
@@ -5623,5 +5713,31 @@ a:hover {
     .backup-tab .progress-details {
         grid-template-columns: 1fr;
         gap: 4px;
+    }
+    
+    /* Responsive for backup dialogs */
+    .enhanced-backup-config-dialog {
+        width: 95vw;
+        max-height: 90vh;
+    }
+    
+    .enhanced-backup-config-dialog .modal-content {
+        max-height: 70vh;
+        padding: 15px;
+    }
+    
+    .items-grid {
+        max-height: 250px;
+    }
+    
+    .backup-item-option {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+    
+    .item-header {
+        width: 100%;
+        justify-content: flex-start;
     }
 }
