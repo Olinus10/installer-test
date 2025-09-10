@@ -518,7 +518,7 @@ fn Footer() -> Element {
             div { class: "footer-info",
                 div { class: "footer-section",
                     p { class: "footer-text", 
-                        "Made by Olinus10"
+                        "Modpacks and installer made by the Overhaul Team"
                     }
                 }
                 
