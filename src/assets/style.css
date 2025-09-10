@@ -5269,3 +5269,81 @@ a:hover {
         background: linear-gradient(to right, transparent, rgba(255, 255, 255, 0.3), transparent);
     }
 }
+
+
+/* The "maximum backups" option uses a different structure - fix its styling */
+.backup-config-dialog .config-option:not(.number-option) {
+    /* Regular checkbox options */
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+/* The number option (maximum backups) - different layout */
+.backup-config-dialog .config-option.number-option {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    cursor: default; /* Not clickable like checkboxes */
+    transition: all 0.2s ease;
+    gap: 15px;
+}
+
+/* Label styling for the number option */
+.backup-config-dialog .config-option.number-option label {
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 0.9rem;
+    font-weight: 500;
+    margin: 0;
+    flex-grow: 1;
+    line-height: 1.4;
+}
+
+/* Number input styling within the option */
+.backup-config-dialog .config-option.number-option input[type="number"] {
+    width: 80px;
+    padding: 8px 12px;
+    background: rgba(20, 20, 20, 0.8);
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    border-radius: 6px;
+    color: white;
+    font-family: "REGULAR_FONT";
+    font-size: 0.9rem;
+    text-align: center;
+    flex-shrink: 0;
+    transition: all 0.3s ease;
+}
+
+.backup-config-dialog .config-option.number-option input[type="number"]:focus {
+    outline: none;
+    border-color: rgba(76, 175, 80, 0.6);
+    background: rgba(30, 30, 30, 0.9);
+    box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.2);
+}
+
+.backup-config-dialog .config-option.number-option input[type="number"]:hover {
+    border-color: rgba(255, 255, 255, 0.3);
+    background: rgba(25, 25, 25, 0.9);
+}
+
+/* Remove spinner arrows from number input */
+.backup-config-dialog .config-option.number-option input[type="number"]::-webkit-outer-spin-button,
+.backup-config-dialog .config-option.number-option input[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.backup-config-dialog .config-option.number-option input[type="number"] {
+    -moz-appearance: textfield;
+}
