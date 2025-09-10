@@ -4905,3 +4905,367 @@ a:hover {
         font-size: 1.5rem;
     }
 }
+
+/* 1. REVERT HOME PAGE STATS TO ORIGINAL STYLING */
+/* Remove the settings-specific stats styling and restore original */
+
+/* Original home page stats container - override the settings version */
+.stats-container {
+    display: flex;
+    justify-content: center;
+    gap: 40px;
+    margin: 15px auto;
+    max-width: 800px;
+    padding: 15px;
+    background: rgba(0, 0, 0, 0.4);
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(5px);
+}
+
+/* Ensure settings stats use different class */
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 20px;
+}
+
+/* Original home page stat items */
+.stats-container .stat-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+    padding: 0 15px;
+    background: none; /* Remove settings background */
+    border: none; /* Remove settings border */
+    border-radius: 0; /* Remove settings border radius */
+}
+
+.stats-container .stat-item:not(:last-child):after {
+    content: '';
+    position: absolute;
+    top: 15%;
+    right: -20px;
+    height: 70%;
+    width: 1px;
+    background: linear-gradient(to bottom, transparent, rgba(255, 255, 255, 0.3), transparent);
+}
+
+/* Original home page stat values */
+.stats-container .stat-value {
+    font-family: "HEADER_FONT";
+    font-size: 2.5rem;
+    margin-bottom: 5px;
+    background: linear-gradient(180deg, #fce8f6 0%, #d8b8d0 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    letter-spacing: 0.05em;
+    display: inline-block;
+}
+
+/* Original home page stat labels */
+.stats-container .stat-label {
+    font-family: "REGULAR_FONT";
+    font-size: 0.9rem;
+    color: #fce8f6;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    opacity: 0.8;
+}
+
+/* Settings page uses different classes to avoid conflict */
+.settings-section .stats-grid .stat-item {
+    text-align: center;
+    padding: 15px;
+    background: rgba(33, 150, 243, 0.1);
+    border-radius: 8px;
+    border: 1px solid rgba(33, 150, 243, 0.2);
+}
+
+.settings-section .stats-grid .stat-value {
+    font-family: "HEADER_FONT";
+    font-size: 2rem;
+    color: #ffffff;
+    margin-bottom: 5px;
+    display: block;
+    background: none;
+    -webkit-background-clip: initial;
+    -webkit-text-fill-color: initial;
+    background-clip: initial;
+}
+
+.settings-section .stats-grid .stat-label {
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* 2. BACKUP CONFIGURATION DIALOG FIXES */
+
+/* Make backup config dialog smaller and more readable */
+.backup-config-dialog {
+    max-width: 600px;
+    width: 85vw;
+    max-height: 80vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.backup-config-dialog .modal-content {
+    max-height: 55vh;
+    overflow-y: auto;
+    padding: 20px;
+    flex-grow: 1;
+}
+
+/* Backup config sections with better spacing */
+.backup-config-dialog .config-section {
+    margin-bottom: 25px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.backup-config-dialog .config-section:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+}
+
+.backup-config-dialog .config-section h4 {
+    margin: 0 0 15px 0;
+    color: #ffffff;
+    font-family: "HEADER_FONT";
+    font-size: 1.1rem;
+    font-weight: 500;
+}
+
+/* Backup config options layout */
+.backup-config-dialog .config-options {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.backup-config-dialog .config-option {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.backup-config-dialog .config-option:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+.backup-config-dialog .config-option.wynntils-important {
+    background: rgba(255, 193, 7, 0.1);
+    border-color: rgba(255, 193, 7, 0.3);
+}
+
+.backup-config-dialog .config-option.wynntils-important:hover {
+    background: rgba(255, 193, 7, 0.15);
+    border-color: rgba(255, 193, 7, 0.4);
+}
+
+.backup-config-dialog .config-option input[type="checkbox"] {
+    margin: 0;
+    transform: scale(1.2);
+    accent-color: #4CAF50;
+    flex-shrink: 0;
+}
+
+.backup-config-dialog .config-option span {
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 0.9rem;
+    line-height: 1.4;
+    flex-grow: 1;
+}
+
+/* Number input option styling */
+.backup-config-dialog .config-option.number-option {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.backup-config-dialog .config-option.number-option label {
+    color: rgba(255, 255, 255, 0.9);
+    margin-right: 12px;
+    font-size: 0.9rem;
+    flex-grow: 1;
+}
+
+.backup-config-dialog .config-option.number-option input[type="number"] {
+    width: 80px;
+    padding: 6px 8px;
+    background: rgba(20, 20, 20, 0.8);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+    color: white;
+    font-family: "REGULAR_FONT";
+    font-size: 0.9rem;
+    flex-shrink: 0;
+}
+
+.backup-config-dialog .config-option.number-option input[type="number"]:focus {
+    outline: none;
+    border-color: rgba(76, 175, 80, 0.6);
+    box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.2);
+}
+
+/* Estimated size display */
+.estimated-size {
+    background: rgba(33, 150, 243, 0.1);
+    border: 1px solid rgba(33, 150, 243, 0.3);
+    border-radius: 6px;
+    padding: 12px;
+    text-align: center;
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 0.9rem;
+    font-weight: 500;
+    margin-top: 15px;
+}
+
+/* Backup config dialog footer */
+.backup-config-dialog .modal-footer {
+    padding: 20px 25px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(40, 40, 40, 0.8);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 15px;
+    flex-shrink: 0;
+}
+
+.backup-config-dialog .cancel-button {
+    background: linear-gradient(135deg, #666, #444);
+    border: none;
+    color: white;
+    border-radius: 8px;
+    padding: 12px 25px;
+    font-family: "HEADER_FONT";
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+}
+
+.backup-config-dialog .cancel-button:hover {
+    background: linear-gradient(135deg, #777, #555);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+}
+
+.backup-config-dialog .save-button {
+    background: linear-gradient(135deg, #4CAF50, #2E7D32);
+    border: none;
+    color: white;
+    border-radius: 8px;
+    padding: 12px 25px;
+    font-family: "HEADER_FONT";
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    box-shadow: 0 4px 15px rgba(76, 175, 80, 0.3);
+}
+
+.backup-config-dialog .save-button:hover:not(:disabled) {
+    background: linear-gradient(135deg, #66BB6A, #4CAF50);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(76, 175, 80, 0.5);
+}
+
+.backup-config-dialog .save-button:disabled {
+    background: linear-gradient(135deg, #666, #444);
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    opacity: 0.7;
+}
+
+/* Scrollbar for backup config dialog content */
+.backup-config-dialog .modal-content::-webkit-scrollbar {
+    width: 8px;
+}
+
+.backup-config-dialog .modal-content::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 4px;
+}
+
+.backup-config-dialog .modal-content::-webkit-scrollbar-thumb {
+    background: linear-gradient(135deg, #4CAF50, #2E7D32);
+    border-radius: 4px;
+    border: 1px solid rgba(0, 0, 0, 0.2);
+}
+
+.backup-config-dialog .modal-content::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(135deg, #66BB6A, #4CAF50);
+}
+
+/* Responsive fixes for backup dialog */
+@media (max-width: 768px) {
+    .backup-config-dialog {
+        width: 95vw;
+        max-height: 90vh;
+    }
+    
+    .backup-config-dialog .modal-content {
+        max-height: 70vh;
+        padding: 15px;
+    }
+    
+    .backup-config-dialog .modal-footer {
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .backup-config-dialog .cancel-button,
+    .backup-config-dialog .save-button {
+        width: 100%;
+        text-align: center;
+    }
+    
+    .backup-config-dialog .config-option.number-option {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+    
+    .backup-config-dialog .config-option.number-option input[type="number"] {
+        width: 100%;
+    }
+}
+
+/* Mobile responsive fix for home stats */
+@media (max-width: 768px) {
+    .stats-container {
+        flex-direction: column;
+        gap: 20px;
+        padding: 20px;
+    }
+    
+    .stats-container .stat-item:not(:last-child):after {
+        top: auto;
+        right: 20%;
+        bottom: -10px;
+        left: 20%;
+        height: 1px;
+        width: 60%;
+        background: linear-gradient(to right, transparent, rgba(255, 255, 255, 0.3), transparent);
+    }
+}
