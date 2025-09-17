@@ -812,7 +812,7 @@ let metadata = BackupMetadata {
             let name = entry.file_name().to_string_lossy().to_string();
             
             // Skip backup directories and temporary files
-            if should_skip_for_backup(&name) {
+            if Self::should_skip_for_backup(&name) {
                 debug!("Skipping {} from backup (system/temp file)", name);
                 continue;
             }
@@ -857,7 +857,7 @@ let metadata = BackupMetadata {
             }
             
             // Check if we should exclude based on patterns
-            if should_exclude_from_backup(item_name, &config.exclude_patterns) {
+            if Self::should_exclude_from_backup(item_name, &config.exclude_patterns) {
                 debug!("Excluding {} due to exclude patterns", item_name);
                 continue;
             }
@@ -882,45 +882,47 @@ let metadata = BackupMetadata {
         Ok((items, total_files, total_bytes))
     }
 
+    // Helper functions for backup filtering (as associated functions)
     fn should_skip_for_backup(name: &str) -> bool {
-    // Skip these items from ANY backup (full or selective)
-    let always_skip = [
-        "backups",           // Don't backup the backups folder itself
-        "usercache.json",         // User cache
-    ];
-    
-    always_skip.iter().any(|pattern| name == *pattern) ||
-    name.starts_with("tmp_") || 
-    name.ends_with(".tmp") ||
-    name.ends_with(".lock")
-}
-
-fn should_exclude_from_backup(item_name: &str, exclude_patterns: &[String]) -> bool {
-    // Check if this item matches any exclude patterns
-    for pattern in exclude_patterns {
-        if matches_backup_pattern(item_name, pattern) {
-            return true;
-        }
+        // Skip these items from ANY backup (full or selective)
+        let always_skip = [
+            "backups",           // Don't backup the backups folder itself
+            "usercache.json",         // User cache
+            "manifest.json",          // Installation manifest
+        ];
+        
+        always_skip.iter().any(|pattern| name == *pattern) ||
+        name.starts_with("tmp_") || 
+        name.ends_with(".tmp") ||
+        name.ends_with(".lock")
     }
-    false
-}
+
+    fn should_exclude_from_backup(item_name: &str, exclude_patterns: &[String]) -> bool {
+        // Check if this item matches any exclude patterns
+        for pattern in exclude_patterns {
+            if Self::matches_backup_pattern(item_name, pattern) {
+                return true;
+            }
+        }
+        false
+    }
 
     fn matches_backup_pattern(text: &str, pattern: &str) -> bool {
-    if pattern.contains('*') {
-        // Simple glob matching
-        let pattern_parts: Vec<&str> = pattern.split('*').collect();
-        if pattern_parts.len() == 2 {
-            let prefix = pattern_parts[0];
-            let suffix = pattern_parts[1];
-            text.starts_with(prefix) && text.ends_with(suffix)
+        if pattern.contains('*') {
+            // Simple glob matching
+            let pattern_parts: Vec<&str> = pattern.split('*').collect();
+            if pattern_parts.len() == 2 {
+                let prefix = pattern_parts[0];
+                let suffix = pattern_parts[1];
+                text.starts_with(prefix) && text.ends_with(suffix)
+            } else {
+                // More complex patterns - just check if any part matches
+                pattern_parts.iter().any(|part| !part.is_empty() && text.contains(part))
+            }
         } else {
-            // More complex patterns - just check if any part matches
-            pattern_parts.iter().any(|part| !part.is_empty() && text.contains(part))
+            text == pattern || text.ends_with(pattern)
         }
-    } else {
-        text == pattern || text.ends_with(pattern)
     }
-}
     
     /// Calculate total files and bytes in a directory
     fn calculate_directory_stats(&self, path: &Path) -> Result<(usize, u64), String> {
