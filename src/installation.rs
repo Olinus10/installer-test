@@ -800,6 +800,8 @@ let metadata = BackupMetadata {
         let mut total_files = 0;
         let mut total_bytes = 0;
         
+        debug!("Preparing full backup for installation: {}", self.installation_path.display());
+        
         // Get all entries in the installation directory
         let entries = fs::read_dir(&self.installation_path)
             .map_err(|e| format!("Failed to read installation directory: {}", e))?;
@@ -810,7 +812,8 @@ let metadata = BackupMetadata {
             let name = entry.file_name().to_string_lossy().to_string();
             
             // Skip backup directories and temporary files
-            if name == "backups" || name.starts_with("tmp_") || name.ends_with(".tmp") {
+            if should_skip_for_backup(&name) {
+                debug!("Skipping {} from backup (system/temp file)", name);
                 continue;
             }
             
@@ -836,18 +839,26 @@ let metadata = BackupMetadata {
         
         Ok((items, total_files, total_bytes))
     }
-    
-    /// Prepare items for a selective backup
+
+    /// Enhanced selective backup preparation that handles discovered folders
     fn prepare_selective_backup_items(&self, config: &BackupConfig) -> Result<(Vec<(PathBuf, PathBuf)>, usize, u64), String> {
         let mut items = Vec::new();
         let mut total_files = 0;
         let mut total_bytes = 0;
+        
+        debug!("Preparing selective backup with {} selected items", config.selected_items.len());
         
         for item_name in &config.selected_items {
             let source_path = self.installation_path.join(item_name);
             
             if !source_path.exists() {
                 warn!("Selected backup item does not exist: {}", item_name);
+                continue;
+            }
+            
+            // Check if we should exclude based on patterns
+            if should_exclude_from_backup(item_name, &config.exclude_patterns) {
+                debug!("Excluding {} due to exclude patterns", item_name);
                 continue;
             }
             
@@ -870,6 +881,46 @@ let metadata = BackupMetadata {
         
         Ok((items, total_files, total_bytes))
     }
+
+    fn should_skip_for_backup(name: &str) -> bool {
+    // Skip these items from ANY backup (full or selective)
+    let always_skip = [
+        "backups",           // Don't backup the backups folder itself
+        "usercache.json",         // User cache
+    ];
+    
+    always_skip.iter().any(|pattern| name == *pattern) ||
+    name.starts_with("tmp_") || 
+    name.ends_with(".tmp") ||
+    name.ends_with(".lock")
+}
+
+fn should_exclude_from_backup(item_name: &str, exclude_patterns: &[String]) -> bool {
+    // Check if this item matches any exclude patterns
+    for pattern in exclude_patterns {
+        if matches_backup_pattern(item_name, pattern) {
+            return true;
+        }
+    }
+    false
+}
+
+    fn matches_backup_pattern(text: &str, pattern: &str) -> bool {
+    if pattern.contains('*') {
+        // Simple glob matching
+        let pattern_parts: Vec<&str> = pattern.split('*').collect();
+        if pattern_parts.len() == 2 {
+            let prefix = pattern_parts[0];
+            let suffix = pattern_parts[1];
+            text.starts_with(prefix) && text.ends_with(suffix)
+        } else {
+            // More complex patterns - just check if any part matches
+            pattern_parts.iter().any(|part| !part.is_empty() && text.contains(part))
+        }
+    } else {
+        text == pattern || text.ends_with(pattern)
+    }
+}
     
     /// Calculate total files and bytes in a directory
     fn calculate_directory_stats(&self, path: &Path) -> Result<(usize, u64), String> {
