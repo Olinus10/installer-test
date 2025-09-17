@@ -428,8 +428,9 @@ fn SimplifiedBackupDialog(
         let mut local_config = local_config.clone();
         
         move || {
+            let installation_path_clone = installation_path.clone();
             spawn(async move {
-                match scan_installation_folders(&installation_path).await {
+                match scan_installation_folders(&installation_path_clone).await {
                     Ok(folders) => {
                         debug!("Discovered {} folders in installation", folders.len());
                         discovered_folders.set(folders.clone());
@@ -762,6 +763,16 @@ fn get_folder_info(name: &str) -> (String, bool, bool) {
         ),
         "shaderpacks" => (
             "Shader pack files - Visual effects and lighting".to_string(),
+            false, true
+        ),
+        
+        // User content (default selected)
+        "saves" => (
+            "World save files - Your single-player worlds".to_string(),
+            false, true
+        ),
+        "screenshots" => (
+            "Screenshot images captured in-game".to_string(),
             false, true
         ),
         
