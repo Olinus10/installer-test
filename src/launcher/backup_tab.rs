@@ -359,16 +359,17 @@ pub fn EnhancedBackupTab(
             }
             
             // Simplified Backup Configuration Dialog
-            if *show_backup_config.read() {
-                SimplifiedBackupDialog {
-                    config: backup_config,
-                    onclose: move |_| show_backup_config.set(false),
-                    onupdate: move |new_config: BackupConfig| {
-                        backup_config.set(new_config);
-                    },
-                    oncreate: create_selective_backup.clone()
-                }
-            }
+if *show_backup_config.read() {
+    SimplifiedBackupDialog {
+        config: backup_config,
+        installation: installation.clone(), // Add this line
+        onclose: move |_| show_backup_config.set(false),
+        onupdate: move |new_config: BackupConfig| {
+            backup_config.set(new_config);
+        },
+        oncreate: create_selective_backup.clone()
+    }
+}
             
             // Restore Confirmation Dialog
             if *show_restore_confirm.read() {
@@ -408,29 +409,57 @@ pub fn EnhancedBackupTab(
 #[component]
 fn SimplifiedBackupDialog(
     config: Signal<BackupConfig>,
+    installation: Installation, // Add installation parameter
     onclose: EventHandler<()>,
     onupdate: EventHandler<BackupConfig>,
     oncreate: EventHandler<()>,
 ) -> Element {
     let mut local_config = use_signal(|| config.read().clone());
+    let mut discovered_folders = use_signal(|| Vec::<(String, String, bool, bool)>::new()); // (folder_name, description, is_important, default_selected)
+    let mut scanning = use_signal(|| true);
+    let mut scan_error = use_signal(|| Option::<String>::None);
     
-    // Key folders that users often need to backup selectively
-    let key_folders = vec![
-        ("mods", "Mod files and configurations", true),
-        ("config", "Game and mod configuration files", true),
-        ("wynntils", "Wynntils mod configuration and data (IMPORTANT)", true),
-        (".bobby", "Bobby cache data", false),
-        ("resourcepacks", "Resource pack files", false),
-        ("shaderpacks", "Shader pack files", false),
-        ("saves", "World save files", false),
-        ("screenshots", "Screenshot images", false),
-    ];
+    // Scan installation directory when component loads
+    use_effect({
+        let installation_path = installation.installation_path.clone();
+        let mut discovered_folders = discovered_folders.clone();
+        let mut scanning = scanning.clone();
+        let mut scan_error = scan_error.clone();
+        let mut local_config = local_config.clone();
+        
+        move || {
+            spawn(async move {
+                match scan_installation_folders(&installation_path).await {
+                    Ok(folders) => {
+                        debug!("Discovered {} folders in installation", folders.len());
+                        discovered_folders.set(folders.clone());
+                        
+                        // Auto-select important folders
+                        local_config.with_mut(|c| {
+                            c.selected_items.clear();
+                            for (folder_name, _, is_important, default_selected) in &folders {
+                                if *is_important || *default_selected {
+                                    c.selected_items.push(folder_name.clone());
+                                }
+                            }
+                        });
+                        scanning.set(false);
+                    },
+                    Err(e) => {
+                        error!("Failed to scan installation folders: {}", e);
+                        scan_error.set(Some(e));
+                        scanning.set(false);
+                    }
+                }
+            });
+        }
+    });
     
     rsx! {
         div { class: "modal-overlay",
-            div { class: "modal-container backup-config-dialog",
+            div { class: "modal-container backup-config-dialog enhanced",
                 div { class: "modal-header",
-                    h3 { "Selective Backup Configuration" }
+                    h3 { "Configure Backup" }
                     button { 
                         class: "modal-close",
                         onclick: move |_| onclose.call(()),
@@ -439,90 +468,156 @@ fn SimplifiedBackupDialog(
                 }
                 
                 div { class: "modal-content",
-                    div { class: "backup-warning",
-                        "⚠️ Wynntils Configuration Protection"
-                        p { "If you're updating the modpack, create a backup that includes Wynntils first! This protects your custom configurations and settings." }
+                    div { class: "backup-explanation",
+                        p { "Select which folders to include in your backup. Important folders like wynntils and config are selected by default." }
                     }
                     
-                    div { class: "config-section",
-                        h4 { "Select folders to backup:" }
-                        
-                        div { class: "config-options",
-                            for (folder_name, description, default_checked) in key_folders.iter() {
-                                {
-                                    let folder_path = folder_name.to_string();
-                                    let is_selected = local_config.read().selected_items.contains(&folder_path);
-                                    
-                                    rsx! {
-                                        label { 
-                                            class: if folder_name == &"wynntils" {
-                                                "config-option wynntils-important"
-                                            } else {
-                                                "config-option"
-                                            },
-                                            input {
-                                                r#type: "checkbox",
-                                                checked: is_selected,
-                                                onchange: move |evt| {
-                                                    let checked = evt.value() == "true";
-                                                    local_config.with_mut(|c| {
-                                                        if checked {
-                                                            if !c.selected_items.contains(&folder_path) {
-                                                                c.selected_items.push(folder_path.clone());
-                                                            }
-                                                        } else {
-                                                            c.selected_items.retain(|p| p != &folder_path);
-                                                        }
-                                                    });
+                    if *scanning.read() {
+                        div { class: "scanning-indicator",
+                            div { class: "loading-spinner" }
+                            span { "Scanning installation folders..." }
+                        }
+                    } else if let Some(error) = scan_error.read().as_ref() {
+                        div { class: "scan-error",
+                            "⚠️ Failed to scan folders: {error}"
+                        }
+                    } else {
+                        div { class: "folders-section",
+                            h4 { "Installation Folders ({discovered_folders.read().len()} found)" }
+                            
+                            // Quick select buttons
+                            div { class: "quick-select-buttons",
+                                button {
+                                    class: "quick-select-btn",
+                                    r#type: "button",
+                                    onclick: move |_| {
+                                        local_config.with_mut(|c| {
+                                            c.selected_items.clear();
+                                            for (folder_name, _, _, _) in discovered_folders.read().iter() {
+                                                c.selected_items.push(folder_name.clone());
+                                            }
+                                        });
+                                    },
+                                    "Select All"
+                                }
+                                
+                                button {
+                                    class: "quick-select-btn",
+                                    r#type: "button", 
+                                    onclick: move |_| {
+                                        local_config.with_mut(|c| {
+                                            c.selected_items.clear();
+                                            for (folder_name, _, is_important, default_selected) in discovered_folders.read().iter() {
+                                                if *is_important || *default_selected {
+                                                    c.selected_items.push(folder_name.clone());
                                                 }
                                             }
-                                            
-                                            div { class: "option-content",
-                                                div { class: "option-name", "{folder_name}" }
-                                                div { class: "option-description", "{description}" }
+                                        });
+                                    },
+                                    "Select Important"
+                                }
+                                
+                                button {
+                                    class: "quick-select-btn",
+                                    r#type: "button",
+                                    onclick: move |_| {
+                                        local_config.with_mut(|c| c.selected_items.clear());
+                                    },
+                                    "Clear All"
+                                }
+                            }
+                            
+                            // Folder grid
+                            div { class: "folders-grid",
+                                for (folder_name, description, is_important, _default_selected) in discovered_folders.read().iter() {
+                                    {
+                                        let folder_path = folder_name.clone();
+                                        let is_selected = local_config.read().selected_items.contains(&folder_path);
+                                        let folder_class = if *is_important {
+                                            "folder-option important"
+                                        } else if folder_name == ".bobby" || folder_name == "Distant_Horizons_server_data" {
+                                            "folder-option world-data"
+                                        } else {
+                                            "folder-option"
+                                        };
+                                        
+                                        rsx! {
+                                            label { 
+                                                class: "{folder_class}",
+                                                input {
+                                                    r#type: "checkbox",
+                                                    checked: is_selected,
+                                                    onchange: move |evt| {
+                                                        let checked = evt.value() == "true";
+                                                        local_config.with_mut(|c| {
+                                                            if checked {
+                                                                if !c.selected_items.contains(&folder_path) {
+                                                                    c.selected_items.push(folder_path.clone());
+                                                                }
+                                                            } else {
+                                                                c.selected_items.retain(|p| p != &folder_path);
+                                                            }
+                                                        });
+                                                    }
+                                                }
+                                                
+                                                div { class: "folder-content",
+                                                    div { class: "folder-header",
+                                                        span { class: "folder-name", "{folder_name}" }
+                                                        if *is_important {
+                                                            span { class: "important-badge", "Important" }
+                                                        } else if folder_name == ".bobby" || folder_name == "Distant_Horizons_server_data" {
+                                                            span { class: "world-data-badge", "World Data" }
+                                                        }
+                                                    }
+                                                    div { class: "folder-description", "{description}" }
+                                                }
                                             }
                                         }
                                     }
                                 }
                             }
                         }
-                    }
-                    
-                    div { class: "config-section",
-                        h4 { "Backup Options:" }
                         
-                        label { class: "config-option",
-                            input {
-                                r#type: "checkbox",
-                                checked: local_config.read().compress_backups,
-                                onchange: move |evt| {
-                                    local_config.with_mut(|c| c.compress_backups = evt.value() == "true");
+                        // Backup options
+                        div { class: "backup-options-section",
+                            h4 { "Backup Options" }
+                            
+                            div { class: "options-grid",
+                                label { class: "option-item",
+                                    input {
+                                        r#type: "checkbox",
+                                        checked: local_config.read().compress_backups,
+                                        onchange: move |evt| {
+                                            local_config.with_mut(|c| c.compress_backups = evt.value() == "true");
+                                        }
+                                    }
+                                    span { "Compress backups (saves space)" }
                                 }
-                            }
-                            "Compress backups (recommended - saves space)"
-                        }
-                        
-                        label { class: "config-option",
-                            input {
-                                r#type: "checkbox",
-                                checked: local_config.read().include_hidden_files,
-                                onchange: move |evt| {
-                                    local_config.with_mut(|c| c.include_hidden_files = evt.value() == "true");
+                                
+                                label { class: "option-item",
+                                    input {
+                                        r#type: "checkbox",
+                                        checked: local_config.read().include_hidden_files,
+                                        onchange: move |evt| {
+                                            local_config.with_mut(|c| c.include_hidden_files = evt.value() == "true");
+                                        }
+                                    }
+                                    span { "Include hidden files and folders" }
                                 }
-                            }
-                            "Include hidden files and folders"
-                        }
-                        
-                        div { class: "config-option number-option",
-                            label { "Maximum backups to keep:" }
-                            input {
-                                r#type: "number",
-                                value: "{local_config.read().max_backups}",
-                                min: "1",
-                                max: "20",
-                                onchange: move |evt| {
-                                    if let Ok(value) = evt.value().parse::<usize>() {
-                                        local_config.with_mut(|c| c.max_backups = value);
+                                
+                                div { class: "option-item number-option",
+                                    label { "Maximum backups to keep:" }
+                                    input {
+                                        r#type: "number",
+                                        value: "{local_config.read().max_backups}",
+                                        min: "1",
+                                        max: "50",
+                                        onchange: move |evt| {
+                                            if let Ok(value) = evt.value().parse::<usize>() {
+                                                local_config.with_mut(|c| c.max_backups = value);
+                                            }
+                                        }
                                     }
                                 }
                             }
@@ -539,22 +634,153 @@ fn SimplifiedBackupDialog(
                     
                     button { 
                         class: "create-backup-button",
-                        disabled: local_config.read().selected_items.is_empty(),
+                        disabled: *scanning.read() || local_config.read().selected_items.is_empty(),
                         onclick: move |_| {
                             onupdate.call(local_config.read().clone());
                             oncreate.call(());
-                            onclose.call(());
                         },
                         {
-                            let count = local_config.read().selected_items.len();
-                            if count == 0 {
-                                "Select folders first".to_string()
+                            if *scanning.read() {
+                                "Scanning...".to_string()
                             } else {
-                                format!("Create Backup ({} folders)", count)
+                                let count = local_config.read().selected_items.len();
+                                if count == 0 {
+                                    "Select folders first".to_string()
+                                } else {
+                                    format!("Create Backup ({} folders)", count)
+                                }
                             }
                         }
                     }
                 }
+            }
+        }
+    }
+}
+
+// Add this helper function to scan installation folders
+async fn scan_installation_folders(installation_path: &std::path::Path) -> Result<Vec<(String, String, bool, bool)>, String> {
+    debug!("Scanning installation directory: {:?}", installation_path);
+    
+    if !installation_path.exists() {
+        return Err("Installation directory does not exist".to_string());
+    }
+    
+    let mut folders = Vec::new();
+    
+    let entries = std::fs::read_dir(installation_path)
+        .map_err(|e| format!("Failed to read installation directory: {}", e))?;
+    
+    for entry in entries {
+        let entry = entry.map_err(|e| format!("Failed to read directory entry: {}", e))?;
+        let path = entry.path();
+        
+        // Only include directories, skip files
+        if !path.is_dir() {
+            continue;
+        }
+        
+        let name = entry.file_name().to_string_lossy().to_string();
+        
+        // Skip the backups folder itself to avoid recursive backups
+        if name == "backups" {
+            continue;
+        }
+        
+        // Skip system/temporary folders
+        if should_skip_folder(&name) {
+            continue;
+        }
+        
+        let (description, is_important, default_selected) = get_folder_info(&name);
+        
+        folders.push((name, description, is_important, default_selected));
+    }
+    
+    // Sort by importance first, then alphabetically
+    folders.sort_by(|a, b| {
+        // Important folders first
+        match (a.2, b.2) {
+            (true, false) => std::cmp::Ordering::Less,
+            (false, true) => std::cmp::Ordering::Greater,
+            _ => a.0.cmp(&b.0), // Then alphabetically
+        }
+    });
+    
+    debug!("Found {} folders in installation", folders.len());
+    Ok(folders)
+}
+
+fn should_skip_folder(name: &str) -> bool {
+    // Skip system files, temp files, and certain game files that shouldn't be backed up
+    let skip_patterns = [
+        "natives",           // Native libraries
+        "versions",          // Minecraft versions (usually symlinked)
+        "libraries",         // Minecraft libraries (usually symlinked)
+        "assets",           // Minecraft assets (usually symlinked)
+        "crash-reports",    // Crash reports (usually don't need backup)
+        "logs",             // Log files (usually don't need backup)
+        "temp",             // Temporary files
+        "cache",            // Cache directories
+    ];
+    
+    skip_patterns.iter().any(|pattern| name == *pattern) || 
+    name.starts_with("tmp_") || 
+    name.ends_with(".tmp")
+}
+
+fn get_folder_info(name: &str) -> (String, bool, bool) {
+    match name {
+        // Critical/Important folders (always default selected)
+        "wynntils" => (
+            "Wynntils mod configuration and data - CRITICAL for settings".to_string(),
+            true, true
+        ),
+        "config" => (
+            "Game and mod configuration files - Important for settings".to_string(),
+            true, true
+        ),
+        "mods" => (
+            "Mod files - Usually managed by installer but good to backup".to_string(),
+            true, true
+        ),
+        
+        // World data folders (default selected due to importance)
+        ".bobby" => (
+            "Bobby mod world cache data - Contains downloaded world chunks".to_string(),
+            false, true
+        ),
+        "Distant_Horizons_server_data" => (
+            "Distant Horizons world data - Contains LOD world information".to_string(),
+            false, true
+        ),
+        
+        // Resource folders (default selected)
+        "resourcepacks" => (
+            "Resource pack files - Visual modifications".to_string(),
+            false, true
+        ),
+        "shaderpacks" => (
+            "Shader pack files - Visual effects and lighting".to_string(),
+            false, true
+        ),
+        
+        // Folders that start with dots (usually mod data)
+        name if name.starts_with('.') => {
+            if name == ".fabric" || name == ".quilt" {
+                ("Mod loader cache - Can be regenerated".to_string(), false, false)
+            } else {
+                (format!("Mod data folder - {}", name), false, false)
+            }
+        },
+        
+        // Generic handling for unknown folders
+        _ => {
+            // Check if it looks like a mod folder
+            if name.contains("_") || name.contains("-") {
+                (format!("Mod data folder - {}", name), false, false)
+            } else {
+                (format!("Custom folder - {}", name), false, false)
             }
         }
     }
