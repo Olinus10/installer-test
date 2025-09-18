@@ -632,6 +632,7 @@ rsx! {
                                                                     let mut sorted_backups = backups.clone();
                                                                     sorted_backups.sort_by(|a, b| b.created_at.cmp(&a.created_at));
                                                                     
+                                                                    // Delete backups one by one (since delete_backup is async)
                                                                     for backup in sorted_backups.iter().skip(3) {
                                                                         if backup.created_at < cutoff {
                                                                             match installation_clone.delete_backup(&backup.id).await {
