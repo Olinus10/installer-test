@@ -1,11 +1,7 @@
 use dioxus::prelude::*;
 use crate::installation::{Installation, delete_installation};
 use crate::backup::{BackupConfig, BackupType, BackupMetadata, BackupProgress};
-use log::{debug, error};
-use std::path::PathBuf;
-
-use crate::warn;
-use log::warn;
+use log::{debug, error, warn};
 
 #[component]
 pub fn SettingsTab(
@@ -373,7 +369,8 @@ rsx! {
                 }
             }
             
-{if *show_backup_section.read() {
+            // Fixed: Use proper conditional rendering for backup section
+            {if *show_backup_section.read() {
                 rsx! {
                     div { class: "backup-expanded-section",
                         // Quick backup creation
@@ -432,414 +429,247 @@ rsx! {
                         }
                         
                         // Available backups list
-// Available backups list
-div { class: "backup-list-section",
-    h5 { "Available Backups ({available_backups.read().len()})" }
-    
-    {if available_backups.read().is_empty() {
-        rsx! {
-            div { class: "no-backups-mini",
-                "No backups available. Create your first backup above."
-            }
-        }
-    } else {
-        // Add state for showing all backups
-        let mut show_all_backups = use_signal(|| false);
-        let total_backups = available_backups.read().len();
-        let display_count = if *show_all_backups.read() { total_backups } else { 3 };
-        
-        rsx! {
-            div { class: "backups-list-mini",
-                {available_backups.read().iter().take(display_count).enumerate().map(|(index, backup)| {
-                    let backup_id = backup.id.clone();
-                    let is_selected = selected_backup.read().as_ref() == Some(&backup_id);
-                    let age_desc = backup.age_description();
-                    let formatted_size = backup.formatted_size();
-                    let backup_desc = backup.description.clone();
-                    let backup_type_badge = match backup.backup_type {
-                        crate::backup::BackupType::Manual => "Manual",
-                        crate::backup::BackupType::PreUpdate => "Pre-Update", 
-                        crate::backup::BackupType::PreInstall => "Pre-Install",
-                        crate::backup::BackupType::Scheduled => "Scheduled",
-                    };
-                    
-                    rsx! {
-                        div { 
-                            key: "{backup_id}",
-                            class: if is_selected {
-                                "backup-item-mini selected"
-                            } else {
-                                "backup-item-mini"
-                            },
-                            onclick: move |_| {
-                                if is_selected {
-                                    selected_backup.set(None);
-                                } else {
-                                    selected_backup.set(Some(backup_id.clone()));
-                                }
-                            },
+                        div { class: "backup-list-section",
+                            h5 { "Available Backups ({available_backups.read().len()})" }
                             
-                            div { class: "backup-info-mini",
-                                div { class: "backup-header-mini",
-                                    div { class: "backup-name", "{backup_desc}" }
-                                    span { 
-                                        class: "backup-type-badge",
-                                        style: match backup.backup_type {
-                                            crate::backup::BackupType::Manual => "background: #28a745; color: white;",
-                                            crate::backup::BackupType::PreUpdate => "background: #ffc107; color: black;",
-                                            crate::backup::BackupType::PreInstall => "background: #17a2b8; color: white;",
-                                            crate::backup::BackupType::Scheduled => "background: #6f42c1; color: white;",
-                                        },
-                                        "{backup_type_badge}"
-                                    }
-                                }
-                                div { class: "backup-meta", 
-                                    "{age_desc} • {formatted_size}"
-                                }
-                                
-                                // Show more details when selected
-                                {if is_selected {
-                                    rsx! {
-                                        div { class: "backup-details-mini",
-                                            div { class: "backup-detail-row",
-                                                span { class: "detail-label", "Version:" }
-                                                span { class: "detail-value", "{backup.modpack_version}" }
-                                            }
-                                            div { class: "backup-detail-row",
-                                                span { class: "detail-label", "Features:" }
-                                                span { class: "detail-value", "{backup.enabled_features.len()}" }
-                                            }
-                                            div { class: "backup-detail-row",
-                                                span { class: "detail-label", "Files:" }
-                                                span { class: "detail-value", "{backup.file_count}" }
-                                            }
-                                        }
-                                    }
-                                } else {
-                                    rsx! { span {} }
-                                }}
-                            }
-                            
-                            {if is_selected {
+                            {if available_backups.read().is_empty() {
                                 rsx! {
-                                    div { class: "backup-actions-mini",
-                                        button {
-                                            class: "restore-button-mini",
-                                            onclick: move |evt| {
-                                                evt.stop_propagation();
-                                                show_restore_confirm.set(true);
-                                            },
-                                            "Restore"
-                                        }
-                                        
-                                        button {
-                                            class: "delete-backup-button-mini",
-                                            onclick: move |evt| {
-                                                evt.stop_propagation();
-                                                // Add confirmation for backup deletion
-                                                let backup_id_for_delete = backup_id.clone();
-                                                let installation_clone = installation.clone();
-                                                let mut available_backups_clone = available_backups.clone();
-                                                let mut operation_error_clone = operation_error.clone();
-                                                
-                                                spawn(async move {
-                                                    match installation_clone.delete_backup(&backup_id_for_delete).await {
-                                                        Ok(_) => {
-                                                            // Refresh backup list
-                                                            if let Ok(backups) = installation_clone.list_available_backups() {
-                                                                available_backups_clone.set(backups);
+                                    div { class: "no-backups-mini",
+                                        "No backups available. Create your first backup above."
+                                    }
+                                }
+                            } else {
+                                // Add state for showing all backups
+                                let mut show_all_backups = use_signal(|| false);
+                                let total_backups = available_backups.read().len();
+                                let display_count = if *show_all_backups.read() { total_backups } else { 3 };
+                                
+                                rsx! {
+                                    div { class: "backups-list-mini",
+                                        {available_backups.read().iter().take(display_count).enumerate().map(|(index, backup)| {
+                                            let backup_id = backup.id.clone();
+                                            let is_selected = selected_backup.read().as_ref() == Some(&backup_id);
+                                            let age_desc = backup.age_description();
+                                            let formatted_size = backup.formatted_size();
+                                            let backup_desc = backup.description.clone();
+                                            let backup_type_badge = match backup.backup_type {
+                                                crate::backup::BackupType::Manual => "Manual",
+                                                crate::backup::BackupType::PreUpdate => "Pre-Update", 
+                                                crate::backup::BackupType::PreInstall => "Pre-Install",
+                                                crate::backup::BackupType::Scheduled => "Scheduled",
+                                            };
+                                            
+                                            rsx! {
+                                                div { 
+                                                    key: "{backup_id}",
+                                                    class: if is_selected {
+                                                        "backup-item-mini selected"
+                                                    } else {
+                                                        "backup-item-mini"
+                                                    },
+                                                    onclick: move |_| {
+                                                        if is_selected {
+                                                            selected_backup.set(None);
+                                                        } else {
+                                                            selected_backup.set(Some(backup_id.clone()));
+                                                        }
+                                                    },
+                                                    
+                                                    div { class: "backup-info-mini",
+                                                        div { class: "backup-header-mini",
+                                                            div { class: "backup-name", "{backup_desc}" }
+                                                            span { 
+                                                                class: "backup-type-badge",
+                                                                style: match backup.backup_type {
+                                                                    crate::backup::BackupType::Manual => "background: #28a745; color: white;",
+                                                                    crate::backup::BackupType::PreUpdate => "background: #ffc107; color: black;",
+                                                                    crate::backup::BackupType::PreInstall => "background: #17a2b8; color: white;",
+                                                                    crate::backup::BackupType::Scheduled => "background: #6f42c1; color: white;",
+                                                                },
+                                                                "{backup_type_badge}"
                                                             }
+                                                        }
+                                                        div { class: "backup-meta", 
+                                                            "{age_desc} • {formatted_size}"
+                                                        }
+                                                        
+                                                        // Show more details when selected
+                                                        {if is_selected {
+                                                            rsx! {
+                                                                div { class: "backup-details-mini",
+                                                                    div { class: "backup-detail-row",
+                                                                        span { class: "detail-label", "Version:" }
+                                                                        span { class: "detail-value", "{backup.modpack_version}" }
+                                                                    }
+                                                                    div { class: "backup-detail-row",
+                                                                        span { class: "detail-label", "Features:" }
+                                                                        span { class: "detail-value", "{backup.enabled_features.len()}" }
+                                                                    }
+                                                                    div { class: "backup-detail-row",
+                                                                        span { class: "detail-label", "Files:" }
+                                                                        span { class: "detail-value", "{backup.file_count}" }
+                                                                    }
+                                                                }
+                                                            }
+                                                        } else {
+                                                            rsx! { span {} }
+                                                        }}
+                                                    }
+                                                    
+                                                    {if is_selected {
+                                                        rsx! {
+                                                            div { class: "backup-actions-mini",
+                                                                button {
+                                                                    class: "restore-button-mini",
+                                                                    onclick: move |evt| {
+                                                                        evt.stop_propagation();
+                                                                        show_restore_confirm.set(true);
+                                                                    },
+                                                                    "Restore"
+                                                                }
+                                                                
+                                                                button {
+                                                                    class: "delete-backup-button-mini",
+                                                                    onclick: move |evt| {
+                                                                        evt.stop_propagation();
+                                                                        // Add confirmation for backup deletion
+                                                                        let backup_id_for_delete = backup_id.clone();
+                                                                        let installation_clone = installation.clone();
+                                                                        let mut available_backups_clone = available_backups.clone();
+                                                                        let mut operation_error_clone = operation_error.clone();
+                                                                        
+                                                                        spawn(async move {
+                                                                            match installation_clone.delete_backup(&backup_id_for_delete).await {
+                                                                                Ok(_) => {
+                                                                                    // Refresh backup list
+                                                                                    if let Ok(backups) = installation_clone.list_available_backups() {
+                                                                                        available_backups_clone.set(backups);
+                                                                                    }
+                                                                                },
+                                                                                Err(e) => {
+                                                                                    operation_error_clone.set(Some(format!("Failed to delete backup: {}", e)));
+                                                                                }
+                                                                            }
+                                                                        });
+                                                                    },
+                                                                    style: "background: #dc3545; color: white; margin-left: 8px;",
+                                                                    "Delete"
+                                                                }
+                                                            }
+                                                        }
+                                                    } else {
+                                                        rsx! { span {} }
+                                                    }}
+                                                }
+                                            }
+                                        })}
+                                        
+                                        // Show More/Less button
+                                        {if total_backups > 3 {
+                                            let remaining_count = total_backups - 3;
+                                            rsx! {
+                                                div { class: "backup-show-more",
+                                                    button {
+                                                        class: "backup-expand-button",
+                                                        onclick: move |_| {
+                                                            let current_state = *show_all_backups.read();
+                                                            show_all_backups.set(!current_state);
                                                         },
-                                                        Err(e) => {
-                                                            operation_error_clone.set(Some(format!("Failed to delete backup: {}", e)));
+                                                        
+                                                        if *show_all_backups.read() {
+                                                            "▲ Show Less"
+                                                        } else {
+                                                            "▼ Show {remaining_count} More Backups"
                                                         }
                                                     }
-                                                });
-                                            },
-                                            style: "background: #dc3545; color: white; margin-left: 8px;",
-                                            "Delete"
-                                        }
-                                    }
-                                }
-                            } else {
-                                rsx! { span {} }
-                            }}
-                        }
-                    }
-                })}
-                
-                // Show More/Less button
-                {if total_backups > 3 {
-                    let remaining_count = total_backups - 3;
-                    rsx! {
-                        div { class: "backup-show-more",
-                            button {
-                                class: "backup-expand-button",
-                                onclick: move |_| {
-                                    let current_state = *show_all_backups.read();
-                                    show_all_backups.set(!current_state);
-                                },
-                                
-                                if *show_all_backups.read() {
-                                    "▲ Show Less"
-                                } else {
-                                    "▼ Show {remaining_count} More Backups"
-                                }
-                            }
-                        }
-                    }
-                } else {
-                    rsx! { span {} }
-                }}
-            }
-        }
-    }}
-}
-    div { class: "backup-section-header",
-        h5 { "Available Backups" }
-        
-        // Show backup statistics
-        {if !available_backups.read().is_empty() {
-            let total_size: u64 = available_backups.read().iter().map(|b| b.size_bytes).sum();
-            let formatted_total_size = crate::backup::format_bytes(total_size);
-            
-            rsx! {
-                div { class: "backup-stats",
-                    span { class: "backup-count", "{available_backups.read().len()} backups" }
-                    span { class: "backup-separator", "•" }
-                    span { class: "backup-total-size", "{formatted_total_size} total" }
-                }
-            }
-        } else {
-        // Add state for showing all backups
-        let mut show_all_backups = use_signal(|| false);
-        let total_backups = available_backups.read().len();
-        let display_count = if *show_all_backups.read() { total_backups } else { 3 };
-
-{if available_backups.read().len() > 5 {
-    rsx! {
-        div { class: "backup-bulk-actions",
-            details {
-                summary { "Bulk Actions" }
-                div { class: "bulk-actions-content",
-                    button {
-                        class: "bulk-action-button cleanup-old",
-                        onclick: move |_| {
-                            let installation_clone = installation.clone();
-                            let mut available_backups_clone = available_backups.clone();
-                            let mut operation_error_clone = operation_error.clone();
-                            
-                            spawn(async move {
-                                // Clean up backups older than 30 days, keeping at least 3
-                                let backups = match installation_clone.list_available_backups() {
-                                    Ok(backups) => backups,
-                                    Err(e) => {
-                                        operation_error_clone.set(Some(format!("Failed to load backups: {}", e)));
-                                        return;
-                                    }
-                                };
-                                
-                                if backups.len() <= 3 {
-                                    operation_error_clone.set(Some("Cannot cleanup - keeping minimum of 3 backups".to_string()));
-                                    return;
-                                }
-                                
-                                let cutoff = chrono::Utc::now() - chrono::Duration::days(30);
-                                let mut deleted_count = 0;
-                                
-                                // Sort by date and keep newest 3, delete rest that are older than 30 days
-                                let mut sorted_backups = backups.clone();
-                                sorted_backups.sort_by(|a, b| b.created_at.cmp(&a.created_at));
-                                
-                                for backup in sorted_backups.iter().skip(3) {
-                                    if backup.created_at < cutoff {
-                                        match installation_clone.delete_backup(&backup.id).await {
-                                            Ok(_) => deleted_count += 1,
-                                            Err(e) => {
-                                                warn!("Failed to delete backup {}: {}", backup.id, e);
+                                                }
                                             }
-                                        }
+                                        } else {
+                                            rsx! { span {} }
+                                        }}
                                     }
-                                }
-                                
-                                // Refresh the list
-                                if let Ok(updated_backups) = installation_clone.list_available_backups() {
-                                    available_backups_clone.set(updated_backups);
-                                }
-                                
-                                if deleted_count > 0 {
-                                    operation_error_clone.set(Some(format!("Cleaned up {} old backups (30+ days old)", deleted_count)));
-                                } else {
-                                    operation_error_clone.set(Some("No old backups found to clean up".to_string()));
-                                }
-                            });
-                        },
-                        "🧹 Clean Up Old Backups (30+ days)"
-                    }
-                    
-                    p { class: "bulk-action-info",
-                        "Removes backups older than 30 days, keeping at least 3 most recent backups."
-                    }
-                }
-            }
-        }
-    }
-} else {
-    rsx! { span {} }
-}}
-            
-        rsx! {
-            div { class: "backups-list-mini",
-                {available_backups.read().iter().take(display_count).enumerate().map(|(index, backup)| {
-                    let backup_id = backup.id.clone();
-                    let is_selected = selected_backup.read().as_ref() == Some(&backup_id);
-                    let age_desc = backup.age_description();
-                    let formatted_size = backup.formatted_size();
-                    let backup_desc = backup.description.clone();
-                    let backup_type_badge = match backup.backup_type {
-                        crate::backup::BackupType::Manual => "Manual",
-                        crate::backup::BackupType::PreUpdate => "Pre-Update", 
-                        crate::backup::BackupType::PreInstall => "Pre-Install",
-                        crate::backup::BackupType::Scheduled => "Scheduled",
-                    };
-                    
-                    rsx! {
-                        div { 
-                            key: "{backup_id}",
-                            class: if is_selected {
-                                "backup-item-mini selected"
-                            } else {
-                                "backup-item-mini"
-                            },
-                            onclick: move |_| {
-                                if is_selected {
-                                    selected_backup.set(None);
-                                } else {
-                                    selected_backup.set(Some(backup_id.clone()));
-                                }
-                            },
-                            
-                            div { class: "backup-info-mini",
-                                div { class: "backup-header-mini",
-                                    div { class: "backup-name", "{backup_desc}" }
-                                    span { 
-                                        class: "backup-type-badge",
-                                        style: match backup.backup_type {
-                                            crate::backup::BackupType::Manual => "background: #28a745; color: white;",
-                                            crate::backup::BackupType::PreUpdate => "background: #ffc107; color: black;",
-                                            crate::backup::BackupType::PreInstall => "background: #17a2b8; color: white;",
-                                            crate::backup::BackupType::Scheduled => "background: #6f42c1; color: white;",
-                                        },
-                                        "{backup_type_badge}"
-                                    }
-                                }
-                                div { class: "backup-meta", 
-                                    "{age_desc} • {formatted_size}"
-                                }
-                                
-                                // Show more details when selected
-                                {if is_selected {
-                                    rsx! {
-                                        div { class: "backup-details-mini",
-                                            div { class: "backup-detail-row",
-                                                span { class: "detail-label", "Version:" }
-                                                span { class: "detail-value", "{backup.modpack_version}" }
-                                            }
-                                            div { class: "backup-detail-row",
-                                                span { class: "detail-label", "Features:" }
-                                                span { class: "detail-value", "{backup.enabled_features.len()}" }
-                                            }
-                                            div { class: "backup-detail-row",
-                                                span { class: "detail-label", "Files:" }
-                                                span { class: "detail-value", "{backup.file_count}" }
-                                            }
-                                        }
-                                    }
-                                } else {
-                                    rsx! { span {} }
-                                }}
-                            }
-                            
-                            {if is_selected {
-                                rsx! {
-                                    div { class: "backup-actions-mini",
-                                        button {
-                                            class: "restore-button-mini",
-                                            onclick: move |evt| {
-                                                evt.stop_propagation();
-                                                show_restore_confirm.set(true);
-                                            },
-                                            "Restore"
-                                        }
-                                        
-                                        button {
-                                            class: "delete-backup-button-mini",
-                                            onclick: move |evt| {
-                                                evt.stop_propagation();
-                                                // Add confirmation for backup deletion
-                                                let backup_id_for_delete = backup_id.clone();
-                                                let installation_clone = installation.clone();
-                                                let mut available_backups_clone = available_backups.clone();
-                                                let mut operation_error_clone = operation_error.clone();
-                                                
-                                                spawn(async move {
-                                                    match installation_clone.delete_backup(&backup_id_for_delete).await {
-                                                        Ok(_) => {
-                                                            // Refresh backup list
-                                                            if let Ok(backups) = installation_clone.list_available_backups() {
-                                                                available_backups_clone.set(backups);
-                                                            }
-                                                        },
-                                                        Err(e) => {
-                                                            operation_error_clone.set(Some(format!("Failed to delete backup: {}", e)));
+                                    
+                                    // Fixed: Add bulk actions section with proper conditional rendering
+                                    {if available_backups.read().len() > 5 {
+                                        rsx! {
+                                            div { class: "backup-bulk-actions",
+                                                details {
+                                                    summary { "Bulk Actions" }
+                                                    div { class: "bulk-actions-content",
+                                                        button {
+                                                            class: "bulk-action-button cleanup-old",
+                                                            onclick: move |_| {
+                                                                let installation_clone = installation.clone();
+                                                                let mut available_backups_clone = available_backups.clone();
+                                                                let mut operation_error_clone = operation_error.clone();
+                                                                
+                                                                spawn(async move {
+                                                                    // Clean up backups older than 30 days, keeping at least 3
+                                                                    let backups = match installation_clone.list_available_backups() {
+                                                                        Ok(backups) => backups,
+                                                                        Err(e) => {
+                                                                            operation_error_clone.set(Some(format!("Failed to load backups: {}", e)));
+                                                                            return;
+                                                                        }
+                                                                    };
+                                                                    
+                                                                    if backups.len() <= 3 {
+                                                                        operation_error_clone.set(Some("Cannot cleanup - keeping minimum of 3 backups".to_string()));
+                                                                        return;
+                                                                    }
+                                                                    
+                                                                    let cutoff = chrono::Utc::now() - chrono::Duration::days(30);
+                                                                    let mut deleted_count = 0;
+                                                                    
+                                                                    // Sort by date and keep newest 3, delete rest that are older than 30 days
+                                                                    let mut sorted_backups = backups.clone();
+                                                                    sorted_backups.sort_by(|a, b| b.created_at.cmp(&a.created_at));
+                                                                    
+                                                                    for backup in sorted_backups.iter().skip(3) {
+                                                                        if backup.created_at < cutoff {
+                                                                            match installation_clone.delete_backup(&backup.id).await {
+                                                                                Ok(_) => deleted_count += 1,
+                                                                                Err(e) => {
+                                                                                    warn!("Failed to delete backup {}: {}", backup.id, e);
+                                                                                }
+                                                                            }
+                                                                        }
+                                                                    }
+                                                                    
+                                                                    // Refresh the list
+                                                                    if let Ok(updated_backups) = installation_clone.list_available_backups() {
+                                                                        available_backups_clone.set(updated_backups);
+                                                                    }
+                                                                    
+                                                                    if deleted_count > 0 {
+                                                                        operation_error_clone.set(Some(format!("Cleaned up {} old backups (30+ days old)", deleted_count)));
+                                                                    } else {
+                                                                        operation_error_clone.set(Some("No old backups found to clean up".to_string()));
+                                                                    }
+                                                                });
+                                                            },
+                                                            "🧹 Clean Up Old Backups (30+ days)"
+                                                        }
+                                                        
+                                                        p { class: "bulk-action-info",
+                                                            "Removes backups older than 30 days, keeping at least 3 most recent backups."
                                                         }
                                                     }
-                                                });
-                                            },
-                                            style: "background: #dc3545; color: white; margin-left: 8px;",
-                                            "Delete"
+                                                }
+                                            }
                                         }
-                                    }
+                                    } else {
+                                        rsx! { span {} }
+                                    }}
                                 }
-                            } else {
-                                rsx! { span {} }
                             }}
                         }
-                    }
-                })}
-                
-                // Show More/Less button
-                {if total_backups > 3 {
-                    let remaining_count = total_backups - 3;
-                    rsx! {
-                        div { class: "backup-show-more",
-                            button {
-                                class: "backup-expand-button",
-                                onclick: move |_| {
-                                    let current_state = *show_all_backups.read();
-                                    show_all_backups.set(!current_state);
-                                },
-                                
-                                if *show_all_backups.read() {
-                                    "▲ Show Less"
-                                } else {
-                                    "▼ Show {remaining_count} More Backups"
-                                }
-                            }
-                        }
-                    }
-                } else {
-                    rsx! { span {} }
-                }}
-            }
-        }
-    }}
-}
                     }
                 }
             } else {
                 rsx! { span {} }
             }}
+            
             div { class: "advanced-option",
                 div { class: "advanced-option-info",
                     h4 { "Reset Installation Cache" }
@@ -859,143 +689,143 @@ div { class: "backup-list-section",
                     class: "advanced-button reset-cache-button",
                     disabled: *is_operating.read(),
         
-onclick: move |_| {
-    debug!("Reset cache clicked for installation: {}", installation_id_for_cache);
-    is_operating.set(true);
-    
-    let installation_path_for_cache = installation.installation_path.clone();
-    let mut operation_error_clone = operation_error.clone();
-    let mut is_operating_clone = is_operating.clone();
-    let installation_clone_for_async = installation.clone();
-    let onupdate_clone = onupdate.clone();
-    let installation_id_for_cache_async = installation_id_for_cache.clone();
-    
-    spawn(async move {
-        // Load the universal manifest to check can_reset flags
-        let http_client = crate::CachedHttpClient::new();
-        let universal_manifest = match crate::universal::load_universal_manifest(&http_client, None).await {
-            Ok(manifest) => Some(manifest),
-            Err(e) => {
-                error!("Failed to load universal manifest for reset: {}", e);
-                None
-            }
-        };
-        
-        // Standard cache folders (always reset)
-        let mut folders_to_reset = vec![
-            installation_path_for_cache.join("mods"),
-            installation_path_for_cache.join("resourcepacks"),
-            installation_path_for_cache.join("shaderpacks")
-        ];
-        
-        // Add resetable includes/remote includes if manifest is available
-        if let Some(manifest) = universal_manifest {
-            // Check includes
-            for include in &manifest.include {
-                if include.can_reset {
-                    let include_path = installation_path_for_cache.join(&include.location);
-                    if include_path.exists() {
-                        folders_to_reset.push(include_path);
-                        debug!("Added include to reset list: {} (can_reset=true)", include.location);
-                    }
-                }
-            }
-            
-            // Check remote includes
-            for remote in &manifest.remote_include {
-                if remote.can_reset {
-                    let remote_path = if let Some(path) = &remote.path {
-                        installation_path_for_cache.join(path)
-                    } else {
-                        installation_path_for_cache.clone()
-                    };
-                    
-                    if remote_path.exists() && remote_path != installation_path_for_cache {
-                        folders_to_reset.push(remote_path);
-                        debug!("Added remote include to reset list: {} (can_reset=true)", 
-                               remote.name.as_deref().unwrap_or(&remote.id));
-                    }
-                }
-            }
-        }
-        
-        let mut success = true;
-        let mut folders_processed = 0;
-        
-        // Reset all identified folders
-        for folder in &folders_to_reset {
-            if folder.exists() {
-                match std::fs::remove_dir_all(folder) {
-                    Ok(_) => {
-                        if let Err(e) = std::fs::create_dir_all(folder) {
-                            operation_error_clone.set(Some(format!("Failed to recreate folder {}: {}", 
-                                                                   folder.display(), e)));
-                            success = false;
-                            break;
-                        } else {
-                            debug!("Successfully reset folder: {}", folder.display());
-                            folders_processed += 1;
-                        }
+                    onclick: move |_| {
+                        debug!("Reset cache clicked for installation: {}", installation_id_for_cache);
+                        is_operating.set(true);
+                        
+                        let installation_path_for_cache = installation.installation_path.clone();
+                        let mut operation_error_clone = operation_error.clone();
+                        let mut is_operating_clone = is_operating.clone();
+                        let installation_clone_for_async = installation.clone();
+                        let onupdate_clone = onupdate.clone();
+                        let installation_id_for_cache_async = installation_id_for_cache.clone();
+                        
+                        spawn(async move {
+                            // Load the universal manifest to check can_reset flags
+                            let http_client = crate::CachedHttpClient::new();
+                            let universal_manifest = match crate::universal::load_universal_manifest(&http_client, None).await {
+                                Ok(manifest) => Some(manifest),
+                                Err(e) => {
+                                    error!("Failed to load universal manifest for reset: {}", e);
+                                    None
+                                }
+                            };
+                            
+                            // Standard cache folders (always reset)
+                            let mut folders_to_reset = vec![
+                                installation_path_for_cache.join("mods"),
+                                installation_path_for_cache.join("resourcepacks"),
+                                installation_path_for_cache.join("shaderpacks")
+                            ];
+                            
+                            // Add resetable includes/remote includes if manifest is available
+                            if let Some(manifest) = universal_manifest {
+                                // Check includes
+                                for include in &manifest.include {
+                                    if include.can_reset {
+                                        let include_path = installation_path_for_cache.join(&include.location);
+                                        if include_path.exists() {
+                                            folders_to_reset.push(include_path);
+                                            debug!("Added include to reset list: {} (can_reset=true)", include.location);
+                                        }
+                                    }
+                                }
+                                
+                                // Check remote includes
+                                for remote in &manifest.remote_include {
+                                    if remote.can_reset {
+                                        let remote_path = if let Some(path) = &remote.path {
+                                            installation_path_for_cache.join(path)
+                                        } else {
+                                            installation_path_for_cache.clone()
+                                        };
+                                        
+                                        if remote_path.exists() && remote_path != installation_path_for_cache {
+                                            folders_to_reset.push(remote_path);
+                                            debug!("Added remote include to reset list: {} (can_reset=true)", 
+                                                   remote.name.as_deref().unwrap_or(&remote.id));
+                                        }
+                                    }
+                                }
+                            }
+                            
+                            let mut success = true;
+                            let mut folders_processed = 0;
+                            
+                            // Reset all identified folders
+                            for folder in &folders_to_reset {
+                                if folder.exists() {
+                                    match std::fs::remove_dir_all(folder) {
+                                        Ok(_) => {
+                                            if let Err(e) = std::fs::create_dir_all(folder) {
+                                                operation_error_clone.set(Some(format!("Failed to recreate folder {}: {}", 
+                                                                                       folder.display(), e)));
+                                                success = false;
+                                                break;
+                                            } else {
+                                                debug!("Successfully reset folder: {}", folder.display());
+                                                folders_processed += 1;
+                                            }
+                                        },
+                                        Err(e) => {
+                                            operation_error_clone.set(Some(format!("Failed to clear folder {}: {}", 
+                                                                                   folder.display(), e)));
+                                            success = false;
+                                            break;
+                                        }
+                                    }
+                                } else {
+                                    // Create folder if it doesn't exist
+                                    if let Err(e) = std::fs::create_dir_all(folder) {
+                                        operation_error_clone.set(Some(format!("Failed to create folder {}: {}", 
+                                                                               folder.display(), e)));
+                                        success = false;
+                                        break;
+                                    } else {
+                                        folders_processed += 1;
+                                    }
+                                }
+                            }
+                            
+                            // CRITICAL FIX: Also remove the manifest.json to clear installation state
+                            let manifest_path = installation_path_for_cache.join("manifest.json");
+                            if manifest_path.exists() {
+                                if let Err(e) = std::fs::remove_file(&manifest_path) {
+                                    warn!("Failed to remove manifest.json during cache reset: {}", e);
+                                    // Don't fail completely, but warn
+                                } else {
+                                    debug!("Removed manifest.json to reset installation state");
+                                }
+                            }
+                            
+                            is_operating_clone.set(false);
+                            
+                            if success {
+                                // CRITICAL FIX: Mark installation as NOT installed to unlock install button
+                                let mut installation_for_update = installation_clone_for_async.clone();
+                                installation_for_update.installed = false;
+                                installation_for_update.modified = false;
+                                installation_for_update.update_available = false;
+                                installation_for_update.preset_update_available = false;
+                                
+                                // Clear installed features but keep the user's selections
+                                installation_for_update.installed_features.clear();
+                                // Keep pending_features and enabled_features so user doesn't lose their choices
+                                
+                                if let Err(e) = installation_for_update.save() {
+                                    operation_error_clone.set(Some(format!("Failed to update installation state: {}", e)));
+                                } else {
+                                    onupdate_clone.call(installation_for_update);
+                                    
+                                    // Success message
+                                    operation_error_clone.set(Some(format!(
+                                        "Cache successfully reset ({} folders cleared). Installation is now ready for fresh install/restore.", 
+                                        folders_processed
+                                    )));
+                                }
+                            }
+                        });
                     },
-                    Err(e) => {
-                        operation_error_clone.set(Some(format!("Failed to clear folder {}: {}", 
-                                                               folder.display(), e)));
-                        success = false;
-                        break;
-                    }
-                }
-            } else {
-                // Create folder if it doesn't exist
-                if let Err(e) = std::fs::create_dir_all(folder) {
-                    operation_error_clone.set(Some(format!("Failed to create folder {}: {}", 
-                                                           folder.display(), e)));
-                    success = false;
-                    break;
-                } else {
-                    folders_processed += 1;
-                }
-            }
-        }
-        
-        // CRITICAL FIX: Also remove the manifest.json to clear installation state
-        let manifest_path = installation_path_for_cache.join("manifest.json");
-        if manifest_path.exists() {
-            if let Err(e) = std::fs::remove_file(&manifest_path) {
-                warn!("Failed to remove manifest.json during cache reset: {}", e);
-                // Don't fail completely, but warn
-            } else {
-                debug!("Removed manifest.json to reset installation state");
-            }
-        }
-        
-        is_operating_clone.set(false);
-        
-        if success {
-            // CRITICAL FIX: Mark installation as NOT installed to unlock install button
-            let mut installation_for_update = installation_clone_for_async.clone();
-            installation_for_update.installed = false;
-            installation_for_update.modified = false;
-            installation_for_update.update_available = false;
-            installation_for_update.preset_update_available = false;
-            
-            // Clear installed features but keep the user's selections
-            installation_for_update.installed_features.clear();
-            // Keep pending_features and enabled_features so user doesn't lose their choices
-            
-            if let Err(e) = installation_for_update.save() {
-                operation_error_clone.set(Some(format!("Failed to update installation state: {}", e)));
-            } else {
-                onupdate_clone.call(installation_for_update);
-                
-                // Success message
-                operation_error_clone.set(Some(format!(
-                    "Cache successfully reset ({} folders cleared). Installation is now ready for fresh install/restore.", 
-                    folders_processed
-                )));
-            }
-        }
-    });
-},
                     "Reset Cache"
                 }
             }
@@ -1336,81 +1166,86 @@ fn BackupConfigDialog(
                     }
                     
                     // Show different content based on backup mode
-                    if backup_mode.read().as_str() == "complete" {
-                        div { class: "complete-backup-preview",
-                            h5 { "Complete backup will include:" }
-                            div { class: "complete-backup-info",
-                                div { class: "backup-scope-description",
-                                    "✅ All mod and configuration folders"
-                                    br {}
-                                    "✅ Resource packs, shader packs, and screenshots"  
-                                    br {}
-                                    "✅ World data (.bobby, Distant Horizons, saves)"
-                                    br {}
-                                    "✅ Any other custom folders you've added"
-                                    br {}
-                                    "❌ Excludes: logs, crash reports, and temporary files"
+                    {if backup_mode.read().as_str() == "complete" {
+                        rsx! {
+                            div { class: "complete-backup-preview",
+                                h5 { "Complete backup will include:" }
+                                div { class: "complete-backup-info",
+                                    div { class: "backup-scope-description",
+                                        "✅ All mod and configuration folders"
+                                        br {}
+                                        "✅ Resource packs, shader packs, and screenshots"  
+                                        br {}
+                                        "✅ World data (.bobby, Distant Horizons, saves)"
+                                        br {}
+                                        "✅ Any other custom folders you've added"
+                                        br {}
+                                        "❌ Excludes: logs, crash reports, and temporary files"
+                                    }
                                 }
                             }
                         }
                     } else {
-                    }
-                    
-                    div { class: "config-section",
-                        h4 { "Select folders to backup:" }
-                        
-                        // FIXED: Use enhanced folder selection format
-                        div { class: "folder-selection-list",
-                            for folder in important_folders.iter() {
-                                {
-                                    let folder_name = folder.clone();
-                                    let is_selected = local_config.read().selected_items.contains(&folder_name);
-                                    
-                                    rsx! {
-                                        label { 
-                                            class: get_folder_selection_class(folder, is_selected),
-                                            input {
-                                                r#type: "checkbox",
-                                                checked: is_selected,
-                                                onchange: {
-                                                    let folder_name = folder_name.clone();
-                                                    let mut local_config = local_config.clone();
-                                                    
-                                                    move |evt| {
-                                                        let checked = evt.value() == "true";
-                                                        local_config.with_mut(|c| {
-                                                            if checked {
-                                                                if !c.selected_items.contains(&folder_name) {
-                                                                    c.selected_items.push(folder_name.clone());
-                                                                }
-                                                            } else {
-                                                                c.selected_items.retain(|p| p != &folder_name);
-                                                            }
-                                                        });
-                                                    }
-                                                }
-                                            }
+                        rsx! {
+                            div { class: "config-section",
+                                h4 { "Select folders to backup:" }
+                                
+                                // FIXED: Use enhanced folder selection format
+                                div { class: "folder-selection-list",
+                                    for folder in important_folders.iter() {
+                                        {
+                                            let folder_name = folder.clone();
+                                            let is_selected = local_config.read().selected_items.contains(&folder_name);
                                             
-                                            div { class: "folder-selection-content",
-                                                span { class: "folder-icon", "{get_folder_icon(folder)}" }
-                                                span { class: "folder-name", "{folder}" }
-                                                span { class: "folder-description", "{get_folder_description(folder)}" }
-                                                if is_critical_folder(folder) {
-                                                    span { class: "folder-badge critical", "Critical" }
-                                                } else if is_world_data_folder(folder) {
-                                                    span { class: "folder-badge world-data", "World Data" }
+                                            rsx! {
+                                                label { 
+                                                    class: get_folder_selection_class(folder, is_selected),
+                                                    input {
+                                                        r#type: "checkbox",
+                                                        checked: is_selected,
+                                                        onchange: {
+                                                            let folder_name = folder_name.clone();
+                                                            let mut local_config = local_config.clone();
+                                                            
+                                                            move |evt| {
+                                                                let checked = evt.value() == "true";
+                                                                local_config.with_mut(|c| {
+                                                                    if checked {
+                                                                        if !c.selected_items.contains(&folder_name) {
+                                                                            c.selected_items.push(folder_name.clone());
+                                                                        }
+                                                                    } else {
+                                                                        c.selected_items.retain(|p| p != &folder_name);
+                                                                    }
+                                                                });
+                                                            }
+                                                        }
+                                                    }
+                                                    
+                                                    div { class: "folder-selection-content",
+                                                        span { class: "folder-icon", "{get_folder_icon(folder)}" }
+                                                        span { class: "folder-name", "{folder}" }
+                                                        span { class: "folder-description", "{get_folder_description(folder)}" }
+                                                        {if is_critical_folder(folder) {
+                                                            rsx! { span { class: "folder-badge critical", "Critical" } }
+                                                        } else if is_world_data_folder(folder) {
+                                                            rsx! { span { class: "folder-badge world-data", "World Data" } }
+                                                        } else {
+                                                            rsx! { span {} }
+                                                        }}
+                                                    }
                                                 }
                                             }
                                         }
                                     }
                                 }
+                                
+                                div { class: "selection-summary",
+                                    "Selected: {local_config.read().selected_items.len()} of {important_folders.len()} folders"
+                                }
                             }
                         }
-                        
-                        div { class: "selection-summary",
-                            "Selected: {local_config.read().selected_items.len()} of {important_folders.len()} folders"
-                        }
-                    }
+                    }}
                     
                     div { class: "config-section",
                         h4 { "Options:" }
@@ -1457,16 +1292,24 @@ fn BackupConfigDialog(
                     }
                     
                     // Show estimated size
-                    if estimated_size > 0 {
-                        div { class: "estimated-size",
-                            "Estimated backup size: {crate::backup::format_bytes(estimated_size)}"
-                            if local_config.read().compress_backups {
-                                span { class: "compression-note", 
-                                    " (compressed: ~{crate::backup::format_bytes((estimated_size as f64 * 0.65) as u64)})"
-                                }
+                    {if estimated_size > 0 {
+                        rsx! {
+                            div { class: "estimated-size",
+                                "Estimated backup size: {crate::backup::format_bytes(estimated_size)}"
+                                {if local_config.read().compress_backups {
+                                    rsx! {
+                                        span { class: "compression-note", 
+                                            " (compressed: ~{crate::backup::format_bytes((estimated_size as f64 * 0.65) as u64)})"
+                                        }
+                                    }
+                                } else {
+                                    rsx! { span {} }
+                                }}
                             }
                         }
-                    }
+                    } else {
+                        rsx! { span {} }
+                    }}
                 }
                 
                 div { class: "modal-footer",
@@ -1605,43 +1448,51 @@ fn RestoreConfirmDialog(
                 }
                 
                 div { class: "modal-content",
-                    if let Some(error) = &*restore_error.read() {
-                        div { class: "error-notification",
-                            div { class: "error-message", "{error}" }
+                    {if let Some(error) = &*restore_error.read() {
+                        rsx! {
+                            div { class: "error-notification",
+                                div { class: "error-message", "{error}" }
+                            }
                         }
-                    }
+                    } else {
+                        rsx! { span {} }
+                    }}
                     
                     div { class: "warning-message",
                         "⚠️ This will replace your current installation with the backup."
                     }
                     
-                    if let Some(backup) = backup {
-                        div { class: "backup-details",
-                            h4 { "Backup Details:" }
-                            
-                            div { class: "detail-grid",
-                                div { class: "detail-row",
-                                    span { class: "detail-label", "Description:" }
-                                    span { class: "detail-value", "{backup.description}" }
-                                }
+                    {if let Some(backup) = backup {
+                        rsx! {
+                            div { class: "backup-details",
+                                h4 { "Backup Details:" }
                                 
-                                div { class: "detail-row",
-                                    span { class: "detail-label", "Created:" }
-                                    span { class: "detail-value", "{backup.age_description()}" }
-                                }
-                                
-                                div { class: "detail-row",
-                                    span { class: "detail-label", "Version:" }
-                                    span { class: "detail-value", "{backup.modpack_version}" }
-                                }
-                                
-                                div { class: "detail-row",
-                                    span { class: "detail-label", "Features:" }
-                                    span { class: "detail-value", "{backup.enabled_features.len()}" }
+                                div { class: "detail-grid",
+                                    div { class: "detail-row",
+                                        span { class: "detail-label", "Description:" }
+                                        span { class: "detail-value", "{backup.description}" }
+                                    }
+                                    
+                                    div { class: "detail-row",
+                                        span { class: "detail-label", "Created:" }
+                                        span { class: "detail-value", "{backup.age_description()}" }
+                                    }
+                                    
+                                    div { class: "detail-row",
+                                        span { class: "detail-label", "Version:" }
+                                        span { class: "detail-value", "{backup.modpack_version}" }
+                                    }
+                                    
+                                    div { class: "detail-row",
+                                        span { class: "detail-label", "Features:" }
+                                        span { class: "detail-value", "{backup.enabled_features.len()}" }
+                                    }
                                 }
                             }
                         }
-                    }
+                    } else {
+                        rsx! { span {} }
+                    }}
                     
                     div { class: "safety-info",
                         "💡 A safety backup will be created automatically before restoring."
@@ -1660,11 +1511,11 @@ fn RestoreConfirmDialog(
                         class: "restore-confirm-button",
                         disabled: *is_restoring.read(),
                         onclick: handle_restore,
-                        if *is_restoring.read() {
+                        {if *is_restoring.read() {
                             "Restoring..."
                         } else {
                             "Restore Backup"
-                        }
+                        }}
                     }
                 }
             }
