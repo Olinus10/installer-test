@@ -453,23 +453,23 @@ fn SimplifiedBackupDialog(
     });
     
     // Update selection when backup mode changes
-    let handle_mode_change = move |mode: &str| {
-        backup_mode.set(mode);
-        local_config.with_mut(|c| {
-            if mode == "complete" {
-                // Select all discovered folders
-                c.selected_items = discovered_folders.read().clone();
-            } else {
-                // Custom mode - select only important folders by default
-                c.selected_items.clear();
-                for folder in discovered_folders.read().iter() {
-                    if is_important_folder(folder) {
-                        c.selected_items.push(folder.clone());
-                    }
+let mut handle_mode_change = move |mode: String| {
+    backup_mode.set(&mode);
+    local_config.with_mut(|c| {
+        if mode == "complete" {
+            // Select all discovered folders
+            c.selected_items = discovered_folders.read().clone();
+        } else {
+            // Custom mode - select only important folders by default
+            c.selected_items.clear();
+            for folder in discovered_folders.read().iter() {
+                if is_important_folder(folder) {
+                    c.selected_items.push(folder.clone());
                 }
             }
-        });
-    };
+        }
+    });
+};
     
     rsx! {
         div { class: "modal-overlay",
@@ -509,7 +509,7 @@ fn SimplifiedBackupDialog(
                                         name: "backup-mode",
                                         value: "complete",
                                         checked: *backup_mode.read() == "complete",
-                                        onchange: move |_| handle_mode_change("complete")
+                                        onchange: move |_| handle_mode_change("complete".to_string())
                                     }
                                     div { class: "mode-content",
                                         div { class: "mode-title", "📦 Complete Backup" }
@@ -530,7 +530,7 @@ fn SimplifiedBackupDialog(
                                         name: "backup-mode", 
                                         value: "custom",
                                         checked: *backup_mode.read() == "custom",
-                                        onchange: move |_| handle_mode_change("custom")
+                                        onchange: move |_| handle_mode_change("custom".to_string())
                                     }
                                     div { class: "mode-content",
                                         div { class: "mode-title", "⚙️ Custom Backup" }
