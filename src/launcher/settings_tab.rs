@@ -431,6 +431,167 @@ rsx! {
                         // Available backups list
 // Available backups list
 div { class: "backup-list-section",
+    h5 { "Available Backups ({available_backups.read().len()})" }
+    
+    {if available_backups.read().is_empty() {
+        rsx! {
+            div { class: "no-backups-mini",
+                "No backups available. Create your first backup above."
+            }
+        }
+    } else {
+        // Add state for showing all backups
+        let mut show_all_backups = use_signal(|| false);
+        let total_backups = available_backups.read().len();
+        let display_count = if *show_all_backups.read() { total_backups } else { 3 };
+        
+        rsx! {
+            div { class: "backups-list-mini",
+                {available_backups.read().iter().take(display_count).enumerate().map(|(index, backup)| {
+                    let backup_id = backup.id.clone();
+                    let is_selected = selected_backup.read().as_ref() == Some(&backup_id);
+                    let age_desc = backup.age_description();
+                    let formatted_size = backup.formatted_size();
+                    let backup_desc = backup.description.clone();
+                    let backup_type_badge = match backup.backup_type {
+                        crate::backup::BackupType::Manual => "Manual",
+                        crate::backup::BackupType::PreUpdate => "Pre-Update", 
+                        crate::backup::BackupType::PreInstall => "Pre-Install",
+                        crate::backup::BackupType::Scheduled => "Scheduled",
+                    };
+                    
+                    rsx! {
+                        div { 
+                            key: "{backup_id}",
+                            class: if is_selected {
+                                "backup-item-mini selected"
+                            } else {
+                                "backup-item-mini"
+                            },
+                            onclick: move |_| {
+                                if is_selected {
+                                    selected_backup.set(None);
+                                } else {
+                                    selected_backup.set(Some(backup_id.clone()));
+                                }
+                            },
+                            
+                            div { class: "backup-info-mini",
+                                div { class: "backup-header-mini",
+                                    div { class: "backup-name", "{backup_desc}" }
+                                    span { 
+                                        class: "backup-type-badge",
+                                        style: match backup.backup_type {
+                                            crate::backup::BackupType::Manual => "background: #28a745; color: white;",
+                                            crate::backup::BackupType::PreUpdate => "background: #ffc107; color: black;",
+                                            crate::backup::BackupType::PreInstall => "background: #17a2b8; color: white;",
+                                            crate::backup::BackupType::Scheduled => "background: #6f42c1; color: white;",
+                                        },
+                                        "{backup_type_badge}"
+                                    }
+                                }
+                                div { class: "backup-meta", 
+                                    "{age_desc} • {formatted_size}"
+                                }
+                                
+                                // Show more details when selected
+                                {if is_selected {
+                                    rsx! {
+                                        div { class: "backup-details-mini",
+                                            div { class: "backup-detail-row",
+                                                span { class: "detail-label", "Version:" }
+                                                span { class: "detail-value", "{backup.modpack_version}" }
+                                            }
+                                            div { class: "backup-detail-row",
+                                                span { class: "detail-label", "Features:" }
+                                                span { class: "detail-value", "{backup.enabled_features.len()}" }
+                                            }
+                                            div { class: "backup-detail-row",
+                                                span { class: "detail-label", "Files:" }
+                                                span { class: "detail-value", "{backup.file_count}" }
+                                            }
+                                        }
+                                    }
+                                } else {
+                                    rsx! { span {} }
+                                }}
+                            }
+                            
+                            {if is_selected {
+                                rsx! {
+                                    div { class: "backup-actions-mini",
+                                        button {
+                                            class: "restore-button-mini",
+                                            onclick: move |evt| {
+                                                evt.stop_propagation();
+                                                show_restore_confirm.set(true);
+                                            },
+                                            "Restore"
+                                        }
+                                        
+                                        button {
+                                            class: "delete-backup-button-mini",
+                                            onclick: move |evt| {
+                                                evt.stop_propagation();
+                                                // Add confirmation for backup deletion
+                                                let backup_id_for_delete = backup_id.clone();
+                                                let installation_clone = installation.clone();
+                                                let mut available_backups_clone = available_backups.clone();
+                                                let mut operation_error_clone = operation_error.clone();
+                                                
+                                                spawn(async move {
+                                                    match installation_clone.delete_backup(&backup_id_for_delete).await {
+                                                        Ok(_) => {
+                                                            // Refresh backup list
+                                                            if let Ok(backups) = installation_clone.list_available_backups() {
+                                                                available_backups_clone.set(backups);
+                                                            }
+                                                        },
+                                                        Err(e) => {
+                                                            operation_error_clone.set(Some(format!("Failed to delete backup: {}", e)));
+                                                        }
+                                                    }
+                                                });
+                                            },
+                                            style: "background: #dc3545; color: white; margin-left: 8px;",
+                                            "Delete"
+                                        }
+                                    }
+                                }
+                            } else {
+                                rsx! { span {} }
+                            }}
+                        }
+                    }
+                })}
+                
+                // Show More/Less button
+                {if total_backups > 3 {
+                    let remaining_count = total_backups - 3;
+                    rsx! {
+                        div { class: "backup-show-more",
+                            button {
+                                class: "backup-expand-button",
+                                onclick: move |_| {
+                                    let current_state = *show_all_backups.read();
+                                    show_all_backups.set(!current_state);
+                                },
+                                
+                                if *show_all_backups.read() {
+                                    "▲ Show Less"
+                                } else {
+                                    "▼ Show {remaining_count} More Backups"
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    rsx! { span {} }
+                }}
+            }
+        }
+    }}
+}
     div { class: "backup-section-header",
         h5 { "Available Backups" }
         
