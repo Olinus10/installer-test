@@ -1974,11 +1974,12 @@ let metadata = BackupMetadata {
         let cutoff_date = chrono::Utc::now() - chrono::Duration::days(max_age_days as i64);
         
         let mut cleaned_count = 0;
+        let total_backups = backups.len(); // Store the length before iterating
         
-        for backup in backups {
+        for backup in &backups { // Use reference to avoid moving backups
             if backup.created_at < cutoff_date {
                 // Don't delete the most recent backup even if it's old
-                if cleaned_count == 0 && backups.len() == 1 {
+                if cleaned_count == 0 && total_backups == 1 {
                     continue;
                 }
                 
