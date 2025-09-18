@@ -362,7 +362,7 @@ pub fn EnhancedBackupTab(
 if *show_backup_config.read() {
     SimplifiedBackupDialog {
         config: backup_config,
-        installation: installation.clone(), // Add this line
+        installation: installation.clone(),
         onclose: move |_| show_backup_config.set(false),
         onupdate: move |new_config: BackupConfig| {
             backup_config.set(new_config);
