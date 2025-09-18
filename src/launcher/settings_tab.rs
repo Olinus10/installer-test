@@ -853,6 +853,7 @@ fn BackupConfigDialog(
     onupdate: EventHandler<crate::backup::BackupConfig>,
 ) -> Element {
     let mut local_config = use_signal(|| config.read().clone());
+    let mut backup_mode = use_signal(|| "custom".to_string()); // Start with custom mode
     
     // FIXED: Use the same important_folders array as SimplifiedBackupDialog
     let important_folders = vec![
@@ -862,6 +863,22 @@ fn BackupConfigDialog(
         ".bobby".to_string(),
         "Distant_Horizons_server_data".to_string(),
     ];
+    
+    // Initialize with pre-selected critical folders
+    use_effect({
+        let mut local_config = local_config.clone();
+        
+        move || {
+            let pre_selected = vec![
+                "wynntils".to_string(),
+                "config".to_string(),
+                "mods".to_string(),
+            ];
+            local_config.with_mut(|c| {
+                c.selected_items = pre_selected;
+            });
+        }
+    });
     
     rsx! {
         div { class: "modal-overlay",
@@ -876,6 +893,101 @@ fn BackupConfigDialog(
                 }
                 
                 div { class: "modal-content",
+                    // FIXED: Add backup mode selection section
+                    div { class: "backup-mode-section",
+                        h4 { "Backup Type" }
+                        
+                        div { class: "backup-mode-options",
+                            label { 
+                                class: if backup_mode.read().as_str() == "complete" { 
+                                    "backup-mode-option selected" 
+                                } else { 
+                                    "backup-mode-option" 
+                                },
+                                input {
+                                    r#type: "radio",
+                                    name: "backup-mode",
+                                    value: "complete",
+                                    checked: backup_mode.read().as_str() == "complete",
+                                    onchange: {
+                                        let mut local_config = local_config.clone();
+                                        let mut backup_mode = backup_mode.clone();
+                                        
+                                        move |_| {
+                                            backup_mode.set("complete".to_string());
+                                            local_config.with_mut(|c| {
+                                                c.selected_items = vec!["*".to_string()]; // Special marker for complete backup
+                                            });
+                                        }
+                                    }
+                                }
+                                div { class: "mode-content",
+                                    div { class: "mode-title", "📦 Complete Backup" }
+                                    div { class: "mode-description", 
+                                        "Backs up everything in your installation folder"
+                                    }
+                                }
+                            }
+                            
+                            label { 
+                                class: if backup_mode.read().as_str() == "custom" { 
+                                    "backup-mode-option selected" 
+                                } else { 
+                                    "backup-mode-option" 
+                                },
+                                input {
+                                    r#type: "radio",
+                                    name: "backup-mode", 
+                                    value: "custom",
+                                    checked: backup_mode.read().as_str() == "custom",
+                                    onchange: {
+                                        let mut local_config = local_config.clone();
+                                        let mut backup_mode = backup_mode.clone();
+                                        
+                                        move |_| {
+                                            backup_mode.set("custom".to_string());
+                                            let selected = vec![
+                                                "wynntils".to_string(),
+                                                "config".to_string(),
+                                                "mods".to_string(),
+                                            ];
+                                            local_config.with_mut(|c| {
+                                                c.selected_items = selected; // Pre-select most important ones
+                                            });
+                                        }
+                                    }
+                                }
+                                div { class: "mode-content",
+                                    div { class: "mode-title", "⚙️ Custom Backup" }
+                                    div { class: "mode-description", 
+                                        "Choose which specific folders to include"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    
+                    // Show different content based on backup mode
+                    if backup_mode.read().as_str() == "complete" {
+                        div { class: "complete-backup-preview",
+                            h5 { "Complete backup will include:" }
+                            div { class: "complete-backup-info",
+                                div { class: "backup-scope-description",
+                                    "✅ All mod and configuration folders"
+                                    br {}
+                                    "✅ Resource packs, shader packs, and screenshots"  
+                                    br {}
+                                    "✅ World data (.bobby, Distant Horizons, saves)"
+                                    br {}
+                                    "✅ Any other custom folders you've added"
+                                    br {}
+                                    "❌ Excludes: logs, crash reports, and temporary files"
+                                }
+                            }
+                        }
+                    } else {
+                    }
+                    
                     div { class: "config-section",
                         h4 { "Select folders to backup:" }
                         
@@ -1007,8 +1119,10 @@ fn BackupConfigDialog(
                             let count = local_config.read().selected_items.len();
                             if count == 0 {
                                 "Select folders first".to_string()
+                            } else if backup_mode.read().as_str() == "complete" {
+                                "Save Complete Backup Configuration".to_string()
                             } else {
-                                format!("Save Configuration ({} folders)", count)
+                                format!("Save Custom Backup Configuration ({} folders)", count)
                             }
                         }
                     }
