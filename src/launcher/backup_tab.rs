@@ -703,6 +703,7 @@ fn SimplifiedBackupDialog(
         }
     }
 }
+}
 
 // Helper functions for the known folder list
 fn is_critical_folder(name: &str) -> bool {
