@@ -418,7 +418,7 @@ fn SimplifiedBackupDialog(
     let mut discovered_folders = use_signal(|| Vec::<String>::new()); // Just folder names
     let mut scanning = use_signal(|| true);
     let mut scan_error = use_signal(|| Option::<String>::None);
-    let mut backup_mode = use_signal(|| "complete"); // "complete" or "custom"
+    let mut backup_mode = use_signal(|| "complete".to_string());
     
     // Scan installation directory when component loads
     use_effect({
@@ -499,18 +499,23 @@ let mut handle_mode_change = move |mode: String| {
                             
                             div { class: "backup-mode-options",
                                 label { 
-                                    class: if *backup_mode.read() == "complete" { 
+                                    class: if backup_mode.read().as_str() == "complete" { 
                                         "backup-mode-option selected" 
                                     } else { 
                                         "backup-mode-option" 
                                     },
-                                    input {
-                                        r#type: "radio",
-                                        name: "backup-mode",
-                                        value: "complete",
-                                        checked: *backup_mode.read() == "complete",
-                                        onchange: move |_| handle_mode_change("complete".to_string())
-                                    }
+input {
+    r#type: "radio",
+    name: "backup-mode",
+    value: "complete",
+    checked: backup_mode.read().as_str() == "complete",
+    onchange: move |_| {
+        backup_mode.set("complete".to_string());
+        local_config.with_mut(|c| {
+            c.selected_items = discovered_folders.read().clone();
+        });
+    }
+}
                                     div { class: "mode-content",
                                         div { class: "mode-title", "📦 Complete Backup" }
                                         div { class: "mode-description", 
@@ -525,13 +530,23 @@ let mut handle_mode_change = move |mode: String| {
                                     } else { 
                                         "backup-mode-option" 
                                     },
-                                    input {
-                                        r#type: "radio",
-                                        name: "backup-mode", 
-                                        value: "custom",
-                                        checked: *backup_mode.read() == "custom",
-                                        onchange: move |_| handle_mode_change("custom".to_string())
-                                    }
+input {
+    r#type: "radio",
+    name: "backup-mode", 
+    value: "custom",
+    checked: backup_mode.read().as_str() == "custom",
+    onchange: move |_| {
+        backup_mode.set("custom".to_string());
+        local_config.with_mut(|c| {
+            c.selected_items.clear();
+            for folder in discovered_folders.read().iter() {
+                if is_important_folder(folder) {
+                    c.selected_items.push(folder.clone());
+                }
+            }
+        });
+    }
+}
                                     div { class: "mode-content",
                                         div { class: "mode-title", "⚙️ Custom Backup" }
                                         div { class: "mode-description", 
@@ -542,7 +557,7 @@ let mut handle_mode_change = move |mode: String| {
                             }
                         }
                         
-                        if *backup_mode.read() == "complete" {
+                        if backup_mode.read().as_str() == "complete" {
                             div { class: "complete-backup-preview",
                                 h5 { "Folders that will be backed up:" }
                                 div { class: "folder-preview-list",
@@ -679,7 +694,7 @@ let mut handle_mode_change = move |mode: String| {
                                 let count = local_config.read().selected_items.len();
                                 if count == 0 {
                                     "Select folders first".to_string()
-                                } else if *backup_mode.read() == "complete" {
+                                } else if backup_mode.read().as_str() == "complete" {
                                     format!("Create Complete Backup ({} folders)", count)
                                 } else {
                                     format!("Create Custom Backup ({} folders)", count)
