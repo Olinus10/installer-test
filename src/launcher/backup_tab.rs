@@ -454,7 +454,6 @@ fn SimplifiedBackupDialog(
     // Initialize with complete backup selected
     use_effect({
         let mut local_config = local_config.clone();
-        let important_folders = important_folders.clone();
         let calculate_size = calculate_estimated_size.clone();
         
         move || {
@@ -479,199 +478,197 @@ fn SimplifiedBackupDialog(
                 }
                 
                 div { class: "modal-content",
-                        div { class: "backup-mode-section",
-                            h4 { "Backup Type" }
+                    div { class: "backup-mode-section",
+                        h4 { "Backup Type" }
+                        
+                        div { class: "backup-mode-options",
+                            label { 
+                                class: if backup_mode.read().as_str() == "complete" { 
+                                    "backup-mode-option selected" 
+                                } else { 
+                                    "backup-mode-option" 
+                                },
+                                input {
+                                    r#type: "radio",
+                                    name: "backup-mode",
+                                    value: "complete",
+                                    checked: backup_mode.read().as_str() == "complete",
+                                    onchange: move |_| {
+                                        backup_mode.set("complete".to_string());
+                                        local_config.with_mut(|c| {
+                                            c.selected_items = vec!["*".to_string()]; // Special marker for complete backup
+                                        });
+                                        calculate_estimated_size(&vec!["*".to_string()]);
+                                    }
+                                }
+                                div { class: "mode-content",
+                                    div { class: "mode-title", "📦 Complete Backup" }
+                                    div { class: "mode-description", 
+                                        "Backs up everything in your installation folder"
+                                    }
+                                }
+                            }
                             
-                            div { class: "backup-mode-options",
-                                label { 
-                                    class: if backup_mode.read().as_str() == "complete" { 
-                                        "backup-mode-option selected" 
-                                    } else { 
-                                        "backup-mode-option" 
-                                    },
-                                    input {
-                                        r#type: "radio",
-                                        name: "backup-mode",
-                                        value: "complete",
-                                        checked: backup_mode.read().as_str() == "complete",
-                                        onchange: move |_| {
-                                            backup_mode.set("complete".to_string());
-                                            local_config.with_mut(|c| {
-                                                c.selected_items = discovered_folders.read().clone();
-                                            });
-                                            calculate_estimated_size(&discovered_folders.read());
-                                        }
-                                    }
-                                    div { class: "mode-content",
-                                        div { class: "mode-title", "📦 Complete Backup" }
-                                        div { class: "mode-description", 
-                                            "Backs up everything in your installation folder ({discovered_folders.read().len()} folders found)"
-                                        }
+                            label { 
+                                class: if backup_mode.read().as_str() == "custom" { 
+                                    "backup-mode-option selected" 
+                                } else { 
+                                    "backup-mode-option" 
+                                },
+                                input {
+                                    r#type: "radio",
+                                    name: "backup-mode", 
+                                    value: "custom",
+                                    checked: backup_mode.read().as_str() == "custom",
+                                    onchange: move |_| {
+                                        backup_mode.set("custom".to_string());
+                                        local_config.with_mut(|c| {
+                                            c.selected_items = vec![
+                                                "wynntils".to_string(),
+                                                "config".to_string(),
+                                                "mods".to_string(),
+                                            ]; // Pre-select most important ones
+                                        });
+                                        calculate_estimated_size(&local_config.read().selected_items);
                                     }
                                 }
-                                
-                                label { 
-                                    class: if *backup_mode.read() == "custom" { 
-                                        "backup-mode-option selected" 
-                                    } else { 
-                                        "backup-mode-option" 
-                                    },
-                                    input {
-                                        r#type: "radio",
-                                        name: "backup-mode", 
-                                        value: "custom",
-                                        checked: backup_mode.read().as_str() == "custom",
-                                        onchange: move |_| {
-                                            backup_mode.set("custom".to_string());
-                                            local_config.with_mut(|c| {
-                                                c.selected_items.clear();
-                                                // Pre-select important folders
-                                                for folder in discovered_folders.read().iter() {
-                                                    if is_important_folder(folder) {
-                                                        c.selected_items.push(folder.clone());
-                                                    }
-                                                }
-                                            });
-                                            calculate_estimated_size(&local_config.read().selected_items);
-                                        }
-                                    }
-                                    div { class: "mode-content",
-                                        div { class: "mode-title", "⚙️ Custom Backup" }
-                                        div { class: "mode-description", 
-                                            "Choose which specific folders to include"
-                                        }
+                                div { class: "mode-content",
+                                    div { class: "mode-title", "⚙️ Custom Backup" }
+                                    div { class: "mode-description", 
+                                        "Choose which specific folders to include"
                                     }
                                 }
                             }
                         }
-                        
-                        if backup_mode.read().as_str() == "complete" {
-                            div { class: "complete-backup-preview",
-                                h5 { "Folders that will be backed up:" }
-                                div { class: "folder-preview-list",
-                                    for folder in discovered_folders.read().iter() {
-                                        div { 
-                                            class: get_folder_css_class(folder),
-                                            span { class: "folder-icon", "{get_folder_icon(folder)}" }
-                                            span { class: "folder-name", "{folder}" }
-                                            if is_important_folder(folder) {
-                                                span { class: "folder-badge important", "Important" }
-                                            } else if is_world_data_folder(folder) {
-                                                span { class: "folder-badge world-data", "World Data" }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        } else {
-                            div { class: "custom-backup-selection",
-                                h5 { "Select folders to backup:" }
-                                
-                                div { class: "folder-selection-list",
-                                    for folder in discovered_folders.read().iter() {
-                                        {
-                                            let folder_name = folder.clone();
-                                            let is_selected = local_config.read().selected_items.contains(&folder_name);
-                                            
-                                            rsx! {
-                                                label { 
-                                                    class: get_folder_selection_class(folder, is_selected),
-                                                    input {
-                                                        r#type: "checkbox",
-                                                        checked: is_selected,
-                                                        onchange: move |evt| {
-                                                            let checked = evt.value() == "true";
-                                                            local_config.with_mut(|c| {
-                                                                if checked {
-                                                                    if !c.selected_items.contains(&folder_name) {
-                                                                        c.selected_items.push(folder_name.clone());
-                                                                    }
-                                                                } else {
-                                                                    c.selected_items.retain(|p| p != &folder_name);
-                                                                }
-                                                            });
-                                                            calculate_estimated_size(&local_config.read().selected_items);
-                                                        }
-                                                    }
-                                                    
-                                                    div { class: "folder-selection-content",
-                                                        span { class: "folder-icon", "{get_folder_icon(folder)}" }
-                                                        span { class: "folder-name", "{folder}" }
-                                                        if is_important_folder(folder) {
-                                                            span { class: "folder-badge important", "Important" }
-                                                        } else if is_world_data_folder(folder) {
-                                                            span { class: "folder-badge world-data", "World Data" }
-                                                        }
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                                
-                                div { class: "selection-summary",
-                                    "Selected: {local_config.read().selected_items.len()} of {discovered_folders.read().len()} folders"
-                                }
-                            }
-                        }
-                        
-                        // Show estimated size
-                        if *estimated_size.read() > 0 {
-                            div { class: "estimated-size",
-                                "Estimated backup size: {format_bytes(*estimated_size.read())}"
-                                if local_config.read().compress_backups {
-                                    span { class: "compression-note", 
-                                        " (compressed: ~{format_bytes((*estimated_size.read() as f64 * 0.65) as u64)})"
-                                    }
-                                }
-                            }
-                        }
-                        
-                        // Backup options
-                        div { class: "backup-options-section",
-                            h5 { "Options" }
-                            
-                            div { class: "options-list",
-                                label { class: "option-item",
-                                    input {
-                                        r#type: "checkbox",
-                                        checked: local_config.read().compress_backups,
-                                        onchange: move |evt| {
-                                            local_config.with_mut(|c| c.compress_backups = evt.value() == "true");
-                                        }
-                                    }
-                                    span { "Compress backup (recommended - saves ~35% space)" }
-                                }
-                                
-                                label { class: "option-item",
-                                    input {
-                                        r#type: "checkbox",
-                                        checked: local_config.read().include_hidden_files,
-                                        onchange: move |evt| {
-                                            local_config.with_mut(|c| c.include_hidden_files = evt.value() == "true");
-                                        }
-                                    }
-                                    span { "Include hidden files and folders (.bobby, .minecraft, etc.)" }
-                                }
-                                
-                                div { class: "option-item number-option",
-                                    label { "Keep maximum:" }
-                                    input {
-                                        r#type: "number",
-                                        value: "{local_config.read().max_backups}",
-                                        min: "1",
-                                        max: "50",
-                                        onchange: move |evt| {
-                                            if let Ok(value) = evt.value().parse::<usize>() {
-                                                local_config.with_mut(|c| c.max_backups = value);
-                                            }
-                                        }
-                                    }
-                                    span { "backups" }
-                                }
-                            }
-                        }
+                    }
                     
+                    if backup_mode.read().as_str() == "complete" {
+                        div { class: "complete-backup-preview",
+                            h5 { "Complete backup will include:" }
+                            div { class: "complete-backup-info",
+                                div { class: "backup-scope-description",
+                                    "✅ All mod and configuration folders"
+                                    br {}
+                                    "✅ Resource packs, shader packs, and screenshots"  
+                                    br {}
+                                    "✅ World data (.bobby, Distant Horizons, saves)"
+                                    br {}
+                                    "✅ Any other custom folders you've added"
+                                    br {}
+                                    "❌ Excludes: logs, crash reports, and temporary files"
+                                }
+                            }
+                        }
+                    } else {
+                        div { class: "custom-backup-selection",
+                            h5 { "Select folders to backup:" }
+                            
+                            div { class: "folder-selection-list",
+                                for folder in important_folders.iter() {
+                                    {
+                                        let folder_name = folder.clone();
+                                        let is_selected = local_config.read().selected_items.contains(&folder_name);
+                                        
+                                        rsx! {
+                                            label { 
+                                                class: get_folder_selection_class(folder, is_selected),
+                                                input {
+                                                    r#type: "checkbox",
+                                                    checked: is_selected,
+                                                    onchange: move |evt| {
+                                                        let checked = evt.value() == "true";
+                                                        local_config.with_mut(|c| {
+                                                            if checked {
+                                                                if !c.selected_items.contains(&folder_name) {
+                                                                    c.selected_items.push(folder_name.clone());
+                                                                }
+                                                            } else {
+                                                                c.selected_items.retain(|p| p != &folder_name);
+                                                            }
+                                                        });
+                                                        calculate_estimated_size(&local_config.read().selected_items);
+                                                    }
+                                                }
+                                                
+                                                div { class: "folder-selection-content",
+                                                    span { class: "folder-icon", "{get_folder_icon(folder)}" }
+                                                    span { class: "folder-name", "{folder}" }
+                                                    span { class: "folder-description", "{get_folder_description(folder)}" }
+                                                    if is_critical_folder(folder) {
+                                                        span { class: "folder-badge critical", "Critical" }
+                                                    } else if is_world_data_folder(folder) {
+                                                        span { class: "folder-badge world-data", "World Data" }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            
+                            div { class: "selection-summary",
+                                "Selected: {local_config.read().selected_items.len()} of {important_folders.len()} folders"
+                            }
+                        }
+                    }
+                    
+                    // Show estimated size
+                    if *estimated_size.read() > 0 {
+                        div { class: "estimated-size",
+                            "Estimated backup size: {format_bytes(*estimated_size.read())}"
+                            if local_config.read().compress_backups {
+                                span { class: "compression-note", 
+                                    " (compressed: ~{format_bytes((*estimated_size.read() as f64 * 0.65) as u64)})"
+                                }
+                            }
+                        }
+                    }
+                    
+                    // Backup options
+                    div { class: "backup-options-section",
+                        h5 { "Options" }
+                        
+                        div { class: "options-list",
+                            label { class: "option-item",
+                                input {
+                                    r#type: "checkbox",
+                                    checked: local_config.read().compress_backups,
+                                    onchange: move |evt| {
+                                        local_config.with_mut(|c| c.compress_backups = evt.value() == "true");
+                                    }
+                                }
+                                span { "Compress backup (recommended - saves ~35% space)" }
+                            }
+                            
+                            label { class: "option-item",
+                                input {
+                                    r#type: "checkbox",
+                                    checked: local_config.read().include_hidden_files,
+                                    onchange: move |evt| {
+                                        local_config.with_mut(|c| c.include_hidden_files = evt.value() == "true");
+                                    }
+                                }
+                                span { "Include hidden files and folders (.bobby, .minecraft, etc.)" }
+                            }
+                            
+                            div { class: "option-item number-option",
+                                label { "Keep maximum:" }
+                                input {
+                                    r#type: "number",
+                                    value: "{local_config.read().max_backups}",
+                                    min: "1",
+                                    max: "50",
+                                    onchange: move |evt| {
+                                        if let Ok(value) = evt.value().parse::<usize>() {
+                                            local_config.with_mut(|c| c.max_backups = value);
+                                        }
+                                    }
+                                }
+                                span { "backups" }
+                            }
+                        }
+                    }
+                }
                 
                 div { class: "modal-footer",
                     button { 
@@ -702,7 +699,6 @@ fn SimplifiedBackupDialog(
             }
         }
     }
-}
 }
 
 // Helper functions for the known folder list
