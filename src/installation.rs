@@ -1969,7 +1969,7 @@ let metadata = BackupMetadata {
     }
     
     /// Clean up backups older than a certain age (helper for maintenance)
-    pub fn cleanup_old_backups_by_age(&self, max_age_days: u64) -> Result<usize, String> {
+    pub async fn cleanup_old_backups_by_age(&self, max_age_days: u64) -> Result<usize, String> {
         let backups = self.list_available_backups()?;
         let cutoff_date = chrono::Utc::now() - chrono::Duration::days(max_age_days as i64);
         
