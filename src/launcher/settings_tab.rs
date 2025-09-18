@@ -4,6 +4,9 @@ use crate::backup::{BackupConfig, BackupType, BackupMetadata, BackupProgress};
 use log::{debug, error};
 use std::path::PathBuf;
 
+use crate::warn;
+use log::warn;
+
 #[component]
 pub fn SettingsTab(
     installation: Installation,
