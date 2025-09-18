@@ -1,7 +1,7 @@
 use dioxus::prelude::*;
 use crate::installation::{Installation, delete_installation};
 use crate::backup::{BackupConfig, BackupType, BackupMetadata, BackupProgress};
-use log::{debug, error, warn};
+use log::{debug, error, warn}; // Only import from log, remove the duplicate
 
 #[component]
 pub fn SettingsTab(
@@ -447,7 +447,11 @@ rsx! {
                                 rsx! {
                                     div { class: "backups-list-mini",
                                         {available_backups.read().iter().take(display_count).enumerate().map(|(index, backup)| {
+                                            // Clone all values we need before moving into closures
                                             let backup_id = backup.id.clone();
+                                            let backup_id_for_onclick = backup_id.clone();
+                                            let backup_id_for_delete = backup_id.clone();
+                                            let installation_clone = installation.clone();
                                             let is_selected = selected_backup.read().as_ref() == Some(&backup_id);
                                             let age_desc = backup.age_description();
                                             let formatted_size = backup.formatted_size();
@@ -471,7 +475,7 @@ rsx! {
                                                         if is_selected {
                                                             selected_backup.set(None);
                                                         } else {
-                                                            selected_backup.set(Some(backup_id.clone()));
+                                                            selected_backup.set(Some(backup_id_for_onclick.clone()));
                                                         }
                                                     },
                                                     
@@ -532,17 +536,17 @@ rsx! {
                                                                     class: "delete-backup-button-mini",
                                                                     onclick: move |evt| {
                                                                         evt.stop_propagation();
-                                                                        // Add confirmation for backup deletion
-                                                                        let backup_id_for_delete = backup_id.clone();
-                                                                        let installation_clone = installation.clone();
+                                                                        // Use pre-cloned values
+                                                                        let backup_id_for_async = backup_id_for_delete.clone();
+                                                                        let installation_for_async = installation_clone.clone();
                                                                         let mut available_backups_clone = available_backups.clone();
                                                                         let mut operation_error_clone = operation_error.clone();
                                                                         
                                                                         spawn(async move {
-                                                                            match installation_clone.delete_backup(&backup_id_for_delete).await {
+                                                                            match installation_for_async.delete_backup(&backup_id_for_async).await {
                                                                                 Ok(_) => {
                                                                                     // Refresh backup list
-                                                                                    if let Ok(backups) = installation_clone.list_available_backups() {
+                                                                                    if let Ok(backups) = installation_for_async.list_available_backups() {
                                                                                         available_backups_clone.set(backups);
                                                                                     }
                                                                                 },
@@ -591,6 +595,9 @@ rsx! {
                                     
                                     // Fixed: Add bulk actions section with proper conditional rendering
                                     {if available_backups.read().len() > 5 {
+                                        // Clone installation before moving into closure
+                                        let installation_for_bulk = installation.clone();
+                                        
                                         rsx! {
                                             div { class: "backup-bulk-actions",
                                                 details {
@@ -599,7 +606,7 @@ rsx! {
                                                         button {
                                                             class: "bulk-action-button cleanup-old",
                                                             onclick: move |_| {
-                                                                let installation_clone = installation.clone();
+                                                                let installation_clone = installation_for_bulk.clone();
                                                                 let mut available_backups_clone = available_backups.clone();
                                                                 let mut operation_error_clone = operation_error.clone();
                                                                 
@@ -1010,10 +1017,13 @@ rsx! {
         
         // Backup configuration dialog
         {if *show_backup_config.read() {
+            // Clone installation for the backup config dialog
+            let installation_for_config = installation.clone();
+            
             Some(rsx! {
                 BackupConfigDialog {
                     config: backup_config,
-                    estimated_size: installation.get_backup_size_estimate(&backup_config.read()).unwrap_or(0),
+                    estimated_size: installation_for_config.get_backup_size_estimate(&backup_config.read()).unwrap_or(0),
                     onclose: move |_| show_backup_config.set(false),
                     onupdate: move |new_config: BackupConfig| {
                         backup_config.set(new_config);
