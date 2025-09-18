@@ -415,50 +415,21 @@ fn SimplifiedBackupDialog(
     oncreate: EventHandler<()>,
 ) -> Element {
     let mut local_config = use_signal(|| config.read().clone());
-    let mut discovered_folders = use_signal(|| Vec::<String>::new());
-    let mut scanning = use_signal(|| true);
-    let mut scan_error = use_signal(|| Option::<String>::None);
     let mut backup_mode = use_signal(|| "complete".to_string());
     let mut estimated_size = use_signal(|| 0u64);
     
-    // Scan installation directory when component loads
-    use_effect({
-        let installation_path = installation.installation_path.clone();
-        let mut discovered_folders = discovered_folders.clone();
-        let mut scanning = scanning.clone();
-        let mut scan_error = scan_error.clone();
-        let mut local_config = local_config.clone();
-        let mut estimated_size = estimated_size.clone();
-        
-        move || {
-            let installation_path_clone = installation_path.clone();
-            spawn(async move {
-                match scan_installation_folders_with_size(&installation_path_clone).await {
-                    Ok((folders, total_size)) => {
-                        debug!("Discovered {} folders in installation (total: {})", folders.len(), format_bytes(total_size));
-                        discovered_folders.set(folders.clone());
-                        estimated_size.set(total_size);
-                        
-                        // For complete backup, select all folders
-                        local_config.with_mut(|c| {
-                            c.selected_items = folders.clone();
-                        });
-                        scanning.set(false);
-                    },
-                    Err(e) => {
-                        error!("Failed to scan installation folders: {}", e);
-                        scan_error.set(Some(e));
-                        scanning.set(false);
-                    }
-                }
-            });
-        }
-    });
+    // Define the known important folders
+    let important_folders = vec![
+        "wynntils".to_string(),
+        "config".to_string(), 
+        "mods".to_string(),
+        ".bobby".to_string(),
+        "Distant_Horizons_server_data".to_string(),
+    ];
     
     // Calculate estimated backup size based on selected items
     let calculate_estimated_size = {
         let installation = installation.clone();
-        let discovered_folders = discovered_folders.clone();
         let mut estimated_size = estimated_size.clone();
         
         move |selected_items: &Vec<String>| {
@@ -480,6 +451,21 @@ fn SimplifiedBackupDialog(
         }
     };
     
+    // Initialize with complete backup selected
+    use_effect({
+        let mut local_config = local_config.clone();
+        let important_folders = important_folders.clone();
+        let calculate_size = calculate_estimated_size.clone();
+        
+        move || {
+            local_config.with_mut(|c| {
+                c.selected_items = vec!["*".to_string()]; // Complete backup marker
+            });
+            // Calculate size for complete backup - we'll estimate this
+            calculate_size(&vec!["*".to_string()]);
+        }
+    });
+    
     rsx! {
         div { class: "modal-overlay",
             div { class: "modal-container backup-config-dialog enhanced",
@@ -493,16 +479,6 @@ fn SimplifiedBackupDialog(
                 }
                 
                 div { class: "modal-content",
-                    if *scanning.read() {
-                        div { class: "scanning-indicator",
-                            div { class: "loading-spinner" }
-                            span { "Scanning installation folders..." }
-                        }
-                    } else if let Some(error) = scan_error.read().as_ref() {
-                        div { class: "scan-error",
-                            "⚠️ Failed to scan folders: {error}"
-                        }
-                    } else {
                         div { class: "backup-mode-section",
                             h4 { "Backup Type" }
                             
@@ -695,8 +671,7 @@ fn SimplifiedBackupDialog(
                                 }
                             }
                         }
-                    }
-                }
+                    
                 
                 div { class: "modal-footer",
                     button { 
@@ -707,23 +682,19 @@ fn SimplifiedBackupDialog(
                     
                     button { 
                         class: "create-backup-button",
-                        disabled: *scanning.read() || local_config.read().selected_items.is_empty(),
+                        disabled: local_config.read().selected_items.is_empty(),
                         onclick: move |_| {
                             onupdate.call(local_config.read().clone());
                             oncreate.call(());
                         },
                         {
-                            if *scanning.read() {
-                                "Scanning...".to_string()
+                            let count = local_config.read().selected_items.len();
+                            if count == 0 {
+                                "Select folders first".to_string()
+                            } else if backup_mode.read().as_str() == "complete" {
+                                "Create Complete Backup".to_string()
                             } else {
-                                let count = local_config.read().selected_items.len();
-                                if count == 0 {
-                                    "Select folders first".to_string()
-                                } else if backup_mode.read().as_str() == "complete" {
-                                    format!("Create Complete Backup ({} folders)", count)
-                                } else {
-                                    format!("Create Custom Backup ({} folders)", count)
-                                }
+                                format!("Create Custom Backup ({} folders)", count)
                             }
                         }
                     }
@@ -733,87 +704,15 @@ fn SimplifiedBackupDialog(
     }
 }
 
-// New function to scan installation folders with size calculation
-async fn scan_installation_folders_with_size(installation_path: &std::path::Path) -> Result<(Vec<String>, u64), String> {
-    debug!("Scanning installation directory with size calculation: {:?}", installation_path);
-    
-    if !installation_path.exists() {
-        return Err("Installation directory does not exist".to_string());
-    }
-    
-    let mut folders = Vec::new();
-    let mut total_size = 0u64;
-    
-    let entries = std::fs::read_dir(installation_path)
-        .map_err(|e| format!("Failed to read installation directory: {}", e))?;
-    
-    for entry in entries {
-        let entry = entry.map_err(|e| format!("Failed to read directory entry: {}", e))?;
-        let path = entry.path();
-        
-        // Only include directories, skip files
-        if !path.is_dir() {
-            continue;
-        }
-        
-        let name = entry.file_name().to_string_lossy().to_string();
-        
-        // Skip the backups folder itself and other system folders
-        if should_skip_folder_for_display(&name) {
-            continue;
-        }
-        
-        // Calculate folder size
-        if let Ok(size) = crate::backup::calculate_directory_size(&path) {
-            total_size += size;
-        }
-        
-        folders.push(name);
-    }
-    
-    // Sort: important folders first, then world data, then alphabetically
-    folders.sort_by(|a, b| {
-        let a_priority = get_folder_priority(a);
-        let b_priority = get_folder_priority(b);
-        
-        match a_priority.cmp(&b_priority) {
-            std::cmp::Ordering::Equal => a.cmp(b),
-            other => other,
-        }
-    });
-    
-    debug!("Found {} folders in installation (total size: {})", folders.len(), format_bytes(total_size));
-    Ok((folders, total_size))
-}
-
-// Updated helper functions to be more precise about important folders
-fn is_important_folder(name: &str) -> bool {
-    // Only these are truly important for mod functionality
+// Helper functions for the known folder list
+fn is_critical_folder(name: &str) -> bool {
+    // Critical folders that are essential for mod functionality
     matches!(name, "wynntils" | "config" | "mods")
 }
 
 fn is_world_data_folder(name: &str) -> bool {
     // Folders that contain world-specific data
-    matches!(name, ".bobby" | "Distant_Horizons_server_data" | "saves")
-}
-
-fn get_folder_priority(name: &str) -> u8 {
-    match name {
-        // Critical mod folders (priority 1)
-        "wynntils" => 1,
-        "config" => 1, 
-        "mods" => 1,
-        // World data folders (priority 2) 
-        ".bobby" => 2,
-        "Distant_Horizons_server_data" => 2,
-        "saves" => 2,
-        // Resource folders (priority 3)
-        "resourcepacks" | "shaderpacks" => 3,
-        // Other useful folders (priority 4)
-        "screenshots" => 4,
-        // Everything else (priority 5)
-        _ => 5,
-    }
+    matches!(name, ".bobby" | "Distant_Horizons_server_data")
 }
 
 fn get_folder_icon(name: &str) -> &'static str {
@@ -823,40 +722,24 @@ fn get_folder_icon(name: &str) -> &'static str {
         "mods" => "🧩",
         ".bobby" => "🗺️",
         "Distant_Horizons_server_data" => "🌄",
-        "saves" => "💾",
-        "resourcepacks" => "🎨",
-        "shaderpacks" => "✨", 
-        "screenshots" => "📸",
         _ => "📁",
     }
 }
 
-fn should_skip_folder_for_display(name: &str) -> bool {
-    // Skip system/temp folders and folders that shouldn't be backed up
-    let skip_patterns = [
-        "backups",          // Our backup folder
-    ];
-    
-    skip_patterns.iter().any(|pattern| name == *pattern) || 
-    name.starts_with("tmp_") || 
-    name.ends_with(".tmp") ||
-    name.starts_with(".")  // Skip hidden folders except for important ones
-    && !matches!(name, ".bobby" | ".minecraft")
-}
-
-fn get_folder_css_class(name: &str) -> &'static str {
-    if is_important_folder(name) {
-        "folder-preview-item important"
-    } else if is_world_data_folder(name) {
-        "folder-preview-item world-data"  
-    } else {
-        "folder-preview-item"
+fn get_folder_description(name: &str) -> &'static str {
+    match name {
+        "wynntils" => "Wynntils mod settings and data",
+        "config" => "Mod configuration files",
+        "mods" => "Installed mod files",
+        ".bobby" => "Bobby world cache data",
+        "Distant_Horizons_server_data" => "Distant Horizons world data",
+        _ => "Custom folder",
     }
 }
 
 fn get_folder_selection_class(name: &str, is_selected: bool) -> String {
-    let base = if is_important_folder(name) {
-        "folder-selection-item important"
+    let base = if is_critical_folder(name) {
+        "folder-selection-item critical"
     } else if is_world_data_folder(name) {
         "folder-selection-item world-data"
     } else {
@@ -869,7 +752,6 @@ fn get_folder_selection_class(name: &str, is_selected: bool) -> String {
         base.to_string()
     }
 }
-
 
 // Keep existing components for progress display, cards, etc.
 #[component]
