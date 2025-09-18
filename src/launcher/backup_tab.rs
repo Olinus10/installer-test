@@ -547,14 +547,14 @@ fn SimplifiedBackupDialog(
                                 h5 { "Folders that will be backed up:" }
                                 div { class: "folder-preview-list",
                                     for folder in discovered_folders.read().iter() {
-                                        div { 
-                                            class: get_folder_css_class(folder),
-                                            span { class: "folder-icon", get_folder_icon(folder) },
-                                            span { class: "folder-name", "\"{folder}\"" },
-                                            if is_important_folder(folder) {
-                                                span { class: "folder-badge important", "Important" }
-                                            } else if is_world_data_folder(folder) {
-                                                span { class: "folder-badge world-data", "World Data" }
+                                    div { 
+                                        class: get_folder_css_class(folder),
+                                        span { class: "folder-icon", "{get_folder_icon(folder)}" },
+                                        span { class: "folder-name", "{folder}" },
+                                        if is_important_folder(folder) {
+                                            span { class: "folder-badge important", "Important" }
+                                        } else if is_world_data_folder(folder) {
+                                            span { class: "folder-badge world-data", "World Data" }
                                             }
                                         }
                                     }
