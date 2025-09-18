@@ -494,7 +494,7 @@ fn SimplifiedBackupDialog(
                                     onchange: {
                                         let mut local_config = local_config.clone();
                                         let mut backup_mode = backup_mode.clone();
-                                        let update_size = update_estimated_size.clone();
+                                        let mut update_size = update_estimated_size.clone();
                                         
                                         move |_| {
                                             backup_mode.set("complete".to_string());
@@ -527,7 +527,7 @@ fn SimplifiedBackupDialog(
                                     onchange: {
                                         let mut local_config = local_config.clone();
                                         let mut backup_mode = backup_mode.clone();
-                                        let update_size = update_estimated_size.clone();
+                                        let mut update_size = update_estimated_size.clone();
                                         
                                         move |_| {
                                             backup_mode.set("custom".to_string());
@@ -589,7 +589,7 @@ fn SimplifiedBackupDialog(
                                                     onchange: {
                                                         let folder_name = folder_name.clone();
                                                         let mut local_config = local_config.clone();
-                                                        let update_size = update_estimated_size.clone();
+                                                        let mut update_size = update_estimated_size.clone();
                                                         
                                                         move |evt| {
                                                             let checked = evt.value() == "true";
