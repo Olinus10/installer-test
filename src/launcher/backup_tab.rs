@@ -415,7 +415,7 @@ fn SimplifiedBackupDialog(
     oncreate: EventHandler<()>,
 ) -> Element {
     let mut local_config = use_signal(|| config.read().clone());
-    let mut backup_mode = use_signal(|| "complete".to_string());
+    let mut backup_mode = use_signal(|| "custom".to_string()); // FIXED: Start with custom mode
     let mut estimated_size = use_signal(|| 0u64);
     
     // Define the known important folders
@@ -452,14 +452,21 @@ fn SimplifiedBackupDialog(
         }
     };
     
-    // Initialize with complete backup selected
+    // FIXED: Initialize with pre-selected critical folders instead of complete backup
     use_effect({
         let mut local_config = local_config.clone();
+        let update_size_fn = update_estimated_size.clone();
         
         move || {
+            let pre_selected = vec![
+                "wynntils".to_string(),
+                "config".to_string(),
+                "mods".to_string(),
+            ];
             local_config.with_mut(|c| {
-                c.selected_items = vec!["*".to_string()]; // Complete backup marker
+                c.selected_items = pre_selected.clone();
             });
+            update_size_fn(pre_selected);
         }
     });
     
@@ -494,7 +501,7 @@ fn SimplifiedBackupDialog(
                                     onchange: {
                                         let mut local_config = local_config.clone();
                                         let mut backup_mode = backup_mode.clone();
-                                        let mut update_size = update_estimated_size.clone();
+                                        let update_size = update_estimated_size.clone();
                                         
                                         move |_| {
                                             backup_mode.set("complete".to_string());
@@ -527,7 +534,7 @@ fn SimplifiedBackupDialog(
                                     onchange: {
                                         let mut local_config = local_config.clone();
                                         let mut backup_mode = backup_mode.clone();
-                                        let mut update_size = update_estimated_size.clone();
+                                        let update_size = update_estimated_size.clone();
                                         
                                         move |_| {
                                             backup_mode.set("custom".to_string());
@@ -553,6 +560,7 @@ fn SimplifiedBackupDialog(
                         }
                     }
                     
+                    // FIXED: Always show the custom backup selection section when custom mode is selected
                     if backup_mode.read().as_str() == "complete" {
                         div { class: "complete-backup-preview",
                             h5 { "Complete backup will include:" }
@@ -571,6 +579,7 @@ fn SimplifiedBackupDialog(
                             }
                         }
                     } else {
+                        // FIXED: This section should always render when backup_mode is "custom"
                         div { class: "custom-backup-selection",
                             h5 { "Select folders to backup:" }
                             
@@ -589,7 +598,7 @@ fn SimplifiedBackupDialog(
                                                     onchange: {
                                                         let folder_name = folder_name.clone();
                                                         let mut local_config = local_config.clone();
-                                                        let mut update_size = update_estimated_size.clone();
+                                                        let update_size = update_estimated_size.clone();
                                                         
                                                         move |evt| {
                                                             let checked = evt.value() == "true";
