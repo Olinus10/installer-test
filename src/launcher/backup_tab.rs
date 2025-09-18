@@ -591,8 +591,8 @@ fn SimplifiedBackupDialog(
                                                     }
                                                     
                                                     div { class: "folder-selection-content",
-                                                        span { class: "folder-icon", get_folder_icon(folder) },
-                                                        span { class: "folder-name", "\"{folder}\"" },
+    span { class: "folder-icon", "{get_folder_icon(folder)}" },
+    span { class: "folder-name", "{folder}" },
                                                         if is_important_folder(folder) {
                                                             span { class: "folder-badge important", "Important" }
                                                         } else if is_world_data_folder(folder) {
