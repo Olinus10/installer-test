@@ -454,13 +454,11 @@ fn SimplifiedBackupDialog(
     
     // Update selection when backup mode changes
 let mut handle_mode_change = move |mode: String| {
-    backup_mode.set(&mode);
+    backup_mode.set(mode.clone()); // Clone to avoid moving
     local_config.with_mut(|c| {
         if mode == "complete" {
-            // Select all discovered folders
             c.selected_items = discovered_folders.read().clone();
         } else {
-            // Custom mode - select only important folders by default
             c.selected_items.clear();
             for folder in discovered_folders.read().iter() {
                 if is_important_folder(folder) {
