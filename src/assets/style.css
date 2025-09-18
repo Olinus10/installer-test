@@ -5827,3 +5827,162 @@ a:hover {
 
 
 
+
+.backup-item-mini {
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.backup-item-mini:hover {
+    border-color: rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.05);
+    transform: translateY(-1px);
+}
+
+.backup-item-mini.selected {
+    border-color: #4CAF50;
+    background: rgba(76, 175, 80, 0.1);
+    box-shadow: 0 0 10px rgba(76, 175, 80, 0.2);
+}
+
+.backup-header-mini {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 4px;
+}
+
+.backup-name {
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: #ffffff;
+}
+
+.backup-type-badge {
+    font-size: 0.75rem;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.backup-meta {
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 0.85rem;
+}
+
+.backup-details-mini {
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.backup-detail-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 4px;
+}
+
+.backup-detail-row .detail-label {
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 0.8rem;
+}
+
+.backup-detail-row .detail-value {
+    color: #ffffff;
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+
+.backup-actions-mini {
+    margin-top: 8px;
+    display: flex;
+    gap: 8px;
+}
+
+.restore-button-mini {
+    background: #4CAF50;
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+
+.restore-button-mini:hover {
+    background: #45a049;
+}
+
+.delete-backup-button-mini {
+    background: #dc3545;
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+
+.delete-backup-button-mini:hover {
+    background: #c82333;
+}
+
+.backup-show-more {
+    text-align: center;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.backup-expand-button {
+    background: transparent;
+    color: #4CAF50;
+    border: 1px solid #4CAF50;
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin: 0 auto;
+}
+
+.backup-expand-button:hover {
+    background: rgba(76, 175, 80, 0.1);
+    transform: translateY(-1px);
+}
+
+.backup-expand-button:active {
+    transform: translateY(0);
+}
+
+/* Animation for expanding/collapsing */
+.backups-list-mini {
+    overflow: hidden;
+    transition: max-height 0.3s ease-out;
+}
+
+/* Enhanced styling for no backups state */
+.no-backups-mini {
+    text-align: center;
+    padding: 24px;
+    color: rgba(255, 255, 255, 0.6);
+    font-style: italic;
+    border: 2px dashed rgba(255, 255, 255, 0.2);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.02);
+}
