@@ -4266,294 +4266,32 @@ a:hover {
     }
 }
 
-/* ==============================================
-   BACKUP SYSTEM CSS - SETTINGS TAB
-   ============================================== */
+/* =============================================================================
+   BACKUP STYLES - Monochrome theme with Green/Red/Orange/Blue accents
+   ============================================================================= */
 
-/* Success notification styling */
-.success-notification {
-    position: fixed;
-    top: 20px;
-    right: 20px;
-    background-color: rgba(76, 175, 80, 0.9);
-    border: 1px solid rgba(100, 255, 100, 0.3);
-    border-radius: 8px;
-    padding: 15px;
-    max-width: 350px;
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
-    z-index: 9999;
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    animation: slide-in 0.3s ease forwards;
-    backdrop-filter: blur(8px);
-}
-
-.success-message {
-    color: white;
-    font-family: "REGULAR_FONT";
-    margin-right: 15px;
-    font-size: 0.9rem;
-    line-height: 1.5;
-}
-
-.success-close {
-    background: none;
-    border: none;
-    color: white;
-    font-size: 1.2rem;
-    cursor: pointer;
-    padding: 0;
-    margin: 0;
-    width: 24px;
-    height: 24px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 50%;
-    transition: all 0.2s ease;
-}
-
-.success-close:hover {
-    background-color: rgba(255, 255, 255, 0.2);
-}
-
-/* Settings section styling */
-.settings-section {
-    background: linear-gradient(135deg, rgba(30, 30, 30, 0.6), rgba(20, 20, 20, 0.8));
-    border-radius: 12px;
-    padding: 25px;
-    margin-bottom: 30px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    backdrop-filter: blur(8px);
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-}
-
-.settings-section h3 {
-    margin: 0 0 20px 0;
-    color: #ffffff;
-    font-family: "HEADER_FONT";
-    font-size: 1.4rem;
-    padding-bottom: 10px;
-    border-bottom: 2px solid rgba(255, 255, 255, 0.1);
-}
-
-/* Installation info section */
-.installation-info {
-    border-left: 4px solid rgba(76, 175, 80, 0.8);
-}
-
-.info-grid {
-    display: grid;
-    gap: 12px;
-}
-
-.info-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 8px 0;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-}
-
-.info-row:last-child {
-    border-bottom: none;
-}
-
-.info-label {
-    color: rgba(255, 255, 255, 0.7);
-    font-weight: 600;
-    font-size: 0.9rem;
-}
-
-.info-value {
-    color: #ffffff;
-    font-weight: 500;
-    font-size: 0.9rem;
-}
-
-.path-row {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 8px;
-}
-
-.path-container {
-    width: 100%;
-}
-
-.installation-path-code {
-    background: rgba(0, 0, 0, 0.3);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 4px;
-    padding: 8px 12px;
-    color: #ffffff;
-    font-family: monospace;
-    font-size: 0.8rem;
-    word-break: break-all;
-    display: block;
-    width: 100%;
-    box-sizing: border-box;
-}
-
-/* Usage statistics section */
-.usage-stats {
-    border-left: 4px solid rgba(33, 150, 243, 0.8);
-}
-
-.stats-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-    gap: 20px;
-}
-
-.stat-item {
-    text-align: center;
-    padding: 15px;
-    background: rgba(33, 150, 243, 0.1);
-    border-radius: 8px;
-    border: 1px solid rgba(33, 150, 243, 0.2);
-}
-
-.stat-value {
-    font-family: "HEADER_FONT";
-    font-size: 2rem;
-    color: #ffffff;
-    margin-bottom: 5px;
-    display: block;
-}
-
-.stat-label {
-    color: rgba(255, 255, 255, 0.7);
-    font-size: 0.85rem;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-}
-
-/* Advanced settings section */
-.advanced-settings {
-    border-left: 4px solid rgba(255, 152, 0, 0.8);
-}
-
-.advanced-description {
-    margin-bottom: 25px;
-}
-
-.advanced-description p {
-    color: rgba(255, 255, 255, 0.8);
-    margin: 0;
-    line-height: 1.5;
-}
-
-.advanced-option {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 20px;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 8px;
-    margin-bottom: 15px;
-    transition: all 0.3s ease;
-}
-
-.advanced-option:hover {
-    background: rgba(255, 255, 255, 0.08);
-    border-color: rgba(255, 255, 255, 0.2);
-}
-
-.advanced-option-info {
-    flex: 1;
-    margin-right: 20px;
-}
-
-.advanced-option-info h4 {
-    margin: 0 0 8px 0;
-    color: #ffffff;
-    font-family: "HEADER_FONT";
-    font-size: 1.1rem;
-}
-
-.advanced-option-info p {
-    margin: 0;
-    color: rgba(255, 255, 255, 0.7);
-    font-size: 0.9rem;
-    line-height: 1.4;
-}
-
-/* Advanced action buttons */
-.advanced-button {
-    background: linear-gradient(135deg, #2196F3, #1565C0);
-    border: none;
-    color: white;
-    border-radius: 8px;
-    padding: 12px 20px;
-    font-family: "REGULAR_FONT";
-    font-size: 0.9rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    box-shadow: 0 4px 15px rgba(33, 150, 243, 0.3);
-    min-width: 120px;
-    white-space: nowrap;
-}
-
-.advanced-button:hover:not(:disabled) {
-    background: linear-gradient(135deg, #42A5F5, #2196F3);
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(33, 150, 243, 0.5);
-}
-
-.advanced-button:disabled {
-    background: linear-gradient(135deg, #666, #444);
-    cursor: not-allowed;
-    transform: none;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-    opacity: 0.7;
-}
-
-/* Backup specific buttons */
-.backup-button {
-    background: linear-gradient(135deg, #4CAF50, #2E7D32) !important;
-    box-shadow: 0 4px 15px rgba(76, 175, 80, 0.3) !important;
-}
-
-.backup-button:hover:not(:disabled) {
-    background: linear-gradient(135deg, #66BB6A, #4CAF50) !important;
-    box-shadow: 0 6px 20px rgba(76, 175, 80, 0.5) !important;
-}
-
-.reset-cache-button {
-    background: linear-gradient(135deg, #FF9800, #F57C00) !important;
-    box-shadow: 0 4px 15px rgba(255, 152, 0, 0.3) !important;
-}
-
-.reset-cache-button:hover:not(:disabled) {
-    background: linear-gradient(135deg, #FFB74D, #FF9800) !important;
-    box-shadow: 0 6px 20px rgba(255, 152, 0, 0.5) !important;
-}
-
-/* Backup expanded section */
+/* Backup Section Container */
 .backup-expanded-section {
-    margin-top: 20px;
-    padding: 20px;
-    background: rgba(0, 0, 0, 0.2);
-    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.02);
     border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    padding: 20px;
+    margin-top: 15px;
+    backdrop-filter: blur(10px);
 }
 
-.backup-expanded-section h5 {
-    margin: 0 0 15px 0;
-    color: #ffffff;
-    font-family: "HEADER_FONT";
-    font-size: 1rem;
-}
-
-/* Quick backup creation */
+/* Quick Backup Creation */
 .backup-quick-create {
     margin-bottom: 25px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.backup-quick-create h5 {
+    color: #ffffff;
+    font-size: 1.1em;
+    margin-bottom: 15px;
+    font-weight: 600;
 }
 
 .backup-description-input {
@@ -4563,21 +4301,18 @@ a:hover {
 .backup-description-input input {
     width: 100%;
     padding: 10px 12px;
-    background: rgba(40, 40, 40, 0.8);
-    border: 2px solid rgba(255, 255, 255, 0.2);
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.2);
     border-radius: 6px;
-    color: white;
-    font-family: "REGULAR_FONT";
-    font-size: 0.9rem;
-    transition: all 0.3s ease;
-    box-sizing: border-box;
+    color: #ffffff;
+    font-size: 0.9em;
+    transition: all 0.2s ease;
 }
 
 .backup-description-input input:focus {
     outline: none;
-    border-color: rgba(76, 175, 80, 0.6);
-    background: rgba(50, 50, 50, 0.9);
-    box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.2);
+    border-color: #4CAF50;
+    box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.2);
 }
 
 .backup-description-input input::placeholder {
@@ -4587,108 +4322,101 @@ a:hover {
 .backup-quick-actions {
     display: flex;
     gap: 12px;
-    flex-wrap: wrap;
+    align-items: center;
 }
 
+/* Backup Configuration Button */
 .backup-config-button {
-    background: linear-gradient(135deg, #2196F3, #1565C0);
-    border: none;
-    color: white;
+    padding: 8px 16px;
+    background: rgba(33, 150, 243, 0.2);
+    border: 1px solid #2196F3;
     border-radius: 6px;
-    padding: 10px 16px;
-    font-family: "REGULAR_FONT";
-    font-size: 0.85rem;
-    font-weight: 600;
+    color: #2196F3;
+    font-size: 0.9em;
     cursor: pointer;
-    transition: all 0.3s ease;
-    box-shadow: 0 3px 10px rgba(33, 150, 243, 0.3);
-    display: flex;
-    align-items: center;
-    gap: 6px;
+    transition: all 0.2s ease;
+    font-weight: 500;
 }
 
 .backup-config-button:hover {
-    background: linear-gradient(135deg, #42A5F5, #2196F3);
-    transform: translateY(-2px);
-    box-shadow: 0 5px 15px rgba(33, 150, 243, 0.5);
+    background: rgba(33, 150, 243, 0.3);
+    transform: translateY(-1px);
 }
 
+/* Create Backup Button */
 .create-backup-button {
-    background: linear-gradient(135deg, #4CAF50, #2E7D32);
-    border: none;
-    color: white;
-    border-radius: 6px;
     padding: 10px 20px;
-    font-family: "REGULAR_FONT";
-    font-size: 0.85rem;
+    background: linear-gradient(135deg, #4CAF50, #45a049);
+    border: none;
+    border-radius: 6px;
+    color: #ffffff;
+    font-size: 0.9em;
     font-weight: 600;
     cursor: pointer;
-    transition: all 0.3s ease;
-    box-shadow: 0 3px 10px rgba(76, 175, 80, 0.3);
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 4px rgba(76, 175, 80, 0.3);
 }
 
 .create-backup-button:hover:not(:disabled) {
-    background: linear-gradient(135deg, #66BB6A, #4CAF50);
-    transform: translateY(-2px);
-    box-shadow: 0 5px 15px rgba(76, 175, 80, 0.5);
+    background: linear-gradient(135deg, #45a049, #4CAF50);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(76, 175, 80, 0.4);
 }
 
 .create-backup-button:disabled {
-    background: linear-gradient(135deg, #666, #444);
+    opacity: 0.6;
     cursor: not-allowed;
     transform: none;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
-    opacity: 0.7;
 }
 
-/* Mini progress display */
+/* Backup Progress Mini */
 .backup-progress-mini {
-    margin-top: 10px;
-    padding: 8px 12px;
-    background: rgba(33, 150, 243, 0.1);
+    margin-top: 15px;
+    padding: 12px;
+    background: rgba(0, 0, 0, 0.2);
     border-radius: 6px;
-    border-left: 3px solid #2196F3;
+    border-left: 3px solid #4CAF50;
 }
 
 .progress-text {
     color: #ffffff;
-    font-size: 0.8rem;
-    margin-bottom: 6px;
+    font-size: 0.9em;
+    margin-bottom: 8px;
 }
 
 .progress-bar-mini {
-    width: 100%;
     height: 6px;
-    background: rgba(0, 0, 0, 0.3);
+    background: rgba(255, 255, 255, 0.1);
     border-radius: 3px;
     overflow: hidden;
 }
 
 .progress-fill {
     height: 100%;
-    background: linear-gradient(135deg, #2196F3, #42A5F5);
-    border-radius: 3px;
+    background: linear-gradient(90deg, #4CAF50, #66BB6A);
     transition: width 0.3s ease;
 }
 
-/* Backup list section */
+/* Backup List Section */
+.backup-list-section {
+    margin-top: 20px;
+}
+
 .backup-list-section h5 {
-    margin: 0 0 15px 0;
     color: #ffffff;
-    font-family: "HEADER_FONT";
-    font-size: 1rem;
+    font-size: 1.1em;
+    margin-bottom: 15px;
+    font-weight: 600;
 }
 
 .no-backups-mini {
     text-align: center;
+    padding: 30px;
     color: rgba(255, 255, 255, 0.6);
     font-style: italic;
-    padding: 20px;
-    background: rgba(0, 0, 0, 0.2);
-    border-radius: 6px;
-    border: 2px dashed rgba(255, 255, 255, 0.2);
 }
 
+/* Backup Items */
 .backups-list-mini {
     display: flex;
     flex-direction: column;
@@ -4696,15 +4424,12 @@ a:hover {
 }
 
 .backup-item-mini {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 12px;
     background: rgba(255, 255, 255, 0.05);
     border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 6px;
+    border-radius: 8px;
+    padding: 12px;
     cursor: pointer;
-    transition: all 0.3s ease;
+    transition: all 0.2s ease;
 }
 
 .backup-item-mini:hover {
@@ -4714,1275 +4439,454 @@ a:hover {
 }
 
 .backup-item-mini.selected {
-    background: rgba(33, 150, 243, 0.2);
-    border-color: rgba(33, 150, 243, 0.6);
-    box-shadow: 0 0 15px rgba(33, 150, 243, 0.2);
+    background: rgba(76, 175, 80, 0.1);
+    border-color: #4CAF50;
+    box-shadow: 0 0 0 1px rgba(76, 175, 80, 0.3);
 }
 
 .backup-info-mini {
-    flex: 1;
-}
-
-.backup-name {
-    color: #ffffff;
-    font-weight: 600;
-    font-size: 0.9rem;
-    margin-bottom: 2px;
-}
-
-.backup-meta {
-    color: rgba(255, 255, 255, 0.6);
-    font-size: 0.75rem;
-}
-
-.restore-button-mini {
-    background: linear-gradient(135deg, #FF9800, #F57C00);
-    border: none;
-    color: white;
-    border-radius: 4px;
-    padding: 6px 12px;
-    font-family: "REGULAR_FONT";
-    font-size: 0.75rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-}
-
-.restore-button-mini:hover {
-    background: linear-gradient(135deg, #FFB74D, #FF9800);
-    transform: scale(1.05);
-}
-
-.backup-show-more {
-    text-align: center;
-    color: rgba(255, 255, 255, 0.5);
-    font-style: italic;
-    padding: 8px;
-    font-size: 0.8rem;
-}
-
-/* Actions section */
-.actions {
-    border-left: 4px solid rgba(244, 67, 54, 0.8);
-}
-
-.settings-actions {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 15px;
-}
-
-.settings-action-button {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 15px 20px;
-    border: none;
-    border-radius: 8px;
-    font-family: "REGULAR_FONT";
-    font-size: 0.9rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    text-align: left;
-    justify-content: flex-start;
-    color: white;
-}
-
-.action-icon {
-    font-size: 1.2rem;
-    flex-shrink: 0;
-}
-
-.rename-button {
-    background: linear-gradient(135deg, #2196F3, #1565C0);
-    box-shadow: 0 4px 15px rgba(33, 150, 243, 0.3);
-}
-
-.rename-button:hover:not(:disabled) {
-    background: linear-gradient(135deg, #42A5F5, #2196F3);
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(33, 150, 243, 0.5);
-}
-
-.folder-button {
-    background: linear-gradient(135deg, #607D8B, #455A64);
-    box-shadow: 0 4px 15px rgba(96, 125, 139, 0.3);
-}
-
-.folder-button:hover:not(:disabled) {
-    background: linear-gradient(135deg, #78909C, #607D8B);
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(96, 125, 139, 0.5);
-}
-
-.delete-button {
-    background: linear-gradient(135deg, #f44336, #d32f2f);
-    box-shadow: 0 4px 15px rgba(244, 67, 54, 0.3);
-}
-
-.delete-button:hover:not(:disabled) {
-    background: linear-gradient(135deg, #f66356, #f44336);
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(244, 67, 54, 0.5);
-}
-
-.settings-action-button:disabled {
-    background: linear-gradient(135deg, #666, #444);
-    cursor: not-allowed;
-    transform: none;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-    opacity: 0.7;
-}
-
-/* Modal dialogs for settings */
-.rename-dialog,
-.delete-dialog {
-    max-width: 500px;
-    width: 90vw;
-}
-
-.rename-error {
-    background-color: rgba(244, 67, 54, 0.1);
-    color: #ff9999;
-    padding: 10px;
-    border-radius: 4px;
-    margin-bottom: 15px;
-    border-left: 3px solid rgba(244, 67, 54, 0.6);
-}
-
-.delete-warning {
-    color: #ff9999;
-    font-weight: bold;
-    font-style: italic;
-}
-
-/* Error styling specifically for settings */
-.settings-error {
-    position: relative;
-    top: auto;
-    right: auto;
-    margin-bottom: 20px;
-    width: 100%;
-    max-width: none;
-}
-
-/* Character counter in rename dialog */
-.character-counter {
-    text-align: right;
-    font-size: 0.75rem;
-    margin-top: 5px;
-    transition: color 0.3s ease;
-}
-
-/* Responsive design for settings */
-@media (max-width: 768px) {
-    .settings-actions {
-        grid-template-columns: 1fr;
-    }
-    
-    .advanced-option {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 15px;
-    }
-    
-    .advanced-option-info {
-        margin-right: 0;
-    }
-    
-    .backup-quick-actions {
-        flex-direction: column;
-    }
-    
-    .stats-grid {
-        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-    }
-    
-    .stat-value {
-        font-size: 1.5rem;
-    }
-}
-
-/* 1. REVERT HOME PAGE STATS TO ORIGINAL STYLING */
-/* Remove the settings-specific stats styling and restore original */
-
-/* Original home page stats container - override the settings version */
-.stats-container {
-    display: flex;
-    justify-content: center;
-    gap: 40px;
-    margin: 15px auto;
-    max-width: 800px;
-    padding: 15px;
-    background: rgba(0, 0, 0, 0.4);
-    border-radius: 10px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    backdrop-filter: blur(5px);
-}
-
-/* Ensure settings stats use different class */
-.stats-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-    gap: 20px;
-}
-
-/* Original home page stat items */
-.stats-container .stat-item {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    position: relative;
-    padding: 0 15px;
-    background: none; /* Remove settings background */
-    border: none; /* Remove settings border */
-    border-radius: 0; /* Remove settings border radius */
-}
-
-.stats-container .stat-item:not(:last-child):after {
-    content: '';
-    position: absolute;
-    top: 15%;
-    right: -20px;
-    height: 70%;
-    width: 1px;
-    background: linear-gradient(to bottom, transparent, rgba(255, 255, 255, 0.3), transparent);
-}
-
-/* Original home page stat values */
-.stats-container .stat-value {
-    font-family: "HEADER_FONT";
-    font-size: 2.5rem;
-    margin-bottom: 5px;
-    background: linear-gradient(180deg, #fce8f6 0%, #d8b8d0 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    letter-spacing: 0.05em;
-    display: inline-block;
-}
-
-/* Original home page stat labels */
-.stats-container .stat-label {
-    font-family: "REGULAR_FONT";
-    font-size: 0.9rem;
-    color: #fce8f6;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    opacity: 0.8;
-}
-
-/* Settings page uses different classes to avoid conflict */
-.settings-section .stats-grid .stat-item {
-    text-align: center;
-    padding: 15px;
-    background: rgba(33, 150, 243, 0.1);
-    border-radius: 8px;
-    border: 1px solid rgba(33, 150, 243, 0.2);
-}
-
-.settings-section .stats-grid .stat-value {
-    font-family: "HEADER_FONT";
-    font-size: 2rem;
-    color: #ffffff;
-    margin-bottom: 5px;
-    display: block;
-    background: none;
-    -webkit-background-clip: initial;
-    -webkit-text-fill-color: initial;
-    background-clip: initial;
-}
-
-.settings-section .stats-grid .stat-label {
-    color: rgba(255, 255, 255, 0.7);
-    font-size: 0.85rem;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-}
-
-/* 2. BACKUP CONFIGURATION DIALOG FIXES */
-
-/* Make backup config dialog smaller and more readable */
-.backup-config-dialog {
-    max-width: 600px;
-    width: 85vw;
-    max-height: 80vh;
-    display: flex;
-    flex-direction: column;
-}
-
-.backup-config-dialog .modal-content {
-    max-height: 55vh;
-    overflow-y: auto;
-    padding: 20px;
-    flex-grow: 1;
-}
-
-/* Backup config sections with better spacing */
-.backup-config-dialog .config-section {
-    margin-bottom: 25px;
-    padding-bottom: 20px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.backup-config-dialog .config-section:last-child {
-    border-bottom: none;
-    margin-bottom: 0;
-}
-
-.backup-config-dialog .config-section h4 {
-    margin: 0 0 15px 0;
-    color: #ffffff;
-    font-family: "HEADER_FONT";
-    font-size: 1.1rem;
-    font-weight: 500;
-}
-
-/* Backup config options layout */
-.backup-config-dialog .config-options {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-}
-
-.backup-config-dialog .config-option {
-    display: flex;
-    align-items: flex-start;
-    gap: 12px;
-    padding: 12px;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 8px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-}
-
-.backup-config-dialog .config-option:hover {
-    background: rgba(255, 255, 255, 0.08);
-    border-color: rgba(255, 255, 255, 0.2);
-}
-
-.backup-config-dialog .config-option.wynntils-important {
-    background: rgba(255, 193, 7, 0.1);
-    border-color: rgba(255, 193, 7, 0.3);
-}
-
-.backup-config-dialog .config-option.wynntils-important:hover {
-    background: rgba(255, 193, 7, 0.15);
-    border-color: rgba(255, 193, 7, 0.4);
-}
-
-.backup-config-dialog .config-option input[type="checkbox"] {
-    margin: 0;
-    transform: scale(1.2);
-    accent-color: #4CAF50;
-    flex-shrink: 0;
-}
-
-.backup-config-dialog .config-option span {
-    color: rgba(255, 255, 255, 0.9);
-    font-size: 0.9rem;
-    line-height: 1.4;
-    flex-grow: 1;
-}
-
-/* Number input option styling */
-.backup-config-dialog .config-option.number-option {
-    flex-direction: row;
-    align-items: center;
-    justify-content: space-between;
-}
-
-.backup-config-dialog .config-option.number-option label {
-    color: rgba(255, 255, 255, 0.9);
-    margin-right: 12px;
-    font-size: 0.9rem;
-    flex-grow: 1;
-}
-
-.backup-config-dialog .config-option.number-option input[type="number"] {
-    width: 80px;
-    padding: 6px 8px;
-    background: rgba(20, 20, 20, 0.8);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: 4px;
-    color: white;
-    font-family: "REGULAR_FONT";
-    font-size: 0.9rem;
-    flex-shrink: 0;
-}
-
-.backup-config-dialog .config-option.number-option input[type="number"]:focus {
-    outline: none;
-    border-color: rgba(76, 175, 80, 0.6);
-    box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.2);
-}
-
-/* Estimated size display */
-.estimated-size {
-    background: rgba(33, 150, 243, 0.1);
-    border: 1px solid rgba(33, 150, 243, 0.3);
-    border-radius: 6px;
-    padding: 12px;
-    text-align: center;
-    color: rgba(255, 255, 255, 0.9);
-    font-size: 0.9rem;
-    font-weight: 500;
-    margin-top: 15px;
-}
-
-/* Backup config dialog footer */
-.backup-config-dialog .modal-footer {
-    padding: 20px 25px;
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
-    background: rgba(40, 40, 40, 0.8);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 15px;
-    flex-shrink: 0;
-}
-
-.backup-config-dialog .cancel-button {
-    background: linear-gradient(135deg, #666, #444);
-    border: none;
-    color: white;
-    border-radius: 8px;
-    padding: 12px 25px;
-    font-family: "HEADER_FONT";
-    font-size: 1rem;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
-}
-
-.backup-config-dialog .cancel-button:hover {
-    background: linear-gradient(135deg, #777, #555);
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
-}
-
-.backup-config-dialog .save-button {
-    background: linear-gradient(135deg, #4CAF50, #2E7D32);
-    border: none;
-    color: white;
-    border-radius: 8px;
-    padding: 12px 25px;
-    font-family: "HEADER_FONT";
-    font-size: 1rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    box-shadow: 0 4px 15px rgba(76, 175, 80, 0.3);
-}
-
-.backup-config-dialog .save-button:hover:not(:disabled) {
-    background: linear-gradient(135deg, #66BB6A, #4CAF50);
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(76, 175, 80, 0.5);
-}
-
-.backup-config-dialog .save-button:disabled {
-    background: linear-gradient(135deg, #666, #444);
-    cursor: not-allowed;
-    transform: none;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-    opacity: 0.7;
-}
-
-/* Scrollbar for backup config dialog content */
-.backup-config-dialog .modal-content::-webkit-scrollbar {
-    width: 8px;
-}
-
-.backup-config-dialog .modal-content::-webkit-scrollbar-track {
-    background: rgba(0, 0, 0, 0.2);
-    border-radius: 4px;
-}
-
-.backup-config-dialog .modal-content::-webkit-scrollbar-thumb {
-    background: linear-gradient(135deg, #4CAF50, #2E7D32);
-    border-radius: 4px;
-    border: 1px solid rgba(0, 0, 0, 0.2);
-}
-
-.backup-config-dialog .modal-content::-webkit-scrollbar-thumb:hover {
-    background: linear-gradient(135deg, #66BB6A, #4CAF50);
-}
-
-/* Responsive fixes for backup dialog */
-@media (max-width: 768px) {
-    .backup-config-dialog {
-        width: 95vw;
-        max-height: 90vh;
-    }
-    
-    .backup-config-dialog .modal-content {
-        max-height: 70vh;
-        padding: 15px;
-    }
-    
-    .backup-config-dialog .modal-footer {
-        flex-direction: column;
-        gap: 10px;
-    }
-    
-    .backup-config-dialog .cancel-button,
-    .backup-config-dialog .save-button {
-        width: 100%;
-        text-align: center;
-    }
-    
-    .backup-config-dialog .config-option.number-option {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 8px;
-    }
-    
-    .backup-config-dialog .config-option.number-option input[type="number"] {
-        width: 100%;
-    }
-}
-
-/* Mobile responsive fix for home stats */
-@media (max-width: 768px) {
-    .stats-container {
-        flex-direction: column;
-        gap: 20px;
-        padding: 20px;
-    }
-    
-    .stats-container .stat-item:not(:last-child):after {
-        top: auto;
-        right: 20%;
-        bottom: -10px;
-        left: 20%;
-        height: 1px;
-        width: 60%;
-        background: linear-gradient(to right, transparent, rgba(255, 255, 255, 0.3), transparent);
-    }
-}
-
-
-
-
-/* ==============================================
-   MAXIMUM BACKUPS OPTION - MISSING CSS FIX
-   ============================================== */
-
-/* The "maximum backups" option uses a different structure - fix its styling */
-.backup-config-dialog .config-option:not(.number-option) {
-    /* Regular checkbox options */
-    display: flex;
-    align-items: flex-start;
-    gap: 12px;
-    padding: 12px;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 8px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-}
-
-/* The number option (maximum backups) - different layout */
-.backup-config-dialog .config-option.number-option {
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    justify-content: space-between;
-    padding: 12px;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 8px;
-    cursor: default; /* Not clickable like checkboxes */
-    transition: all 0.2s ease;
-    gap: 15px;
-}
-
-/* Label styling for the number option */
-.backup-config-dialog .config-option.number-option label {
-    color: rgba(255, 255, 255, 0.9);
-    font-size: 0.9rem;
-    font-weight: 500;
-    margin: 0;
-    flex-grow: 1;
-    line-height: 1.4;
-}
-
-/* Number input styling within the option */
-.backup-config-dialog .config-option.number-option input[type="number"] {
-    width: 80px;
-    padding: 8px 12px;
-    background: rgba(20, 20, 20, 0.8);
-    border: 2px solid rgba(255, 255, 255, 0.2);
-    border-radius: 6px;
-    color: white;
-    font-family: "REGULAR_FONT";
-    font-size: 0.9rem;
-    text-align: center;
-    flex-shrink: 0;
-    transition: all 0.3s ease;
-}
-
-.backup-config-dialog .config-option.number-option input[type="number"]:focus {
-    outline: none;
-    border-color: rgba(76, 175, 80, 0.6);
-    background: rgba(30, 30, 30, 0.9);
-    box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.2);
-}
-
-.backup-config-dialog .config-option.number-option input[type="number"]:hover {
-    border-color: rgba(255, 255, 255, 0.3);
-    background: rgba(25, 25, 25, 0.9);
-}
-
-/* Remove spinner arrows from number input */
-.backup-config-dialog .config-option.number-option input[type="number"]::-webkit-outer-spin-button,
-.backup-config-dialog .config-option.number-option input[type="number"]::-webkit-inner-spin-button {
-    -webkit-appearance: none;
-    margin: 0;
-}
-
-.backup-config-dialog .config-option.number-option input[type="number"] {
-    -moz-appearance: textfield;
-}
-
-/* Alternative: If the structure is different, target by the div container */
-.backup-config-dialog .config-section .config-option:has(input[type="number"]) {
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    justify-content: space-between;
-    padding: 12px;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 8px;
-    cursor: default;
-    transition: all 0.2s ease;
-    gap: 15px;
-}
-
-.backup-config-dialog .config-section .config-option:has(input[type="number"]):hover {
-    background: rgba(255, 255, 255, 0.08);
-    border-color: rgba(255, 255, 255, 0.2);
-}
-
-/* If the structure uses a div with class "config-option" that contains both label and input */
-.backup-config-dialog .config-section > .config-option {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 12px;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 8px;
-    margin-bottom: 12px;
-    transition: all 0.2s ease;
-    gap: 15px;
-}
-
-.backup-config-dialog .config-section > .config-option:hover {
-    background: rgba(255, 255, 255, 0.08);
-    border-color: rgba(255, 255, 255, 0.2);
-}
-
-.backup-config-dialog .config-section > .config-option label {
-    color: rgba(255, 255, 255, 0.9);
-    font-size: 0.9rem;
-    font-weight: 500;
-    margin: 0;
-    flex-grow: 1;
-    line-height: 1.4;
-}
-
-.backup-config-dialog .config-section > .config-option input[type="number"] {
-    width: 80px;
-    padding: 8px 12px;
-    background: rgba(20, 20, 20, 0.8);
-    border: 2px solid rgba(255, 255, 255, 0.2);
-    border-radius: 6px;
-    color: white;
-    font-family: "REGULAR_FONT";
-    font-size: 0.9rem;
-    text-align: center;
-    flex-shrink: 0;
-    transition: all 0.3s ease;
-}
-
-/* Mobile responsive for number option */
-@media (max-width: 768px) {
-    .backup-config-dialog .config-option.number-option,
-    .backup-config-dialog .config-section > .config-option {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 8px;
-    }
-    
-    .backup-config-dialog .config-option.number-option input[type="number"],
-    .backup-config-dialog .config-section > .config-option input[type="number"] {
-        width: 100%;
-        max-width: 120px;
-    }
-}
-
-
-
-
-
-/* ////////////////////////////////////////////////////////////////////////////////////////////// */
-/* Enhanced Backup Dialog Styles - Updated for Complete/Custom approach */
-.backup-config-dialog.enhanced {
-    min-width: 700px;
-    max-width: 900px;
-    max-height: 90vh;
-}
-
-.backup-config-dialog.enhanced .modal-content {
-    max-height: 70vh;
-    overflow-y: auto;
-    padding: 20px;
-}
-
-.scanning-indicator {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 15px;
-    padding: 40px;
-    color: #b0b0b0;
-}
-
-.loading-spinner {
-    width: 24px;
-    height: 24px;
-    border: 2px solid #444;
-    border-top: 2px solid #4CAF50;
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-}
-
-.scan-error {
-    background: rgba(244, 67, 54, 0.1);
-    border: 1px solid rgba(244, 67, 54, 0.3);
-    border-radius: 8px;
-    padding: 15px;
-    color: #ffcdd2;
-}
-
-/* Backup Mode Selection */
-.backup-mode-section {
-    margin-bottom: 25px;
-}
-
-.backup-mode-section h4 {
-    margin-bottom: 15px;
-    color: #fff;
-    font-size: 1.1rem;
-}
-
-.backup-mode-options {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-}
-
-.backup-mode-option {
-    display: flex;
-    align-items: flex-start;
-    gap: 12px;
-    padding: 16px;
-    background: rgba(255, 255, 255, 0.05);
-    border: 2px solid rgba(255, 255, 255, 0.1);
-    border-radius: 8px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-}
-
-.backup-mode-option:hover {
-    background: rgba(255, 255, 255, 0.08);
-    border-color: rgba(255, 255, 255, 0.2);
-}
-
-.backup-mode-option.selected {
-    border-color: #4CAF50;
-    background: rgba(76, 175, 80, 0.1);
-}
-
-.backup-mode-option input[type="radio"] {
-    margin: 0;
-    width: 18px;
-    height: 18px;
-    flex-shrink: 0;
-    margin-top: 2px;
-}
-
-.mode-content {
-    flex: 1;
-}
-
-.mode-title {
-    font-weight: 600;
-    color: #fff;
-    font-size: 1rem;
-    margin-bottom: 4px;
-}
-
-.mode-description {
-    font-size: 0.9rem;
-    color: #b0b0b0;
-    line-height: 1.3;
-}
-
-/* Complete Backup Preview */
-.complete-backup-preview {
-    background: rgba(76, 175, 80, 0.05);
-    border: 1px solid rgba(76, 175, 80, 0.2);
-    border-radius: 8px;
-    padding: 15px;
-    margin-bottom: 20px;
-}
-
-.complete-backup-preview h5 {
-    color: #e8f5e8;
-    margin-bottom: 12px;
-    font-size: 0.95rem;
-}
-
-.folder-preview-list {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 8px;
-    max-height: 300px;
-    overflow-y: auto;
-}
-
-.folder-preview-item {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 8px 12px;
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 6px;
-    font-size: 0.85rem;
-}
-
-.folder-preview-item.important {
-    border-color: rgba(255, 193, 7, 0.4);
-    background: rgba(255, 193, 7, 0.05);
-}
-
-.folder-preview-item.world-data {
-    border-color: rgba(33, 150, 243, 0.4);
-    background: rgba(33, 150, 243, 0.05);
-}
-
-/* Custom Backup Selection */
-.custom-backup-selection {
-    margin-bottom: 20px;
-}
-
-.custom-backup-selection h5 {
-    color: #fff;
-    margin-bottom: 12px;
-    font-size: 0.95rem;
-}
-
-.folder-selection-list {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    max-height: 300px;
-    overflow-y: auto;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 8px;
-    padding: 12px;
-    background: rgba(255, 255, 255, 0.02);
-}
-
-.folder-selection-item {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 10px 12px;
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 6px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-}
-
-.folder-selection-item:hover {
-    background: rgba(255, 255, 255, 0.06);
-    border-color: rgba(255, 255, 255, 0.2);
-}
-
-.folder-selection-item.selected {
-    border-color: #4CAF50;
-    background: rgba(76, 175, 80, 0.1);
-}
-
-.folder-selection-item.important {
-    border-color: rgba(255, 193, 7, 0.3);
-}
-
-.folder-selection-item.important.selected {
-    border-color: #4CAF50;
-    background: rgba(76, 175, 80, 0.1);
-}
-
-.folder-selection-item.world-data {
-    border-color: rgba(33, 150, 243, 0.3);
-}
-
-.folder-selection-item.world-data.selected {
-    border-color: #4CAF50;
-    background: rgba(76, 175, 80, 0.1);
-}
-
-.folder-selection-item input[type="checkbox"] {
-    margin: 0;
-    width: 18px;
-    height: 18px;
-    flex-shrink: 0;
-}
-
-.folder-selection-content {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    flex: 1;
-}
-
-.folder-icon {
-    font-size: 1rem;
-    flex-shrink: 0;
-}
-
-.folder-name {
-    font-family: 'Courier New', monospace;
-    color: #fff;
-    font-weight: 500;
-}
-
-.folder-badge {
-    padding: 2px 8px;
-    border-radius: 12px;
-    font-size: 0.7rem;
-    font-weight: 600;
-    text-transform: uppercase;
-}
-
-.folder-badge.important {
-    background: #ff6b35;
-    color: white;
-}
-
-.folder-badge.world-data {
-    background: #2196F3;
-    color: white;
-}
-
-.selection-summary {
-    margin-top: 12px;
-    padding: 8px 12px;
-    background: rgba(76, 175, 80, 0.1);
-    border: 1px solid rgba(76, 175, 80, 0.3);
-    border-radius: 6px;
-    color: #e8f5e8;
-    font-size: 0.85rem;
-    text-align: center;
-}
-
-/* Backup Options */
-.backup-options-section {
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
-    padding-top: 20px;
-    margin-top: 20px;
-}
-
-.backup-options-section h5 {
-    margin-bottom: 12px;
-    color: #fff;
-    font-size: 0.95rem;
-}
-
-.options-list {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-}
-
-.option-item {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 6px 0;
-}
-
-.option-item input[type="checkbox"] {
-    width: 16px;
-    height: 16px;
-    margin: 0;
-}
-
-.option-item span {
-    color: #e0e0e0;
-    font-size: 0.85rem;
-}
-
-.number-option {
-    align-items: center !important;
-}
-
-.number-option label {
-    margin-right: 8px;
-    color: #e0e0e0;
-    font-size: 0.85rem;
-}
-
-.number-option input[type="number"] {
-    width: 60px;
-    padding: 4px 6px;
-    background: rgba(255, 255, 255, 0.1);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: 4px;
-    color: #fff;
-    font-size: 0.85rem;
-    margin-right: 8px;
-}
-
-.number-option input[type="number"]:focus {
-    outline: none;
-    border-color: #4CAF50;
-    background: rgba(255, 255, 255, 0.15);
-}
-
-/* Scrollbar styling */
-.folder-preview-list::-webkit-scrollbar,
-.folder-selection-list::-webkit-scrollbar {
-    width: 6px;
-}
-
-.folder-preview-list::-webkit-scrollbar-track,
-.folder-selection-list::-webkit-scrollbar-track {
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 3px;
-}
-
-.folder-preview-list::-webkit-scrollbar-thumb,
-.folder-selection-list::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.3);
-    border-radius: 3px;
-}
-
-.folder-preview-list::-webkit-scrollbar-thumb:hover,
-.folder-selection-list::-webkit-scrollbar-thumb:hover {
-    background: rgba(255, 255, 255, 0.5);
-}
-
-/* Modal footer adjustments */
-.backup-config-dialog.enhanced .modal-footer {
-    padding: 20px;
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.create-backup-button:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-}
-
-/* Responsive design */
-@media (max-width: 768px) {
-    .backup-config-dialog.enhanced {
-        min-width: 90vw;
-        max-width: 95vw;
-    }
-    
-    .folder-preview-list {
-        grid-template-columns: 1fr;
-    }
-    
-    .backup-mode-options {
-        gap: 8px;
-    }
-    
-    .backup-mode-option {
-        padding: 12px;
-    }
-}
-
-
-
-
-
-.backup-item-mini {
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 8px;
-    padding: 12px;
     margin-bottom: 8px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    background: rgba(255, 255, 255, 0.02);
-}
-
-.backup-item-mini:hover {
-    border-color: rgba(255, 255, 255, 0.2);
-    background: rgba(255, 255, 255, 0.05);
-    transform: translateY(-1px);
-}
-
-.backup-item-mini.selected {
-    border-color: #4CAF50;
-    background: rgba(76, 175, 80, 0.1);
-    box-shadow: 0 0 10px rgba(76, 175, 80, 0.2);
 }
 
 .backup-header-mini {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 4px;
+    margin-bottom: 6px;
 }
 
 .backup-name {
-    font-weight: 600;
-    font-size: 0.95rem;
     color: #ffffff;
+    font-weight: 600;
+    font-size: 0.95em;
 }
 
 .backup-type-badge {
-    font-size: 0.75rem;
-    padding: 2px 8px;
+    padding: 4px 8px;
     border-radius: 12px;
-    font-weight: 500;
+    font-size: 0.75em;
+    font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.5px;
 }
 
 .backup-meta {
     color: rgba(255, 255, 255, 0.7);
-    font-size: 0.85rem;
+    font-size: 0.85em;
 }
 
+/* Backup Details (when selected) */
 .backup-details-mini {
-    margin-top: 8px;
-    padding-top: 8px;
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    margin-top: 10px;
+    padding: 10px;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 6px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
 }
 
 .backup-detail-row {
     display: flex;
     justify-content: space-between;
-    margin-bottom: 4px;
+    align-items: center;
 }
 
-.backup-detail-row .detail-label {
-    color: rgba(255, 255, 255, 0.6);
-    font-size: 0.8rem;
+.detail-label {
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 0.8em;
 }
 
-.backup-detail-row .detail-value {
+.detail-value {
     color: #ffffff;
-    font-size: 0.8rem;
+    font-size: 0.8em;
     font-weight: 500;
 }
 
+/* Backup Actions */
 .backup-actions-mini {
-    margin-top: 8px;
     display: flex;
     gap: 8px;
-}
-
-.restore-button-mini {
-    background: #4CAF50;
-    color: white;
-    border: none;
-    padding: 6px 12px;
-    border-radius: 4px;
-    font-size: 0.8rem;
-    font-weight: 500;
-    cursor: pointer;
-    transition: background 0.2s ease;
-}
-
-.restore-button-mini:hover {
-    background: #45a049;
-}
-
-.delete-backup-button-mini {
-    background: #dc3545;
-    color: white;
-    border: none;
-    padding: 6px 12px;
-    border-radius: 4px;
-    font-size: 0.8rem;
-    font-weight: 500;
-    cursor: pointer;
-    transition: background 0.2s ease;
-}
-
-.delete-backup-button-mini:hover {
-    background: #c82333;
-}
-
-.backup-show-more {
-    text-align: center;
-    margin-top: 12px;
-    padding-top: 12px;
+    margin-top: 10px;
+    padding-top: 10px;
     border-top: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-.backup-expand-button {
-    background: transparent;
-    color: #4CAF50;
-    border: 1px solid #4CAF50;
-    padding: 8px 16px;
-    border-radius: 6px;
-    font-size: 0.9rem;
-    font-weight: 500;
+.restore-button-mini {
+    padding: 6px 12px;
+    background: linear-gradient(135deg, #2196F3, #1976D2);
+    border: none;
+    border-radius: 5px;
+    color: #ffffff;
+    font-size: 0.8em;
+    font-weight: 600;
     cursor: pointer;
     transition: all 0.2s ease;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    margin: 0 auto;
+}
+
+.restore-button-mini:hover {
+    background: linear-gradient(135deg, #1976D2, #2196F3);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(33, 150, 243, 0.4);
+}
+
+.delete-backup-button-mini {
+    padding: 6px 12px;
+    background: linear-gradient(135deg, #f44336, #d32f2f);
+    border: none;
+    border-radius: 5px;
+    color: #ffffff;
+    font-size: 0.8em;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.delete-backup-button-mini:hover {
+    background: linear-gradient(135deg, #d32f2f, #f44336);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(244, 67, 54, 0.4);
+}
+
+/* Show More/Less Button */
+.backup-show-more {
+    margin-top: 12px;
+    text-align: center;
+}
+
+.backup-expand-button {
+    padding: 8px 16px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 6px;
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 0.85em;
+    cursor: pointer;
+    transition: all 0.2s ease;
 }
 
 .backup-expand-button:hover {
-    background: rgba(76, 175, 80, 0.1);
-    transform: translateY(-1px);
+    background: rgba(255, 255, 255, 0.1);
+    color: #ffffff;
 }
 
-.backup-expand-button:active {
-    transform: translateY(0);
-}
-
-/* Animation for expanding/collapsing */
-.backups-list-mini {
-    overflow: hidden;
-    transition: max-height 0.3s ease-out;
-}
-
-/* Enhanced styling for no backups state */
-.no-backups-mini {
-    text-align: center;
-    padding: 24px;
-    color: rgba(255, 255, 255, 0.6);
-    font-style: italic;
-    border: 2px dashed rgba(255, 255, 255, 0.2);
+/* Bulk Actions */
+.backup-bulk-actions {
+    margin-top: 20px;
+    padding: 15px;
+    background: rgba(255, 165, 0, 0.1);
+    border: 1px solid rgba(255, 165, 0, 0.3);
     border-radius: 8px;
-    background: rgba(255, 255, 255, 0.02);
+}
+
+.backup-bulk-actions details {
+    color: #ffffff;
+}
+
+.backup-bulk-actions summary {
+    cursor: pointer;
+    font-weight: 600;
+    padding: 5px 0;
+    color: #FFA500;
+}
+
+.bulk-actions-content {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid rgba(255, 165, 0, 0.2);
+}
+
+.bulk-action-button {
+    padding: 8px 16px;
+    background: linear-gradient(135deg, #FF9800, #F57C00);
+    border: none;
+    border-radius: 6px;
+    color: #ffffff;
+    font-size: 0.9em;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    margin-bottom: 8px;
+}
+
+.bulk-action-button:hover {
+    background: linear-gradient(135deg, #F57C00, #FF9800);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(255, 152, 0, 0.4);
+}
+
+.bulk-action-info {
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 0.85em;
+    margin: 0;
+    line-height: 1.4;
+}
+
+/* =============================================================================
+   RESTORE CONFIRMATION DIALOG
+   ============================================================================= */
+
+.restore-confirm-dialog {
+    max-width: 500px;
+    width: 90vw;
+}
+
+.restore-confirm-dialog .modal-header {
+    background: linear-gradient(135deg, #2196F3, #1976D2);
+    color: #ffffff;
+    padding: 20px;
+    border-radius: 12px 12px 0 0;
+    border: none;
+}
+
+.restore-confirm-dialog .modal-header h3 {
+    margin: 0;
+    font-size: 1.3em;
+    font-weight: 600;
+}
+
+.restore-confirm-dialog .modal-close {
+    background: none;
+    border: none;
+    color: #ffffff;
+    font-size: 24px;
+    cursor: pointer;
+    padding: 0;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: background 0.2s ease;
+}
+
+.restore-confirm-dialog .modal-close:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.restore-confirm-dialog .modal-content {
+    padding: 25px;
+    background: rgba(0, 0, 0, 0.8);
+    color: #ffffff;
+}
+
+.warning-message {
+    background: rgba(255, 152, 0, 0.2);
+    border: 1px solid rgba(255, 152, 0, 0.5);
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 20px;
+    color: #FFA500;
+    font-weight: 600;
+    text-align: center;
+}
+
+.backup-details {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    padding: 20px;
+    margin: 20px 0;
+}
+
+.backup-details h4 {
+    color: #ffffff;
+    margin: 0 0 15px 0;
+    font-size: 1.1em;
+}
+
+.detail-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+.detail-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+}
+
+.detail-label {
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 0.9em;
+}
+
+.detail-value {
+    color: #ffffff;
+    font-weight: 600;
+    font-size: 0.9em;
+}
+
+.safety-info {
+    background: rgba(76, 175, 80, 0.2);
+    border: 1px solid rgba(76, 175, 80, 0.5);
+    border-radius: 8px;
+    padding: 15px;
+    margin-top: 20px;
+    color: #4CAF50;
+    font-size: 0.9em;
+    text-align: center;
+}
+
+.restore-confirm-dialog .modal-footer {
+    padding: 20px 25px;
+    background: rgba(0, 0, 0, 0.9);
+    border-radius: 0 0 12px 12px;
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+}
+
+.restore-confirm-button {
+    padding: 12px 24px;
+    background: linear-gradient(135deg, #2196F3, #1976D2);
+    border: none;
+    border-radius: 6px;
+    color: #ffffff;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 0.95em;
+}
+
+.restore-confirm-button:hover:not(:disabled) {
+    background: linear-gradient(135deg, #1976D2, #2196F3);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(33, 150, 243, 0.4);
+}
+
+.restore-confirm-button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* =============================================================================
+   MODAL OVERLAY IMPROVEMENTS
+   ============================================================================= */
+
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(8px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    animation: fadeIn 0.2s ease;
+}
+
+.modal-container {
+    background: rgba(20, 20, 20, 0.95);
+    border-radius: 12px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    max-height: 90vh;
+    overflow-y: auto;
+    animation: modalSlideIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes modalSlideIn {
+    from { 
+        opacity: 0;
+        transform: translateY(-20px) scale(0.95);
+    }
+    to { 
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+/* =============================================================================
+   SUCCESS/ERROR NOTIFICATIONS
+   ============================================================================= */
+
+.success-notification {
+    background: linear-gradient(135deg, rgba(76, 175, 80, 0.2), rgba(76, 175, 80, 0.1));
+    border: 1px solid rgba(76, 175, 80, 0.5);
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    animation: slideDown 0.3s ease;
+}
+
+.success-message {
+    color: #4CAF50;
+    font-weight: 600;
+    flex-grow: 1;
+}
+
+.success-close {
+    background: none;
+    border: none;
+    color: #4CAF50;
+    font-size: 18px;
+    cursor: pointer;
+    padding: 0;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: background 0.2s ease;
+}
+
+.success-close:hover {
+    background: rgba(76, 175, 80, 0.2);
+}
+
+@keyframes slideDown {
+    from { 
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to { 
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* =============================================================================
+   RESPONSIVE DESIGN
+   ============================================================================= */
+
+@media (max-width: 768px) {
+    .backup-quick-actions {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .backup-config-button,
+    .create-backup-button {
+        width: 100%;
+        text-align: center;
+    }
+    
+    .detail-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .backup-actions-mini {
+        flex-direction: column;
+    }
+    
+    .restore-confirm-dialog {
+        margin: 20px;
+        width: calc(100vw - 40px);
+    }
 }
