@@ -12,15 +12,11 @@ mod integrated_features;
 pub mod features_tab;
 mod performance_tab;
 mod settings_tab;
-pub mod backup_tab; // Keep for the components
 
 // Updated exports
 pub use features_tab::{FeaturesTab, clear_session_state};
 pub use performance_tab::PerformanceTab;
 pub use settings_tab::SettingsTab;
-
-// FIXED: Import from crate::backup instead of re-exporting
-// (Remove the re-export lines and let main.rs handle the backup imports directly)
 
 // Define public feature types needed by other modules
 pub struct FeatureCard;
