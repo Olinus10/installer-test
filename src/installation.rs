@@ -1931,11 +1931,70 @@ let metadata = BackupMetadata {
             return Err(format!("Backup {} not found", backup_id));
         }
         
-        std::fs::remove_dir_all(&backup_dir)
-            .map_err(|e| format!("Failed to delete backup: {}", e))?;
+        // Load metadata first to get backup info for logging
+        let metadata_path = backup_dir.join("metadata.json");
+        let backup_info = if metadata_path.exists() {
+            match std::fs::read_to_string(&metadata_path) {
+                Ok(content) => {
+                    match serde_json::from_str::<BackupMetadata>(&content) {
+                        Ok(metadata) => Some(format!("{} ({})", metadata.description, metadata.formatted_size())),
+                        Err(_) => Some("Unknown backup".to_string())
+                    }
+                },
+                Err(_) => Some("Unknown backup".to_string())
+            }
+        } else {
+            Some("Unknown backup".to_string())
+        };
         
-        debug!("Successfully deleted backup: {}", backup_id);
+        // Delete the entire backup directory
+        std::fs::remove_dir_all(&backup_dir)
+            .map_err(|e| format!("Failed to delete backup directory: {}", e))?;
+        
+        if let Some(info) = backup_info {
+            debug!("Successfully deleted backup: {} - {}", backup_id, info);
+        } else {
+            debug!("Successfully deleted backup: {}", backup_id);
+        }
+        
         Ok(())
+    }
+
+        pub fn get_backup_stats(&self) -> Result<(usize, u64), String> {
+        let backups = self.list_available_backups()?;
+        let total_count = backups.len();
+        let total_size = backups.iter().map(|b| b.size_bytes).sum();
+        
+        Ok((total_count, total_size))
+    }
+    
+    /// Clean up backups older than a certain age (helper for maintenance)
+    pub fn cleanup_old_backups_by_age(&self, max_age_days: u64) -> Result<usize, String> {
+        let backups = self.list_available_backups()?;
+        let cutoff_date = chrono::Utc::now() - chrono::Duration::days(max_age_days as i64);
+        
+        let mut cleaned_count = 0;
+        
+        for backup in backups {
+            if backup.created_at < cutoff_date {
+                // Don't delete the most recent backup even if it's old
+                if cleaned_count == 0 && backups.len() == 1 {
+                    continue;
+                }
+                
+                match self.delete_backup(&backup.id).await {
+                    Ok(_) => {
+                        cleaned_count += 1;
+                        debug!("Cleaned up old backup: {} ({})", backup.description, backup.age_description());
+                    },
+                    Err(e) => {
+                        warn!("Failed to clean up backup {}: {}", backup.id, e);
+                    }
+                }
+            }
+        }
+        
+        Ok(cleaned_count)
     }
 
     /// Migrate old backup metadata format to new format
