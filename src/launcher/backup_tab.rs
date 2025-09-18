@@ -409,16 +409,17 @@ if *show_backup_config.read() {
 #[component]
 fn SimplifiedBackupDialog(
     config: Signal<BackupConfig>,
-    installation: Installation, // Add installation parameter
+    installation: Installation,
     onclose: EventHandler<()>,
     onupdate: EventHandler<BackupConfig>,
     oncreate: EventHandler<()>,
 ) -> Element {
     let mut local_config = use_signal(|| config.read().clone());
-    let mut discovered_folders = use_signal(|| Vec::<String>::new()); // Just folder names
+    let mut discovered_folders = use_signal(|| Vec::<String>::new());
     let mut scanning = use_signal(|| true);
     let mut scan_error = use_signal(|| Option::<String>::None);
     let mut backup_mode = use_signal(|| "complete".to_string());
+    let mut estimated_size = use_signal(|| 0u64);
     
     // Scan installation directory when component loads
     use_effect({
@@ -427,14 +428,16 @@ fn SimplifiedBackupDialog(
         let mut scanning = scanning.clone();
         let mut scan_error = scan_error.clone();
         let mut local_config = local_config.clone();
+        let mut estimated_size = estimated_size.clone();
         
         move || {
             let installation_path_clone = installation_path.clone();
             spawn(async move {
-                match scan_installation_folders_simple(&installation_path_clone).await {
-                    Ok(folders) => {
-                        debug!("Discovered {} folders in installation", folders.len());
+                match scan_installation_folders_with_size(&installation_path_clone).await {
+                    Ok((folders, total_size)) => {
+                        debug!("Discovered {} folders in installation (total: {})", folders.len(), format_bytes(total_size));
                         discovered_folders.set(folders.clone());
+                        estimated_size.set(total_size);
                         
                         // For complete backup, select all folders
                         local_config.with_mut(|c| {
@@ -452,22 +455,30 @@ fn SimplifiedBackupDialog(
         }
     });
     
-    // Update selection when backup mode changes
-let mut handle_mode_change = move |mode: String| {
-    backup_mode.set(mode.clone()); // Clone to avoid moving
-    local_config.with_mut(|c| {
-        if mode == "complete" {
-            c.selected_items = discovered_folders.read().clone();
-        } else {
-            c.selected_items.clear();
-            for folder in discovered_folders.read().iter() {
-                if is_important_folder(folder) {
-                    c.selected_items.push(folder.clone());
+    // Calculate estimated backup size based on selected items
+    let calculate_estimated_size = {
+        let installation = installation.clone();
+        let discovered_folders = discovered_folders.clone();
+        let mut estimated_size = estimated_size.clone();
+        
+        move |selected_items: &Vec<String>| {
+            if selected_items.is_empty() {
+                estimated_size.set(0);
+                return;
+            }
+            
+            let mut total = 0u64;
+            for item in selected_items {
+                let path = installation.installation_path.join(item);
+                if path.exists() {
+                    if let Ok(size) = crate::backup::calculate_directory_size(&path) {
+                        total += size;
+                    }
                 }
             }
+            estimated_size.set(total);
         }
-    });
-};
+    };
     
     rsx! {
         div { class: "modal-overlay",
@@ -502,18 +513,19 @@ let mut handle_mode_change = move |mode: String| {
                                     } else { 
                                         "backup-mode-option" 
                                     },
-input {
-    r#type: "radio",
-    name: "backup-mode",
-    value: "complete",
-    checked: backup_mode.read().as_str() == "complete",
-    onchange: move |_| {
-        backup_mode.set("complete".to_string());
-        local_config.with_mut(|c| {
-            c.selected_items = discovered_folders.read().clone();
-        });
-    }
-}
+                                    input {
+                                        r#type: "radio",
+                                        name: "backup-mode",
+                                        value: "complete",
+                                        checked: backup_mode.read().as_str() == "complete",
+                                        onchange: move |_| {
+                                            backup_mode.set("complete".to_string());
+                                            local_config.with_mut(|c| {
+                                                c.selected_items = discovered_folders.read().clone();
+                                            });
+                                            calculate_estimated_size(&discovered_folders.read());
+                                        }
+                                    }
                                     div { class: "mode-content",
                                         div { class: "mode-title", "📦 Complete Backup" }
                                         div { class: "mode-description", 
@@ -528,23 +540,25 @@ input {
                                     } else { 
                                         "backup-mode-option" 
                                     },
-input {
-    r#type: "radio",
-    name: "backup-mode", 
-    value: "custom",
-    checked: backup_mode.read().as_str() == "custom",
-    onchange: move |_| {
-        backup_mode.set("custom".to_string());
-        local_config.with_mut(|c| {
-            c.selected_items.clear();
-            for folder in discovered_folders.read().iter() {
-                if is_important_folder(folder) {
-                    c.selected_items.push(folder.clone());
-                }
-            }
-        });
-    }
-}
+                                    input {
+                                        r#type: "radio",
+                                        name: "backup-mode", 
+                                        value: "custom",
+                                        checked: backup_mode.read().as_str() == "custom",
+                                        onchange: move |_| {
+                                            backup_mode.set("custom".to_string());
+                                            local_config.with_mut(|c| {
+                                                c.selected_items.clear();
+                                                // Pre-select important folders
+                                                for folder in discovered_folders.read().iter() {
+                                                    if is_important_folder(folder) {
+                                                        c.selected_items.push(folder.clone());
+                                                    }
+                                                }
+                                            });
+                                            calculate_estimated_size(&local_config.read().selected_items);
+                                        }
+                                    }
                                     div { class: "mode-content",
                                         div { class: "mode-title", "⚙️ Custom Backup" }
                                         div { class: "mode-description", 
@@ -560,14 +574,14 @@ input {
                                 h5 { "Folders that will be backed up:" }
                                 div { class: "folder-preview-list",
                                     for folder in discovered_folders.read().iter() {
-                                    div { 
-                                        class: get_folder_css_class(folder),
-                                        span { class: "folder-icon", "{get_folder_icon(folder)}" },
-                                        span { class: "folder-name", "{folder}" },
-                                        if is_important_folder(folder) {
-                                            span { class: "folder-badge important", "Important" }
-                                        } else if is_world_data_folder(folder) {
-                                            span { class: "folder-badge world-data", "World Data" }
+                                        div { 
+                                            class: get_folder_css_class(folder),
+                                            span { class: "folder-icon", "{get_folder_icon(folder)}" }
+                                            span { class: "folder-name", "{folder}" }
+                                            if is_important_folder(folder) {
+                                                span { class: "folder-badge important", "Important" }
+                                            } else if is_world_data_folder(folder) {
+                                                span { class: "folder-badge world-data", "World Data" }
                                             }
                                         }
                                     }
@@ -600,12 +614,13 @@ input {
                                                                     c.selected_items.retain(|p| p != &folder_name);
                                                                 }
                                                             });
+                                                            calculate_estimated_size(&local_config.read().selected_items);
                                                         }
                                                     }
                                                     
                                                     div { class: "folder-selection-content",
-    span { class: "folder-icon", "{get_folder_icon(folder)}" },
-    span { class: "folder-name", "{folder}" },
+                                                        span { class: "folder-icon", "{get_folder_icon(folder)}" }
+                                                        span { class: "folder-name", "{folder}" }
                                                         if is_important_folder(folder) {
                                                             span { class: "folder-badge important", "Important" }
                                                         } else if is_world_data_folder(folder) {
@@ -624,6 +639,18 @@ input {
                             }
                         }
                         
+                        // Show estimated size
+                        if *estimated_size.read() > 0 {
+                            div { class: "estimated-size",
+                                "Estimated backup size: {format_bytes(*estimated_size.read())}"
+                                if local_config.read().compress_backups {
+                                    span { class: "compression-note", 
+                                        " (compressed: ~{format_bytes((*estimated_size.read() as f64 * 0.65) as u64)})"
+                                    }
+                                }
+                            }
+                        }
+                        
                         // Backup options
                         div { class: "backup-options-section",
                             h5 { "Options" }
@@ -637,7 +664,7 @@ input {
                                             local_config.with_mut(|c| c.compress_backups = evt.value() == "true");
                                         }
                                     }
-                                    span { "Compress backup (recommended - saves space)" }
+                                    span { "Compress backup (recommended - saves ~35% space)" }
                                 }
                                 
                                 label { class: "option-item",
@@ -648,7 +675,7 @@ input {
                                             local_config.with_mut(|c| c.include_hidden_files = evt.value() == "true");
                                         }
                                     }
-                                    span { "Include hidden files and folders" }
+                                    span { "Include hidden files and folders (.bobby, .minecraft, etc.)" }
                                 }
                                 
                                 div { class: "option-item number-option",
@@ -706,15 +733,16 @@ input {
     }
 }
 
-// Simplified folder scanning - just return folder names
-async fn scan_installation_folders_simple(installation_path: &std::path::Path) -> Result<Vec<String>, String> {
-    debug!("Scanning installation directory: {:?}", installation_path);
+// New function to scan installation folders with size calculation
+async fn scan_installation_folders_with_size(installation_path: &std::path::Path) -> Result<(Vec<String>, u64), String> {
+    debug!("Scanning installation directory with size calculation: {:?}", installation_path);
     
     if !installation_path.exists() {
         return Err("Installation directory does not exist".to_string());
     }
     
     let mut folders = Vec::new();
+    let mut total_size = 0u64;
     
     let entries = std::fs::read_dir(installation_path)
         .map_err(|e| format!("Failed to read installation directory: {}", e))?;
@@ -735,6 +763,11 @@ async fn scan_installation_folders_simple(installation_path: &std::path::Path) -
             continue;
         }
         
+        // Calculate folder size
+        if let Ok(size) = crate::backup::calculate_directory_size(&path) {
+            total_size += size;
+        }
+        
         folders.push(name);
     }
     
@@ -749,70 +782,73 @@ async fn scan_installation_folders_simple(installation_path: &std::path::Path) -
         }
     });
     
-    debug!("Found {} folders in installation", folders.len());
-    Ok(folders)
+    debug!("Found {} folders in installation (total size: {})", folders.len(), format_bytes(total_size));
+    Ok((folders, total_size))
 }
 
-fn should_skip_folder_for_display(name: &str) -> bool {
-    // Skip system/temp folders from being shown to user
-    let skip_patterns = [
-        "backups",          // Our backup folder
-        "natives",          // Native libraries
-        "versions",         // Minecraft versions
-        "libraries",        // Minecraft libraries
-        "assets",          // Minecraft assets
-        "crash-reports",   // Usually don't need backup
-        "logs",            // Usually don't need backup
-        "temp",            // Temporary files
-        "cache",           // Cache directories
-    ];
-    
-    skip_patterns.iter().any(|pattern| name == *pattern) || 
-    name.starts_with("tmp_") || 
-    name.ends_with(".tmp")
-}
-
+// Updated helper functions to be more precise about important folders
 fn is_important_folder(name: &str) -> bool {
+    // Only these are truly important for mod functionality
     matches!(name, "wynntils" | "config" | "mods")
 }
 
 fn is_world_data_folder(name: &str) -> bool {
+    // Folders that contain world-specific data
     matches!(name, ".bobby" | "Distant_Horizons_server_data" | "saves")
 }
 
 fn get_folder_priority(name: &str) -> u8 {
     match name {
-        // Important folders (priority 1)
-        "wynntils" | "config" | "mods" => 1,
-        // World data folders (priority 2)
-        ".bobby" | "Distant_Horizons_server_data" | "saves" => 2,
+        // Critical mod folders (priority 1)
+        "wynntils" => 1,
+        "config" => 1, 
+        "mods" => 1,
+        // World data folders (priority 2) 
+        ".bobby" => 2,
+        "Distant_Horizons_server_data" => 2,
+        "saves" => 2,
         // Resource folders (priority 3)
-        "resourcepacks" | "shaderpacks" | "screenshots" => 3,
-        // Everything else (priority 4)
-        _ => 4,
+        "resourcepacks" | "shaderpacks" => 3,
+        // Other useful folders (priority 4)
+        "screenshots" => 4,
+        // Everything else (priority 5)
+        _ => 5,
     }
 }
 
 fn get_folder_icon(name: &str) -> &'static str {
     match name {
         "wynntils" => "🎯",
-        "config" => "⚙️",
+        "config" => "⚙️", 
         "mods" => "🧩",
         ".bobby" => "🗺️",
         "Distant_Horizons_server_data" => "🌄",
         "saves" => "💾",
         "resourcepacks" => "🎨",
-        "shaderpacks" => "✨",
+        "shaderpacks" => "✨", 
         "screenshots" => "📸",
         _ => "📁",
     }
+}
+
+fn should_skip_folder_for_display(name: &str) -> bool {
+    // Skip system/temp folders and folders that shouldn't be backed up
+    let skip_patterns = [
+        "backups",          // Our backup folder
+    ];
+    
+    skip_patterns.iter().any(|pattern| name == *pattern) || 
+    name.starts_with("tmp_") || 
+    name.ends_with(".tmp") ||
+    name.starts_with(".")  // Skip hidden folders except for important ones
+    && !matches!(name, ".bobby" | ".minecraft")
 }
 
 fn get_folder_css_class(name: &str) -> &'static str {
     if is_important_folder(name) {
         "folder-preview-item important"
     } else if is_world_data_folder(name) {
-        "folder-preview-item world-data"
+        "folder-preview-item world-data"  
     } else {
         "folder-preview-item"
     }
