@@ -427,20 +427,21 @@ fn SimplifiedBackupDialog(
         "Distant_Horizons_server_data".to_string(),
     ];
     
-    // Calculate estimated backup size based on selected items
-    let calculate_estimated_size = {
-        let installation = installation.clone();
+    // Helper function to calculate estimated backup size
+    let update_estimated_size = {
+        let installation_path = installation.installation_path.clone();
         let mut estimated_size = estimated_size.clone();
         
-        move |selected_items: &Vec<String>| {
-            if selected_items.is_empty() {
-                estimated_size.set(0);
+        move |selected_items: Vec<String>| {
+            if selected_items.is_empty() || selected_items == vec!["*".to_string()] {
+                // For complete backup or empty selection, use a default estimate
+                estimated_size.set(1024 * 1024 * 1024); // 1GB estimate
                 return;
             }
             
             let mut total = 0u64;
-            for item in selected_items {
-                let path = installation.installation_path.join(item);
+            for item in &selected_items {
+                let path = installation_path.join(item);
                 if path.exists() {
                     if let Ok(size) = crate::backup::calculate_directory_size(&path) {
                         total += size;
@@ -454,14 +455,11 @@ fn SimplifiedBackupDialog(
     // Initialize with complete backup selected
     use_effect({
         let mut local_config = local_config.clone();
-        let calculate_size = calculate_estimated_size.clone();
         
         move || {
             local_config.with_mut(|c| {
                 c.selected_items = vec!["*".to_string()]; // Complete backup marker
             });
-            // Calculate size for complete backup - we'll estimate this
-            calculate_size(&vec!["*".to_string()]);
         }
     });
     
@@ -493,12 +491,18 @@ fn SimplifiedBackupDialog(
                                     name: "backup-mode",
                                     value: "complete",
                                     checked: backup_mode.read().as_str() == "complete",
-                                    onchange: move |_| {
-                                        backup_mode.set("complete".to_string());
-                                        local_config.with_mut(|c| {
-                                            c.selected_items = vec!["*".to_string()]; // Special marker for complete backup
-                                        });
-                                        calculate_estimated_size(&vec!["*".to_string()]);
+                                    onchange: {
+                                        let mut local_config = local_config.clone();
+                                        let mut backup_mode = backup_mode.clone();
+                                        let update_size = update_estimated_size.clone();
+                                        
+                                        move |_| {
+                                            backup_mode.set("complete".to_string());
+                                            local_config.with_mut(|c| {
+                                                c.selected_items = vec!["*".to_string()]; // Special marker for complete backup
+                                            });
+                                            update_size(vec!["*".to_string()]);
+                                        }
                                     }
                                 }
                                 div { class: "mode-content",
@@ -520,16 +524,23 @@ fn SimplifiedBackupDialog(
                                     name: "backup-mode", 
                                     value: "custom",
                                     checked: backup_mode.read().as_str() == "custom",
-                                    onchange: move |_| {
-                                        backup_mode.set("custom".to_string());
-                                        local_config.with_mut(|c| {
-                                            c.selected_items = vec![
+                                    onchange: {
+                                        let mut local_config = local_config.clone();
+                                        let mut backup_mode = backup_mode.clone();
+                                        let update_size = update_estimated_size.clone();
+                                        
+                                        move |_| {
+                                            backup_mode.set("custom".to_string());
+                                            let selected = vec![
                                                 "wynntils".to_string(),
                                                 "config".to_string(),
                                                 "mods".to_string(),
-                                            ]; // Pre-select most important ones
-                                        });
-                                        calculate_estimated_size(&local_config.read().selected_items);
+                                            ];
+                                            local_config.with_mut(|c| {
+                                                c.selected_items = selected.clone(); // Pre-select most important ones
+                                            });
+                                            update_size(selected);
+                                        }
                                     }
                                 }
                                 div { class: "mode-content",
@@ -575,18 +586,24 @@ fn SimplifiedBackupDialog(
                                                 input {
                                                     r#type: "checkbox",
                                                     checked: is_selected,
-                                                    onchange: move |evt| {
-                                                        let checked = evt.value() == "true";
-                                                        local_config.with_mut(|c| {
-                                                            if checked {
-                                                                if !c.selected_items.contains(&folder_name) {
-                                                                    c.selected_items.push(folder_name.clone());
+                                                    onchange: {
+                                                        let folder_name = folder_name.clone();
+                                                        let mut local_config = local_config.clone();
+                                                        let update_size = update_estimated_size.clone();
+                                                        
+                                                        move |evt| {
+                                                            let checked = evt.value() == "true";
+                                                            local_config.with_mut(|c| {
+                                                                if checked {
+                                                                    if !c.selected_items.contains(&folder_name) {
+                                                                        c.selected_items.push(folder_name.clone());
+                                                                    }
+                                                                } else {
+                                                                    c.selected_items.retain(|p| p != &folder_name);
                                                                 }
-                                                            } else {
-                                                                c.selected_items.retain(|p| p != &folder_name);
-                                                            }
-                                                        });
-                                                        calculate_estimated_size(&local_config.read().selected_items);
+                                                            });
+                                                            update_size(local_config.read().selected_items.clone());
+                                                        }
                                                     }
                                                 }
                                                 
@@ -749,7 +766,6 @@ fn get_folder_selection_class(name: &str, is_selected: bool) -> String {
         base.to_string()
     }
 }
-
 // Keep existing components for progress display, cards, etc.
 #[component]
 fn EnhancedBackupProgressDisplay(progress: BackupProgress) -> Element {
