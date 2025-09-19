@@ -4267,359 +4267,139 @@ a:hover {
 }
 
 /* =============================================================================
-   BACKUP STYLES - Monochrome theme with Green/Red/Orange/Blue accents
+   BACKUP STYLES - Enhanced Monochrome theme with Green/Red/Orange/Blue accents
    ============================================================================= */
+
+/* RESET BUTTON - Orange styling */
+.reset-cache-button {
+    background: linear-gradient(135deg, #FF9800, #F57C00) !important;
+    border: 1px solid rgba(255, 152, 0, 0.6) !important;
+    color: white !important;
+    box-shadow: 0 2px 8px rgba(255, 152, 0, 0.3) !important;
+}
+
+.reset-cache-button:hover {
+    background: linear-gradient(135deg, #FFB74D, #FF9800) !important;
+    border-color: rgba(255, 152, 0, 0.8) !important;
+    box-shadow: 0 4px 12px rgba(255, 152, 0, 0.4) !important;
+}
+
+/* BACKUP BUTTON - Blue styling */
+.backup-button {
+    background: linear-gradient(135deg, #2196F3, #1565C0) !important;
+    border: 1px solid rgba(33, 150, 243, 0.6) !important;
+    color: white !important;
+    box-shadow: 0 2px 8px rgba(33, 150, 243, 0.3) !important;
+}
+
+.backup-button:hover {
+    background: linear-gradient(135deg, #42A5F5, #2196F3) !important;
+    border-color: rgba(33, 150, 243, 0.8) !important;
+    box-shadow: 0 4px 12px rgba(33, 150, 243, 0.4) !important;
+}
+
+/* Reset cache warning styling */
+.reset-cache-warning {
+    margin-top: 8px;
+    padding: 10px 12px;
+    background: rgba(255, 152, 0, 0.1);
+    border-left: 3px solid #FF9800;
+    border-radius: 4px;
+    font-size: 0.9rem;
+    color: rgba(255, 152, 0, 0.9);
+    line-height: 1.4;
+}
 
 /* Backup Section Container */
 .backup-expanded-section {
-    background: rgba(255, 255, 255, 0.02);
+    background: linear-gradient(145deg, rgba(25, 25, 25, 0.8), rgba(15, 15, 15, 0.9));
     border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 8px;
-    padding: 20px;
-    margin-top: 15px;
-    backdrop-filter: blur(10px);
+    border-radius: 12px;
+    padding: 25px;
+    margin-top: 20px;
+    backdrop-filter: blur(15px);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    animation: slideDown 0.3s ease;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 /* Quick Backup Creation */
 .backup-quick-create {
-    margin-bottom: 25px;
-    padding-bottom: 20px;
+    margin-bottom: 30px;
+    padding-bottom: 25px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .backup-quick-create h5 {
     color: #ffffff;
-    font-size: 1.1em;
-    margin-bottom: 15px;
+    font-size: 1.2em;
+    margin-bottom: 20px;
     font-weight: 600;
+    font-family: "HEADER_FONT";
+    letter-spacing: 0.5px;
+    box-shadow: 0 4px 15px rgba(244, 67, 54, 0.3);
 }
 
-.backup-description-input {
-    margin-bottom: 15px;
+.backup-config-dialog.enhanced .cancel-button:hover {
+    background: linear-gradient(135deg, #f66356, #f44336);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(244, 67, 54, 0.4);
 }
 
-.backup-description-input input {
-    width: 100%;
-    padding: 10px 12px;
-    background: rgba(0, 0, 0, 0.3);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: 6px;
-    color: #ffffff;
-    font-size: 0.9em;
-    transition: all 0.2s ease;
-}
-
-.backup-description-input input:focus {
-    outline: none;
-    border-color: #4CAF50;
-    box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.2);
-}
-
-.backup-description-input input::placeholder {
-    color: rgba(255, 255, 255, 0.5);
-}
-
-.backup-quick-actions {
-    display: flex;
-    gap: 12px;
-    align-items: center;
-}
-
-/* Backup Configuration Button */
-.backup-config-button {
-    padding: 8px 16px;
-    background: rgba(33, 150, 243, 0.2);
-    border: 1px solid #2196F3;
-    border-radius: 6px;
-    color: #2196F3;
-    font-size: 0.9em;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    font-weight: 500;
-}
-
-.backup-config-button:hover {
-    background: rgba(33, 150, 243, 0.3);
-    transform: translateY(-1px);
-}
-
-/* Create Backup Button */
-.create-backup-button {
-    padding: 10px 20px;
-    background: linear-gradient(135deg, #4CAF50, #45a049);
+.backup-config-dialog.enhanced .save-button {
+    padding: 12px 24px;
+    background: linear-gradient(135deg, #4CAF50, #2E7D32);
     border: none;
-    border-radius: 6px;
+    border-radius: 8px;
     color: #ffffff;
-    font-size: 0.9em;
     font-weight: 600;
     cursor: pointer;
-    transition: all 0.2s ease;
-    box-shadow: 0 2px 4px rgba(76, 175, 80, 0.3);
-}
-
-.create-backup-button:hover:not(:disabled) {
-    background: linear-gradient(135deg, #45a049, #4CAF50);
-    transform: translateY(-1px);
-    box-shadow: 0 4px 8px rgba(76, 175, 80, 0.4);
-}
-
-.create-backup-button:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-    transform: none;
-}
-
-/* Backup Progress Mini */
-.backup-progress-mini {
-    margin-top: 15px;
-    padding: 12px;
-    background: rgba(0, 0, 0, 0.2);
-    border-radius: 6px;
-    border-left: 3px solid #4CAF50;
-}
-
-.progress-text {
-    color: #ffffff;
-    font-size: 0.9em;
-    margin-bottom: 8px;
-}
-
-.progress-bar-mini {
-    height: 6px;
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 3px;
+    transition: all 0.3s ease;
+    font-family: "HEADER_FONT";
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    box-shadow: 0 4px 15px rgba(76, 175, 80, 0.3);
+    position: relative;
     overflow: hidden;
 }
 
-.progress-fill {
+.backup-config-dialog.enhanced .save-button::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
     height: 100%;
-    background: linear-gradient(90deg, #4CAF50, #66BB6A);
-    transition: width 0.3s ease;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    transition: left 0.5s ease;
 }
 
-/* Backup List Section */
-.backup-list-section {
-    margin-top: 20px;
+.backup-config-dialog.enhanced .save-button:hover:not(:disabled) {
+    background: linear-gradient(135deg, #66BB6A, #4CAF50);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(76, 175, 80, 0.5);
 }
 
-.backup-list-section h5 {
-    color: #ffffff;
-    font-size: 1.1em;
-    margin-bottom: 15px;
-    font-weight: 600;
+.backup-config-dialog.enhanced .save-button:hover:not(:disabled)::before {
+    left: 100%;
 }
 
-.no-backups-mini {
-    text-align: center;
-    padding: 30px;
-    color: rgba(255, 255, 255, 0.6);
-    font-style: italic;
-}
-
-/* Backup Items */
-.backups-list-mini {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-}
-
-.backup-item-mini {
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 8px;
-    padding: 12px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-}
-
-.backup-item-mini:hover {
-    background: rgba(255, 255, 255, 0.08);
-    border-color: rgba(255, 255, 255, 0.2);
-    transform: translateY(-1px);
-}
-
-.backup-item-mini.selected {
-    background: rgba(76, 175, 80, 0.1);
-    border-color: #4CAF50;
-    box-shadow: 0 0 0 1px rgba(76, 175, 80, 0.3);
-}
-
-.backup-info-mini {
-    margin-bottom: 8px;
-}
-
-.backup-header-mini {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 6px;
-}
-
-.backup-name {
-    color: #ffffff;
-    font-weight: 600;
-    font-size: 0.95em;
-}
-
-.backup-type-badge {
-    padding: 4px 8px;
-    border-radius: 12px;
-    font-size: 0.75em;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-}
-
-.backup-meta {
-    color: rgba(255, 255, 255, 0.7);
-    font-size: 0.85em;
-}
-
-/* Backup Details (when selected) */
-.backup-details-mini {
-    margin-top: 10px;
-    padding: 10px;
-    background: rgba(0, 0, 0, 0.2);
-    border-radius: 6px;
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 8px;
-}
-
-.backup-detail-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.detail-label {
-    color: rgba(255, 255, 255, 0.7);
-    font-size: 0.8em;
-}
-
-.detail-value {
-    color: #ffffff;
-    font-size: 0.8em;
-    font-weight: 500;
-}
-
-/* Backup Actions */
-.backup-actions-mini {
-    display: flex;
-    gap: 8px;
-    margin-top: 10px;
-    padding-top: 10px;
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.restore-button-mini {
-    padding: 6px 12px;
-    background: linear-gradient(135deg, #2196F3, #1976D2);
-    border: none;
-    border-radius: 5px;
-    color: #ffffff;
-    font-size: 0.8em;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s ease;
-}
-
-.restore-button-mini:hover {
-    background: linear-gradient(135deg, #1976D2, #2196F3);
-    transform: translateY(-1px);
-    box-shadow: 0 2px 4px rgba(33, 150, 243, 0.4);
-}
-
-.delete-backup-button-mini {
-    padding: 6px 12px;
-    background: linear-gradient(135deg, #f44336, #d32f2f);
-    border: none;
-    border-radius: 5px;
-    color: #ffffff;
-    font-size: 0.8em;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s ease;
-}
-
-.delete-backup-button-mini:hover {
-    background: linear-gradient(135deg, #d32f2f, #f44336);
-    transform: translateY(-1px);
-    box-shadow: 0 2px 4px rgba(244, 67, 54, 0.4);
-}
-
-/* Show More/Less Button */
-.backup-show-more {
-    margin-top: 12px;
-    text-align: center;
-}
-
-.backup-expand-button {
-    padding: 8px 16px;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: 6px;
-    color: rgba(255, 255, 255, 0.8);
-    font-size: 0.85em;
-    cursor: pointer;
-    transition: all 0.2s ease;
-}
-
-.backup-expand-button:hover {
-    background: rgba(255, 255, 255, 0.1);
-    color: #ffffff;
-}
-
-/* Bulk Actions */
-.backup-bulk-actions {
-    margin-top: 20px;
-    padding: 15px;
-    background: rgba(255, 165, 0, 0.1);
-    border: 1px solid rgba(255, 165, 0, 0.3);
-    border-radius: 8px;
-}
-
-.backup-bulk-actions details {
-    color: #ffffff;
-}
-
-.backup-bulk-actions summary {
-    cursor: pointer;
-    font-weight: 600;
-    padding: 5px 0;
-    color: #FFA500;
-}
-
-.bulk-actions-content {
-    margin-top: 10px;
-    padding-top: 10px;
-    border-top: 1px solid rgba(255, 165, 0, 0.2);
-}
-
-.bulk-action-button {
-    padding: 8px 16px;
-    background: linear-gradient(135deg, #FF9800, #F57C00);
-    border: none;
-    border-radius: 6px;
-    color: #ffffff;
-    font-size: 0.9em;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    margin-bottom: 8px;
-}
-
-.bulk-action-button:hover {
-    background: linear-gradient(135deg, #F57C00, #FF9800);
-    transform: translateY(-1px);
-    box-shadow: 0 2px 4px rgba(255, 152, 0, 0.4);
-}
-
-.bulk-action-info {
-    color: rgba(255, 255, 255, 0.7);
-    font-size: 0.85em;
-    margin: 0;
-    line-height: 1.4;
+.backup-config-dialog.enhanced .save-button:disabled {
+    background: linear-gradient(135deg, #666, #444);
+    color: rgba(255, 255, 255, 0.5);
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
 /* =============================================================================
@@ -4627,14 +4407,14 @@ a:hover {
    ============================================================================= */
 
 .restore-confirm-dialog {
-    max-width: 500px;
-    width: 90vw;
+    max-width: 600px !important;
+    width: 90vw !important;
 }
 
 .restore-confirm-dialog .modal-header {
-    background: linear-gradient(135deg, #2196F3, #1976D2);
+    background: linear-gradient(135deg, #2196F3, #1565C0);
     color: #ffffff;
-    padding: 20px;
+    padding: 20px 25px;
     border-radius: 12px 12px 0 0;
     border: none;
 }
@@ -4643,62 +4423,78 @@ a:hover {
     margin: 0;
     font-size: 1.3em;
     font-weight: 600;
+    font-family: "HEADER_FONT";
+    letter-spacing: 0.5px;
 }
 
 .restore-confirm-dialog .modal-close {
-    background: none;
-    border: none;
+    background: rgba(255, 255, 255, 0.1);
+    border: 2px solid rgba(255, 255, 255, 0.3);
     color: #ffffff;
-    font-size: 24px;
+    font-size: 20px;
     cursor: pointer;
     padding: 0;
-    width: 30px;
-    height: 30px;
+    width: 32px;
+    height: 32px;
     display: flex;
     align-items: center;
     justify-content: center;
     border-radius: 50%;
-    transition: background 0.2s ease;
+    transition: all 0.3s ease;
+    font-family: Arial, sans-serif;
+    line-height: 1;
+    backdrop-filter: blur(5px);
 }
 
 .restore-confirm-dialog .modal-close:hover {
     background: rgba(255, 255, 255, 0.2);
+    border-color: rgba(255, 255, 255, 0.5);
+    transform: scale(1.1) rotate(90deg);
+    box-shadow: 0 0 15px rgba(255, 255, 255, 0.3);
 }
 
 .restore-confirm-dialog .modal-content {
     padding: 25px;
-    background: rgba(0, 0, 0, 0.8);
+    background: linear-gradient(145deg, rgba(20, 20, 20, 0.95), rgba(15, 15, 15, 0.98));
     color: #ffffff;
 }
 
 .warning-message {
-    background: rgba(255, 152, 0, 0.2);
+    background: linear-gradient(135deg, rgba(255, 152, 0, 0.2), rgba(255, 152, 0, 0.1));
     border: 1px solid rgba(255, 152, 0, 0.5);
     border-radius: 8px;
     padding: 15px;
     margin-bottom: 20px;
-    color: #FFA500;
+    color: #FF9800;
     font-weight: 600;
     text-align: center;
+    font-size: 1em;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
 }
 
 .backup-details {
     background: rgba(255, 255, 255, 0.05);
-    border-radius: 8px;
+    border-radius: 10px;
     padding: 20px;
     margin: 20px 0;
+    border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .backup-details h4 {
     color: #ffffff;
     margin: 0 0 15px 0;
     font-size: 1.1em;
+    font-family: "HEADER_FONT";
+    letter-spacing: 0.5px;
 }
 
 .detail-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 12px;
+    gap: 15px;
 }
 
 .detail-row {
@@ -4706,106 +4502,95 @@ a:hover {
     justify-content: space-between;
     align-items: center;
     padding: 8px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.detail-row:last-child {
+    border-bottom: none;
 }
 
 .detail-label {
     color: rgba(255, 255, 255, 0.7);
     font-size: 0.9em;
+    font-weight: 500;
 }
 
 .detail-value {
     color: #ffffff;
     font-weight: 600;
     font-size: 0.9em;
+    text-align: right;
 }
 
 .safety-info {
-    background: rgba(76, 175, 80, 0.2);
+    background: linear-gradient(135deg, rgba(76, 175, 80, 0.2), rgba(76, 175, 80, 0.1));
     border: 1px solid rgba(76, 175, 80, 0.5);
     border-radius: 8px;
     padding: 15px;
     margin-top: 20px;
     color: #4CAF50;
-    font-size: 0.9em;
+    font-size: 0.95em;
     text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
 }
 
 .restore-confirm-dialog .modal-footer {
     padding: 20px 25px;
-    background: rgba(0, 0, 0, 0.9);
+    background: linear-gradient(145deg, rgba(30, 30, 30, 0.9), rgba(20, 20, 20, 0.95));
     border-radius: 0 0 12px 12px;
     display: flex;
     justify-content: flex-end;
-    gap: 12px;
+    gap: 15px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .restore-confirm-button {
     padding: 12px 24px;
-    background: linear-gradient(135deg, #2196F3, #1976D2);
+    background: linear-gradient(135deg, #2196F3, #1565C0);
     border: none;
-    border-radius: 6px;
+    border-radius: 8px;
     color: #ffffff;
     font-weight: 600;
     cursor: pointer;
-    transition: all 0.2s ease;
-    font-size: 0.95em;
+    transition: all 0.3s ease;
+    font-family: "HEADER_FONT";
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    box-shadow: 0 4px 15px rgba(33, 150, 243, 0.3);
+    position: relative;
+    overflow: hidden;
+}
+
+.restore-confirm-button::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    transition: left 0.5s ease;
 }
 
 .restore-confirm-button:hover:not(:disabled) {
-    background: linear-gradient(135deg, #1976D2, #2196F3);
-    transform: translateY(-1px);
-    box-shadow: 0 4px 8px rgba(33, 150, 243, 0.4);
+    background: linear-gradient(135deg, #42A5F5, #2196F3);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(33, 150, 243, 0.5);
+}
+
+.restore-confirm-button:hover:not(:disabled)::before {
+    left: 100%;
 }
 
 .restore-confirm-button:disabled {
-    opacity: 0.6;
+    background: linear-gradient(135deg, #666, #444);
+    color: rgba(255, 255, 255, 0.5);
     cursor: not-allowed;
     transform: none;
-}
-
-/* =============================================================================
-   MODAL OVERLAY IMPROVEMENTS
-   ============================================================================= */
-
-.modal-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0, 0, 0, 0.7);
-    backdrop-filter: blur(8px);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 1000;
-    animation: fadeIn 0.2s ease;
-}
-
-.modal-container {
-    background: rgba(20, 20, 20, 0.95);
-    border-radius: 12px;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    max-height: 90vh;
-    overflow-y: auto;
-    animation: modalSlideIn 0.3s ease;
-}
-
-@keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
-}
-
-@keyframes modalSlideIn {
-    from { 
-        opacity: 0;
-        transform: translateY(-20px) scale(0.95);
-    }
-    to { 
-        opacity: 1;
-        transform: translateY(0) scale(1);
-    }
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
 /* =============================================================================
@@ -4821,13 +4606,15 @@ a:hover {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    animation: slideDown 0.3s ease;
+    animation: slideDownFade 0.3s ease;
+    box-shadow: 0 4px 12px rgba(76, 175, 80, 0.2);
 }
 
 .success-message {
     color: #4CAF50;
     font-weight: 600;
     flex-grow: 1;
+    font-family: "REGULAR_FONT";
 }
 
 .success-close {
@@ -4843,14 +4630,15 @@ a:hover {
     align-items: center;
     justify-content: center;
     border-radius: 50%;
-    transition: background 0.2s ease;
+    transition: all 0.2s ease;
 }
 
 .success-close:hover {
     background: rgba(76, 175, 80, 0.2);
+    transform: scale(1.1);
 }
 
-@keyframes slideDown {
+@keyframes slideDownFade {
     from { 
         opacity: 0;
         transform: translateY(-10px);
@@ -4859,6 +4647,33 @@ a:hover {
         opacity: 1;
         transform: translateY(0);
     }
+}
+
+/* =============================================================================
+   SCROLLBAR STYLING FOR MODAL CONTENT
+   ============================================================================= */
+
+.backup-config-dialog .modal-content::-webkit-scrollbar,
+.restore-confirm-dialog .modal-content::-webkit-scrollbar {
+    width: 8px;
+}
+
+.backup-config-dialog .modal-content::-webkit-scrollbar-track,
+.restore-confirm-dialog .modal-content::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 4px;
+}
+
+.backup-config-dialog .modal-content::-webkit-scrollbar-thumb,
+.restore-confirm-dialog .modal-content::-webkit-scrollbar-thumb {
+    background: linear-gradient(135deg, #2196F3, #1565C0);
+    border-radius: 4px;
+    border: 1px solid rgba(0, 0, 0, 0.2);
+}
+
+.backup-config-dialog .modal-content::-webkit-scrollbar-thumb:hover,
+.restore-confirm-dialog .modal-content::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(135deg, #42A5F5, #2196F3);
 }
 
 /* =============================================================================
@@ -4885,8 +4700,853 @@ a:hover {
         flex-direction: column;
     }
     
+    .backup-config-dialog,
     .restore-confirm-dialog {
-        margin: 20px;
-        width: calc(100vw - 40px);
+        margin: 10px;
+        width: calc(100vw - 20px) !important;
+        max-width: none !important;
+    }
+    
+    .backup-mode-options {
+        gap: 8px;
+    }
+    
+    .backup-mode-option {
+        padding: 12px;
+    }
+    
+    .folder-selection-content {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 5px;
+    }
+    
+    .folder-name {
+        min-width: auto;
+    }
+    
+    .backup-header-mini {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 5px;
+    }
+    
+    .backup-details-mini {
+        grid-template-columns: 1fr;
+    }
+    
+    .modal-footer {
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .modal-footer button {
+        width: 100%;
+        text-align: center;
     }
 }
+
+@media (max-width: 480px) {
+    .backup-expanded-section {
+        padding: 15px;
+        margin-top: 15px;
+    }
+    
+    .backup-config-dialog .modal-content,
+    .restore-confirm-dialog .modal-content {
+        padding: 15px;
+    }
+    
+    .backup-details {
+        padding: 15px;
+    }
+    
+    .folder-selection-item {
+        padding: 8px;
+    }
+    
+    .backup-item-mini {
+        padding: 12px;
+    }
+}0.5px;
+}
+
+.backup-description-input {
+    margin-bottom: 20px;
+}
+
+.backup-description-input input {
+    width: 100%;
+    padding: 12px 16px;
+    background: rgba(40, 40, 40, 0.8);
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    border-radius: 8px;
+    color: #ffffff;
+    font-size: 0.95em;
+    font-family: "REGULAR_FONT";
+    transition: all 0.3s ease;
+    box-sizing: border-box;
+}
+
+.backup-description-input input:focus {
+    outline: none;
+    border-color: #4CAF50;
+    background: rgba(50, 50, 50, 0.9);
+    box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.2);
+}
+
+.backup-description-input input::placeholder {
+    color: rgba(255, 255, 255, 0.5);
+    font-style: italic;
+}
+
+.backup-quick-actions {
+    display: flex;
+    gap: 15px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+/* Backup Configuration Button - Blue */
+.backup-config-button {
+    padding: 10px 18px;
+    background: linear-gradient(135deg, #2196F3, #1565C0);
+    border: none;
+    border-radius: 8px;
+    color: white;
+    font-size: 0.9em;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-family: "REGULAR_FONT";
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    box-shadow: 0 4px 15px rgba(33, 150, 243, 0.3);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.backup-config-button:hover {
+    background: linear-gradient(135deg, #42A5F5, #2196F3);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(33, 150, 243, 0.5);
+}
+
+/* Create Backup Button - Green */
+.create-backup-button {
+    padding: 12px 24px;
+    background: linear-gradient(135deg, #4CAF50, #2E7D32);
+    border: none;
+    border-radius: 8px;
+    color: #ffffff;
+    font-size: 0.95em;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-family: "HEADER_FONT";
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    box-shadow: 0 4px 15px rgba(76, 175, 80, 0.3);
+    position: relative;
+    overflow: hidden;
+}
+
+.create-backup-button::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    transition: left 0.5s ease;
+}
+
+.create-backup-button:hover:not(:disabled) {
+    background: linear-gradient(135deg, #66BB6A, #4CAF50);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(76, 175, 80, 0.5);
+}
+
+.create-backup-button:hover:not(:disabled)::before {
+    left: 100%;
+}
+
+.create-backup-button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: 0 2px 8px rgba(76, 175, 80, 0.2);
+}
+
+/* Backup Progress Mini */
+.backup-progress-mini {
+    margin-top: 20px;
+    padding: 15px;
+    background: linear-gradient(135deg, rgba(76, 175, 80, 0.1), rgba(76, 175, 80, 0.05));
+    border-radius: 8px;
+    border-left: 4px solid #4CAF50;
+    box-shadow: 0 4px 12px rgba(76, 175, 80, 0.2);
+}
+
+.progress-text {
+    color: #ffffff;
+    font-size: 0.95em;
+    margin-bottom: 12px;
+    font-weight: 500;
+}
+
+.progress-bar-mini {
+    height: 8px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+    overflow: hidden;
+    position: relative;
+}
+
+.progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #4CAF50, #66BB6A, #4CAF50);
+    background-size: 200% 100%;
+    transition: width 0.3s ease;
+    animation: progressFlow 2s ease-in-out infinite;
+    border-radius: 4px;
+}
+
+@keyframes progressFlow {
+    0%, 100% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+}
+
+/* Backup List Section */
+.backup-list-section {
+    margin-top: 25px;
+}
+
+.backup-list-section h5 {
+    color: #ffffff;
+    font-size: 1.1em;
+    margin-bottom: 18px;
+    font-weight: 600;
+    font-family: "HEADER_FONT";
+    letter-spacing: 0.5px;
+}
+
+.no-backups-mini {
+    text-align: center;
+    padding: 40px 20px;
+    color: rgba(255, 255, 255, 0.6);
+    font-style: italic;
+    font-size: 1.1em;
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: 8px;
+    border: 2px dashed rgba(255, 255, 255, 0.1);
+}
+
+/* Backup Items */
+.backups-list-mini {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.backup-item-mini {
+    background: linear-gradient(145deg, rgba(40, 40, 40, 0.6), rgba(30, 30, 30, 0.8));
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    padding: 16px;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    position: relative;
+    overflow: hidden;
+}
+
+.backup-item-mini::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.05), transparent);
+    transition: left 0.5s ease;
+}
+
+.backup-item-mini:hover {
+    background: linear-gradient(145deg, rgba(50, 50, 50, 0.7), rgba(40, 40, 40, 0.9));
+    border-color: rgba(255, 255, 255, 0.2);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+}
+
+.backup-item-mini:hover::before {
+    left: 100%;
+}
+
+.backup-item-mini.selected {
+    background: linear-gradient(145deg, rgba(76, 175, 80, 0.15), rgba(76, 175, 80, 0.1));
+    border-color: #4CAF50;
+    box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.3), 0 8px 25px rgba(76, 175, 80, 0.2);
+    transform: translateY(-2px);
+}
+
+.backup-info-mini {
+    margin-bottom: 12px;
+}
+
+.backup-header-mini {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.backup-name {
+    color: #ffffff;
+    font-weight: 600;
+    font-size: 1rem;
+    font-family: "HEADER_FONT";
+    letter-spacing: 0.3px;
+}
+
+.backup-type-badge {
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 0.75em;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.backup-meta {
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 0.9em;
+    font-family: "REGULAR_FONT";
+}
+
+/* Backup Details (when selected) */
+.backup-details-mini {
+    margin-top: 15px;
+    padding: 15px;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 8px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    border: 1px solid rgba(76, 175, 80, 0.2);
+}
+
+.backup-detail-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 4px 0;
+}
+
+.detail-label {
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 0.85em;
+    font-weight: 500;
+}
+
+.detail-value {
+    color: #ffffff;
+    font-size: 0.85em;
+    font-weight: 600;
+    text-align: right;
+}
+
+/* Backup Actions */
+.backup-actions-mini {
+    display: flex;
+    gap: 12px;
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.restore-button-mini {
+    padding: 8px 16px;
+    background: linear-gradient(135deg, #2196F3, #1565C0);
+    border: none;
+    border-radius: 6px;
+    color: #ffffff;
+    font-size: 0.85em;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-family: "REGULAR_FONT";
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    box-shadow: 0 2px 8px rgba(33, 150, 243, 0.3);
+}
+
+.restore-button-mini:hover {
+    background: linear-gradient(135deg, #42A5F5, #2196F3);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(33, 150, 243, 0.4);
+}
+
+.delete-backup-button-mini {
+    padding: 8px 16px;
+    background: linear-gradient(135deg, #f44336, #d32f2f);
+    border: none;
+    border-radius: 6px;
+    color: #ffffff;
+    font-size: 0.85em;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-family: "REGULAR_FONT";
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    box-shadow: 0 2px 8px rgba(244, 67, 54, 0.3);
+}
+
+.delete-backup-button-mini:hover {
+    background: linear-gradient(135deg, #f66356, #f44336);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(244, 67, 54, 0.4);
+}
+
+/* Show More/Less Button */
+.backup-show-more {
+    margin-top: 15px;
+    text-align: center;
+}
+
+.backup-expand-button {
+    padding: 10px 20px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 8px;
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 0.9em;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-family: "REGULAR_FONT";
+    font-weight: 500;
+}
+
+.backup-expand-button:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #ffffff;
+    border-color: rgba(255, 255, 255, 0.3);
+    transform: translateY(-1px);
+}
+
+/* Bulk Actions */
+.backup-bulk-actions {
+    margin-top: 25px;
+    padding: 20px;
+    background: linear-gradient(135deg, rgba(255, 152, 0, 0.1), rgba(255, 152, 0, 0.05));
+    border: 1px solid rgba(255, 152, 0, 0.3);
+    border-radius: 10px;
+    backdrop-filter: blur(10px);
+}
+
+.backup-bulk-actions details {
+    color: #ffffff;
+}
+
+.backup-bulk-actions summary {
+    cursor: pointer;
+    font-weight: 600;
+    padding: 8px 0;
+    color: #FF9800;
+    font-family: "HEADER_FONT";
+    font-size: 1.1em;
+    letter-spacing: 0.5px;
+    transition: color 0.2s ease;
+}
+
+.backup-bulk-actions summary:hover {
+    color: #FFB74D;
+}
+
+.bulk-actions-content {
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 1px solid rgba(255, 152, 0, 0.2);
+}
+
+.bulk-action-button {
+    padding: 10px 20px;
+    background: linear-gradient(135deg, #FF9800, #F57C00);
+    border: none;
+    border-radius: 8px;
+    color: #ffffff;
+    font-size: 0.9em;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    margin-bottom: 12px;
+    font-family: "REGULAR_FONT";
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    box-shadow: 0 4px 15px rgba(255, 152, 0, 0.3);
+}
+
+.bulk-action-button:hover {
+    background: linear-gradient(135deg, #FFB74D, #FF9800);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(255, 152, 0, 0.4);
+}
+
+.bulk-action-info {
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 0.9em;
+    margin: 0;
+    line-height: 1.5;
+    font-style: italic;
+}
+
+/* =============================================================================
+   BACKUP CONFIGURATION DIALOG - Enhanced and Properly Sized
+   ============================================================================= */
+
+.backup-config-dialog {
+    max-width: 700px !important;
+    width: 90vw !important;
+    max-height: 85vh !important;
+}
+
+.backup-config-dialog.enhanced .modal-header {
+    background: linear-gradient(135deg, #2196F3, #1565C0);
+    color: #ffffff;
+    padding: 20px 25px;
+    border-radius: 12px 12px 0 0;
+    border: none;
+}
+
+.backup-config-dialog.enhanced .modal-header h3 {
+    margin: 0;
+    font-size: 1.4em;
+    font-weight: 600;
+    font-family: "HEADER_FONT";
+    letter-spacing: 0.5px;
+}
+
+.backup-config-dialog.enhanced .modal-close {
+    background: rgba(255, 255, 255, 0.1);
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    color: #ffffff;
+    font-size: 20px;
+    cursor: pointer;
+    padding: 0;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: all 0.3s ease;
+    font-family: Arial, sans-serif;
+    line-height: 1;
+    backdrop-filter: blur(5px);
+}
+
+.backup-config-dialog.enhanced .modal-close:hover {
+    background: rgba(255, 255, 255, 0.2);
+    border-color: rgba(255, 255, 255, 0.5);
+    transform: scale(1.1) rotate(90deg);
+    box-shadow: 0 0 15px rgba(255, 255, 255, 0.3);
+}
+
+.backup-config-dialog.enhanced .modal-content {
+    padding: 25px;
+    background: linear-gradient(145deg, rgba(20, 20, 20, 0.95), rgba(15, 15, 15, 0.98));
+    color: #ffffff;
+    max-height: 60vh;
+    overflow-y: auto;
+}
+
+/* Backup Mode Selection */
+.backup-mode-section {
+    margin-bottom: 25px;
+}
+
+.backup-mode-section h4 {
+    color: #ffffff;
+    font-size: 1.2em;
+    margin-bottom: 15px;
+    font-family: "HEADER_FONT";
+    letter-spacing: 0.5px;
+}
+
+.backup-mode-options {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.backup-mode-option {
+    display: flex;
+    align-items: center;
+    padding: 15px;
+    background: rgba(40, 40, 40, 0.6);
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.backup-mode-option:hover {
+    background: rgba(50, 50, 50, 0.7);
+    border-color: rgba(255, 255, 255, 0.2);
+    transform: translateY(-1px);
+}
+
+.backup-mode-option.selected {
+    background: linear-gradient(135deg, rgba(33, 150, 243, 0.2), rgba(33, 150, 243, 0.1));
+    border-color: #2196F3;
+    box-shadow: 0 0 0 1px rgba(33, 150, 243, 0.3);
+}
+
+.backup-mode-option input[type="radio"] {
+    margin-right: 15px;
+    transform: scale(1.2);
+    accent-color: #2196F3;
+}
+
+.mode-content {
+    flex-grow: 1;
+}
+
+.mode-title {
+    font-size: 1.1em;
+    font-weight: 600;
+    margin-bottom: 5px;
+    color: #ffffff;
+    font-family: "HEADER_FONT";
+}
+
+.mode-description {
+    font-size: 0.9em;
+    color: rgba(255, 255, 255, 0.7);
+    line-height: 1.4;
+}
+
+/* Complete Backup Preview */
+.complete-backup-preview {
+    padding: 20px;
+    background: rgba(76, 175, 80, 0.1);
+    border-radius: 10px;
+    border: 1px solid rgba(76, 175, 80, 0.3);
+}
+
+.complete-backup-preview h5 {
+    color: #4CAF50;
+    font-size: 1.1em;
+    margin-bottom: 15px;
+    font-family: "HEADER_FONT";
+}
+
+.backup-scope-description {
+    color: rgba(255, 255, 255, 0.9);
+    line-height: 1.6;
+    font-size: 0.95em;
+}
+
+/* Custom Configuration Section */
+.config-section {
+    margin-bottom: 25px;
+}
+
+.config-section h4 {
+    color: #ffffff;
+    font-size: 1.1em;
+    margin-bottom: 15px;
+    font-family: "HEADER_FONT";
+    letter-spacing: 0.5px;
+}
+
+/* Folder Selection List */
+.folder-selection-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 15px;
+}
+
+.folder-selection-item {
+    display: flex;
+    align-items: center;
+    padding: 12px;
+    background: rgba(40, 40, 40, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.folder-selection-item:hover {
+    background: rgba(50, 50, 50, 0.7);
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+.folder-selection-item.selected {
+    background: linear-gradient(135deg, rgba(76, 175, 80, 0.2), rgba(76, 175, 80, 0.1));
+    border-color: #4CAF50;
+    box-shadow: 0 0 0 1px rgba(76, 175, 80, 0.3);
+}
+
+.folder-selection-item.critical {
+    border-left: 4px solid #4CAF50;
+}
+
+.folder-selection-item.world-data {
+    border-left: 4px solid #2196F3;
+}
+
+.folder-selection-item input[type="checkbox"] {
+    margin-right: 12px;
+    transform: scale(1.2);
+    accent-color: #4CAF50;
+}
+
+.folder-selection-content {
+    display: flex;
+    align-items: center;
+    flex-grow: 1;
+    gap: 10px;
+}
+
+.folder-icon {
+    font-size: 1.2em;
+    width: 24px;
+    text-align: center;
+}
+
+.folder-name {
+    font-weight: 600;
+    color: #ffffff;
+    font-family: "HEADER_FONT";
+    min-width: 120px;
+}
+
+.folder-description {
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 0.9em;
+    flex-grow: 1;
+}
+
+.folder-badge {
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 0.7em;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.folder-badge.critical {
+    background: #4CAF50;
+    color: white;
+}
+
+.folder-badge.world-data {
+    background: #2196F3;
+    color: white;
+}
+
+/* Selection Summary */
+.selection-summary {
+    text-align: center;
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 0.9em;
+    font-weight: 500;
+    padding: 8px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 6px;
+}
+
+/* Options List */
+.options-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.option-item {
+    display: flex;
+    align-items: center;
+    padding: 10px;
+    background: rgba(40, 40, 40, 0.5);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.option-item:hover {
+    background: rgba(50, 50, 50, 0.7);
+}
+
+.option-item input[type="checkbox"] {
+    margin-right: 12px;
+    transform: scale(1.2);
+    accent-color: #4CAF50;
+}
+
+.option-item.number-option {
+    justify-content: space-between;
+}
+
+.option-item.number-option input[type="number"] {
+    width: 80px;
+    padding: 4px 8px;
+    background: rgba(60, 60, 60, 0.8);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+    color: #ffffff;
+    text-align: center;
+    margin: 0 8px;
+}
+
+/* Estimated Size Display */
+.estimated-size {
+    margin-top: 15px;
+    padding: 12px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    text-align: center;
+    color: #ffffff;
+    font-weight: 600;
+}
+
+.compression-note {
+    color: rgba(76, 175, 80, 0.8);
+    font-size: 0.9em;
+}
+
+/* Modal Footer */
+.backup-config-dialog.enhanced .modal-footer {
+    padding: 20px 25px;
+    background: linear-gradient(145deg, rgba(30, 30, 30, 0.9), rgba(20, 20, 20, 0.95));
+    border-radius: 0 0 12px 12px;
+    display: flex;
+    justify-content: flex-end;
+    gap: 15px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.backup-config-dialog.enhanced .cancel-button {
+    padding: 12px 24px;
+    background: linear-gradient(135deg, #f44336, #d32f2f);
+    border: none;
+    border-radius: 8px;
+    color: #ffffff;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-family: "REGULAR_FONT";
+    text-transform: uppercase;
+    letter-spacing: 
+}
+
