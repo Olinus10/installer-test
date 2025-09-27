@@ -59,7 +59,7 @@ pub use preset::{Preset, load_presets};
 pub use universal::{UniversalManifest, load_universal_manifest, ModComponent};
 pub use universal::{ManifestError, ManifestErrorType};
 pub use changelog::{
-    Changelog, ChangelogEntry, HomePageStats, FooterButton, HomePageConfig
+    Changelog, ChangelogEntry, HomePageStats, FooterButton, HomePageConfig, fetch_changelog
 };
 
 // CORRECTED: Use direct exports from backup module
