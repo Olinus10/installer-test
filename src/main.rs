@@ -2657,7 +2657,7 @@ impl Display for Launcher {
     }
 }
 
-pub async fn (
+pub async fn fetch_changelog(
     modpack_source: &str, 
     http_client: &CachedHttpClient
 ) -> Result<Changelog, String> {
