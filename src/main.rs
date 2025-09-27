@@ -58,7 +58,10 @@ pub use installation::{Installation, get_active_installation, load_all_installat
 pub use preset::{Preset, load_presets};
 pub use universal::{UniversalManifest, load_universal_manifest, ModComponent};
 pub use universal::{ManifestError, ManifestErrorType};
-pub use changelog::{Changelog, ChangelogEntry, HomePageStats, FooterButton, HomePageConfig,};
+pub use changelog::{
+    Changelog, ChangelogEntry, HomePageStats, FooterButton, HomePageConfig, fetch_changelog
+};
+
 
 // CORRECTED: Use direct exports from backup module
 pub use backup::{
@@ -2655,46 +2658,6 @@ impl Display for Launcher {
     }
 }
 
-           pub async fn fetch_changelog(
-    modpack_source: &str, 
-    http_client: &CachedHttpClient
-) -> Result<Changelog, String> {
-    debug!("Fetching changelog from {}{}/changelog.json", GH_RAW, modpack_source);
-    
-    let changelog_url = format!("{}{}/changelog.json", GH_RAW, modpack_source);
-    
-    let mut changelog_resp = match http_client.get_async(changelog_url.clone()).await {
-        Ok(val) => val,
-        Err(e) => {
-            warn!("Failed to fetch changelog: {}", e);
-            return Err(format!("Failed to fetch changelog: {}", e));
-        }
-    };
-    
-    if changelog_resp.status() != StatusCode::OK {
-        warn!("Changelog returned non-200 status: {}", changelog_resp.status());
-        return Err(format!("Changelog returned status: {}", changelog_resp.status()));
-    }
-    
-    let changelog_text = match changelog_resp.text().await {
-        Ok(text) => text,
-        Err(e) => {
-            warn!("Failed to read changelog response: {}", e);
-            return Err(format!("Failed to read changelog response: {}", e));
-        }
-    };
-    
-    match serde_json::from_str::<Changelog>(&changelog_text) {
-        Ok(changelog) => {
-            debug!("Successfully parsed changelog with {} entries", changelog.entries.len());
-            Ok(changelog)
-        },
-        Err(e) => {
-            warn!("Failed to parse changelog: {}", e);
-            Err(format!("Failed to parse changelog: {}", e))
-        }
-    }
-}
 
 #[derive(Debug, Clone)]
 struct InstallerProfile {
@@ -2780,7 +2743,7 @@ async fn init(
 
     // Now try to fetch the changelog
     let full_source = format!("{}{}", modpack_source, modpack_branch);
-    let changelog = match fetch_changelog(&full_source, &http_client).await {
+    let changelog = match crate::changelog::fetch_changelog(&full_source, &http_client).await {
         Ok(changelog) => {
             debug!("Successfully fetched changelog with {} entries", changelog.entries.len());
             Some(changelog)
