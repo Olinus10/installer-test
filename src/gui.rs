@@ -16,6 +16,8 @@ use modal::Modal;
 use std::sync::mpsc;
 use log::{debug, error, info};
 use isahc::ReadResponseExt;
+use crate::warn;
+use log::warn;
 
 use crate::{GithubBranch, build_http_client, GH_API, REPO, Config};
 use crate::{get_app_data, get_installed_packs, get_launcher, uninstall, InstallerProfile, Launcher, PackName};
