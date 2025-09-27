@@ -11,34 +11,39 @@ env:
 
 jobs:
   build:
-    runs-on: windows-2022
+    strategy:
+      matrix:
+        os: [windows-2022, ubuntu-22.04, macos-12]
+    runs-on: ${{ matrix.os }}
+
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-    - name: Install Rust toolchain
-      uses: actions-rs/toolchain@v1
-      with:
-        toolchain: stable
-        override: true
+      - name: Install Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
 
-    - name: Cache cargo dependencies
-      uses: actions/cache@v4
-      with:
-        path: |
-          ~/.cargo/registry/index/
-          ~/.cargo/registry/cache/
-          ~/.cargo/git/db/
-          target/
-        key: cargo-windows-${{ hashFiles('**/Cargo.lock') }}
-        restore-keys: |
-          cargo-windows-
+      - name: Cache cargo dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: cargo-${{ matrix.os }}-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            cargo-${{ matrix.os }}-
 
-    - name: Build project
-      run: cargo build --verbose --release
+      - name: Build project
+        run: cargo build --verbose --release
 
-    - name: Upload Windows executable
-      uses: actions/upload-artifact@v4
-      with:
-        name: wynncraft-installer-windows
-        path: target/release/wynncraft-overhaul-installer.exe
+      - name: Upload executable
+        uses: actions/upload-artifact@v4
+        with:
+          name: wynncraft-installer-${{ matrix.os }}
+          path: |
+            target/release/wynncraft-overhaul-installer${{ matrix.os == 'windows-2022' && '.exe' || '' }}
