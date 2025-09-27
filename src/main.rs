@@ -2657,7 +2657,7 @@ impl Display for Launcher {
     }
 }
 
-pub async fn fetch_changelog(
+pub async fn (
     modpack_source: &str, 
     http_client: &CachedHttpClient
 ) -> Result<Changelog, String> {
@@ -2698,19 +2698,6 @@ pub async fn fetch_changelog(
     }
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
-pub struct ChangelogEntry {
-    pub title: String,
-    pub contents: String,
-    pub date: Option<String>,
-    pub version: Option<String>,
-    pub importance: Option<String>,
-}
-
-#[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
-pub struct Changelog {
-    pub entries: Vec<ChangelogEntry>,
-}
 
 #[derive(Debug, Clone)]
 struct InstallerProfile {
@@ -2723,9 +2710,9 @@ struct InstallerProfile {
     enabled_features: Vec<String>,
     launcher: Option<Launcher>,
     local_manifest: Option<Manifest>,
-    changelog: Option<Changelog>, // Add this field
+    changelog: Option<Changelog>, // This now uses the imported type
 }
-
+           
 impl PartialEq for InstallerProfile {
     fn eq(&self, other: &Self) -> bool {
         self.manifest == other.manifest && 
