@@ -58,9 +58,7 @@ pub use installation::{Installation, get_active_installation, load_all_installat
 pub use preset::{Preset, load_presets};
 pub use universal::{UniversalManifest, load_universal_manifest, ModComponent};
 pub use universal::{ManifestError, ManifestErrorType};
-pub use changelog::{
-    Changelog, ChangelogEntry, HomePageStats, FooterButton, HomePageConfig, fetch_changelog
-};
+pub use changelog::{Changelog, ChangelogEntry, HomePageStats, FooterButton, HomePageConfig,};
 
 // CORRECTED: Use direct exports from backup module
 pub use backup::{
