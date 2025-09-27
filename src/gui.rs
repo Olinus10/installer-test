@@ -2005,6 +2005,9 @@ fn ProgressView(
     // Find current step index
     let active_step_index = steps.iter().position(|(id, _)| id == &current_step).unwrap_or(0);
     
+    // Determine if we should show the download warning
+    let show_download_warning = !is_complete && percentage < 90;
+    
     rsx! {
         div { 
             class: "progress-container",
@@ -2052,6 +2055,23 @@ fn ProgressView(
                 }
                 
                 p { class: "progress-status", "{display_status}" }
+                
+                // Download warning - NEW ADDITION
+                if show_download_warning {
+                    div { class: "progress-warning",
+                        div { class: "warning-icon", "⏱️" }
+                        div { class: "warning-text",
+                            p { 
+                                class: "warning-main",
+                                "Installation may take 5-15 minutes depending on your connection and selected features."
+                            }
+                            p { 
+                                class: "warning-sub",
+                                "Please don't close this window - the process is working even if it appears to pause briefly."
+                            }
+                        }
+                    }
+                }
                 
                 // Success indicator when complete
                 if is_complete {
