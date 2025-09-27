@@ -3526,10 +3526,10 @@ let complete_css = format!("{}\n{}\n{}\n{}\n{}\n{}\n{}",
             }
             
             // Only show footer on home page (not installation pages)
-            if !settings() && current_installation_id.read().is_none() && 
-               !config.read().first_launch.unwrap_or(true) && has_launcher {
-                Footer {}
-            }
+if !settings() && current_installation_id.read().is_none() && 
+   !config.read().first_launch.unwrap_or(true) && has_launcher {
+    Footer { changelog: changelog_signal() }  
+}
             
             // Add manifest error display outside of the main container
             if let Some(error) = manifest_error() {
