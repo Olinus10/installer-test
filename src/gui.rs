@@ -512,7 +512,18 @@ onclick: move |_| {
 
 // Add this new component for the footer with Discord button
 #[component]
-fn Footer() -> Element {
+fn Footer(changelog: Option<ChangelogData>) -> Element {
+    // Get footer button config from changelog or use defaults
+    let footer_button = if let Some(changelog_data) = &changelog {
+        if let Some(config) = &changelog_data.homepage_config {
+            &config.footer_button
+        } else {
+            &crate::changelog::FooterButton::default()
+        }
+    } else {
+        &crate::changelog::FooterButton::default()
+    };
+
     rsx! {
         footer { class: "modern-footer",
             div { class: "footer-info",
@@ -529,15 +540,15 @@ fn Footer() -> Element {
                 }
             }
             
-            // Discord button using the action button style
+            // Dynamic footer button
             a {
                 class: "footer-action-button install",
-                href: "https://discord.gg/olinus-corner-778965021656743966",
+                href: "{footer_button.link}",
                 target: "_blank",
                 rel: "noopener noreferrer",
                 style: "text-decoration: none;",
                 
-                "JOIN OUR DISCORD"
+                "{footer_button.text}"
             }
         }
     }
@@ -548,7 +559,7 @@ fn Footer() -> Element {
 fn HomePage(
     installations: Signal<Vec<Installation>>,
     error_signal: Signal<Option<String>>,
-    changelog: Signal<Option<ChangelogData>>, // Keep as Signal
+    changelog: Signal<Option<ChangelogData>>,
     current_installation_id: Signal<Option<String>>,
 ) -> Element {
     // State for the installation creation dialog
@@ -558,7 +569,7 @@ fn HomePage(
     let has_installations = !installations().is_empty();
     let latest_installation = installations().first().cloned();
     
-rsx! {
+    rsx! {
         div { class: "home-container home-page",
             // Error notification if any
             if let Some(error) = error_signal() {
@@ -572,10 +583,9 @@ rsx! {
             
             if has_installations {
                 // Regular home page with installations
-
                 
-                // Statistics display
-                StatisticsDisplay {}
+                // Statistics display - pass changelog data
+                StatisticsDisplay { changelog: changelog() }
                 
                 // Section divider for installations
                 div { class: "section-divider with-title", 
@@ -618,8 +628,8 @@ rsx! {
                     h1 { "Welcome to the MAJESTIC OVERHAUL" }
                     p { "Optimized performance and improved visuals!" }
                     
-                    // Statistics for first-time users too
-                    StatisticsDisplay {}
+                    // Statistics for first-time users too - pass changelog data
+                    StatisticsDisplay { changelog: changelog() }
                     
                     button {
                         class: "main-install-button",
@@ -632,28 +642,28 @@ rsx! {
             }
             
             // Recent changes section
-             ChangelogSection { changelog: changelog() } // Note the () to read the signal
+            ChangelogSection { changelog: changelog() }
             
-            // Footer with Discord button and other info
-            Footer {}
+            // Footer with dynamic data - pass changelog data
+            Footer { changelog: changelog() }
             
             // Installation creation dialog
             if *show_creation_dialog.read() {
-    SimplifiedInstallationWizard {
-        onclose: move |_| {
-            show_creation_dialog.set(false);
-        },
-        oncreate: move |new_installation: Installation| {  // Added type annotation here
-            // Add the new installation to the list
-            installations.with_mut(|list| {
-                list.insert(0, new_installation.clone());
-            });
-            
-            // Close the dialog
-            show_creation_dialog.set(false);
-            
-            // Set the current installation to navigate to the installation page
-            current_installation_id.set(Some(new_installation.id));
+                SimplifiedInstallationWizard {
+                    onclose: move |_| {
+                        show_creation_dialog.set(false);
+                    },
+                    oncreate: move |new_installation: Installation| {
+                        // Add the new installation to the list
+                        installations.with_mut(|list| {
+                            list.insert(0, new_installation.clone());
+                        });
+                        
+                        // Close the dialog
+                        show_creation_dialog.set(false);
+                        
+                        // Set the current installation to navigate to the installation page
+                        current_installation_id.set(Some(new_installation.id));
                     }
                 }
             }
@@ -764,20 +774,32 @@ fn InstallationCard(
 
 // Statistics display component
 #[component]
-fn StatisticsDisplay() -> Element {
+fn StatisticsDisplay(changelog: Option<ChangelogData>) -> Element {
+    // Get stats from changelog or use defaults
+    let stats = if let Some(changelog_data) = &changelog {
+        if let Some(config) = &changelog_data.homepage_config {
+            &config.stats
+        } else {
+            // Use default stats if no config present
+            &crate::changelog::HomePageStats::default()
+        }
+    } else {
+        &crate::changelog::HomePageStats::default()
+    };
+
     rsx! {
         div { class: "stats-container",
             div { class: "stat-item",
-                span { class: "stat-value", "90+" }
-                span { class: "stat-label", "MODS" }
+                span { class: "stat-value", "{stats.stat1_value}" }
+                span { class: "stat-label", "{stats.stat1_label}" }
             }
             div { class: "stat-item",
-                span { class: "stat-value", "200+" }
-                span { class: "stat-label", "FPS" } 
+                span { class: "stat-value", "{stats.stat2_value}" }
+                span { class: "stat-label", "{stats.stat2_label}" } 
             }
             div { class: "stat-item",
-                span { class: "stat-value", "20K+" }
-                span { class: "stat-label", "DOWNLOADS" }
+                span { class: "stat-value", "{stats.stat3_value}" }
+                span { class: "stat-label", "{stats.stat3_label}" }
             }
         }
     }
