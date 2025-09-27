@@ -30,13 +30,14 @@ jobs:
             libgdk-pixbuf-2.0-dev \
             libpango1.0-dev \
             libcairo2-dev \
+            libwebkit2gtk-4.1-dev \
             pkg-config
 
       - name: Install system dependencies (macOS)
         if: matrix.os == 'macos-12'
         run: |
           brew update
-          brew install gtk+3 pkg-config
+          brew install gtk+3 webkit2gtk pkg-config
 
       - name: Install Rust toolchain
         uses: actions-rs/toolchain@v1
