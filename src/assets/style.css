@@ -6422,3 +6422,73 @@ a:hover {
     text-transform: uppercase;
 }
 
+/* Progress Warning Styles */
+.progress-warning {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    margin: 20px 0;
+    padding: 16px 20px;
+    background: rgba(255, 185, 0, 0.1);
+    border: 1px solid rgba(255, 185, 0, 0.3);
+    border-radius: 8px;
+    backdrop-filter: blur(10px);
+    animation: warning-fade-in 0.5s ease-out;
+}
+
+.warning-icon {
+    font-size: 1.5rem;
+    flex-shrink: 0;
+    margin-top: 2px;
+}
+
+.warning-text {
+    flex: 1;
+}
+
+.warning-main {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #ffb900;
+    margin: 0 0 6px 0;
+    line-height: 1.4;
+}
+
+.warning-sub {
+    font-size: 0.9rem;
+    color: rgba(255, 255, 255, 0.8);
+    margin: 0;
+    line-height: 1.3;
+}
+
+/* Animation for warning appearance */
+@keyframes warning-fade-in {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .progress-warning {
+        padding: 12px 16px;
+        gap: 10px;
+    }
+    
+    .warning-icon {
+        font-size: 1.3rem;
+    }
+    
+    .warning-main {
+        font-size: 0.95rem;
+    }
+    
+    .warning-sub {
+        font-size: 0.85rem;
+    }
+}
