@@ -23,7 +23,7 @@ use crate::Installation;
 use crate::installation;
 use crate::universal;
 use crate::CachedHttpClient;
-use crate::changelog::{fetch_changelog, Changelog as ChangelogData};
+use crate::changelog::{Changelog as ChangelogData, HomePageStats, FooterButton, HomePageConfig};
 use crate::preset;
 use crate::launch_modpack;
 use crate::universal::ModComponent;
@@ -3310,13 +3310,20 @@ let changelog = use_resource(move || async {
     }
 });
 
-    let mut changelog_signal = use_signal(|| None::<ChangelogData>);
-    use_effect(move || {
+let mut changelog_signal = use_signal(|| None::<ChangelogData>);
+use_effect(move || {
     if let Some(Some(changelog_data)) = changelog.read().as_ref() {
+        debug!("App: Setting changelog_signal with {} entries", changelog_data.entries.len());
+        if let Some(ref config) = changelog_data.homepage_config {
+            debug!("App: Changelog has homepage_config - button: '{}' -> '{}'", 
+                   config.footer_button.text, config.footer_button.link);
+        }
         changelog_signal.set(Some(changelog_data.clone()));
+    } else {
+        debug!("App: No changelog data to set");
     }
 });
-
+    
     use_effect(move || {
     let installations = installations.clone();
     let http_client = CachedHttpClient::new();
