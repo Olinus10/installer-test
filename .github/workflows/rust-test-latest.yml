@@ -13,57 +13,76 @@ jobs:
   build:
     strategy:
       matrix:
-        os: [windows-2022, ubuntu-22.04, macos-12]
+        os: [ubuntu-22.04, macos-12, windows-2022]
     runs-on: ${{ matrix.os }}
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install system dependencies (Linux)
+      # Linux dependencies
+      - name: Install dependencies (Linux)
         if: matrix.os == 'ubuntu-22.04'
         run: |
           sudo apt-get update
           sudo apt-get install -y \
-            libgtk-3-dev \
-            libglib2.0-dev \
-            libgdk-pixbuf-2.0-dev \
-            libpango1.0-dev \
-            libcairo2-dev \
-            libwebkit2gtk-4.1-dev \
-            libxdo-dev \
-            pkg-config
+            gcc pkg-config \
+            libglib2.0-dev libgtk-3-dev libssl-dev \
+            libjavascriptcoregtk-4.1-dev libsoup-3.0-dev libwebkit2gtk-4.1-dev
 
-      - name: Install system dependencies (macOS)
+      # macOS dependencies
+      - name: Install dependencies (macOS)
         if: matrix.os == 'macos-12'
         run: |
           brew update
           brew install gtk+3 webkit2gtk pkg-config
 
-      - name: Install Rust toolchain
+      # Rust toolchain
+      - name: Install Rust
         uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
           override: true
 
-      - name: Cache cargo dependencies
+      # Cache
+      - name: Cache cargo registry + target
         uses: actions/cache@v4
         with:
           path: |
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-            target/
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
           key: cargo-${{ matrix.os }}-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: |
             cargo-${{ matrix.os }}-
 
+      # Build
       - name: Build project
         run: cargo build --verbose --release
 
-      - name: Upload executable
+      # Strip binaries on Linux/macOS
+      - name: Strip binary (Linux/macOS)
+        if: matrix.os != 'windows-2022'
+        run: strip target/release/wynncraft-overhaul-installer || true
+
+      # Upload artifacts
+      - name: Upload artifact (Windows)
+        if: matrix.os == 'windows-2022'
         uses: actions/upload-artifact@v4
         with:
-          name: wynncraft-installer-${{ matrix.os }}
-          path: |
-            target/release/wynncraft-overhaul-installer${{ matrix.os == 'windows-2022' && '.exe' || '' }}
+          name: wynncraft-installer-windows
+          path: target/release/wynncraft-overhaul-installer.exe
+
+      - name: Upload artifact (Linux)
+        if: matrix.os == 'ubuntu-22.04'
+        uses: actions/upload-artifact@v4
+        with:
+          name: wynncraft-installer-linux
+          path: target/release/wynncraft-overhaul-installer
+
+      - name: Upload artifact (macOS)
+        if: matrix.os == 'macos-12'
+        uses: actions/upload-artifact@v4
+        with:
+          name: wynncraft-installer-macos
+          path: target/release/wynncraft-overhaul-installer
