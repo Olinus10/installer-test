@@ -28,7 +28,6 @@ async-trait = "0.1.81"
 futures = "0.3.30"
 isahc = "1.7.2"
 zip = "2.1.4"
-dioxus = { version = "0.5.6", features = ["desktop"] }
 cached = { version = "0.53.0", features = ["async"] }
 regex = "1.10.5"
 rfd = "0.14.1"
@@ -48,3 +47,12 @@ thiserror = "1.0"
 
 [build-dependencies]
 winres = "0.1"
+
+[target.'cfg(target_os = "windows")'.dependencies]
+dioxus = { version = "0.5.6", features = ["desktop"] }
+
+[target.'cfg(target_os = "macos")'.dependencies]
+dioxus = { version = "0.5.6", features = ["desktop"] }
+
+[target.'cfg(target_os = "linux")'.dependencies]
+dioxus = { version = "0.5.6", features = ["desktop"], default-features = false }
