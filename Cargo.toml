@@ -48,3 +48,6 @@ thiserror = "1.0"
 
 [build-dependencies]
 winres = "0.1"
+
+[target.'cfg(target_os = "linux")'.dependencies]
+xdo = "0.6"
