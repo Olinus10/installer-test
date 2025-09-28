@@ -20,8 +20,11 @@ jobs:
           - os: windows-2022
             target: x86_64-pc-windows-msvc
             artifact_name: wynncraft_overhaul_installer.exe
-          - os: macos-12
+          - os: macos-14
             target: x86_64-apple-darwin
+            artifact_name: wynncraft_overhaul_installer
+          - os: macos-14
+            target: aarch64-apple-darwin
             artifact_name: wynncraft_overhaul_installer
 
     runs-on: ${{ matrix.os }}
