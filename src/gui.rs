@@ -35,7 +35,6 @@ use crate::launcher::SettingsTab;
 use crate::installation::delete_installation;
 use crate::preset::find_preset_by_id;
 use crate::backup::BackupProgress;
-use crate::warn;
 
 mod modal;
 
