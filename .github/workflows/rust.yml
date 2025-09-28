@@ -16,13 +16,13 @@ jobs:
         include:
           - os: ubuntu-22.04
             target: x86_64-unknown-linux-gnu
-            artifact_name: installer
+            artifact_name: wynncraft_overhaul_installer
           - os: windows-2022
             target: x86_64-pc-windows-msvc
-            artifact_name: installer.exe
+            artifact_name: wynncraft_overhaul_installer.exe
           - os: macos-12
             target: x86_64-apple-darwin
-            artifact_name: installer
+            artifact_name: wynncraft_overhaul_installer
 
     runs-on: ${{ matrix.os }}
 
@@ -48,13 +48,50 @@ jobs:
     - name: Build
       run: cargo build --verbose --release --target ${{ matrix.target }}
 
+    - name: List build artifacts (debug)
+      run: |
+        echo "Contents of target/${{ matrix.target }}/release/:"
+        ls -la target/${{ matrix.target }}/release/
+      shell: bash
+
+    - name: Find and prepare binary
+      id: find_binary
+      run: |
+        BINARY_PATH="target/${{ matrix.target }}/release/${{ matrix.artifact_name }}"
+        echo "Expected binary path: $BINARY_PATH"
+        
+        if [ -f "$BINARY_PATH" ]; then
+          echo "Binary found at expected location"
+          echo "binary_path=$BINARY_PATH" >> $GITHUB_OUTPUT
+          echo "binary_name=${{ matrix.artifact_name }}" >> $GITHUB_OUTPUT
+        else
+          echo "Binary not found at expected location, searching..."
+          # Fallback: find any executable in the release directory
+          if [ "${{ matrix.os }}" = "windows-2022" ]; then
+            BINARY=$(find target/${{ matrix.target }}/release/ -name "*.exe" -type f | head -1)
+          else
+            BINARY=$(find target/${{ matrix.target }}/release/ -type f -executable ! -name "*.d" ! -name "*.rlib" ! -name "*.so" ! -name "*.dylib" | head -1)
+          fi
+          
+          if [ -n "$BINARY" ]; then
+            echo "Found binary: $BINARY"
+            BINARY_NAME=$(basename "$BINARY")
+            echo "binary_path=$BINARY" >> $GITHUB_OUTPUT
+            echo "binary_name=$BINARY_NAME" >> $GITHUB_OUTPUT
+          else
+            echo "No binary found!"
+            exit 1
+          fi
+        fi
+      shell: bash
+
     - name: Strip debug info (Linux)
       if: matrix.os == 'ubuntu-22.04'
-      run: strip target/${{ matrix.target }}/release/installer
+      run: strip "${{ steps.find_binary.outputs.binary_path }}"
 
     - name: Upload build artifacts
       uses: actions/upload-artifact@v4
       with:
         name: ${{ matrix.os }}-${{ matrix.target }}
-        path: target/${{ matrix.target }}/release/${{ matrix.artifact_name }}
+        path: ${{ steps.find_binary.outputs.binary_path }}
         if-no-files-found: error
