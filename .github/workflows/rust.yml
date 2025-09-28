@@ -70,19 +70,31 @@ jobs:
         else
           echo "Binary not found at expected location, searching..."
           # Fallback: find any executable in the release directory
-          if [ "${{ matrix.os }}" = "windows-2022" ]; then
-            BINARY=$(find target/${{ matrix.target }}/release/ -name "*.exe" -type f | head -1)
+          if [ "${{ matrix.os }}" == *"windows"* ]; then
+            BINARY=$(find target/${{ matrix.target }}/release/ -name "*.exe" -type f 2>/dev/null | head -1)
           else
-            BINARY=$(find target/${{ matrix.target }}/release/ -type f -executable ! -name "*.d" ! -name "*.rlib" ! -name "*.so" ! -name "*.dylib" | head -1)
+            # For Unix-like systems (Linux and macOS), find files and check if they're executable
+            RELEASE_DIR="target/${{ matrix.target }}/release"
+            BINARY=""
+            for file in "$RELEASE_DIR"/*; do
+              if [ -f "$file" ] && [ -x "$file" ]; then
+                # Skip known non-binary files
+                case "$(basename "$file")" in
+                  *.d|*.rlib|*.so|*.dylib|build_script_*|deps) continue ;;
+                  *) BINARY="$file"; break ;;
+                esac
+              fi
+            done
           fi
           
-          if [ -n "$BINARY" ]; then
+          if [ -n "$BINARY" ] && [ -f "$BINARY" ]; then
             echo "Found binary: $BINARY"
             BINARY_NAME=$(basename "$BINARY")
             echo "binary_path=$BINARY" >> $GITHUB_OUTPUT
             echo "binary_name=$BINARY_NAME" >> $GITHUB_OUTPUT
           else
-            echo "No binary found!"
+            echo "No binary found! Contents of release directory:"
+            ls -la target/${{ matrix.target }}/release/ || echo "Release directory not found"
             exit 1
           fi
         fi
