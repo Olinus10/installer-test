@@ -44,15 +44,8 @@ lazy_static = "1.4.0"
 once_cell = "1.19"
 uuid = { version = "1.3.0", features = ["v4", "serde"] }
 thiserror = "1.0"
+dioxus = { version = "0.3", features = ["desktop"] }
+dioxus-desktop = "0.3"
 
 [build-dependencies]
 winres = "0.1"
-
-[target.'cfg(target_os = "windows")'.dependencies]
-dioxus = { version = "0.5.6", features = ["desktop"] }
-
-[target.'cfg(target_os = "macos")'.dependencies]
-dioxus = { version = "0.5.6", features = ["desktop"] }
-
-[target.'cfg(target_os = "linux")'.dependencies]
-dioxus = { version = "0.5.6", features = ["desktop"], default-features = false }
