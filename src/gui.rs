@@ -14,10 +14,8 @@ use base64::{Engine, engine::general_purpose::URL_SAFE_NO_PAD};
 use modal::ModalContext;
 use modal::Modal; 
 use std::sync::mpsc;
-use log::{debug, error, info};
+use log::{debug, error, info, warn};
 use isahc::ReadResponseExt;
-use crate::warn;
-use log::warn;
 
 use crate::{GithubBranch, build_http_client, GH_API, REPO, Config};
 use crate::{get_app_data, get_installed_packs, get_launcher, uninstall, InstallerProfile, Launcher, PackName};
@@ -37,6 +35,7 @@ use crate::launcher::SettingsTab;
 use crate::installation::delete_installation;
 use crate::preset::find_preset_by_id;
 use crate::backup::BackupProgress;
+use crate::warn;
 
 mod modal;
 
