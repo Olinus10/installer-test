@@ -7,42 +7,54 @@ on:
     branches: [ "master" ]
 
 env:
-  SCCACHE_GHA_ENABLED: "true"
-  RUSTC_WRAPPER: "sccache"
   CARGO_TERM_COLOR: always
 
 jobs:
   build:
-
     strategy:
       matrix:
-        os: [ubuntu-22.04, windows-2022, macos-12]
+        include:
+          - os: ubuntu-22.04
+            target: x86_64-unknown-linux-gnu
+            artifact_name: installer
+          - os: windows-2022
+            target: x86_64-pc-windows-msvc
+            artifact_name: installer.exe
+          - os: macos-12
+            target: x86_64-apple-darwin
+            artifact_name: installer
+
     runs-on: ${{ matrix.os }}
 
     steps:
-    - uses: actions/checkout@v3
-    - name: Run sccache-cache
-      uses: mozilla-actions/sccache-action@v0.0.3
-    - name: install dependencies
-      if: ${{ matrix.os == 'ubuntu-22.04' }}
+    - uses: actions/checkout@v4
+
+    - name: Install Rust
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        targets: ${{ matrix.target }}
+
+    - name: Setup Rust cache
+      uses: Swatinem/rust-cache@v2
+      with:
+        key: ${{ matrix.target }}
+
+    - name: Install Linux dependencies
+      if: matrix.os == 'ubuntu-22.04'
       run: |
         sudo apt-get update
         sudo apt-get install -y gcc pkg-config libglib2.0-dev libgtk-3-dev libssl-dev libjavascriptcoregtk-4.1-dev libsoup-3.0-dev libwebkit2gtk-4.1-dev libxdo-dev
-    - name: Build
-      run: cargo build --verbose --release
-    - name: Strip debug info
-      if: ${{ matrix.os == 'ubuntu-22.04' }}
-      run: strip target/release/installer
-    - name: capture build artifacts windows
-      if: ${{ matrix.os == 'windows-2022' }}
-      uses: actions/upload-artifact@v4
-      with:
-        name: ${{ matrix.os }}
-        path: target/release/installer.exe
-    - name: capture build artifacts
-      if: ${{ matrix.os != 'windows-2022' }}
-      uses: actions/upload-artifact@v4
-      with:
-        name: ${{ matrix.os }}
-        path: target/release/installer
 
+    - name: Build
+      run: cargo build --verbose --release --target ${{ matrix.target }}
+
+    - name: Strip debug info (Linux)
+      if: matrix.os == 'ubuntu-22.04'
+      run: strip target/${{ matrix.target }}/release/installer
+
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ matrix.os }}-${{ matrix.target }}
+        path: target/${{ matrix.target }}/release/${{ matrix.artifact_name }}
+        if-no-files-found: error
