@@ -45,3 +45,4 @@ jobs:
       with:
         name: ${{ matrix.os }}
         path: target/release/installer
+
