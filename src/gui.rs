@@ -849,7 +849,7 @@ pub fn SimplifiedInstallationWizard(props: InstallationCreationProps) -> Element
             debug!("Loading universal manifest...");
             match crate::universal::load_universal_manifest(
                 &crate::CachedHttpClient::new(), 
-                Some("https://raw.githubusercontent.com/Wynncraft-Overhaul/majestic-overhaul/master/universal.json")
+                Some("https://cdn.jsdelivr.net/gh/Wynncraft-Overhaul/majestic-overhaul@latest/universal.json")
             ).await {
                 Ok(manifest) => {
                     debug!("Successfully loaded universal manifest: {}", manifest.name);
