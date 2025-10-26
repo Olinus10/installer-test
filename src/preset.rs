@@ -68,7 +68,7 @@ pub fn check_modpack_update(universal_version: &str, local_version: Option<&str>
 }
 
 // Default URL for presets - UPDATED to new repository
-const DEFAULT_PRESETS_URL: &str = "https://raw.githubusercontent.com/Wynncraft-Overhaul/majestic-overhaul/master/presets.json";
+const DEFAULT_PRESETS_URL: &str = "https://cdn.jsdelivr.net/gh/Wynncraft-Overhaul/majestic-overhaul@latest/presets.json";
 
 impl Preset {
     // Apply this preset to an installation, returning the list of enabled features
