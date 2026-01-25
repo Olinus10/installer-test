@@ -3,8 +3,7 @@ use log::{debug, error, warn, info};
 use std::fmt;
 use std::path::PathBuf;
 
-mod launcher_finder;
-use launcher_finder::get_launcher_path;
+use crate::launcher::launcher_finder::get_launcher_path;
 
 #[derive(Debug)]
 enum LauncherType {
@@ -118,7 +117,7 @@ fn launch_vanilla(profile_id: &str) -> Result<(), String> {
     }
     
     // Find the launcher executable using our robust finder
-    let launcher_path = match get_launcher_path() {
+    let launcher_path: PathBuf = match get_launcher_path() {
         Ok(path) => path,
         Err(e) => {
             error!("Failed to find Minecraft launcher: {}", e);
