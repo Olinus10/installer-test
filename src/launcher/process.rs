@@ -1,6 +1,10 @@
 use std::process::Command;
-use log::{debug, error};
+use log::{debug, error, warn, info};
 use std::fmt;
+use std::path::PathBuf;
+
+mod launcher_finder;
+use launcher_finder::get_launcher_path;
 
 #[derive(Debug)]
 enum LauncherType {
@@ -113,25 +117,47 @@ fn launch_vanilla(profile_id: &str) -> Result<(), String> {
         }
     }
     
-    // Launch the Minecraft launcher
-    let launcher_path = if cfg!(target_os = "windows") {
-        "C:\\Program Files (x86)\\Minecraft Launcher\\MinecraftLauncher.exe"
-    } else if cfg!(target_os = "macos") {
-        "/Applications/Minecraft.app/Contents/MacOS/launcher"
-    } else {
-        "/usr/bin/minecraft-launcher"
+    // Find the launcher executable using our robust finder
+    let launcher_path = match get_launcher_path() {
+        Ok(path) => path,
+        Err(e) => {
+            error!("Failed to find Minecraft launcher: {}", e);
+            return Err(format!(
+                "{}
+
+Please try one of the following:
+1. Install Minecraft from minecraft.net
+2. Make sure the Minecraft Launcher is installed
+3. Manually launch Minecraft and select the profile '{}'
+
+If Minecraft is installed in a non-standard location, the launcher may not be able to find it automatically.",
+                e, profile_id
+            ));
+        }
     };
     
-    debug!("Launching Minecraft launcher at: {}", launcher_path);
+    info!("Launching Minecraft from: {}", launcher_path.display());
     
-    match Command::new(launcher_path).spawn() {
+    match Command::new(&launcher_path).spawn() {
         Ok(_) => {
-            debug!("Minecraft launcher started successfully");
+            info!("Minecraft launcher started successfully");
             Ok(())
         },
         Err(e) => {
             error!("Failed to start Minecraft launcher: {}", e);
-            Err(format!("Failed to start Minecraft launcher: {}. Please launch Minecraft manually and select the profile '{}'", e, profile_id))
+            Err(format!(
+                "Failed to start Minecraft launcher: {}
+
+The launcher was found at: {}
+
+Please try:
+1. Running the launcher manually from this location
+2. Checking if you have permission to execute it
+3. Manually selecting the profile '{}' in Minecraft
+
+If problems persist, you may need to reinstall Minecraft.",
+                e, launcher_path.display(), profile_id
+            ))
         }
     }
 }
