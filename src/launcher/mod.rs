@@ -13,6 +13,9 @@ pub mod features_tab;
 mod performance_tab;
 mod settings_tab;
 
+mod launcher_finder;
+pub use launcher_finder::get_launcher_path;
+
 // Updated exports
 pub use features_tab::{FeaturesTab, clear_session_state};
 pub use performance_tab::PerformanceTab;
