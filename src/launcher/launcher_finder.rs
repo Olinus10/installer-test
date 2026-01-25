@@ -13,6 +13,10 @@ pub fn find_minecraft_launcher() -> Option<PathBuf> {
         // Microsoft Store version
         "C:\\Program Files\\WindowsApps\\Microsoft.MinecraftLauncher_1.0.0.0_x64__8wekyb3d8bbwe\\Minecraft.exe",
         
+        // Xbox Game Pass locations
+        "C:\\XboxGames\\Minecraft Launcher\\Content\\MinecraftLauncher.exe",
+        "C:\\Program Files\\XboxGames\\Minecraft Launcher\\Content\\MinecraftLauncher.exe",
+        
         // Legacy locations
         "C:\\Program Files (x86)\\Minecraft\\MinecraftLauncher.exe",
         "C:\\Program Files\\Minecraft\\MinecraftLauncher.exe",
@@ -43,6 +47,9 @@ pub fn find_minecraft_launcher() -> Option<PathBuf> {
             user_dir.join("Downloads\\Minecraft Launcher\\MinecraftLauncher.exe"),
             user_dir.join("Desktop\\Minecraft Launcher\\MinecraftLauncher.exe"),
             user_dir.join("AppData\\Local\\Packages\\Microsoft.4297127D64EC6_8wekyb3d8bbwe\\LocalCache\\Local\\Minecraft\\MinecraftLauncher.exe"),
+            
+            // Xbox Game Pass user-specific locations
+            user_dir.join("AppData\\Local\\Packages\\Microsoft.MinecraftUWP_8wekyb3d8bbwe\\LocalState\\MinecraftLauncher.exe"),
         ];
         
         for path in user_search_paths {
@@ -74,10 +81,11 @@ fn search_drive_for_launcher(drive: char) -> Option<PathBuf> {
         return None;
     }
     
-    // Only search in Program Files directories to keep search fast
+    // Search in common directories to keep search fast
     let search_dirs = vec![
         root.join("Program Files (x86)"),
         root.join("Program Files"),
+        root.join("XboxGames"),  // Xbox Game Pass installations
     ];
     
     for dir in search_dirs {
@@ -96,6 +104,13 @@ fn search_drive_for_launcher(drive: char) -> Option<PathBuf> {
                         if launcher_path.exists() {
                             debug!("Found Minecraft launcher at: {}", launcher_path.display());
                             return Some(launcher_path);
+                        }
+                        
+                        // Also check Xbox Game Pass "Content" subfolder
+                        let content_launcher = path.join("Content\\MinecraftLauncher.exe");
+                        if content_launcher.exists() {
+                            debug!("Found Minecraft launcher in Content folder: {}", content_launcher.display());
+                            return Some(content_launcher);
                         }
                     }
                 }
