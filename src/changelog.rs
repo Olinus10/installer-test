@@ -84,7 +84,7 @@ pub async fn fetch_changelog(
     http_client: &crate::CachedHttpClient
 ) -> Result<Changelog, String> {
     
-    let base_url = "https://cdn.jsdelivr.net/gh/Wynncraft-Overhaul/majestic-overhaul@latest/";
+    let base_url = "https://raw.githubusercontent.com/Wynncraft-Overhaul/majestic-overhaul/master/";
     let changelog_url = format!("{}changelog.json", base_url);
     
     let mut changelog_resp = match http_client.get_async(changelog_url.clone()).await {
