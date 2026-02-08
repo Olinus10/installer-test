@@ -68,7 +68,7 @@ pub fn check_modpack_update(universal_version: &str, local_version: Option<&str>
 }
 
 // Default URL for presets - UPDATED to new repository
-const DEFAULT_PRESETS_URL: &str = "https://cdn.jsdelivr.net/gh/Wynncraft-Overhaul/majestic-overhaul@latest/presets.json";
+const DEFAULT_PRESETS_URL: &str = "https://raw.githubusercontent.com/Wynncraft-Overhaul/majestic-overhaul/master/presets.json";
 
 impl Preset {
     // Apply this preset to an installation, returning the list of enabled features
@@ -96,7 +96,7 @@ impl Preset {
 
 // Function to load presets from a URL - UPDATED to use new repository
 pub async fn load_presets(http_client: &CachedHttpClient, url: Option<&str>) -> Result<Vec<Preset>, ManifestError> {
-    let presets_url = url.unwrap_or("https://cdn.jsdelivr.net/gh/Wynncraft-Overhaul/majestic-overhaul@latest/presets.json");
+    let presets_url = url.unwrap_or("https://raw.githubusercontent.com/Wynncraft-Overhaul/majestic-overhaul/master/presets.json");
     debug!("Loading presets from: {}", presets_url);
     
     // Add retry logic for more reliability
