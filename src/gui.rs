@@ -887,14 +887,42 @@ pub fn SimplifiedInstallationWizard(props: InstallationCreationProps) -> Element
             let minecraft_version = unwrapped_manifest.minecraft_version.clone();
             let loader_type = unwrapped_manifest.loader.r#type.clone();
             let loader_version = unwrapped_manifest.loader.version.clone();
-            
+
+
+            // State management
+            let app_props = use_context::<AppProps>();
+            let config = use_signal(|| app_props.config);
+            let launcher = match get_launcher(&config.read().launcher) {
+                Ok(l) =>
+                match l {
+                    Launcher::Vanilla(_) => {
+                        Some("vanilla".to_string())
+                    }
+                    Launcher::MultiMC(a) => {
+                        match a.ends_with("PrismLauncher") {
+                            true => {
+                                Some("prismlauncher".to_string())
+                            }
+                            false => {
+                                Some("multimc".to_string())
+                            }
+                        }
+                    }
+                }
+                ,
+                Err(e) => {
+                    error!("Failed to load launcher: {} - {}", config.read().launcher, e);
+                    None
+                },
+            };
+
             // Create a basic custom installation with proper defaults
             let mut installation = Installation::new_custom(
                 installation_name.clone(),
                 minecraft_version,
                 loader_type,
                 loader_version,
-                "vanilla".to_string(),
+                launcher.unwrap(),
                 unwrapped_manifest.modpack_version.clone(),
             );
 
@@ -1255,7 +1283,8 @@ let mut proceed_with_update = {
         installation_status.set("Preparing installation...".to_string());
         
         let mut installation_clone = installation_for_update_clone.clone();
-        
+
+
         // Save the user's current selections as pending
         let current_features = enabled_features.read().clone();
         let current_preset = selected_preset.read().clone();
@@ -2694,7 +2723,8 @@ struct VersionProps {
 #[component]
 fn Version(mut props: VersionProps) -> Element {
     let installer_profile = props.installer_profile.clone();
-    
+
+
     // Add explicit debugging for initial state
     debug!("INITIAL STATE: installed={}, update_available={}", 
            installer_profile.installed, installer_profile.update_available);
@@ -2836,6 +2866,7 @@ fn Version(mut props: VersionProps) -> Element {
 
                     if !*installed.read() {
                         progress_status.set("Installing".to_string());
+                        log::info!("MATCHHHHHHHHHH!");
                         match crate::install(&installer_profile, move || {
                             install_progress.with_mut(|x| *x += 1);
                         })

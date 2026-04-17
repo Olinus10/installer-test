@@ -30,7 +30,7 @@ use std::sync::Mutex;
 use std::collections::HashMap;
 use std::fmt::{Debug, Display};
 use std::fs::File;
-use std::thread::sleep;
+use std::thread::{sleep, Thread};
 use std::time::Duration;
 use std::{backtrace::Backtrace, panic};
 use std::{
@@ -1098,7 +1098,17 @@ fn get_app_data() -> PathBuf {
 
 fn get_multimc_folder(multimc: &str) -> Result<PathBuf, String> {
     let path = match env::consts::OS {
-        "linux" => get_app_data().join(format!(".local/share/{}", multimc)),
+        "linux" => {
+            // For system packages
+            let lpath = get_app_data().join(format!(".local/share/{}", multimc));
+
+            if lpath.exists() {
+                lpath
+            } else {
+                // For Flatpak packages
+                get_app_data().join(format!(".var/app/org.prismlauncher.PrismLauncher/{}", multimc))
+            }
+        },
         "windows" | "macos" => get_app_data().join(multimc),
         _ => panic!("Unsupported os '{}'!", env::consts::OS),
     };
@@ -1161,7 +1171,7 @@ fn create_launcher_profile(
             .expect("No launcher selected!"),
         &manifest.uuid,
     );
-
+    
     match installer_profile
         .launcher
         .as_ref()
@@ -1346,7 +1356,7 @@ fn create_launcher_profile(
                 instance_path.join("mmc-pack.json"),
                 serde_json::to_string_pretty(&mmc_pack)?,
             )?;
-            
+
             debug!("Successfully created MultiMC/Prism instance: {} (UUID: {})", manifest.name, manifest.uuid);
         }
     }
@@ -2391,6 +2401,8 @@ async fn update<F: FnMut() + Clone>(installer_profile: &InstallerProfile, progre
     update_profile.manifest.mods = new_mods;
     update_profile.manifest.shaderpacks = new_shaderpacks;
     update_profile.manifest.resourcepacks = new_resourcepacks;
+
+
     let e = install(&update_profile, progress_callback).await;
     if e.is_ok() {
         info!("Updated modpack");
@@ -2402,6 +2414,7 @@ async fn update<F: FnMut() + Clone>(installer_profile: &InstallerProfile, progre
 
 fn get_launcher(string_representation: &str) -> Result<Launcher, String> {
     let mut launcher = string_representation.split('-').collect::<Vec<_>>();
+
     match *launcher.first().unwrap() {
         "vanilla" => Ok(Launcher::Vanilla(get_app_data())),
         "multimc" => {
