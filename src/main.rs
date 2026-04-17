@@ -1106,7 +1106,11 @@ fn get_multimc_folder(multimc: &str) -> Result<PathBuf, String> {
                 lpath
             } else {
                 // For Flatpak packages
-                get_app_data().join(format!(".var/app/org.prismlauncher.PrismLauncher/{}", multimc))
+                match multimc {
+                   "PrismLauncher" => get_app_data().join(format!(".var/app/org.prismlauncher.PrismLauncher/data/{}", multimc)),
+                    _ => {panic!("Unrecognized Path")}
+                }
+
             }
         },
         "windows" | "macos" => get_app_data().join(multimc),
