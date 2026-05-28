@@ -823,7 +823,9 @@ pub fn SimplifiedInstallationWizard(props: InstallationCreationProps) -> Element
     const MAX_NAME_LENGTH: usize = 15;
     
     // Suggested names based on existing installations count
-    let installations = use_context::<AppProps>().installations;
+    let app_props = use_context::<AppProps>();
+    let installations = app_props.installations;
+    let selected_launcher = app_props.config.launcher.clone();
     let installation_count = installations.len() + 1;
     let suggested_names = vec![
         format!("Overhaul {}", installation_count),
@@ -888,41 +890,13 @@ pub fn SimplifiedInstallationWizard(props: InstallationCreationProps) -> Element
             let loader_type = unwrapped_manifest.loader.r#type.clone();
             let loader_version = unwrapped_manifest.loader.version.clone();
 
-
-            // State management
-            let app_props = use_context::<AppProps>();
-            let config = use_signal(|| app_props.config);
-            let launcher = match get_launcher(&config.read().launcher) {
-                Ok(l) =>
-                match l {
-                    Launcher::Vanilla(_) => {
-                        Some("vanilla".to_string())
-                    }
-                    Launcher::MultiMC(a) => {
-                        match a.ends_with("PrismLauncher") {
-                            true => {
-                                Some("prismlauncher".to_string())
-                            }
-                            false => {
-                                Some("multimc".to_string())
-                            }
-                        }
-                    }
-                }
-                ,
-                Err(e) => {
-                    error!("Failed to load launcher: {} - {}", config.read().launcher, e);
-                    None
-                },
-            };
-
             // Create a basic custom installation with proper defaults
             let mut installation = Installation::new_custom(
                 installation_name.clone(),
                 minecraft_version,
                 loader_type,
                 loader_version,
-                launcher.unwrap(),
+                selected_launcher.clone(),
                 unwrapped_manifest.modpack_version.clone(),
             );
 
@@ -3278,14 +3252,13 @@ pub fn app() -> Element {
     let mut installations = use_signal(|| props.installations.clone());
 
     // Get launcher configuration
-    let launcher = match get_launcher(&config.read().launcher) {
-        Ok(l) => Some(l),
-        Err(e) => {
-            error!("Failed to load launcher: {} - {}", config.read().launcher, e);
-            None
-        },
-    };
-    let has_launcher = launcher.is_some();
+        let has_launcher = match get_launcher(&config.read().launcher) {
+            Ok(_) => true,
+            Err(e) => {
+                error!("Failed to load launcher: {} - {}", config.read().launcher, e);
+                false
+            }
+        };
 
     // Load universal manifest with error handling
     let has_launcher_copy = has_launcher;
