@@ -1331,7 +1331,7 @@ let metadata = BackupMetadata {
             local_manifest: None,
             changelog: None,
         };
-        
+
         // Install or update based on current state
         if !self.installed {
             crate::install(&installer_profile, progress_callback).await?;
@@ -2228,11 +2228,13 @@ pub fn load_installation(id: &str) -> Result<Installation, String> {
     if installation.pre_install_features.is_empty() && !installation.enabled_features.is_empty() {
         installation.pre_install_features = installation.enabled_features.clone();
     }
-    
+
+
     if installation.installed_features.is_empty() && installation.installed {
         installation.installed_features = installation.enabled_features.clone();
     }
-    
+
+
     Ok(installation)
 }
 
