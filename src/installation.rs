@@ -1309,15 +1309,7 @@ let metadata = BackupMetadata {
         manifest.name = self.name.clone();
         
         // Create launcher
-        let launcher = match self.launcher_type.as_str() {
-            "vanilla" => {
-                let app_data = crate::get_app_data();
-                Ok(crate::Launcher::Vanilla(app_data))
-            },
-            "multimc" => crate::get_multimc_folder("MultiMC").map(crate::Launcher::MultiMC),
-            "prismlauncher" => crate::get_multimc_folder("PrismLauncher").map(crate::Launcher::MultiMC),
-            _ => Err(format!("Unsupported launcher type: {}", self.launcher_type)),
-        }?;
+        let launcher = crate::get_launcher(&self.launcher_type)?;
         
         let installer_profile = crate::InstallerProfile {
             manifest,
