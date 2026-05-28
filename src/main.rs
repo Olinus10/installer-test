@@ -30,7 +30,7 @@ use std::sync::Mutex;
 use std::collections::HashMap;
 use std::fmt::{Debug, Display};
 use std::fs::File;
-use std::thread::{sleep, Thread};
+use std::thread::sleep;
 use std::time::Duration;
 use std::{backtrace::Backtrace, panic};
 use std::{
