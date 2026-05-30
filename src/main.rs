@@ -1248,6 +1248,8 @@ fn create_launcher_profile(
             };
 
             let lp_file_path = get_minecraft_folder().join(Path::new("launcher_profiles.json"));
+
+            fs::create_dir_all(get_minecraft_folder())?;
             
             // Ensure launcher_profiles.json exists
             if !lp_file_path.exists() {
@@ -2153,14 +2155,8 @@ async fn install<F: FnMut() + Clone>(installer_profile: &InstallerProfile, mut p
 
     // Download icon if needed
     let icon_img = if manifest.icon {
-        let icon_url = format!(
-            "{}{}{}src/assets/icon.png",
-            crate::GH_RAW,
-            installer_profile.modpack_source,
-            installer_profile.modpack_branch
-        );
-        
-        match http_client.get_async(&icon_url).await {
+        let icon_url = "https://raw.githubusercontent.com/Wynncraft-Overhaul/installer/master/src/assets/icon.png";
+        match http_client.get_async(icon_url).await {
             Ok(mut resp) => {
                 match resp.bytes().await {
                     Ok(bytes) => {
