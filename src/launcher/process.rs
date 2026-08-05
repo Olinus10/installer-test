@@ -1,9 +1,13 @@
+Got it. Here's all five, in order. I'll give you the entire file for the two small ones (process.rs, launcher_finder.rs you already have) and replace-this-function-with-this blocks for the three large files (main.rs, installation.rs, gui.rs).
+
+File 2 of 5 — src/launcher/process.rs (entire file — replace the whole file)
+rust
 use std::process::Command;
 use log::{debug, error, warn, info};
 use std::fmt;
 use std::path::PathBuf;
 
-use crate::launcher::launcher_finder::get_launcher_path;
+use crate::launcher::launcher_finder::{get_launcher_path, find_mmc_like_launcher, MmcLikeLauncher, MmcLikeCommand};
 
 #[derive(Debug)]
 enum LauncherType {
@@ -163,30 +167,32 @@ If problems persist, you may need to reinstall Minecraft.",
 
 // Launch MultiMC with the specified instance
 fn launch_multimc(profile_id: &str) -> Result<(), String> {
-    let multimc_path = crate::get_multimc_folder("MultiMC")
-        .map_err(|e| format!("Failed to find MultiMC folder: {}", e))?;
-    
-    let executable = if cfg!(target_os = "windows") {
-        multimc_path.join("MultiMC.exe")
-    } else if cfg!(target_os = "macos") {
-        multimc_path.join("MultiMC.app/Contents/MacOS/MultiMC")
-    } else {
-        multimc_path.join("MultiMC")
+    let cmd = find_mmc_like_launcher(MmcLikeLauncher::MultiMC).ok_or_else(|| {
+        format!(
+            "Could not find the MultiMC executable on this system.\n\n\
+            Please launch MultiMC manually and select the instance '{}'.",
+            profile_id
+        )
+    })?;
+
+    debug!("Launching MultiMC with instance {} via {:?}", profile_id, cmd);
+
+    let spawn_result = match &cmd {
+        // MultiMC's own launch flag is "-l"
+        MmcLikeCommand::Direct(path) => Command::new(path).arg("-l").arg(profile_id).spawn(),
+        MmcLikeCommand::Flatpak(app_id) => Command::new("flatpak")
+            .arg("run")
+            .arg(app_id)
+            .arg("-l")
+            .arg(profile_id)
+            .spawn(),
     };
-    
-    debug!("Launching MultiMC with instance {}", profile_id);
-    debug!("MultiMC executable path: {:?}", executable);
-    
-    // Launch MultiMC with the instance
-    let command = Command::new(&executable)
-        .arg("--launch").arg(profile_id)
-        .spawn();
-        
-    match command {
+
+    match spawn_result {
         Ok(_) => {
             debug!("MultiMC launched successfully with instance: {}", profile_id);
             Ok(())
-        },
+        }
         Err(e) => {
             error!("Failed to start MultiMC: {}", e);
             Err(format!("Failed to start MultiMC: {}", e))
@@ -196,33 +202,36 @@ fn launch_multimc(profile_id: &str) -> Result<(), String> {
 
 // Launch Prism Launcher with the specified instance
 fn launch_prism(profile_id: &str) -> Result<(), String> {
-    let prism_path = crate::get_multimc_folder("PrismLauncher")
-        .map_err(|e| format!("Failed to find Prism Launcher folder: {}", e))?;
-    
-    let executable = if cfg!(target_os = "windows") {
-        prism_path.join("prismlauncher.exe")
-    } else if cfg!(target_os = "macos") {
-        prism_path.join("prismlauncher.app/Contents/MacOS/prismlauncher")
-    } else {
-        prism_path.join("prismlauncher")
+    let cmd = find_mmc_like_launcher(MmcLikeLauncher::Prism).ok_or_else(|| {
+        format!(
+            "Could not find the Prism Launcher executable on this system.\n\n\
+            Please launch Prism Launcher manually and select the instance '{}'.",
+            profile_id
+        )
+    })?;
+
+    debug!("Launching Prism Launcher with instance {} via {:?}", profile_id, cmd);
+
+    let spawn_result = match &cmd {
+        MmcLikeCommand::Direct(path) => Command::new(path).arg("-l").arg(profile_id).spawn(),
+        MmcLikeCommand::Flatpak(app_id) => Command::new("flatpak")
+            .arg("run")
+            .arg(app_id)
+            .arg("-l")
+            .arg(profile_id)
+            .spawn(),
     };
-    
-    debug!("Launching Prism Launcher with instance {}", profile_id);
-    
-    // Launch Prism with the instance
-    match Command::new(executable)
-        .arg("-l")
-        .arg(profile_id)
-        .spawn() {
-            Ok(_) => {
-                debug!("Prism Launcher launched successfully with instance: {}", profile_id);
-                Ok(())
-            },
-            Err(e) => {
-                error!("Failed to start Prism Launcher: {}", e);
-                Err(format!("Failed to start Prism Launcher: {}", e))
-            }
+
+    match spawn_result {
+        Ok(_) => {
+            debug!("Prism Launcher launched successfully with instance: {}", profile_id);
+            Ok(())
         }
+        Err(e) => {
+            error!("Failed to start Prism Launcher: {}", e);
+            Err(format!("Failed to start Prism Launcher: {}", e))
+        }
+    }
 }
 
 // Launch custom MultiMC with the specified instance
