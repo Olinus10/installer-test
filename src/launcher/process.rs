@@ -1,7 +1,3 @@
-Got it. Here's all five, in order. I'll give you the entire file for the two small ones (process.rs, launcher_finder.rs you already have) and replace-this-function-with-this blocks for the three large files (main.rs, installation.rs, gui.rs).
-
-File 2 of 5 — src/launcher/process.rs (entire file — replace the whole file)
-rust
 use std::process::Command;
 use log::{debug, error, warn, info};
 use std::fmt;
