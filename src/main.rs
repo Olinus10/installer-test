@@ -767,6 +767,31 @@ impl Display for DownloadError {
 }
 
 impl std::error::Error for DownloadError {}
+impl DownloadError {
+    /// The name/id of the item that failed, for surfacing in error.log / UI
+    /// without needing to match on every variant at the call site.
+    fn item_name(&self) -> &str {
+        match self {
+            DownloadError::Non200StatusCode(item, _) => item,
+            DownloadError::FailedToParseResponse(item, _) => item,
+            DownloadError::IoError(item, _) => item,
+            DownloadError::HttpError(item, _) => item,
+            DownloadError::MissingFilename(item) => item,
+            DownloadError::CouldNotFindItem(item) => item,
+            DownloadError::MedafireMissingDDL(item) => item,
+        }
+    }
+}
+
+/// A single item that failed to download during install/update, kept around
+/// so we can write error.log and/or show the user a proceed/cancel prompt
+/// instead of aborting the whole installation.
+#[derive(Debug, Clone)]
+pub struct FailedItem {
+    pub kind: String,   // "mod" | "shaderpack" | "resourcepack" | "include" | "remote_include"
+    pub name: String,
+    pub error: String,
+}
 
 #[derive(Debug)]
 enum LauncherProfileError {
@@ -1300,49 +1325,101 @@ fn create_launcher_profile(
             // MultiMC/Prism Launcher profile creation
             let instance_path = root.join("instances").join(&manifest.uuid);
             fs::create_dir_all(&instance_path)?;
-            
-            // Save icon if available
-            if let Some(icon_img) = icon_img {
-                let icon_path = instance_path.join("icon.png");
+
+            // Save icon into the launcher's shared icons/ folder (not the instance
+            // folder) and reference it via iconKey, matching how MultiMC/Prism
+            // actually resolve custom instance icons.
+            let icons_dir = root.join("icons");
+            let _ = fs::create_dir_all(&icons_dir);
+            let icon_key = if let Some(icon_img) = icon_img {
+                let icon_path = icons_dir.join(format!("{}.png", manifest.uuid));
                 match icon_img.save(&icon_path) {
-                    Ok(_) => debug!("Saved instance icon to: {:?}", icon_path),
-                    Err(e) => debug!("Failed to save instance icon: {}", e),
+                    Ok(_) => {
+                        debug!("Saved instance icon to: {:?}", icon_path);
+                        manifest.uuid.clone()
+                    }
+                    Err(e) => {
+                        debug!("Failed to save instance icon: {}", e);
+                        String::from("default")
+                    }
                 }
             } else if manifest.icon {
-                // Use embedded icon as fallback
                 let embedded_icon = image::load_from_memory(include_bytes!("assets/icon.png")).unwrap();
-                let icon_path = instance_path.join("icon.png");
+                let icon_path = icons_dir.join(format!("{}.png", manifest.uuid));
                 match embedded_icon.save(&icon_path) {
-                    Ok(_) => debug!("Saved embedded icon to: {:?}", icon_path),
-                    Err(e) => debug!("Failed to save embedded icon: {}", e),
+                    Ok(_) => {
+                        debug!("Saved embedded icon to: {:?}", icon_path);
+                        manifest.uuid.clone()
+                    }
+                    Err(e) => {
+                        debug!("Failed to save embedded icon: {}", e);
+                        String::from("default")
+                    }
                 }
+            } else {
+                String::from("default")
+            };
+
+            let instance_cfg_path = instance_path.join("instance.cfg");
+
+            // Only write instance.cfg if it doesn't already exist, so we don't
+            // clobber settings the user has changed inside MultiMC/Prism itself
+            // on every subsequent update/modify.
+            if !instance_cfg_path.exists() {
+                // NOTE: the correct MultiMC/Prism override keys are
+                // MaxMemAlloc / MinMemAlloc, NOT MaxMemory / MinMemory.
+                // Using the wrong keys means OverrideMemory=true is set but
+                // silently ignored, and the instance falls back to whatever
+                // the launcher's global default happens to be.
+                let max_mem = manifest
+                    .max_mem
+                    .map(|v| format!("\nMaxMemAlloc={}", v))
+                    .unwrap_or_default();
+                let min_mem = manifest
+                    .min_mem
+                    .map(|v| format!("\nMinMemAlloc={}", v))
+                    .unwrap_or_default();
+                let override_mem = if max_mem.is_empty() && min_mem.is_empty() {
+                    ""
+                } else {
+                    "\nOverrideMemory=true"
+                };
+
+                let jvm_args = manifest
+                    .java_args
+                    .as_ref()
+                    .map(|v| format!("\nJvmArgs={}\nOverrideJavaArgs=true", v))
+                    .unwrap_or_default();
+
+                let instance_cfg = format!(
+                    "InstanceType=OneSix\niconKey={}\nname={}{}{}{}{}\n",
+                    icon_key, manifest.name, max_mem, min_mem, override_mem, jvm_args
+                );
+
+                fs::write(&instance_cfg_path, instance_cfg)?;
+            } else {
+                debug!("instance.cfg already exists for {}, leaving user settings intact", manifest.uuid);
             }
             
-            // Create instance.cfg for MultiMC/Prism
-            let instance_cfg = format!(
-                "InstanceType=OneSix\nname={}\nOverrideMemory=true\nMaxMemory={}\nMinMemory={}\nOverrideJavaArgs=true\nJvmArgs={}\nMinecraftWinWidth=854\nMinecraftWinHeight=480\n",
-                manifest.name,
-                manifest.max_mem.unwrap_or(4096),
-                manifest.min_mem.unwrap_or(1024),
-                manifest.java_args.as_ref().unwrap_or(&String::from("-XX:+UseG1GC"))
-            );
-            
-            fs::write(instance_path.join("instance.cfg"), instance_cfg)?;
-            
-            // Create mmc-pack.json for MultiMC/Prism
+            // Create mmc-pack.json for MultiMC/Prism.
+            // Deliberately omit cachedVolatile: that field is metadata the
+            // launcher writes itself once it has resolved a component against
+            // its online meta index. Setting it ourselves without the backing
+            // cache data can make the launcher think the pack needs
+            // re-resolving before it can launch.
             let mmc_pack = MMCPack {
                 components: vec![
                     MMCComponent {
-                        cachedVolatile: Some(true),
-                        dependencyOnly: Some(false),
-                        important: Some(false),
+                        cachedVolatile: None,
+                        dependencyOnly: None,
+                        important: Some(true),
                         uid: String::from("net.minecraft"),
                         version: manifest.loader.minecraft_version.clone(),
                     },
                     MMCComponent {
-                        cachedVolatile: Some(true),
-                        dependencyOnly: Some(false),
-                        important: Some(false),
+                        cachedVolatile: None,
+                        dependencyOnly: None,
+                        important: None,
                         uid: match &manifest.loader.r#type[..] {
                             "fabric" => String::from("net.fabricmc.fabric-loader"),
                             "quilt" => String::from("org.quiltmc.quilt-loader"),
@@ -1354,6 +1431,9 @@ fn create_launcher_profile(
                 formatVersion: 1,
             };
             
+            // mmc-pack.json IS always rewritten (unlike instance.cfg above) —
+            // this is what carries Minecraft/loader version bumps on update,
+            // so it needs to reflect the current manifest every time.
             fs::write(
                 instance_path.join("mmc-pack.json"),
                 serde_json::to_string_pretty(&mmc_pack)?,
@@ -1495,7 +1575,8 @@ async fn download_helper<T: Downloadable + Debug, F: FnMut() + Clone>(
     progress_callback: F,
     is_update: bool,
     ignore_update_items: &std::collections::HashSet<String>,
-) -> Result<Vec<T>, DownloadError> {
+    item_kind: &str,
+) -> Result<(Vec<T>, Vec<FailedItem>), DownloadError> {
     let results = futures::stream::iter(items.into_iter().map(|item| async {
         // FIXED: Proper logic for determining if item should be included
         let should_include = if item.get_id() == "default" {
@@ -1515,10 +1596,11 @@ async fn download_helper<T: Downloadable + Debug, F: FnMut() + Clone>(
         
         if item.get_path().is_none() && should_include && !should_ignore_update {
             debug!("Downloading item: {} (ID: {})", item.get_name(), item.get_id());
-            let path = item
+            let download_result = item
                 .download(modpack_root, loader_type, http_client)
-                .await?;
+                .await;
             (progress_callback.clone())();
+            let path = download_result?;
             Ok(T::new(
                 item.get_name().to_owned(),
                 item.get_source().to_owned(),
@@ -1563,13 +1645,26 @@ async fn download_helper<T: Downloadable + Debug, F: FnMut() + Clone>(
     .await;
     
     let mut return_vec = vec![];
+    let mut failures = vec![];
     for res in results {
         match res {
             Ok(v) => return_vec.push(v),
-            Err(e) => return Err(e),
+            Err(e) => {
+                warn!(
+                    "Skipping {} '{}' after download failure: {}",
+                    item_kind,
+                    e.item_name(),
+                    e
+                );
+                failures.push(FailedItem {
+                    kind: item_kind.to_string(),
+                    name: e.item_name().to_string(),
+                    error: e.to_string(),
+                });
+            }
         }
     }
-    Ok(return_vec)
+    Ok((return_vec, failures))
 }
 
 async fn download_zip(name: &str, http_client: &CachedHttpClient, url: &str, path: &Path) -> Result<Vec<String>, DownloadError> {
@@ -1668,7 +1763,7 @@ fn resolve_dependencies(
 
 // In src/main.rs - Update the install function's feature resolution section
 
-async fn install<F: FnMut() + Clone>(installer_profile: &InstallerProfile, mut progress_callback: F) -> Result<(), String> {
+async fn install<F: FnMut() + Clone>(installer_profile: &InstallerProfile, mut progress_callback: F) -> Result<Vec<FailedItem>, String> {
     info!("Installing modpack");
     
     // Get the universal manifest to properly determine what should be installed
@@ -1900,8 +1995,13 @@ async fn install<F: FnMut() + Clone>(installer_profile: &InstallerProfile, mut p
     
     debug!("Starting downloads with weighted progress...");
     
+    // Collects every item that failed to download across all categories, so a
+    // single dead link doesn't abort the whole installation. Written out to
+    // error.log at the end.
+    let mut all_failures: Vec<FailedItem> = Vec::new();
+    
     // Download components with appropriate weight callbacks
-    let mods_w_path = match download_helper(
+    let (mods_w_path, mod_failures) = match download_helper(
         manifest.mods.clone(),
         &effective_enabled_features,
         modpack_root.as_path(),
@@ -1910,14 +2010,16 @@ async fn install<F: FnMut() + Clone>(installer_profile: &InstallerProfile, mut p
         mod_callback,
         is_update,
         &ignore_update_items,
+        "mod",
     )
     .await
     {
         Ok(v) => v,
         Err(e) => return Err(e.to_string()),
     };
+    all_failures.extend(mod_failures);
     
-    let shaderpacks_w_path = match download_helper(
+    let (shaderpacks_w_path, shader_failures) = match download_helper(
         manifest.shaderpacks.clone(),
         &effective_enabled_features,
         modpack_root.as_path(),
@@ -1926,14 +2028,16 @@ async fn install<F: FnMut() + Clone>(installer_profile: &InstallerProfile, mut p
         shader_callback,
         is_update,
         &ignore_update_items,
+        "shaderpack",
     )
     .await
     {
         Ok(v) => v,
         Err(e) => return Err(e.to_string()),
     };
+    all_failures.extend(shader_failures);
     
-    let resourcepacks_w_path = match download_helper(
+    let (resourcepacks_w_path, resource_failures) = match download_helper(
         manifest.resourcepacks.clone(),
         &effective_enabled_features,
         modpack_root.as_path(),
@@ -1942,12 +2046,14 @@ async fn install<F: FnMut() + Clone>(installer_profile: &InstallerProfile, mut p
         resource_callback,
         is_update,
         &ignore_update_items,
+        "resourcepack",
     )
     .await
     {
         Ok(v) => v,
         Err(e) => return Err(e.to_string()),
     };
+    all_failures.extend(resource_failures);
     
     let mut included_files: HashMap<String, crate::Included> = HashMap::new();
     
@@ -2020,24 +2126,49 @@ async fn install<F: FnMut() + Clone>(installer_profile: &InstallerProfile, mut p
                                         },
                                         Err(e) => {
                                             error!("Failed to write include file {}: {}", inc.location, e);
+                                            all_failures.push(FailedItem {
+                                                kind: "include".to_string(),
+                                                name: inc.location.clone(),
+                                                error: format!("Failed to write file: {}", e),
+                                            });
                                         }
                                     }
                                 },
                                 Err(e) => {
                                     error!("Failed to read include file bytes: {}", e);
+                                    all_failures.push(FailedItem {
+                                        kind: "include".to_string(),
+                                        name: inc.location.clone(),
+                                        error: format!("Failed to read response: {}", e),
+                                    });
                                 }
                             }
                         } else {
                             error!("Failed to download include {}: HTTP {}", inc.location, response.status());
+                            all_failures.push(FailedItem {
+                                kind: "include".to_string(),
+                                name: inc.location.clone(),
+                                error: format!("HTTP {}", response.status()),
+                            });
                         }
                     },
                     Err(e) => {
                         error!("Failed to download include {}: {}", inc.location, e);
+                        all_failures.push(FailedItem {
+                            kind: "include".to_string(),
+                            name: inc.location.clone(),
+                            error: e.to_string(),
+                        });
                     }
                 }
             } else if is_directory {
                 if let Err(e) = fs::create_dir_all(&target_path) {
                     error!("Failed to create directory {}: {}", target_path.display(), e);
+                    all_failures.push(FailedItem {
+                        kind: "include".to_string(),
+                        name: inc.location.clone(),
+                        error: format!("Failed to create directory: {}", e),
+                    });
                     continue;
                 }
                 
@@ -2060,12 +2191,18 @@ async fn install<F: FnMut() + Clone>(installer_profile: &InstallerProfile, mut p
                     },
                     Err(e) => {
                         error!("Failed to download include directory {}: {}", inc.location, e);
+                        all_failures.push(FailedItem {
+                            kind: "include".to_string(),
+                            name: inc.location.clone(),
+                            error: e.to_string(),
+                        });
                     }
                 }
             }
         }
     }
     
+    // Handle remote includes with weighted progress (highest weight!)
     // Handle remote includes with weighted progress (highest weight!)
     if let Some(remote_includes) = &manifest.remote_include {
         debug!("Processing {} remote includes from manifest", remote_includes.len());
@@ -2112,7 +2249,14 @@ async fn install<F: FnMut() + Clone>(installer_profile: &InstallerProfile, mut p
                 },
                 Err(e) => {
                     error!("Failed to download remote include {}: {:?}", name, e);
-                    return Err(format!("Failed to download remote include {}: {:?}", name, e));
+                    all_failures.push(FailedItem {
+                        kind: "remote_include".to_string(),
+                        name: name.clone(),
+                        error: format!("{:?}", e),
+                    });
+                    // Still count the progress weight for this item so the
+                    // bar doesn't stall waiting on a file that will never load.
+                    remote_callback();
                 }
             }
         }
@@ -2228,8 +2372,37 @@ async fn install<F: FnMut() + Clone>(installer_profile: &InstallerProfile, mut p
         }
     }
 
+    // Write error.log in the game directory if anything was skipped, so the
+    // user has a short, readable summary instead of needing to dig through
+    // installer.log.
+    if !all_failures.is_empty() {
+        let mut log_contents = format!(
+            "Installation completed with {} error(s). The following files could not be \
+            downloaded and were skipped:\n\n",
+            all_failures.len()
+        );
+        for failure in &all_failures {
+            log_contents.push_str(&format!(
+                "- [{}] {}: {}\n",
+                failure.kind, failure.name, failure.error
+            ));
+        }
+        log_contents.push_str(
+            "\nYou can try reinstalling later, or report these to the modpack \
+            maintainers if the problem persists.\n",
+        );
+
+        match fs::write(modpack_root.join("error.log"), &log_contents) {
+            Ok(_) => warn!(
+                "Installation finished with {} skipped item(s); wrote error.log",
+                all_failures.len()
+            ),
+            Err(e) => error!("Failed to write error.log: {}", e),
+        }
+    }
+
     info!("Modpack installation completed successfully!");
-    Ok(())
+    Ok(all_failures)
 }
 
 // Add these helper functions for downloading includes
@@ -2365,7 +2538,7 @@ fn remove_old_items<T: Downloadable + PartialEq + Clone + Debug>(
 
 // Why haven't I split this into multiple files? That's a good question. I forgot, and I can't be bothered to do it now.
 // TODO(Split project into multiple files to improve maintainability)
-async fn update<F: FnMut() + Clone>(installer_profile: &InstallerProfile, progress_callback: F)-> Result<(), String> {
+async fn update<F: FnMut() + Clone>(installer_profile: &InstallerProfile, progress_callback: F)-> Result<Vec<FailedItem>, String> {
     info!("Updating modpack");
     debug!("installer_profile = {installer_profile:#?}");
     let local_manifest: Manifest = match fs::read_to_string(
