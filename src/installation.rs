@@ -1293,7 +1293,7 @@ let metadata = BackupMetadata {
         &self, 
         http_client: &CachedHttpClient,
         progress_callback: F
-    ) -> Result<(), String> {
+    ) -> Result<Vec<crate::FailedItem>, String> {
         // Get the universal manifest
         let universal_manifest = crate::universal::load_universal_manifest(http_client, None).await
             .map_err(|e| format!("Failed to load universal manifest: {}", e))?;
@@ -1325,13 +1325,13 @@ let metadata = BackupMetadata {
         };
 
         // Install or update based on current state
-        if !self.installed {
-            crate::install(&installer_profile, progress_callback).await?;
+        let failures = if !self.installed {
+            crate::install(&installer_profile, progress_callback).await?
         } else {
-            crate::update(&installer_profile, progress_callback).await?;
-        }
+            crate::update(&installer_profile, progress_callback).await?
+        };
         
-        Ok(())
+        Ok(failures)
     }
 
     pub async fn check_for_updates(&mut self, http_client: &CachedHttpClient, presets: &[Preset]) -> Result<bool, String> {
@@ -1425,7 +1425,8 @@ let metadata = BackupMetadata {
     }
 
     pub async fn install_or_update(&self, http_client: &CachedHttpClient) -> Result<(), String> {
-        self.install_or_update_with_progress(http_client, || {}).await
+        self.install_or_update_with_progress(http_client, || {}).await?;
+        Ok(())
     }
     
     // Update the play method to increment launch count
