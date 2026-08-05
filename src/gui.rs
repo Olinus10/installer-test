@@ -1388,7 +1388,24 @@ let mut proceed_with_update = {
                     
                     // Run the installation
                     match installation_clone.install_or_update_with_progress(&http_client, progress_callback).await {
-                        Ok(_) => {
+                        Ok(failures) => {
+                            if !failures.is_empty() {
+                                let summary: String = failures
+                                    .iter()
+                                    .map(|f| format!("[{}] {}: {}", f.kind, f.name, f.error))
+                                    .collect::<Vec<_>>()
+                                    .join("; ");
+                                warn!(
+                                    "Installation completed with {} skipped item(s): {}",
+                                    failures.len(),
+                                    summary
+                                );
+                                installation_error_clone.set(Some(format!(
+                                    "Installed successfully, but {} file(s) could not be downloaded and were skipped \
+                                    (see error.log in the installation folder for details).",
+                                    failures.len()
+                                )));
+                            }
                             // NOW handle overhead tasks with proper progress updates
                             status.set("Finalizing installation...".to_string());
                             
@@ -2846,7 +2863,7 @@ fn Version(mut props: VersionProps) -> Element {
                         })
                         .await
                         {
-                            Ok(_) => {
+                            Ok(failures) => {
                                 installed.set(true);
                                 debug!("SET INSTALLED: true");
                                 
@@ -2867,6 +2884,45 @@ fn Version(mut props: VersionProps) -> Element {
                                         installer_profile.manifest.modpack_version
                                     ),
                                 );
+
+                                if !failures.is_empty() {
+                                    let failure_lines: String = failures
+                                        .iter()
+                                        .map(|f| format!("[{}] {}: {}", f.kind, f.name, f.error))
+                                        .collect::<Vec<_>>()
+                                        .join("\n");
+                                    let count = failures.len();
+                                    let uuid_for_cancel = installer_profile.manifest.uuid.clone();
+                                    let launcher_for_cancel = installer_profile.launcher.clone();
+                                    let mut installed_for_cancel = installed;
+
+                                    use_context::<ModalContext>().open(
+                                        format!("{} file(s) could not be installed", count),
+                                        rsx!(
+                                            p {
+                                                "The rest of the modpack installed successfully, but the following files "
+                                                "could not be downloaded and were skipped. A copy of this list was saved "
+                                                "to error.log in the installation's game folder."
+                                            }
+                                            textarea { class: "error-area", readonly: true, "{failure_lines}" }
+                                            p {
+                                                "You can continue using this installation as-is, or cancel to remove it."
+                                            }
+                                        ),
+                                        true,
+                                        Some(move |canceled: bool| {
+                                            if canceled {
+                                                if let Some(launcher) = &launcher_for_cancel {
+                                                    if let Err(e) = crate::uninstall(launcher, &uuid_for_cancel) {
+                                                        error!("Failed to roll back installation after cancel: {}", e);
+                                                    }
+                                                }
+                                                installed_for_cancel.set(false);
+                                                debug!("Installation cancelled after download failures; rolled back");
+                                            }
+                                        }),
+                                    );
+                                }
                             }
                             Err(e) => {
                                 props.error.set(Some(
@@ -2885,7 +2941,7 @@ fn Version(mut props: VersionProps) -> Element {
                         })
                         .await
                         {
-                            Ok(_) => {
+                            Ok(failures) => {
                                 let _ = isahc::post(
                                     "https://tracking.commander07.workers.dev/track",
                                     format!(
@@ -2901,6 +2957,32 @@ fn Version(mut props: VersionProps) -> Element {
                                         installer_profile.manifest.enabled_features
                                     ),
                                 );
+
+                                if !failures.is_empty() {
+                                    // Note: unlike a fresh install, "cancel" here isn't offered as a
+                                    // destructive rollback — this operates on an already-installed,
+                                    // working pack, so we just surface what was skipped.
+                                    let failure_lines: String = failures
+                                        .iter()
+                                        .map(|f| format!("[{}] {}: {}", f.kind, f.name, f.error))
+                                        .collect::<Vec<_>>()
+                                        .join("\n");
+                                    let count = failures.len();
+
+                                    use_context::<ModalContext>().open(
+                                        format!("{} file(s) could not be updated", count),
+                                        rsx!(
+                                            p {
+                                                "The rest of the modpack updated successfully, but the following files "
+                                                "could not be downloaded and were skipped. A copy of this list was saved "
+                                                "to error.log in the installation's game folder."
+                                            }
+                                            textarea { class: "error-area", readonly: true, "{failure_lines}" }
+                                        ),
+                                        false,
+                                        Option::<fn(bool)>::None,
+                                    );
+                                }
                             }
                             Err(e) => {
                                 props.error.set(Some(
